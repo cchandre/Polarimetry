@@ -17,7 +17,7 @@ for it = 1:length(files)
     close(gcf)
 end
 
-% The data (.mat) used in this code are produced using the software
+% The data (.mat, .fig) used in this code are produced using the software
 % Polarimetry Analysis https://www.fresnel.fr/polarimetry/
 %
 % Copyright (c) 2020 Cristel Chandre.

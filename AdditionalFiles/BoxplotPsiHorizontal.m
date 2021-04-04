@@ -1,17 +1,30 @@
 function BoxplotPsiHorizontal
 %%
-%% Last modified by Cristel Chandre (March 25, 2021)
+%% Last modified by Cristel Chandre (March 29, 2021)
 %% Comments? cristel.chandre@univ-amu.fr 
 %%
 
-filename = uigetfile('*.xlsx');
-T = readtable(filename);
+psiminaxis = 100;
+psimaxaxis = 180;
+psimincolorbar = 40;
+psimaxcolorbar = 180;
+scatter_in_color_psi = false;
+scatter_in_color_cell = true;
 
+[filename, path] = uigetfile('*.xlsx');
+T = readtable([path filename]);
 X = table2array(T(:, 2:2:end));
+Nc = eraseBetween(table2array(T(:, 1:2:end)), 1, 'cell', 'Boundaries', 'inclusive');
+Nc = str2double(Nc);
+nbr_cells = length(unique(Nc(~isnan(Nc(:)))));
+label_cells = randperm(nbr_cells);
+for itcell = 1:nbr_cells
+    Nc(Nc==itcell) = label_cells(itcell);
+end
 
 name_boxes = char(T.Properties.VariableNames(2:2:end));
-
 number_boxes = numel(X(1,:));
+
 close all
 figure, hold on
 hc = boxplot(X, name_boxes, 'Notch', 'off', 'BoxStyle', 'outline', 'Colors', 'k', 'Symbol', 'kx', 'orientation', 'horizontal');
@@ -21,8 +34,25 @@ bx = findobj('Tag', 'boxplot');
 set(bx.Children(end-2*number_boxes:end), 'LineStyle', '-')
 for it = 1:number_boxes
     x = it + (rand(size(X(:, it)))-0.5)/10;
-    f = scatter(X(:, it), x, 'k', 'filled'); f.MarkerFaceAlpha = 0.5;
+    if scatter_in_color_psi
+        f = scatter(X(:, it), x, [], X(:, it), 'filled', 'MarkerEdgeColor', 'k'); f.MarkerFaceAlpha = 0.5;
+    elseif scatter_in_color_cell
+        f = scatter(X(:, it), x, [], Nc(:, it), 'filled', 'MarkerEdgeColor', 'k'); f.MarkerFaceAlpha = 0.5;
+    else
+        f = scatter(X(:, it), x, [], 'k', 'filled'); f.MarkerFaceAlpha = 0.5;
+    end
     vecdim(it) = sum(~isnan(X(:, it)));
+end
+xlim([psiminaxis psimaxaxis])
+xticks(psiminaxis:20:psimaxaxis)
+if scatter_in_color_psi 
+    colormap('jet')
+    c = colorbar;
+    caxis([psimincolorbar psimaxcolorbar])
+    c.Limits = [min(X(:)) max(X(:))];
+elseif scatter_in_color_cell
+    colormap(hsv(nbr_cells))
+    colorbar;
 end
 set(gca, 'Box', 'off', 'LineWidth', 2, 'YDir', 'reverse')
 disp(vecdim)
