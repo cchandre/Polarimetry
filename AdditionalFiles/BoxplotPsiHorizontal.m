@@ -11,6 +11,8 @@ psimaxcolorbar = 180;
 scatter_in_color_psi = false;
 scatter_in_color_cell = true;
 
+width = 0.7; % affects the spacing between boxplots
+
 [filename, path] = uigetfile('*.xlsx');
 T = readtable([path filename]);
 X = table2array(T(:, 2:2:end));
@@ -27,7 +29,7 @@ number_boxes = numel(X(1,:));
 
 close all
 figure, hold on
-hc = boxplot(X, name_boxes, 'Notch', 'off', 'BoxStyle', 'outline', 'Colors', 'k', 'Symbol', 'kx', 'orientation', 'horizontal');
+hc = boxplot(X, name_boxes, 'Notch', 'off', 'BoxStyle', 'outline', 'Colors', 'k', 'Symbol', 'kx', 'orientation', 'horizontal', 'Widths', width);
 set(hc, 'LineWidth', 2)
 set(gca, 'YTickLabel', name_boxes, 'FontSize', 25, 'FontName', 'Arial')
 bx = findobj('Tag', 'boxplot');
