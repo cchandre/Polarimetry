@@ -1,6 +1,6 @@
 function BoxplotPsiHorizontal
 %%
-%% Last modified by Cristel Chandre (March 29, 2021)
+%% Last modified by Cristel Chandre (April 7, 2021)
 %% Comments? cristel.chandre@univ-amu.fr 
 %%
 
@@ -51,12 +51,12 @@ if scatter_in_color_psi
     colormap('jet')
     c = colorbar;
     caxis([psimincolorbar psimaxcolorbar])
-    c.Limits = [min(X(:)) max(X(:))];
+    c.Visible = 'off';
 elseif scatter_in_color_cell
     colormap(hsv(nbr_cells))
-    colorbar;
 end
 set(gca, 'Box', 'off', 'LineWidth', 2, 'YDir', 'reverse')
+pbaspect([1 nbr_cells/24 1])
 disp(vecdim)
 
 % The data (.mat, .fig, .xlsx) used in this code are produced using the 
