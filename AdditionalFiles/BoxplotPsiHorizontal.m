@@ -56,7 +56,7 @@ elseif scatter_in_color_cell
     colormap(hsv(nbr_cells))
 end
 set(gca, 'Box', 'off', 'LineWidth', 2, 'YDir', 'reverse')
-pbaspect([1 nbr_cells/24 1])
+pbaspect([1 number_boxes/24 1])
 disp(vecdim)
 
 % The data (.mat, .fig, .xlsx) used in this code are produced using the 
