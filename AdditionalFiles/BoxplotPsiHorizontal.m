@@ -8,8 +8,8 @@ psiminaxis = 100;
 psimaxaxis = 180;
 psimincolorbar = 40;
 psimaxcolorbar = 180;
-scatter_in_color_psi = false;
-scatter_in_color_cell = true;
+scatter_in_color_psi = true;
+scatter_in_color_cell = false;
 
 boxplot_aspect_ratio = 24; % number of boxplots for 1:1 aspect ratio
 width = 0.7; % affects the spacing between boxplots
@@ -31,11 +31,6 @@ number_boxes = numel(X(1,:));
 
 close all
 figure, hold on
-hc = boxplot(X, name_boxes, 'Notch', 'off', 'BoxStyle', 'outline', 'Colors', 'k', 'Symbol', 'kx', 'orientation', 'horizontal', 'Widths', width);
-set(hc, 'LineWidth', 2)
-set(gca, 'YTickLabel', name_boxes, 'FontSize', 25, 'FontName', 'Arial')
-bx = findobj('Tag', 'boxplot');
-set(bx.Children(end-2*number_boxes:end), 'LineStyle', '-')
 for it = 1:number_boxes
     x = it + (rand(size(X(:, it)))-0.5) * width_scatter;
     if scatter_in_color_psi
@@ -47,6 +42,11 @@ for it = 1:number_boxes
     end
     vecdim(it) = sum(~isnan(X(:, it)));
 end
+hc = boxplot(X, name_boxes, 'Notch', 'off', 'BoxStyle', 'outline', 'Colors', 'k', 'Symbol', 'kx', 'orientation', 'horizontal', 'Widths', width);
+set(hc, 'LineWidth', 2)
+set(gca, 'YTickLabel', name_boxes, 'FontSize', 25, 'FontName', 'Arial')
+bx = findobj('Tag', 'boxplot');
+set(bx.Children(end-2*number_boxes:end), 'LineStyle', '-')
 xlim([psiminaxis psimaxaxis])
 xticks(psiminaxis:20:psimaxaxis)
 if scatter_in_color_psi 
