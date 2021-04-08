@@ -1,6 +1,6 @@
 function BoxplotPsiHorizontal
 %%
-%% Last modified by Cristel Chandre (April 7, 2021)
+%% Last modified by Cristel Chandre (April 8, 2021)
 %% Comments? cristel.chandre@univ-amu.fr 
 %%
 
@@ -11,6 +11,7 @@ psimaxcolorbar = 180;
 scatter_in_color_psi = false;
 scatter_in_color_cell = true;
 
+boxplot_aspect_ratio = 24; % number of boxplots for 1:1 aspect ratio
 width = 0.7; % affects the spacing between boxplots
 
 [filename, path] = uigetfile('*.xlsx');
@@ -56,7 +57,7 @@ elseif scatter_in_color_cell
     colormap(hsv(nbr_cells))
 end
 set(gca, 'Box', 'off', 'LineWidth', 2, 'YDir', 'reverse')
-pbaspect([1 number_boxes/24 1])
+pbaspect([1 number_boxes/boxplot_aspect_ratio 1])
 disp(vecdim)
 
 % The data (.mat, .fig, .xlsx) used in this code are produced using the 
