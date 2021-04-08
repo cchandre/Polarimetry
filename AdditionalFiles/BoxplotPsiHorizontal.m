@@ -13,6 +13,7 @@ scatter_in_color_cell = true;
 
 boxplot_aspect_ratio = 24; % number of boxplots for 1:1 aspect ratio
 width = 0.7; % affects the spacing between boxplots
+width_scatter = 0.1; % changes the width of scatter plots per boxplot
 
 [filename, path] = uigetfile('*.xlsx');
 T = readtable([path filename]);
@@ -36,7 +37,7 @@ set(gca, 'YTickLabel', name_boxes, 'FontSize', 25, 'FontName', 'Arial')
 bx = findobj('Tag', 'boxplot');
 set(bx.Children(end-2*number_boxes:end), 'LineStyle', '-')
 for it = 1:number_boxes
-    x = it + (rand(size(X(:, it)))-0.5)/10;
+    x = it + (rand(size(X(:, it)))-0.5) * width_scatter;
     if scatter_in_color_psi
         f = scatter(X(:, it), x, [], X(:, it), 'filled', 'MarkerEdgeColor', 'k'); f.MarkerFaceAlpha = 0.5;
     elseif scatter_in_color_cell
