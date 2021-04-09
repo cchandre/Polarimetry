@@ -1,6 +1,6 @@
 function RescaledPsiFigs
 %%
-%% Last modified by Cristel Chandre (March 25, 2021)
+%% Last modified by Cristel Chandre (April 9, 2021)
 %% Comments? cristel.chandre@univ-amu.fr 
 %%
 
@@ -11,7 +11,7 @@ files = dir([Folder filesep '*_PsiSticks.fig']);
 
 for it = 1:length(files)
     [~, name, ~] = fileparts(files(it).name);
-    openfig(files(it).name);
+    openfig([Folder filesep files(it).name]);
     caxis([psimin 180]);
     savefig(gcf, [Folder filesep name 'Rescaled' num2str(psimin) '.fig'])
     close(gcf)
