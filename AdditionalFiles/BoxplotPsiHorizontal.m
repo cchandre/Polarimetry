@@ -1,6 +1,6 @@
 function BoxplotPsiHorizontal
 %%
-%% Last modified by Cristel Chandre (April 8, 2021)
+%% Last modified by Cristel Chandre (May 8, 2021)
 %% Comments? cristel.chandre@univ-amu.fr 
 %%
 
@@ -18,7 +18,9 @@ width_scatter = 0.1; % changes the width of scatter plots per boxplot
 [filename, path] = uigetfile('*.xlsx');
 T = readtable([path filename]);
 X = table2array(T(:, 2:2:end));
-Nc = eraseBetween(table2array(T(:, 1:2:end)), 1, 'cell', 'Boundaries', 'inclusive');
+name_fics = table2cell(T(:, 1:2:end));
+name_fics = name_fics(cellfun('isclass', name_fics, 'char'));
+Nc = eraseBetween(name_fics, 1, 'cell', 'Boundaries', 'inclusive');
 Nc = str2double(Nc);
 nbr_cells = length(unique(Nc(~isnan(Nc(:)))));
 label_cells = randperm(nbr_cells);
