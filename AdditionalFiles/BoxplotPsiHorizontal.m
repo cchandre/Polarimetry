@@ -1,7 +1,7 @@
 function BoxplotPsiHorizontal
 %%
 %% Last modified by Cristel Chandre (May 8, 2021)
-%% Comments? cristel.chandre@univ-amu.fr 
+%% Comments? cristel.chandre@cnrs.fr 
 %%
 
 psiminaxis = 100;
