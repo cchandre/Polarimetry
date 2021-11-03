@@ -1,7 +1,7 @@
 function PsiColorbar
 %%
 %% Last modified by Cristel Chandre (March 25, 2021)
-%% Comments? cristel.chandre@univ-amu.fr 
+%% Comments? cristel.chandre@cnrs.fr 
 %%
 
 psimin = 80;

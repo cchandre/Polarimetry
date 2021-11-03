@@ -1,7 +1,7 @@
 function RescaledPsiFigs
 %%
 %% Last modified by Cristel Chandre (April 9, 2021)
-%% Comments? cristel.chandre@univ-amu.fr 
+%% Comments? cristel.chandre@cnrs.fr 
 %%
 
 psimin = 60;

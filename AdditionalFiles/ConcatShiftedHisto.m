@@ -1,7 +1,7 @@
 function ConcatShiftedHisto
 %%
 %% Last modified by Cristel Chandre (April 10, 2020)
-%% Comments? cristel.chandre@univ-amu.fr 
+%% Comments? cristel.chandre@cnrs.fr 
 %%
 
 Folder = uigetdir;

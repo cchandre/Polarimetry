@@ -1,7 +1,7 @@
 function ShiftedHisto
 %%
 %% Last modified by Cristel Chandre (July 18, 2020)
-%% Comments? cristel.chandre@univ-amu.fr 
+%% Comments? cristel.chandre@cnrs.fr 
 %%
 
 [file, filepath] = uigetfile('*.mat');
