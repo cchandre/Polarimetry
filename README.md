@@ -1,4 +1,4 @@
-# Polarimetry
+# Polarimetry <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/polar.jpg" alt=" " width="50"/> 
 
 These are the source files for the Matlab App Designer app Polarimetry (notably the .mlapp file). Additional files for post-processing polarimetry data are provided in the folder AdditionalFiles.
 
