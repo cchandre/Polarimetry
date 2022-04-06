@@ -82,7 +82,7 @@ Method: The stack is paved with cells of 20x20 pixels.
 
 * `Stick (deg)`: value of the angle to arbitrarily rotate the sticks
 * `Figure (deg)`: value of the angle to arbitrarily rotate the entire figure
-
+ 
 
 #### Disk Cone (for 1PF)
 
