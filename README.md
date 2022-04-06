@@ -57,7 +57,8 @@ The Variable table lists all the possible variables. Check the boxes for the var
 
 * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_delete_forever_black_48dp.png" alt=" " width="30"/> reinitializes the Display and Variable tables. 
 * Switch `perROI`: `on` if the results are displayed and saved separately for each ROI; `off` if the results are displayed and saved by grouping all ROIs.  
-* Tick box 
+* Tick box `Add axes on figure`: Check this box for adding the pixel numbers on the axes
+* Tick box `Show individual fit`: Check this box to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the Composite &rho; 
  
 ### Advanced Tab
 
