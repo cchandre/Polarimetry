@@ -50,6 +50,8 @@ For improved visualization, a dark <img src="https://github.com/cchandre/Polarim
 * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_open_in_new_black_48dp.png" alt=" " width="30"/> exports the binary mask in a `.png` format. Three options to create the masks: using selected ROIs only, using all the image above threshold, or a combination of both (component of the image above threshold and inside selected ROIs). 
 
 ### Options Tab
+
+The Display table lists all possible outputs: `Composite`, 
  
  
 ### Advanced Tab
