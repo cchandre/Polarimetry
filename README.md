@@ -53,15 +53,40 @@ For improved visualization, a dark <img src="https://github.com/cchandre/Polarim
 
 The Display table lists all possible outputs (`Composite`, `Sticks`, `Histogram`, `Fluorescence`): `Composite` image of the variable *C* displays the values of *C* as an image that uses the colors in the colormap. `Sticks` displays the values of *C* as sticks with a color given by the value of *C* and an orientation given by the value of *&rho;*. `Histogram` represents the histograms of the selected variables. NB: the histogram of the orientation *&rho;* variable is a polar histogram. Check the boxes in the Show column for the figure types to be displayed, and in the Save column for the figures to be saved (in MATLAB `.fig` format).
 
-The Variable table lists all the possible variables. Check the boxes for the variables to be displayed and/or saved in the analysis. 
+The Variable table lists all the possible variables. Check the boxes for the variables to be displayed and/or saved in the analysis. For 1PF: (&rho;, &psi;). For CARS, SRS, 2PF: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For SHG: (&rho;, S<sub>SHG</sub>) 
+
+The Save extension table lists the saving options: `figures (.fig)` for saving the MATLAB `.fig` files; `data (.mat)` for saving the values of the variables for each pixel used in the analysis; `mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file. 
 
 * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_delete_forever_black_48dp.png" alt=" " width="30"/> reinitializes the Display and Variable tables. 
 * Switch `perROI`: `on` if the results are displayed and saved separately for each ROI; `off` if the results are displayed and saved by grouping all ROIs.  
 * Tick box `Add axes on figure`: Check this box for adding the pixel numbers on the axes
-* Tick box `Show individual fit`: Check this box to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the Composite &rho; 
+* Tick box `Show individual fit`: Check this box to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the Composite figure of &rho; 
+* Spinner `pixels per stick`: number of pixels separating sticks on the stick maps (same value vertically and horizontally)
+
+* Drowdown menu `Colormap (Thresholding)` for the colormap used in the Thresholding/Mask tab 
  
 ### Advanced Tab
 
+#### Remove Background 
+
+
+#### Binning
+
+
+#### Dark
+
+
+Method: The stack is paved with cells of 20x20 pixels. 
+
+#### Rotation
+
+* `Stick (deg)`: value of the angle to arbitrarily rotate the sticks
+* `Figure (deg)`: value of the angle to arbitrarily rotate the entire figure
+
+
+#### Disk Cone (for 1PF)
+
+The drop down menu lists all the disk cones included in the app. If the disk cone to be used is not in the list, select `other`and download the appropriate disk cone. 
 
 ___
 For more information: <cristel.chandre@cnrs.fr>
