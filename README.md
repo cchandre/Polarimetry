@@ -51,7 +51,7 @@ For improved visualization, a dark <img src="https://github.com/cchandre/Polarim
 
 ### Options Tab
 
-The Display table lists all possible outputs: `Composite`, 
+The Display table lists all possible outputs (`Composite`, `Sticks`, `Histogram`, `Fluorescence`): `Composite` image of the variable *C* displays the values of *C* as an image that uses the colors in the colormap. `Sticks` displays the values of *C* as sticks with a color given by the value of *C* and an orientation given by the value of *&rho;*. `Histogram` represents the histograms of the selected variables. NB: the histogram of the orientation *&rho;*
  
  
 ### Advanced Tab
