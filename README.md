@@ -56,8 +56,8 @@ The Display table lists all possible outputs (`Composite`, `Sticks`, `Histogram`
 The Variable table lists all the possible variables. Check the boxes for the variables to be displayed and/or saved in the analysis. 
 
 * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_delete_forever_black_48dp.png" alt=" " width="30"/> reinitializes the Display and Variable tables. 
-Switch on if 
- 
+* Switch `perROI`: `on` if the results are displayed and saved separately for each ROI; `off` if the results are displayed and saved by grouping all ROIs.  
+* Tick box 
  
 ### Advanced Tab
 
