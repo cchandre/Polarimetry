@@ -94,7 +94,7 @@ This option is used to improve the quality of the stack if the signal is too wea
 
 Two options: `Calulated dark value` (default) and `User dark value` to be manually entered by the user. This is used to remove the small residual fluorescence of the stack. 
 
-<ins>Method:</ins> The stack is paved with cells of 20x20 pixels. The meanvalue of the first element of the stack (first angle) is computed for each cell. The average over all angles of the cell with the smallest meanvalue is the `calculated dark value`. 
+<ins>Method:</ins> The stack is paved with cells of 20x20 pixels. The meanvalue of the first element of the stack (first angle) is computed for each cell. The average over all angles of the cell with the smallest meanvalue is the `Calculated dark value`. 
 
   #### Rotation
 
