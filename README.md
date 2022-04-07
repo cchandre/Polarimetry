@@ -75,7 +75,7 @@ ___
   * Tick box `Show individual fit`: Check this box to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the Composite figure of &rho; (checked automatically if the `Show individual fit` box is ticked)
   * Spinner `pixels per stick`: number of pixels separating sticks on the stick maps (same value vertically and horizontally)
 
-  * Drowdown menu `Colormap (Thresholding)` for the colormap used in the [Thresholding/Mask](#thresholdingmask-tab) tab 
+  * Drowdown menu `Colormap (Thresholding)` for the colormap used in the [Thresholding/Mask](#thresholdingmask-tab) tab (hot and gray colormaps as current options)
 
 [Back](#manual)
 
