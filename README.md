@@ -37,7 +37,7 @@ For information, the lower part of the tab indicates the maximum total intensity
 
 ### Thresholding/Mask Tab
 
-The thresholding/mask tab displays the total intensity (total = sum over the angle) of the first stack to be analyzed with a threshold specified in `ILow`. The selected Dark component has been removed from the intensity (see Advanced tab for more information on the Dark). 
+The thresholding/mask tab displays the total intensity (total = sum over the angle) of the stack to be analyzed with a threshold specified in `ILow`. The selected Dark component has been removed from the intensity (see Advanced tab for more information on the Dark). 
 
 The value of `ILow` can be modified with the slider `ILow/Imax` (ratio of the selected `ILow` and the maximum total intensity indicated int he fluorescence tab). 
 
@@ -69,14 +69,18 @@ The Save extension table lists the saving options: `figures (.fig)` for saving t
 
 #### Remove Background 
 
+This option is used to remove a noisy background from the stack (noise substraction). First, choose as well the value `Noise factor` (between 0 and 1) for the amount of intensity to be removed from the stack. Second, define the size in pixels (`Noise width` and `Noise height`) of the region in the noisy part of the fluorescence image. Third, select a point (center of the noisy patch of size Noise width x Noise height) in the fluorescence image by clicking on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_exposure_black_48dp.png" alt=" " width="30"/> `Click background`. This opens a `.fig ` MATLAB figure for the point to be selected. The mean value over the patch is removed from the entire stack. 
+
+In order to locate more accurately the 
 
 #### Binning
 
 
 #### Dark
 
+Two options: `Calulated dark value` (default) and `User dark value` to be manually entered by the user. This is used to remove the small residual fluorescence of the stack. 
 
-Method: The stack is paved with cells of 20x20 pixels. 
+<ins>Method:</ins> The stack is paved with cells of 20x20 pixels. The meanvalue of the first element of the stack (first angle) is computed for each cell. The average over all angles of the cell with the smallest meanvalue is the `calculated dark value`. 
 
 #### Rotation
 
