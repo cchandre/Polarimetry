@@ -30,7 +30,7 @@ ___
 ___
 ### Fluorescence tab
 
-  The fluorescence tab displays the total intensity (total = sum over the angles) of the stack to be analyzed. The selected Dark component has been removed from the intensity (see [Advanced](#advanced-tab) tab for more information on the Dark).  
+  The fluorescence tab displays the total intensity (total = sum over the angles) of the stack to be analyzed. The selected dark component has been removed from the intensity (see [Advanced](#advanced-tab) tab for more information on the computation of the dark value).  
 
   The contrast can be adjusted with the slider on the right hand side of the tab. 
 
@@ -71,6 +71,8 @@ ___
 
   * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_delete_forever_black_48dp.png" alt=" " width="30"/> reinitializes the `Show/Save` and `Variable` tables. 
   * Switch `perROI`: `on` if the results are displayed and saved separately for each ROI; `off` if the results are displayed and saved by grouping all ROIs.  
+
+#### Plot options
   * Tick box `Add axes on figure`: Check this box for adding the pixel numbers on the axes of MATLAB `.fig` figures
   * Tick box `Show individual fit`: Check this box to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the Composite figure of &rho; (checked automatically if the `Show individual fit` box is ticked)
   * Spinner `pixels per stick`: number of pixels separating sticks on the stick maps (same value vertically and horizontally)
@@ -94,7 +96,7 @@ This option is used to improve the quality of the stack if the signal is too wea
 
 Two options: `Calulated dark value` (default) and `User dark value` to be manually entered by the user. This is used to remove the small residual fluorescence of the stack. 
 
-<ins>Method:</ins> The stack is paved with cells of 20x20 pixels. The meanvalue of the first element of the stack (first angle) is computed for each cell. The average over all angles of the cell with the smallest meanvalue is the `Calculated dark value`. 
+*Method to compute the dark value:* The stack is paved with cells of 20x20 pixels. The meanvalue of the first element of the stack (first angle) is computed for each cell. The average over all angles of the cell with the smallest meanvalue is the `Calculated dark value`. 
 
   #### Rotation
 
