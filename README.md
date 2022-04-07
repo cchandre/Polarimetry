@@ -45,7 +45,7 @@ For information, the lower part of the tab indicates the maximum total intensity
 
 The thresholding/mask tab displays the total intensity (total = sum over the angles) of the stack to be analyzed with a threshold specified in `ILow`. The selected Dark component has been removed from the intensity (see [Advanced](#advanced-tab) tab for more information on the Dark). 
 
-The value of `ILow` can be modified with the slider `ILow/Imax` (ratio of the selected `ILow` and the maximum total intensity indicated in the [Fluorescence Tab](#fluorescence-tab)). 
+The value of `ILow` can be modified with the slider `ILow/Imax` (ratio of the selected `ILow` and the maximum total intensity indicated in the [Fluorescence](#fluorescence-tab) tab). 
 
 For improved visualization, the contrast can be adjusted with the slider on the right hand side of the tab. 
 
