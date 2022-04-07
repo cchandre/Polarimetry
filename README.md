@@ -80,7 +80,7 @@ ___
 [Back](#manual)
 
 ___
-### Advanced Tab
+### Advanced tab
 
   #### Remove Background 
 
