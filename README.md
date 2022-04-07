@@ -71,10 +71,9 @@ The Save extension table lists the saving options: `figures (.fig)` for saving t
 
 This option is used to remove a noisy background from the stack (noise substraction). First, choose as well the value `Noise factor` (between 0 and 1) for the amount of intensity to be removed from the stack. Second, define the size in pixels (`Noise width` and `Noise height`) of the region in the noisy part of the fluorescence image. Third, select a point (center of the noisy patch of size Noise width x Noise height) in the fluorescence image by clicking on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_exposure_black_48dp.png" alt=" " width="30"/> `Click background`. The mean value over the patch weighted by the Noise factor is removed from the entire stack. 
 
-In order to locate more accurately the 
-
 #### Binning
 
+This option is used to improve the quality of the stack if the signal is too weak. It performs a box linear filter (box blur) with a kernel of 1s of size `Bin width` x `Bin height`. 
 
 #### Dark
 
@@ -91,6 +90,7 @@ Two options: `Calulated dark value` (default) and `User dark value` to be manual
 #### Disk Cone (for 1PF)
 
 The drop down menu lists all the disk cones included in the app. If the disk cone to be used is not in the list, select `other`and download the appropriate disk cone. 
+Click on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_exposure_black_48dp.png" alt=" " width="30"/> 
 
 ___
 For more information: <cristel.chandre@cnrs.fr>
