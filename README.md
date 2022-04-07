@@ -69,7 +69,7 @@ The Save extension table lists the saving options: `figures (.fig)` for saving t
 
 #### Remove Background 
 
-This option is used to remove a noisy background from the stack (noise substraction). First, choose as well the value `Noise factor` (between 0 and 1) for the amount of intensity to be removed from the stack. Second, define the size in pixels (`Noise width` and `Noise height`) of the region in the noisy part of the fluorescence image. Third, select a point (center of the noisy patch of size Noise width x Noise height) in the fluorescence image by clicking on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_exposure_black_48dp.png" alt=" " width="30"/> `Click background`. This opens a `.fig ` MATLAB figure for the point to be selected. The mean value over the patch is removed from the entire stack. 
+This option is used to remove a noisy background from the stack (noise substraction). First, choose as well the value `Noise factor` (between 0 and 1) for the amount of intensity to be removed from the stack. Second, define the size in pixels (`Noise width` and `Noise height`) of the region in the noisy part of the fluorescence image. Third, select a point (center of the noisy patch of size Noise width x Noise height) in the fluorescence image by clicking on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_exposure_black_48dp.png" alt=" " width="30"/> `Click background`. The mean value over the patch weighted by the Noise factor is removed from the entire stack. 
 
 In order to locate more accurately the 
 
