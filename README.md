@@ -88,7 +88,7 @@ ___
 
   #### Binning
 
-This option is used to improve the quality of the stack if the signal is too weak. It performs a box linear filter (box blur) with a kernel of 1s of size `Bin width` x `Bin height`. 
+This option is used to improve the quality of the stack if the signal is too weak. It performs a convolution of the stack with a kernel of 1's of size `Bin width` x `Bin height`. 
 
   #### Dark
 
