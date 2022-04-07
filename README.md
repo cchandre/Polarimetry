@@ -90,7 +90,8 @@ Two options: `Calulated dark value` (default) and `User dark value` to be manual
 #### Disk Cone (for 1PF)
 
 The drop down menu lists all the disk cones included in the app. If the disk cone to be used is not in the list, select `other`and download the appropriate disk cone. 
-Click on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_exposure_black_48dp.png" alt=" " width="30"/> 
+Click on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_image_black_48dp.png" alt=" " width="30"/> `Display` to visualize the Disk Cone used in the `1PF` analysis. 
+For information, the value of the `Offset angle (deg)` used in the `1PF` analysis is indicated.  
 
 ___
 For more information: <cristel.chandre@cnrs.fr>
