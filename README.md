@@ -30,7 +30,7 @@ ___
 ___
 ### Fluorescence tab
 
-  The fluorescence tab displays the total intensity (total = sum over the angles) of the stack to be analyzed (if `Stack` slider is set to zero), or the different components of the stack depending on the value of the `Stack` slider. The selected dark component has been removed from the total intensity (see [Advanced](#advanced-tab) tab for more information on the computation of the dark value).  
+  The fluorescence tab displays the total intensity (total = sum over the angles) of the stack to be analyzed (if `Stack` slider is set to 'T'), or the image *n* of the stack if the value of the `Stack` slider is set to *n*. The selected dark component has been removed from the total intensity (see [Advanced](#advanced-tab) tab for more information on the computation of the dark value).  
 
   The contrast can be adjusted with the contrast slider on the right hand side of the tab. 
 
