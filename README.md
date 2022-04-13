@@ -72,12 +72,12 @@ ___
 
   * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_delete_forever_black_48dp.png" alt=" " width="30"/> reinitializes the `Show/Save` and `Variable` tables. 
   * Switch `perROI`: `on` if the results are displayed and saved separately for each ROI; `off` if the results are displayed and saved by grouping all ROIs.  
+* Tick box `Show individual fit`: Check this box to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the Composite figure of &rho; (checked automatically if the `Show individual fit` box is ticked)
 
 #### Plot options
   * Tick box `Add axes on figure`: Check this box for adding the pixel numbers on the axes of MATLAB `.fig` figures
   * Spinners for the number of pixels separating sticks on stick maps: `vertical` = number of pixels separating sticks vertically, `horizontal` = number of pixels separating sticks horizontally
-  * Drowdown menu `Colormap (Thresholding)` for the colormap used in the [Thresholding/Mask](#thresholdingmask-tab) tab (hot and gray colormaps as current options)
-  * Tick box `Show individual fit`: Check this box to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the Composite figure of &rho; (checked automatically if the `Show individual fit` box is ticked)
+ 
 
 *Convention for the origin of the angles*: The orientation angles &rho; (for sticks and histograms) are computed with the following convention, related to the field of view. Please also note the numbering of the pixels in the horizontal and vertical axes. 
 
