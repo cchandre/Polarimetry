@@ -23,7 +23,7 @@ ___
 
   * <ins>Select the method of analysis:</ins> `Thresholding (manual)` (thresholding and regions of interest are manually selected for each stack), `Thresholding (auto)` (thresholding and regions of interest are selected intially and applied to each stack to be analyzed in batch mode), `Mask (manual)` (the binary segmentation mask is applied to the analysis, the name of the segmentation mask is identical to the one of the stack with a `.png` extension), `Mask (auto)` (batch analysis, similar to `Thresholding (auto)` but with a segmentation mask applied) 
 
-  * <ins>Add ROI: </ins>  <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_center_focus_weak_black_48dp.png" alt=" " width="30"/>   select a region of interest (ROI) on the [Thresholding/Mask](#thresholdingmask-tab) tab to be analyzed; each ROI once confirmed is numbered and displayed on the fluorescence image ([Fluorescence](#fluorescence-tab) tab) and on the thresholding image ([Thresholding/Mask](#thresholdingmask-tab) tab)
+  * <ins>Add ROI: </ins>  <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_center_focus_weak_black_48dp.png" alt=" " width="30"/>   select a region of interest (ROI) on the [Thresholding/Mask](#thresholdingmask-tab) tab to be analyzed; each ROI once confirmed is numbered and displayed on the fluorescence image ([Fluorescence](#fluorescence-tab) tab) and on the thresholding image ([Thresholding/Mask](#thresholdingmask-tab) tab). For each ROI, thresholding needs to be done *before* the drawing of the ROI. 
 
 [&uarr;](#manual)
 
