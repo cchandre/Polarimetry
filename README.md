@@ -81,7 +81,7 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
 
 #### Plot options
   * Tick box `Add axes on figure`: Check this box for adding the pixel numbers on the axes of MATLAB `.fig` figures and `.png` figures. 
-  * Spinners for the number of pixels separating sticks on stick maps: `vertical` = number of pixels separating sticks vertically, `horizontal` = number of pixels separating sticks horizontally
+  * Spinners for the number of pixels separating sticks on stick maps: `vertical` = number of pixels separating sticks vertically, `horizontal` = number of pixels separating sticks horizontally (i.e., 1 means every pixel, 2 means every other pixel, etc...)
 
 
 Tick box `Show individual fit`: Check this box to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the Composite figure of &rho; (checked automatically if the `Show individual fit` box is ticked)
@@ -100,7 +100,7 @@ ___
 
 Two options: `Calulated dark value` (default) and `User dark value` to be manually entered by the user. This is used to remove the small residual fluorescence of the stack. 
 
-*Method to compute the dark value:* The stack is paved with cells of 20x20 pixels. The meanvalue of the first element of the stack (first angle) is computed for each cell. The average over all angles of the cell with the smallest meanvalue is the `Calculated dark value`. 
+*Method to compute the dark value:* The stack is paved with non-overlapping cells of 20x20 pixels. The mean value of the first element of the stack (first angle) is computed for each cell. The average over all angles of the cell with the smallest mean value is the `Calculated dark value`. 
 
 #### Offset angle
 
@@ -117,12 +117,12 @@ This option is used to improve the quality of the stack if the signal is too wea
 
 #### Rotation
 
-* `Stick (deg)`: (editable) value of the angle to arbitrarily rotate the sticks
-* `Figure (deg)`: (editable) value of the angle to arbitrarily rotate the entire figure
+* `Stick (deg)`: (editable) value of the angle (in degrees) to arbitrarily rotate the sticks (following the above-mentioned convention: positive=counter-clockwise, negative=clockwise)
+* `Figure (deg)`: (editable) value of the angle (in degrees) to arbitrarily rotate the entire figure (following the above-mentioned convention: positive=counter-clockwise, negative=clockwise)
  
 #### Remove Background 
 
-This option is used to remove a noisy background from the stack (noise substraction). First, choose the value `Noise factor` (between 0 and 1) for the fraction of the mean intensity of the patch to be removed from the stack. Second, define the size in pixels (`Noise width` and `Noise height`) of the patch in the noisy part of the fluorescence image. Third, select a point (center of the patch of size `Noise width` x `Noise height`) in the fluorescence image by clicking on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_exposure_black_48dp.png" alt=" " width="30"/> `Click background`. The mean value over the selected patch weighted by the Noise factor is removed from the entire stack. The noise removal level which is substracted to the stack is indicated in the lower panel of the panel.
+This option is used to remove background from the stack (noise substraction). First, choose the value `Noise factor` (between 0 and 1) for the fraction of the mean intensity of the patch to be removed from the stack. Second, define the size in pixels (`Noise width` and `Noise height`) of the patch in the noisy part of the fluorescence image. Third, select a point (center of the patch of size `Noise width` x `Noise height`) in the fluorescence image by clicking on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_exposure_black_48dp.png" alt=" " width="30"/> `Click background`. The mean value over the selected patch weighted by the Noise factor is removed from the entire stack. The noise removal level which is substracted from the stack is indicated in the lower panel of the panel.
 
 [&uarr;](#manual)
 
