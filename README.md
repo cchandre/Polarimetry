@@ -17,13 +17,13 @@ ___
 ___
 ### Left panel 
 
-  * <ins>Choice of polarimetry method:</ins> <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_biotech_black_48dp.png" alt=" " width="30"/> `1PF` (one-photon fluorescence), `CARS` (coherent anti-Stokes Raman spectroscopy), `SRS` (simulated Raman spectroscopy), `SHG` (second-harmonic generation), `2PF` (two-photon fluorescence)
+  * <ins>Choice of polarimetry method:</ins> <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_biotech_black_48dp.png" alt=" " width="30"/> `1PF` (one-photon fluorescence), `CARS` (coherent anti-Stokes Raman scattering), `SRS` (stimulated Raman scattering), `SHG` (second-harmonic generation), `2PF` (two-photon fluorescence)
 
   * <ins>Download</ins> a file (stack) <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_add_photo_alternate_black_48dp.png" alt=" " width="30"/> or a folder <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_create_new_folder_black_48dp.png" alt=" " width="30"/> containing `.tiff` or `.tif` files (stacks)
 
-  * <ins>Select the method of analysis:</ins> `Thresholding (manual)` (thresholding and regions of interest are manually selected for each stack), `Thresholding (auto)` (thresholding and regions of interest are selected intially and applied to each stack to be analyzed in batch mode), `Mask (manual)` (the binary segmentation mask is applied to the analysis, the name of the segmentation mask is identical to the one of the stack with a `.png` extension), `Mask (auto)` (batch analysis, similar to `Thresholding (auto)` but with a segmentation mask applied) 
+  * <ins>Select the method of analysis:</ins> `Thresholding (manual)` (thresholding and regions of interest are manually selected for each stack), `Thresholding (auto)` (thresholding and regions of interest are selected for the first stack and applied to each stack to be analyzed in batch mode), `Mask (manual)` (the binary segmentation mask is applied to the analysis, the name of the segmentation mask is identical to the one of the stack with a `.png` extension), `Mask (auto)` (batch analysis, similar to `Thresholding (auto)` but with a segmentation mask applied for each stack) 
 
-  * <ins>Add ROI: </ins>  <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_center_focus_weak_black_48dp.png" alt=" " width="30"/>   select a region of interest (ROI) on the [Thresholding/Mask](#thresholdingmask-tab) tab to be analyzed; each ROI once confirmed is numbered and displayed on the fluorescence image ([Fluorescence](#fluorescence-tab) tab) and on the thresholding image ([Thresholding/Mask](#thresholdingmask-tab) tab). For each ROI, thresholding needs to be done *before* the drawing of the ROI. 
+  * <ins>Add ROI: </ins>  <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_center_focus_weak_black_48dp.png" alt=" " width="30"/>   select a region of interest (ROI) on the [Thresholding/Mask](#thresholdingmask-tab) tab to be analyzed; each ROI once confirmed is numbered and displayed on the fluorescence image ([Fluorescence](#fluorescence-tab) tab) and on the thresholded image ([Thresholding/Mask](#thresholdingmask-tab) tab). For each ROI, thresholding needs to be done *before* the drawing of the ROI. 
 
 [&uarr;](#manual)
 
@@ -32,7 +32,7 @@ ___
 
   The fluorescence tab displays the total intensity (total = sum over the angles) of the stack to be analyzed (if `Stack` slider is set to 'T'), or the image *n* of the stack if the value of the `Stack` slider is set to *n*. The selected dark component has been removed from the total intensity (see [Advanced](#advanced-tab) tab for more information on the computation of the dark value).  
 
-  The contrast can be adjusted with the contrast slider on the right hand side of the tab. 
+  * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_brightness_6_black_48dp.png" alt=" " width="30"/> The contrast can be adjusted with the contrast slider on the right hand side of the tab. 
 
   * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_square_foot_black_48dp.png" alt=" " width="30"/> displays the angle (in deg) of the segment selected on the fluorescence image (with a counter-clockwise orientation in the field of view as specified in the [Options](#options-tab) tab). 
 
@@ -50,7 +50,7 @@ ___
 
   The value of `ILow` can be modified with the slider `ILow/Imax` (ratio of the selected `ILow` and the maximum total intensity indicated in the [Fluorescence](#fluorescence-tab) tab). 
 
-  For improved visualization, the contrast can be adjusted with the slider on the right hand side of the tab. 
+  * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_brightness_6_black_48dp.png" alt=" " width="30"/> For improved visualization, the contrast can be adjusted with the slider on the right hand side of the tab. 
 
   The component of the image below threshold can be visualized in transparency using the slider `Transparency`. 
 
