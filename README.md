@@ -48,7 +48,7 @@ ___
 
   The thresholding/mask tab displays the total intensity (total = sum over the angles) of the stack to be analyzed with a threshold specified in `ILow`. The selected Dark component has been removed from the intensity (see [Advanced](#advanced-tab) tab for more information on the Dark). 
 
-  The value of `ILow` can be modified with the slider `ILow/Imax` (ratio of the selected `ILow` and the maximum total intensity indicated in the [Fluorescence](#fluorescence-tab) tab). 
+  The value of `ILow` can be modified with the slider `ILow/Maximum` (ratio of the selected `ILow` and the maximum total intensity indicated in the [Fluorescence](#fluorescence-tab) tab). 
 
   * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_brightness_6_black_48dp.png" alt=" " width="30"/> For improved visualization, the contrast can be adjusted with the slider on the right hand side of the tab. 
 
@@ -64,9 +64,15 @@ ___
 ___
 ### Options tab
 
-  The `Show/Save` table lists all possible outputs (`Composite`, `Sticks`, `Histogram`, `Fluorescence`): `Composite` image of the variable *C* displays the values of *C* as an image that uses the colors in the colormap. `Sticks` displays the values of *C* as sticks with a color given by the value of *C* and an orientation given by the value of *&rho;*. `Histogram` represents the histograms of the selected variables. NB: the histogram of the orientation *&rho;* variable is displayed as a polar histogram. Check the boxes in the Show column for the figure types to be displayed, and in the Save column for the figures to be saved (in MATLAB `.fig` format or as `.png`).
+ The `Show/Save` table lists all possible outputs (`Composite`, `Sticks`, `Histogram`, `Fluorescence`): 
+  * `Composite` image of the variable *C* displays the values of *C* as color-coded pixels on top of the fluorescence image using the colors in the colormap. 
+  * `Sticks` image of the variable *C* displays the values of *C* as color-coded sticks (centered around pixels) on top of the fluorescence image with a color given by the value of *C* and an orientation given by the value of *&rho;*. 
+  * `Histogram` displays the histograms of the selected variables *C*. NB: the histogram of the orientation *&rho;* variable is displayed as a polar histogram. 
+  * `Fluorescence` image displays the fluorescence image of the [Fluorescence](#fluorescence-tab) tab with the applied contrast and the selected numbered ROIs. 
+  
+Check the boxes in the Show column for the figure types to be displayed, and in the Save column for the figures to be saved (in MATLAB `.fig` format or as `.png`).
 
-  The `Variable` table lists all the possible variables. Check the boxes for the variables to be displayed and/or saved in the analysis. For `1PF`: (&rho;, &psi;). For `CARS`, `SRS`, `2PF`: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For `SHG`: (&rho;, S<sub>SHG</sub>). The second and third column display the minimum and maximum values of the variables (for the colorbars of histograms and composite and stick maps). These elements are editable (except for *&rho;*) if the right-hand-side switch is set to 'On'. 
+  The `Variable` table lists all the possible variables *C*. Check the boxes for the variables *C* to be displayed and/or saved in the analysis. For `1PF`: (&rho;, &psi;). For `CARS`, `SRS`, `2PF`: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For `SHG`: (&rho;, S<sub>SHG</sub>). The second and third column display the minimum and maximum values of the variables (for the colorbars of histograms and composite and stick maps). These elements are editable (except for *&rho;*) if the right-hand-side switch is set to 'On'. 
 
   The `Save extension` table lists the saving options: `figures (.fig)` for saving the MATLAB `.fig` files, `figures (.png)` for exporting the figures in a `.png` format, `data (.mat)` for saving the values of the variables for each pixel used in the analysis, `mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and `stack (.mp4)` 
 
