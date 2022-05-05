@@ -1,6 +1,7 @@
 # Polarimetry [<img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/polar.jpg" alt=" " width="50"/>](https://www.fresnel.fr/polarimetry)
 
 Source files for the Matlab App Designer app Polarimetry (notably the `.mlapp` file). Additional files for post-processing polarimetry data are provided in the folder AdditionalFiles.
+For installing the app, check the releases on the right-hand side of this page and click on PolarPlusInstaller_*your_OS*.
 
 Website: [www.fresnel.fr/polarimetry](https://www.fresnel.fr/polarimetry)
 
