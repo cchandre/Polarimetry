@@ -99,9 +99,9 @@ ___
 
 #### Dark
 
-Two options: `Calulated dark value` (default) and `User dark value` to be manually entered by the user. This is used to remove the small residual fluorescence of the stack. 
+Two options: `Calculated dark value` (default) and `User dark value` to be manually entered by the user. This is used to remove the small residual fluorescence of the stack. The default value for `User dark value` is set to the minimum value of the stacks if the polarimetry data is 32 bits (e.g., for `CARS`, `SRS`, `SHG` and `2PF`), and to 480 otherwise (e.g., for `1PF`).
 
-*Method to compute the dark value:* The stack is paved with non-overlapping cells of 20x20 pixels. The mean value of the first element of the stack (first angle) is computed for each cell. The average over all angles of the cell with the smallest mean value is the `Calculated dark value`. 
+*Method to compute the* `Calculated dark value`: The stack is paved with non-overlapping cells of 20x20 pixels. The mean value of the first element of the stack (first angle) is computed for each cell. The average over all angles of the cell with the smallest mean value is the `Calculated dark value`. 
 
 #### Offset angle
 
