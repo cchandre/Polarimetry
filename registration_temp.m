@@ -49,16 +49,32 @@ end
 figure(1), plot(xlim,[pos(2) pos(2)],'r','linewidth',3)
 plot([pos(1) pos(1)],ylim,'r','linewidth',3)
 
-fixed = Itot(1:pos(1),1:pos(2));
-moving = Itot(pos(1)+1:end,1:pos(2));
+fixed = Itot(1:pos(2),1:pos(1));
+fixed = (fixed>=0.1*max(fixed(:))).*fixed;
+fixed = fixed/max(fixed(:));
+moving = Itot(pos(2)+1:end,pos(1)+1:end);
+moving = (moving>=0.1*max(moving(:))).*moving;
+moving = moving/max(moving(:));
 %moving(2) = Itot(1:pos(1),pos(2)+1:end);
 %moving(3) = Itot(pos(1)+1:end,pos(2)+1:end);
+figure, imagesc(fixed)
+figure, imagesc(moving)
 
-%[optimizer,metric] = imregconfig("multimodal");
-optimizer = registration.optimizer.OnePlusOneEvolutionary;
-metric = registration.metric.MattesMutualInformation;
-movingRegistered = imregister(moving,fixed,"affine",optimizer,metric);
-figure, imshowpair(fixed,movingRegistered,"Scaling","joint")
+[optimizer,metric] = imregconfig('multimodal');
+optimizer.MaximumIterations = 1000;
+
+%movingRegistered = imregister(moving,fixed,'translation',optimizer,metric);
+%movingRegistered = imregister(movingRegistered,fixed,'affine',optimizer,metric);
+%movingRegistered = imregister(moving,fixed,'affine',optimizer,metric);
+
+tform_t = imregtform(moving,fixed,'translation',optimizer,metric);
+movingRegistered = imwarp(moving,tform_t,'OutputView',imref2d(size(fixed)));
+tform_a = imregtform(movingRegistered,fixed,'affine',optimizer,metric);
+movingRegistered = imwarp(movingRegistered,tform_a,'OutputView',imref2d(size(fixed)));
+
+
+figure, imshowpair(fixed,movingRegistered,'Scaling','joint')
+
 
 
 
