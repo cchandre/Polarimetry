@@ -37,17 +37,20 @@ Dark = mean(CellInd(CellInd~=0));
 Itot = sum((Stack.Values-Dark).*(Stack.Values>=Dark),3);
 figure(1), imagesc(imadjust(Itot/max(Itot(:)))), hold on
 
-figure(2)
-for it = 1:2
-    subplot(2,1,it)
-    vec = sum(Itot,it);
-    plot(vec,'linewidth',3)
-    xlim([1 info(1).Height])
-    [~,I] = min(vec(401:600));
-    pos(it) = I+400;
-end
-figure(1), plot(xlim,[pos(2) pos(2)],'r','linewidth',3)
-plot([pos(1) pos(1)],ylim,'r','linewidth',3)
+% figure(2)
+% for it = 1:2
+%     subplot(2,1,it)
+%     vec = sum(Itot,it);
+%     plot(vec,'linewidth',3)
+%     xlim([1 info(1).Height])
+%     [~,I] = min(vec(401:600));
+%     pos(it) = I+400;
+% end
+% figure(1), plot(xlim,[pos(2) pos(2)],'r','linewidth',3)
+% plot([pos(1) pos(1)],ylim,'r','linewidth',3)
+
+pos(1) = floor(Stack.Width/2);
+pos(2) = floor(Stack.Height/2);
 
 fixed = Itot(1:pos(2),1:pos(1));
 fixed = (fixed>=0.1*max(fixed(:))).*fixed;
