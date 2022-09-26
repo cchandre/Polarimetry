@@ -69,9 +69,9 @@ figure, imagesc(moving)
 [optimizer,metric] = imregconfig('multimodal');
 
 optimizer.InitialRadius = 1e-3;
-optimizer.Epsilon = 1e-6;
-optimizer.GrowthFactor = 1.02;
-optimizer.MaximumIterations = 2000;
+optimizer.Epsilon = 1e-5;
+optimizer.GrowthFactor = 1.05;
+optimizer.MaximumIterations = 300;
 
 %movingRegistered = imregister(moving,fixed,'translation',optimizer,metric);
 %movingRegistered = imregister(movingRegistered,fixed,'affine',optimizer,metric);
@@ -79,6 +79,7 @@ optimizer.MaximumIterations = 2000;
 
 tform_t = imregtform(moving,fixed,'translation',optimizer,metric);
 movingRegistered = imwarp(moving,tform_t,'OutputView',imref2d(size(fixed)));
+
 tform_a = imregtform(movingRegistered,fixed,'affine',optimizer,metric);
 movingRegistered = imwarp(movingRegistered,tform_a,'OutputView',imref2d(size(fixed)));
 
@@ -87,8 +88,6 @@ movingRegistered = imwarp(movingRegistered,tform_a,'OutputView',imref2d(size(fix
 
 
 figure, imshowpair(fixed,movingRegistered,'Scaling','joint')
-
-registrationEstimator(moving,fixed)
 
 
 
