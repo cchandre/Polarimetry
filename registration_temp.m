@@ -15,6 +15,7 @@ for k = 1:nangle
 end
 TifLink.close();
 
+%% Computation of the Dark value
 SizeCell = 20;
 NCellHeight = floor(Stack.Height/SizeCell);
 NCellWidth = floor(Stack.Width/SizeCell);
@@ -33,61 +34,57 @@ val = min(mImCG,[],'all');
 [IndI, IndJ] = find(mImCG==val);
 CellInd = ImCG{IndI,IndJ};
 Dark = mean(CellInd(CellInd~=0));
-
 Itot = sum((Stack.Values-Dark).*(Stack.Values>=Dark),3);
-%figure(1), imagesc(imadjust(Itot/max(Itot(:)))), hold on
 
-%figure(2)
-for it = 1:2
-    %subplot(2,1,it)
-    vec = sum(Itot,it);
-    %plot(vec,'linewidth',3)
-    %xlim([1 info(1).Height])
-    [~,I] = min(vec(401:600));
-    pos(it) = I+400;
+%% Dowdload the Whitelight tif 
+Whitelight = Tiff([path 'Whitelight.tif'],'r').read();
+
+%% Create the 4 images
+B = bwboundaries(imbinarize(Whitelight,0.1),'noholes');
+xpos = zeros(2,4);
+ypos = zeros(2,4);
+for k = 1:length(B)
+   xpos(1:2,k) = [min(B{k}(:,2)) max(B{k}(:,2))];
+   ypos(1:2,k) = [min(B{k}(:,1)) max(B{k}(:,1))];
 end
-%figure(1), plot(xlim,[pos(2) pos(2)],'r','linewidth',3)
-%plot([pos(1) pos(1)],ylim,'r','linewidth',3)
+dx = max(xpos(2,:)-xpos(1,:));
+dy = max(ypos(2,:)-ypos(1,:));
+npix = 20;
+stack = zeros(dy+2*npix,dx+2*npix,4);
+for k = 1:4
+    ddx = xpos(2,k)-xpos(1,k);
+    ddy = ypos(2,k)-ypos(1,k);
+    stack(npix:npix+ddy,npix:npix+ddx,k) = Itot(ypos(1,k):ypos(2,k),xpos(1,k):xpos(2,k));
+end
 
-%pos(1) = floor(Stack.Width/2);
-%pos(2) = floor(Stack.Height/2);
-
-fixed = Itot(1:pos(2),1:pos(1));
+fixed = stack(:,:,1);
 fixed = fixed/max(fixed(:));
 fixed = (fixed>=0.1).*fixed;
+%figure, imagesc(fixed)
 
-%moving = Itot(pos(2)+1:end,pos(1)+1:end);
-%moving = Itot(1:pos(1),pos(2)+1:end);
-moving = Itot(pos(1)+1:end,pos(2)+1:end);
+for it = 2:4
+    moving = stack(:,:,it);
+    moving = moving/max(moving(:));
+    moving = (moving>=0.1).*moving;
+    %figure, imagesc(moving)
+    
+    [optimizer,metric] = imregconfig('multimodal');
+    optimizer.MaximumIterations = 1000;
+    optimizer.InitialRadius = 5e-4;
+    optimizer.Epsilon = 1.5e-6;
+    optimizer.GrowthFactor = 1.01;
+    
+%     tform_a = imregtform(moving,fixed,'affine',optimizer,metric);
+%     movingRegistered = imwarp(moving,tform_a,'OutputView',imref2d(size(fixed)));
 
-moving = moving/max(moving(:));
-moving = (moving>=0.1).*moving;
-moving = imresize(moving, size(fixed));
-figure, imagesc(fixed)
-figure, imagesc(moving)
+    tform_t = imregtform(moving,fixed,'translation',optimizer,metric);
+    movingRegistered = imwarp(moving,tform_t,'OutputView',imref2d(size(fixed)));
 
-[optimizer,metric] = imregconfig('multimodal');
-
-optimizer.InitialRadius = 1e-3;
-optimizer.Epsilon = 1e-5;
-optimizer.GrowthFactor = 1.05;
-optimizer.MaximumIterations = 300;
-
-%movingRegistered = imregister(moving,fixed,'translation',optimizer,metric);
-%movingRegistered = imregister(movingRegistered,fixed,'affine',optimizer,metric);
-%movingRegistered = imregister(moving,fixed,'affine',optimizer,metric);
-
-tform_t = imregtform(moving,fixed,'translation',optimizer,metric);
-movingRegistered = imwarp(moving,tform_t,'OutputView',imref2d(size(fixed)));
-
-tform_a = imregtform(movingRegistered,fixed,'affine',optimizer,metric);
-movingRegistered = imwarp(movingRegistered,tform_a,'OutputView',imref2d(size(fixed)));
-
-% tform_a = imregtform(moving,fixed,'affine',optimizer,metric);
-% movingRegistered = imwarp(moving,tform_a,'OutputView',imref2d(size(fixed)));
-
-
-figure, imshowpair(fixed,movingRegistered,'Scaling','joint')
+    tform_a = imregtform(movingRegistered,fixed,'affine',optimizer,metric);
+    movingRegistered = imwarp(movingRegistered,tform_a,'OutputView',imref2d(size(fixed)));
+    
+    figure, imshowpair(fixed,movingRegistered,'Scaling','joint')
+end
 
 
 
