@@ -41,11 +41,14 @@ Whitelight = Tiff([path 'Whitelight.tif'],'r').read();
 
 %% Create the 4 images
 B = bwboundaries(imbinarize(Whitelight,0.1),'noholes');
+%figure, imagesc(Whitelight)
+%hold on
 xpos = zeros(2,4);
 ypos = zeros(2,4);
 for k = 1:length(B)
    xpos(1:2,k) = [min(B{k}(:,2)) max(B{k}(:,2))];
    ypos(1:2,k) = [min(B{k}(:,1)) max(B{k}(:,1))];
+   %plot(B{k}(:,2),B{k}(:,1),'r.')
 end
 dx = max(xpos(2,:)-xpos(1,:));
 dy = max(ypos(2,:)-ypos(1,:));
@@ -60,8 +63,9 @@ end
 fixed = stack(:,:,1);
 fixed = fixed/max(fixed(:));
 fixed = (fixed>=0.1).*fixed;
-%figure, imagesc(fixed)
+figure, imagesc(fixed)
 
+imsum = fixed;
 for it = 2:4
     moving = stack(:,:,it);
     moving = moving/max(moving(:));
@@ -82,12 +86,15 @@ for it = 2:4
 
     tform_a = imregtform(movingRegistered,fixed,'affine',optimizer,metric);
     movingRegistered = imwarp(movingRegistered,tform_a,'OutputView',imref2d(size(fixed)));
+
+    imsum = imsum+movingRegistered;
     
-    figure, imshowpair(fixed,movingRegistered,'Scaling','joint')
+    %figure, imshowpair(fixed,movingRegistered,'Scaling','joint')
+    %figure, imagesc(movingRegistered)
 end
 
 
-
+figure, imagesc(imsum)
 
 
 
