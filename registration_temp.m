@@ -60,10 +60,13 @@ for k = 1:4
     stack(npix:npix+ddy,npix:npix+ddx,k) = Itot(ypos(1,k):ypos(2,k),xpos(1,k):xpos(2,k));
 end
 
+disp(xpos)
+disp(ypos)
+
 fixed = stack(:,:,1);
 fixed = fixed/max(fixed(:));
 fixed = (fixed>=0.1).*fixed;
-figure, imagesc(fixed)
+%figure, imagesc(fixed)
 
 imsum = fixed;
 for it = 2:4
@@ -94,7 +97,7 @@ for it = 2:4
 end
 
 
-figure, imagesc(imsum)
+%figure, imagesc(imsum)
 
 
 
