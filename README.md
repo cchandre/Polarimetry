@@ -18,13 +18,15 @@ ___
 ___
 ### Left panel 
 
-  * <ins>Choice of polarimetry method:</ins> <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_biotech_black_48dp.png" alt=" " width="30"/> `1PF` (one-photon fluorescence), `CARS` (coherent anti-Stokes Raman scattering), `SRS` (stimulated Raman scattering), `SHG` (second-harmonic generation), `2PF` (two-photon fluorescence)
+  * <ins>Choice of polarimetry method:</ins> <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_biotech_black_48dp.png" alt=" " width="30"/> `1PF` (one-photon fluorescence), `CARS` (coherent anti-Stokes Raman scattering), `SRS` (stimulated Raman scattering), `SHG` (second-harmonic generation), `2PF` (two-photon fluorescence), `4POLAR` (4polar fluorescence)
 
   * <ins>Download</ins> a file (stack) <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_add_photo_alternate_black_48dp.png" alt=" " width="30"/> or a folder <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_create_new_folder_black_48dp.png" alt=" " width="30"/> containing `.tiff` or `.tif` files (stacks)
 
   * <ins>Select the method of analysis:</ins> `Thresholding (manual)` (thresholding and regions of interest are manually selected for each stack), `Thresholding (auto)` (thresholding and regions of interest are selected for the first stack and applied to each stack to be analyzed in batch mode), `Mask (manual)` (the binary segmentation mask is applied to the analysis, the name of the segmentation mask is identical to the one of the stack with a `.png` extension), `Mask (auto)` (batch analysis, similar to `Thresholding (auto)` but with a segmentation mask applied for each stack) 
 
   * <ins>Add ROI: </ins>  <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_center_focus_weak_black_48dp.png" alt=" " width="30"/>   select a region of interest (ROI) on the [Thresholding/Mask](#thresholdingmask-tab) tab to be analyzed; each ROI once confirmed is numbered and displayed on the fluorescence image ([Fluorescence](#fluorescence-tab) tab) and on the thresholded image ([Thresholding/Mask](#thresholdingmask-tab) tab). For each ROI, thresholding needs to be done *before* the drawing of the ROI. 
+  
+  * <ins>Registration (4POLAR): </ins> When the selected method of analysis is `4POLAR`, a registration step is performed with a beads file (named `fbeads*.tif`) and a whitelight file (named `Whitelight.tif`). The two files need to be in the same folder. The registration proceeds as folows: First, it determines the contours of the four fields of view; Second, the beads image is split in four equal-sized images to correspond with these four fields of view; Third, the registration with a reference image (top left field of view) is done sequentially with the three other fields of view using the MATLAB registration function `imregtform`. This function provides the transformations which will be applied to all the images selected in the analysis. A MATLAB figure displays the resulting three registrations: If this registration is satisfactory, click on 'OK'. If it is satisfactory and you want to save it (to skip this registration in future analysis), click on 'OK and Save'. If it is not satisfactory, click on 'Cancel'.
 
 [&uarr;](#manual)
 
@@ -73,15 +75,15 @@ ___
   
 Check the boxes in the Show column for the figure types to be displayed, and in the Save column for the figures to be saved (in MATLAB `.fig` format or as `.png`).
 
-  The `Variable` table lists all the possible variables *C*. Check the boxes for the variables *C* to be displayed and/or saved in the analysis. For `1PF`: (&rho;, &psi;). For `CARS`, `SRS`, `2PF`: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For `SHG`: (&rho;, S<sub>SHG</sub>). The second and third column display the minimum and maximum values of the variables (for the colorbars of histograms and composite and stick maps). These elements are editable (except for *&rho;*) if the right-hand-side switch is set to 'On'. 
+  The `Variable` table lists all the possible variables *C*. Check the boxes for the variables *C* to be displayed and/or saved in the analysis. For `1PF`: (&rho;, &psi;). For `CARS`, `SRS`, `2PF`: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For `SHG`: (&rho;, S<sub>SHG</sub>). For `4POLAR`: (&rho;, &psi;, &eta;). The second and third column display the minimum and maximum values of the variables (for the colorbars of histograms and composite and stick maps). These elements are editable (except for *&rho;*) if the right-hand-side switch is set to 'On'. 
 
-  The `Save extension` table lists the saving options: `figures (.fig)` for saving the MATLAB `.fig` files, `figures (.png)` for exporting the figures in a `.png` format, `data (.mat)` for saving the values of the variables for each pixel used in the analysis, `mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and `stack (.mp4)` 
+  The `Save extension` table lists the saving options: `figures (.fig)` for saving the MATLAB `.fig` files, `figures (.tif)` for exporting the figures in a `.tif` format, `data (.mat)` for saving the values of the variables for each pixel used in the analysis, `mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and `stack (.mp4)` 
 
   * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_delete_forever_black_48dp.png" alt=" " width="30"/> reinitializes the `Show/Save` and `Variable` tables. 
   * Switch `perROI`: `on` if the results are displayed and saved separately for each ROI; `off` if the results are displayed and saved by grouping all ROIs.  
 
 #### Plot options
-  * Tick box `Add axes on figure`: Check this box for adding the pixel numbers on the axes of MATLAB `.fig` figures and `.png` figures. 
+  * Tick box `Add axes on figure`: Check this box for adding the pixel numbers on the axes of MATLAB `.fig` figures and `.tif` figures. 
   * Spinners for the number of pixels separating sticks on stick maps: `vertical` = number of pixels separating sticks vertically, `horizontal` = number of pixels separating sticks horizontally (i.e., 1 means every pixel, 2 means every other pixel, etc...)
 
 
@@ -99,7 +101,7 @@ ___
 
 #### Dark
 
-Two options: `Calculated dark value` (default) and `User dark value` to be manually entered by the user. This is used to remove the small residual fluorescence of the stack. The default value for `User dark value` is set to the minimum value of the stacks if the polarimetry data is 32 bits (e.g., for `CARS`, `SRS`, `SHG` and `2PF`), and to 480 otherwise (e.g., for `1PF`).
+Two options: `Calculated dark value` (default) and `User dark value` to be manually entered by the user. This is used to remove the small residual fluorescence of the stack. The default value for `User dark value` is set to the minimum value of the stacks if the polarimetry data is 32 bits (e.g., for `CARS`, `SRS`, `SHG` and `2PF`), and to 480 otherwise (e.g., for `1PF` and `4POLAR`).
 
 *Method to compute the* `Calculated dark value`: The stack is paved with non-overlapping cells of 20x20 pixels. The mean value of the first element of the stack (first angle) is computed for each cell. The average over all angles of the cell with the smallest mean value is the `Calculated dark value`. 
 
@@ -111,6 +113,10 @@ The value of the offset angle used in the analysis is indicated. This angle is i
 
 The drop down menu lists all the disk cones included in the app. If the disk cone to be used is not in the list, select `other`and download the appropriate disk cone. The choice of disk cone also sets the value for the offset angle. 
 Click on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_image_black_48dp.png" alt=" " width="30"/> `Display` to visualize the disk cone used in the `1PF` analysis. The name of the disk cone used in the analysis is displayed on the lower part of the panel. 
+
+### Calibration Data (for 4POLAR)
+
+The drop down menu lists all the calibration data included in the app. If the calibration data to be used is not in the list, select `other`and download the appropriate calibration data. The name of the calibration data used in the analysis is displayed on the lower part of the panel.
 
 #### Binning
 
