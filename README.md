@@ -26,7 +26,7 @@ ___
 
   * <ins>Add ROI: </ins>  <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_center_focus_weak_black_48dp.png" alt=" " width="30"/>   select a region of interest (ROI) on the [Thresholding/Mask](#thresholdingmask-tab) tab to be analyzed; each ROI once confirmed is numbered and displayed on the fluorescence image ([Fluorescence](#fluorescence-tab) tab) and on the thresholded image ([Thresholding/Mask](#thresholdingmask-tab) tab). For each ROI, thresholding needs to be done *before* the drawing of the ROI. 
   
-  * <ins>Registration (4POLAR): </ins> When the selected method of analysis is `4POLAR`, a registration file is needed. Two options: The registration has already been performed, so load the registration file (`.mat` file containing the geometric transformation). Otherwise, the registration is performed with a beads file (named `fbeads*.tif`) and a whitelight file (named `Whitelight.tif`). The two files need to be in the same folder. The registration proceeds as folows: First, it determines the contours of the four fields of view; Second, the beads image is split in four equal-sized images to correspond with these four fields of view; Third, the registration with a fixed image (top left field of view) is done sequentially with the three other fields of view (moving images) using the MATLAB registration function `imregtform`. This function provides the geometric transformations which will be applied to all the images selected in the analysis. A MATLAB figure displays the resulting three registrations: If this registration is satisfactory, click on 'OK'. If it is satisfactory and you want to save it (to skip this registration in future analysis), click on 'OK and Save'. If it is not satisfactory, click on 'Cancel'.
+  * <ins>Registration (4POLAR): </ins>   When the selected method of analysis is `4POLAR`, a registration file is needed. Two options: The registration has already been performed, so load the registration file (`.mat` file containing the geometric transformation). Otherwise, the registration is performed with a beads file (named `fbeads*.tif`) and a whitelight file (named `Whitelight.tif`). The two files need to be in the same folder. The registration proceeds as follows: First, it determines the contours of the four fields of view; Second, the beads image is split in four equal-sized images corresponding to these four fields of view; Third, the registration with a fixed image (top left field of view) is done sequentially with the three other fields of view (moving images) using the MATLAB registration function `imregtform` (for mor information, see [MATLAB doc](https://mathworks.com/help/images/ref/imregtform.html)). This function provides the geometric transformations which will be applied to all the images selected in the analysis. A MATLAB figure displays the resulting three registrations: If this registration is satisfactory, click on 'OK'. If it is satisfactory and you want to save it (to skip this registration in future analysis), click on 'OK and Save'. If it is not satisfactory, click on 'Cancel'.
 
 [&uarr;](#manual)
 
@@ -73,7 +73,7 @@ ___
   * `Histogram` displays the histograms of the selected variables *C*. NB: the histogram of the orientation *&rho;* variable is displayed as a polar histogram. 
   * `Fluorescence` image displays the fluorescence image of the [Fluorescence](#fluorescence-tab) tab with the applied contrast and the selected numbered ROIs. 
   
-Check the boxes in the Show column for the figure types to be displayed, and in the Save column for the figures to be saved (in MATLAB `.fig` format or as `.png`).
+Check the boxes in the Show column for the figure types to be displayed, and in the Save column for the figures to be saved (in MATLAB `.fig` format or as `.tif`).
 
   The `Variable` table lists all the possible variables *C*. Check the boxes for the variables *C* to be displayed and/or saved in the analysis. For `1PF`: (&rho;, &psi;). For `CARS`, `SRS`, `2PF`: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For `SHG`: (&rho;, S<sub>SHG</sub>). For `4POLAR`: (&rho;, &psi;, &eta;). The second and third column display the minimum and maximum values of the variables (for the colorbars of histograms and composite and stick maps). These elements are editable (except for *&rho;*) if the right-hand-side switch is set to 'On'. 
 
@@ -114,9 +114,9 @@ The value of the offset angle used in the analysis is indicated. This angle is i
 The drop down menu lists all the disk cones included in the app. If the disk cone to be used is not in the list, select `other`and download the appropriate disk cone. The choice of disk cone also sets the value for the offset angle. 
 Click on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_image_black_48dp.png" alt=" " width="30"/> `Display` to visualize the disk cone used in the `1PF` analysis. The name of the disk cone used in the analysis is displayed on the lower part of the panel. 
 
-### Calibration Data (for 4POLAR)
+#### Calibration Data (for 4POLAR)
 
-The drop down menu lists all the calibration data included in the app. If the calibration data to be used is not in the list, select `other`and download the appropriate calibration data. The name of the calibration data used in the analysis is displayed on the lower part of the panel.
+The drop down menu lists all the calibration data included in the app. If the calibration data to be used is not in the list, select `other`and download the appropriate calibration data. The calibration data is a `.mat` file with a name of the type `Calib*.mat` containing a 4x4 matrix *K*. The name of the calibration data used in the analysis is displayed on the lower part of the panel. 
 
 #### Binning
 
