@@ -70,7 +70,7 @@ ___
  The `Show/Save` table lists all possible outputs (`Composite`, `Sticks`, `Histogram`, `Fluorescence`): 
   * `Composite` image of the variable *C* displays the values of *C* as color-coded pixels on top of the fluorescence image using the colors in the colormap. 
   * `Sticks` image of the variable *C* displays the values of *C* as color-coded sticks (centered around pixels) on top of the fluorescence image with a color given by the value of *C* and an orientation given by the value of *&rho;*. 
-  * `Histogram` displays the histograms of the selected variables *C*. NB: the histogram of the orientation *&rho;* variable is displayed as a polar histogram. 
+  * `Histogram` displays the histograms of the selected variables *C*. NB: the histogram of the orientation *&rho;* and *&eta;* is displayed as a polar histogram. 
   * `Fluorescence` image displays the fluorescence image of the [Fluorescence](#fluorescence-tab) tab with the applied contrast and the selected numbered ROIs. 
   
 Check the boxes in the Show column for the figure types to be displayed, and in the Save column for the figures to be saved (in MATLAB `.fig` format or as `.tif`).
