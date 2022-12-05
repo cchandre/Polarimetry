@@ -38,10 +38,10 @@ class App(CTk.CTk):
     url_fresnel = "https://www.fresnel.fr/polarimetry"
     email = "cristel.chandre@cnrs.fr"
 
-
     def __init__(self):
         super().__init__()
 
+## MAIN
         self.title("Polarimetry Analysis")
         self.geometry(f"{App.width}x{App.height}")
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -59,11 +59,13 @@ class App(CTk.CTk):
             if file.endswith('.png'):
                 self.icons.update({os.path.splitext(file)[0]: CTk.CTkImage(dark_image=Image.open(image_path + "/" + file), size=(30, 30))})
 
+## DEFINE FRAMES
         self.frame_left = CTk.CTkFrame(master=self, width=App.width_l, corner_radius=0, fg_color=App.my_gray[0])
         self.frame_left.grid(row=0, column=0, sticky="nswe")
         self.frame_right = CTk.CTkFrame(master=self, fg_color=App.my_gray[0])
         self.frame_right.grid(row=0, column=1, sticky="nswe", padx=0, pady=0)
 
+## DEFINE TABS
         self.tabview = CTk.CTkTabview(master=self.frame_right, width=App.width_tab, height=App.height_tab, segmented_button_selected_color=App.my_orange[0], segmented_button_unselected_color=App.my_gray[1], segmented_button_selected_hover_color=App.my_orange[1], text_color="black", segmented_button_fg_color=App.my_gray[0], fg_color=App.my_gray[1])
         self.tabview.grid(row=0, column=0, padx=10, pady=0)
         list_tabs = ["Fluorescence", "Thresholding/Mask", "Options", "Advanced", "About"]
@@ -71,6 +73,7 @@ class App(CTk.CTk):
         for tab in list_tabs:
             self.tabview.add(tab)
 
+## LEFT FRAME
         self.PolarimetryAnalysisLogo = self.button(self.frame_left, text="POLARIMETRY \n ANALYSIS", image=self.icons['blur_circular'], command=self.on_click_tab)
         self.PolarimetryAnalysisLogo.configure(hover=False, fg_color="transparent", anchor="e")
         self.PolarimetryAnalysisLogo.grid(row=0, column=0, pady=30, padx=17)
@@ -86,11 +89,10 @@ class App(CTk.CTk):
         self.CloseFigs = self.button(self.frame_left, text="Close figures", image=self.icons['close'])
         self.CloseFigs.configure(fg_color=App.my_red[0], hover_color=App.my_red[1])
         self.CloseFigs.grid(row=7, column=0, pady=App.pady_button, padx=17)
+        self.PolarimetryMethod = self.dropdown(self.frame_left, values=["1PF", "CARS", "SRS", "SHG", "2PF", "4POLAR 2D", "4POLAR 3D"], image=self.icons["microscope"], row=1, column=0, command=self.PolarimetryMethod_callback)
+        self.DropDownTool = self.dropdown(self.frame_left, values=["Thresholding (manual)", "Thresholding (auto)", "Mask (manual)", "Mask (auto)"], image=self.icons["build"], row=4, column=0, command=self.DropDownTool_callback)
 
-        self.PolarimetryMethod = self.dropdown(self.frame_left, values=["1PF", "CARS", "SRS", "SHG", "2PF", "4POLAR 2D", "4POLAR 3D"], image=self.icons["microscope"], row=1, column=0)
-
-        self.DropDownTool = self.dropdown(self.frame_left, values=["Thresholding (manual)", "Thresholding (auto)", "Mask (manual)", "Mask (auto)"], image=self.icons["build"], row=4, column=0)
-
+## RIGHT FRAME: FLUO
         self.axes_fluo = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", width=App.size_axes[1], height=App.size_axes[0])
         self.axes_fluo.grid(row=0, column=0, padx=0, pady=0)
         banner = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent")
@@ -111,6 +113,7 @@ class App(CTk.CTk):
         self.stack_slider_label.place(relx=0.95, rely=0.5)
         CTk.CTkLabel(master=banner, fg_color="transparent", text="Stack", text_color="black", font=CTk.CTkFont(weight="bold")).place(relx=0.7, rely=0.5)
 
+## RIGHT FRAME: THRSH
         self.axes_thrsh = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", width=App.size_axes[1], height=App.size_axes[0])
         self.axes_thrsh.grid(row=0, column=0, padx=0, pady=0)
         banner = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent")
@@ -127,15 +130,12 @@ class App(CTk.CTk):
         self.ilow_slider.place(relx=0.2, rely=0.93, anchor="w")
         self.ilow_slider_label = CTk.CTkLabel(master=self.tabview.tab("Thresholding/Mask"), width=20, height=10, fg_color="transparent", text=0, text_color="black", font=CTk.CTkFont(weight="bold"))
         self.ilow_slider_label.place(relx=0.2, rely=0.96, anchor="w")
-
         self.transparency_slider = CTk.CTkSlider(master=self.tabview.tab("Thresholding/Mask"), from_=0, to=1, button_color=App.my_orange[0], button_hover_color=App.my_orange[1])
         self.transparency_slider.place(relx=0.6, rely=0.93, anchor="w")
 
-        self.fluo_axis = CTk.CTkLabel(master=self.tabview.tab("Fluorescence"), text="")
-        self.fluo_axis.grid(row=0, column=0, padx=0, pady=0)
-
+## RIGHT FRAME: OPTIONS
         show_save = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=App.my_gray[0], width=400)
-        show_save.grid(row=0, column=0, padx=(20, 20), pady=20)
+        show_save.grid(row=0, column=0, padx=(20, 20), pady=20, sticky="nw")
         CTk.CTkLabel(master=show_save, text="Show", anchor="w", text_color="black", font=CTk.CTkFont(weight="bold")).grid(row=0, column=1)
         CTk.CTkLabel(master=show_save, text="Save", anchor="w", text_color="black", font=CTk.CTkFont(weight="bold")).grid(row=0, column=2)
         labels = ["Composite", "Sticks", "Histogram", "Fluorescence"]
@@ -145,18 +145,14 @@ class App(CTk.CTk):
             CTk.CTkLabel(master=show_save, text=labels[it], anchor="w", width=100, text_color="black", font=CTk.CTkFont(weight="bold")).grid(row=it+1, column=0, padx=(20, 0))
             self.Show[it].grid(row=it+1, column=1, pady=0, padx=20, sticky="ew")
             self.Save[it].grid(row=it+1, column=2, pady=0, padx=(20, 20))
-
-        save_ext = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=App.my_gray[0])
-        save_ext.grid(row=1, column=1, padx=(40, 20), pady=20)
-        CTk.CTkLabel(master=save_ext, text="Save extension", text_color="black", font=CTk.CTkFont(weight="bold"), width=100).grid(row=0, column=1, padx=(0, 20))
-        labels = ["figures (.fig)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "stack (.mp4)"]
-        self.Extension = [self.checkbox(save_ext) for it in range(len(labels))]
-        for it in range(len(labels)):
-            CTk.CTkLabel(master=save_ext, text=labels[it], anchor="w", width=120, text_color="black", font=CTk.CTkFont(weight="bold")).grid(row=it+1, column=0, padx=(20, 0))
-            self.Extension[it].grid(row=it+1, column=1, pady=0, padx=(20,0))
+        banner = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color="transparent")
+        banner.grid(row=1, column=0)
+        self.button(banner, image=self.icons["delete_forever"], command=lambda:self.initialize_table(mode="part")).grid(row=0, column=0, padx=(0, 100), sticky="nw")
+        self.perROI = self.checkbox(banner, text="per ROI")
+        self.perROI.grid(row=0, column=1, sticky="nw")
 
         plot_options = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=App.my_gray[0])
-        plot_options.grid(row=1, column=0, padx=20, pady=20)
+        plot_options.grid(row=2, column=0, padx=20, pady=20, sticky="nw")
         CTk.CTkLabel(master=plot_options, text="Plot options", width=160, text_color="black", font=CTk.CTkFont(size=16, weight="bold")).grid(row=0, column=0, padx=20, pady=(0, 20))
         self.axes = self.checkbox(plot_options, text="Add axes on figures")
         self.axes.grid(row=1, column=0, padx=20)
@@ -167,18 +163,53 @@ class App(CTk.CTk):
             self.pixelsperstick[it].set(1)
             self.pixelsperstick[it].grid(row=it+3, column=0, padx=20, pady=10)
         self.show_individual_fit = self.checkbox(self.tabview.tab("Options"), text="Show individual fit")
-        self.show_individual_fit.grid(row=2, column=0, pady=20)
+        self.show_individual_fit.grid(row=3, column=0, pady=20)
 
+        self.variable_table = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color="transparent")
+        self.variable_table.grid(row=0, column=1, padx=(40, 20), pady=20, sticky="nw")
+
+        save_ext = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=App.my_gray[0])
+        save_ext.grid(row=2, column=1, padx=(40, 20), pady=20, sticky="nw")
+        CTk.CTkLabel(master=save_ext, text="Save extension", text_color="black", font=CTk.CTkFont(weight="bold"), width=100).grid(row=0, column=1, padx=(0, 20))
+        labels = ["figures (.fig)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "stack (.mp4)"]
+        self.Extension = [self.checkbox(save_ext) for it in range(len(labels))]
+        for it in range(len(labels)):
+            CTk.CTkLabel(master=save_ext, text=labels[it], anchor="w", width=120, text_color="black", font=CTk.CTkFont(weight="bold")).grid(row=it+1, column=0, padx=(20, 0))
+            self.Extension[it].grid(row=it+1, column=1, pady=0, padx=(20,0))
+
+## RIGHT FRAME: ADV
         adv_elts = ["Dark", "Binning", "Offset angle", "Rotation", "Disk cone / Calibration data", "Remove background"]
         adv_loc = [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]
         adv = {}
         for loc, elt in zip(adv_loc, adv_elts):
             adv.update({elt: CTk.CTkFrame(master=self.tabview.tab("Advanced"), fg_color=App.my_gray[0])})
-            adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=20)
-            CTk.CTkLabel(master=adv[elt], text=elt, width=160, text_color="black", font=CTk.CTkFont(size=16, weight="bold")).grid(row=0, column=0, padx=20, pady=(0, 20))
-        self.calculated_dark_checkbox = self.checkbox(adv["Dark"], text="Calculated dark value")
-        self.calculated_dark_checkbox.grid(row=1, column=0)
+            adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=20, sticky="nw")
+            CTk.CTkLabel(master=adv[elt], text=elt, width=230, text_color="black", font=CTk.CTkFont(size=16, weight="bold")).grid(row=0, column=0, padx=20, pady=(10, 10))
+        self.dark_switch = CTk.CTkSwitch(master=adv["Dark"], text="", progress_color=App.my_orange[0], command=self.dark_switched, onvalue="on", offvalue="off", width=50)
+        self.dark_switch.grid(row=0, column=0, padx=20, pady=20, sticky="ne")
+        self.calculated_dark_value = 480
+        self.calculated_dark_label = CTk.CTkLabel(master=adv["Dark"], text="Calculated dark value = " + str(self.calculated_dark_value), text_color="black")
+        self.calculated_dark_label.grid(row=1, column=0)
+        self.dark_entry = self.entry(adv["Dark"], text="User dark value", text_box="480", row=2, column=0)
+        self.dark_entry.configure(state="disabled")
 
+        self.offset_angle_switch = CTk.CTkSwitch(master=adv["Offset angle"], text="", progress_color=App.my_orange[0], command=self.offset_angle_switched, onvalue="on", offvalue="off", width=50)
+        self.offset_angle_switch.grid(row=0, column=0, padx=20, pady=20, sticky="ne")
+        self.offset_angle_entry = self.entry(adv["Offset angle"], text="Offset angle (deg)", text_box=str(85), row=1)
+        self.offset_angle_entry.configure(state="disabled")
+
+        labels = ["Bin width", "Bin height"]
+        self.binning = [self.entry(adv["Binning"], text=label, text_box="1", row=it+1, column=0) for it, label in enumerate(labels)]
+        labels = ["Stick (deg)", "Figure (deg)"]
+        self.rotation = [self.entry(adv["Rotation"], text=label, text_box="0", row=it+1, column=0) for it, label in enumerate(labels)]
+        labels = ["Noise factor", "Noise width", "Noise height", "Noise removal level"]
+        vals = [1, 3, 3, 0]
+        rows = [1, 2, 3, 5]
+        self.remove_background = [self.entry(adv["Remove background"], text=label, text_box=vals[it], row=rows[it], column=0) for it, label in enumerate(labels)]
+        self.remove_background[3].configure(state="disabled")
+        self.button(adv["Remove background"], text="Click background", image=self.icons["exposure"], command=self.click_background_callback).grid(row=4, column=0)
+
+## RIGHT FRAME: ABOUT
         banner = CTk.CTkFrame(master=self.tabview.tab("About"), fg_color="transparent")
         banner.grid(row=0, column=0, pady=20)
         self.button(banner, text="CHECK WEBSITE FOR UPDATES", image=self.icons["web"], command=lambda:self.openweb(App.url_fresnel)).grid(row=0, column=0, padx=40)
@@ -284,21 +315,44 @@ uses Material Design icons by Google'''
         width = App.button_size[1] if text == "" else App.button_size[0]
         return CTk.CTkButton(master=master, width=width, height=App.button_size[1], text=text, font=CTk.CTkFont(weight="bold"), text_color="black", anchor="w", image=image, compound="left", bg_color="transparent", fg_color=App.my_orange[0], hover_color=App.my_orange[1], command=command)
 
-    def dropdown(self, master, values=[], image=None, row=0, column=0):
+    def dropdown(self, master, values=[], image=None, row=0, column=0, command=None):
         menu = CTk.CTkFrame(master=master, fg_color=App.my_gray[0])
         menu.grid(row=row, column=column, padx=17, pady=App.pady_button)
         menu_icon = self.button(menu, text="", image=image)
         menu_icon.configure(hover=False)
         menu_icon.grid(row=0, column=0)
-        option_menu = CTk.CTkOptionMenu(master=menu, values=values, width=App.button_size[0]-App.button_size[1], height=App.button_size[1], dynamic_resizing=False, font=CTk.CTkFont(weight="bold"), text_color="black", anchor="w", bg_color="transparent", fg_color=App.my_orange[0], button_color=App.my_orange[0], button_hover_color=App.my_orange[1], dropdown_hover_color=App.my_orange[1], dropdown_text_color="black")
+        option_menu = CTk.CTkOptionMenu(master=menu, values=values, width=App.button_size[0]-App.button_size[1], height=App.button_size[1], dynamic_resizing=False, font=CTk.CTkFont(weight="bold"), text_color="black", anchor="w", bg_color="transparent", fg_color=App.my_orange[0], button_color=App.my_orange[0], button_hover_color=App.my_orange[1], dropdown_hover_color=App.my_orange[1], dropdown_text_color="black", command=command)
         option_menu.grid(row=0, column=1)
         return option_menu
 
     def checkbox(self, master, text=""):
         return CTk.CTkCheckBox(master=master, onvalue=True, offvalue=False, text=text, width=30, text_color="black", font=CTk.CTkFont(weight="bold"), hover_color=App.my_orange[1], fg_color=App.my_orange[0])
 
+    def entry(self, master, text="", text_box="", row=0, column=0):
+        banner = CTk.CTkFrame(master=master, fg_color="transparent")
+        banner.grid(row=row, column=column, sticky="e")
+        CTk.CTkLabel(master=banner, text=text, text_color="black", font=CTk.CTkFont(weight="bold")).grid(row=0, column=0, padx=20)
+        entry = CTk.CTkEntry(master=banner, placeholder_text=text_box, text_color="black", width=50, fg_color="transparent", placeholder_text_color="black")
+        entry.grid(row=0, column=1, padx=20, pady=10)
+        return entry
+
+    def double_entry(self, master, text="", text_box=("", ""), row=0, column=0):
+        banner = CTk.CTkFrame(master=master, fg_color="transparent")
+        banner.grid(row=row, column=column, sticky="e")
+        CTk.CTkLabel(master=banner, text=text, text_color="black", font=CTk.CTkFont(weight="bold")).grid(row=0, column=0, padx=20)
+        entry = [CTk.CTkEntry(master=banner, placeholder_text=text_box[it], text_color="black", width=50, fg_color="transparent", placeholder_text_color="black") for it in range(2)]
+        for it in range(2):
+            entry[it].grid(row=0, column=it+1, padx=20, pady=10)
+            entry[it].configure(state="disabled")
+        return entry
+
     def on_closing(self, event=0):
         self.destroy()
+
+    def clear_frame(self, frame):
+        for widget in frame.winfo_children():
+            widget.destroy()
+        frame.pack_forget()
 
     def on_click(self):
         self.info_window.withdraw()
@@ -366,8 +420,56 @@ uses Material Design icons by Google'''
             self.axes_thrsh.configure(fg_color="black")
         #self.represent_thrsh(self.itot, False, False)
 
+    def offset_angle_switched(self):
+        value = self.offset_angle_entry.get()
+        if self.offset_angle_switch.get() == "on":
+            self.offset_angle_entry.configure(state="normal")
+        else:
+            self.offset_angle_entry.configure(state="disabled")
+            self.offset_angle_entry.configure(placeholder_text=value)
+
+    def dark_switched(self):
+        value = self.dark_entry.get()
+        if self.dark_switch.get() == "on":
+            self.dark_entry.configure(state="normal")
+        else:
+            self.dark_entry.configure(state="disabled")
+
+    def variable_table_switched(self):
+        state = "normal" if self.variable_table_switch.get() == "on" else "disabled"
+        for entry in self.variable_entries:
+            entry.configure(state=state)
+
+    def click_background_callback(self):
+        print("Not yet implemented... Stay tuned!")
+
     def compute_angle(self):
         print("Not yet implemented... Stay tuned!")
+
+    def PolarimetryMethod_callback(self, method):
+        self.initialize_table(mode="all")
+        self.offset_angle_entry.configure(placeholder_text=str(0))
+        self.clear_frame(self.variable_table)
+        self.variable_table.configure(fg_color=App.my_gray[0])
+        CTk.CTkLabel(master=self.variable_table, text="      Min                   Max", text_color="black", font=CTk.CTkFont(weight="bold"), width=200).grid(row=0, column=0, padx=20, pady=10, sticky="e")
+        self.variable_table_switch = CTk.CTkSwitch(master=self.variable_table, text="", progress_color=App.my_orange[0], command=self.variable_table_switched, onvalue="on", offvalue="off", width=50)
+        self.variable_table_switch.grid(row=0, column=0, padx=(10, 40), sticky="w")
+        if method in ["1PF", "4POLAR 2D"]:
+            self.offset_angle_entry.configure(placeholder_text=str(85))
+            variables = ["\u03C1", "\u03C8"]
+            vals = [(0, 180), (40, 180)]
+        elif method in ["CARS", "SRS", "2PF"]:
+            variables = ["\u03C1", "S2", "S4"]
+            vals = [(0, 180), (0, 1), (-1, 1)]
+        elif method == "SHG":
+            variables = ["\u03C1", "S"]
+            vals = [(0, 180), (-1, 1)]
+        elif method == "4POLAR 3D":
+            variables = ["\u03C1", "\u03C8", "\u03B7"]
+            vals = [(0, 180), (40, 180), (0, 90)]
+        self.variable_entries = []
+        for it, (var, val) in enumerate(zip(variables, vals)):
+            self.variable_entries += self.double_entry(self.variable_table, text=var, text_box=val, row=it+1)
 
     def select_file(self):
         filetypes = [("Tiff files", "*.tiff"), ("Tiff files", "*.tif")]
@@ -384,21 +486,28 @@ uses Material Design icons by Google'''
             setattr(self.stack, key, dict[key])
         self.userdarkvalue = 480
         if self.stack.mode == "I":
-            self.stack.display = ':.2f'
+            self.stack.display = ":.2f"
             self.userdarkvalue = xp.amin(self.stack.values)
         if self.stack.nangle >= 2:
             self.stack_slider.configure(to=dataset.n_frames)
         else:
             self.stack_slider.configure(state="disabled")
-        self.ilow_slider.configure(to=np.amax(self.stack.values))
-        self.ilow_slider.set(np.amax(self.stack.values))
-        self.ilow_slider_label.configure(text=self.stack.display.format(np.amax(self.stack.values)))
+        self.ilow_slider.configure(from_=np.amin(self.stack.values), to=np.amax(self.stack.values))
+        self.ilow_slider.set(np.amin(self.stack.values))
+        self.ilow_slider_label.configure(text=self.stack.display.format(np.amin(self.stack.values)))
         self.filename_label.configure(text=os.path.basename(filename).split('.')[0])
+        self.folder = os.path.dirname(filename)
         app.sumcor, self.itot = self.define_itot(self.stack);
 
     def select_folder(self):
-        foldername = fd.askdirectory(title='Select a directory', initialdir='/')
-        showinfo(title='Selected Folder', message=foldername)
+        self.folder = fd.askdirectory(title='Select a directory', initialdir='/')
+
+    def DropDownTool_callback(self, method):
+        self.AdvanceFile = True if method.endswith('(auto)') else False
+        if method.startswith('Mask'):
+            self.ilow_slider.set(np.amin(self.itot))
+            self.MaskFolder = self.folder
+            #self.represent_thrsh(self.itot, False, False)
 
     def stack_slider_callback(self, value):
         self.stack_slider_label.configure(text=int(value))
