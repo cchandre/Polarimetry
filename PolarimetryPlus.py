@@ -26,6 +26,7 @@ class App(CTk.CTk):
     width_tab = width_r - 40
     height_tab = height - 20
     pady_button = 25
+    size_axes = (650, 650)
 
     my_orange = ("#FF7F4F", "#ffb295")
     text_color = "black"
@@ -52,7 +53,7 @@ class App(CTk.CTk):
         self.grid_rowconfigure(0, weight=1)
         self.configure(fg_color="#7F7F7F")
 
-        image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Icons")
+        image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Icons_Python")
         self.icons = {}
         for file in os.listdir(image_path):
             if file.endswith('.png'):
@@ -90,22 +91,31 @@ class App(CTk.CTk):
 
         self.DropDownTool = self.dropdown(self.frame_left, values=["Thresholding (manual)", "Thresholding (auto)", "Mask (manual)", "Mask (auto)"], image=self.icons["build"], row=4, column=0)
 
+        self.axes_fluo = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="black", width=App.size_axes[1], height=App.size_axes[0])
+        self.axes_fluo.grid(row=0, column=0, padx=0, pady=0)
         banner = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent")
         banner.grid(row=0, column=1)
+        self.button(banner, text="", image=self.icons["contrast"], command=self.set_button_contrast_fluo).grid(row=0, column=0, sticky="ne", padx=20, pady=20)
         self.contrast_fluo_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_fluo_slider_callback, button_color=App.my_orange[0], button_hover_color=App.my_orange[1])
-        self.contrast_fluo_slider.grid(row=1, column=0)
+        self.contrast_fluo_slider.grid(row=1, column=0, padx=20, pady=20)
+        self.button(banner, text="", image=self.icons["refresh"], command=self.reload_button_pushed).grid(row=2, column=0, padx=20, pady=20)
+        self.button(banner, text="", image=self.icons["square"], command=self.compute_angle).grid(row=3, column=0, padx=20, pady=20)
 
         self.stack_slider = CTk.CTkSlider(master=self.tabview.tab("Fluorescence"), from_=0, to=18, number_of_steps=18, command=self.stack_slider_callback, button_color=App.my_orange[0], button_hover_color=App.my_orange[1])
         self.stack_slider.set(0)
-        self.stack_slider.place(relx=0.6, rely=0.93, anchor="w")
+        self.stack_slider.grid(row=1, column=0, sticky="e", pady=20)
         self.stack_slider_label = CTk.CTkLabel(master=self.tabview.tab("Fluorescence"), width=20, height=10, fg_color="transparent", text="T", text_color="black", font=CTk.CTkFont(weight="bold"))
-        self.stack_slider_label.place(relx=0.6, rely=0.96, anchor="w")
+        self.stack_slider_label.grid(row=2, column=0, sticky="e", pady=20)
 
         self.filename_label = CTk.CTkLabel(master=self.tabview.tab("Fluorescence"), width=100, height=10, fg_color="transparent", text="")
         self.filename_label.place(relx=0.1, rely=0.96)
 
-        self.contrast_thrsh_slider = CTk.CTkSlider(master=self.tabview.tab("Thresholding/Mask"), from_=0, to=1, orientation="vertical", command=self.contrast_thrsh_slider_callback, button_color=App.my_orange[0], button_hover_color=App.my_orange[1])
-        self.contrast_thrsh_slider.place(relx=1, rely=0, anchor="ne")
+        self.axes_thrsh = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", width=App.size_axes[1], height=App.size_axes[0])
+        self.axes_thrsh.grid(row=0, column=0, padx=20, pady=20)
+        banner = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent")
+        banner.grid(row=0, column=1)
+        self.contrast_thrsh_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_thrsh_slider_callback, button_color=App.my_orange[0], button_hover_color=App.my_orange[1])
+        self.contrast_thrsh_slider.grid(row=1, column=0)
 
         self.ilow_slider = CTk.CTkSlider(master=self.tabview.tab("Thresholding/Mask"), from_=0, to=1, command=self.ilow_slider_callback, button_color=App.my_orange[0], button_hover_color=App.my_orange[1])
         self.ilow_slider.set(0)
@@ -309,6 +319,32 @@ uses Material Design icons by Google'''
         if value <= 0.001:
             self.contrast_fluo_slider.set(0.001)
             #self.represent_fluo(self.itot, False)
+
+    def set_button_contrast_fluo(self):
+        if self.contrast_fluo_slider.get() <= 0.5:
+            self.contrast_fluo_slider.set(0.5)
+        else:
+            self.contrast_fluo_slider.set(1)
+        #self.represent_fluo(self.itot, False)
+
+    def set_button_contrast_thrsh(self):
+        if self.contrast_thrsh_slider.get() <= 0.5:
+            self.contrast_thrsh_slider.set(0.5)
+        else:
+            self.contrast_thrsh_slider.set(1)
+        #self.represent_thrsh(self.itot, True, False)
+
+    def reload_button_pushed(self):
+        self.int_roi = 0
+        self.Patch = {}
+        #self.represent_fluo(self.itot, True)
+        #self.represent_thrsh(self.itot, True, True)
+        self.ROI = np.zeros(self.itot.shape)
+        self.ROI_ILow = np.zeros(self.itot.shape)
+        self.Mask = np.zeros(self.itot.shape)
+
+    def compute_angle(self):
+        print("Not yet implemented... Stay tuned!")
 
     def select_file(self):
         filetypes = [("Tiff files", "*.tiff"), ("Tiff files", "*.tif")]
