@@ -91,7 +91,7 @@ class App(CTk.CTk):
 
         self.DropDownTool = self.dropdown(self.frame_left, values=["Thresholding (manual)", "Thresholding (auto)", "Mask (manual)", "Mask (auto)"], image=self.icons["build"], row=4, column=0)
 
-        self.axes_fluo = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="black", width=App.size_axes[1], height=App.size_axes[0])
+        self.axes_fluo = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", width=App.size_axes[1], height=App.size_axes[0])
         self.axes_fluo.grid(row=0, column=0, padx=0, pady=0)
         banner = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent")
         banner.grid(row=0, column=1)
@@ -100,22 +100,27 @@ class App(CTk.CTk):
         self.contrast_fluo_slider.grid(row=1, column=0, padx=20, pady=20)
         self.button(banner, text="", image=self.icons["refresh"], command=self.reload_button_pushed).grid(row=2, column=0, padx=20, pady=20)
         self.button(banner, text="", image=self.icons["square"], command=self.compute_angle).grid(row=3, column=0, padx=20, pady=20)
-
-        self.stack_slider = CTk.CTkSlider(master=self.tabview.tab("Fluorescence"), from_=0, to=18, number_of_steps=18, command=self.stack_slider_callback, button_color=App.my_orange[0], button_hover_color=App.my_orange[1])
+        banner = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", width=App.size_axes[1], height=40)
+        banner.grid(row=1, column=0, pady=20)
+        self.filename_label = CTk.CTkLabel(master=banner, fg_color="transparent", text="", text_color="black", font=CTk.CTkFont(weight="bold"))
+        self.filename_label.place(relx=0, rely=0.2)
+        self.stack_slider = CTk.CTkSlider(master=banner, from_=0, to=18, number_of_steps=18, command=self.stack_slider_callback, button_color=App.my_orange[0], button_hover_color=App.my_orange[1])
         self.stack_slider.set(0)
-        self.stack_slider.grid(row=1, column=0, sticky="e", pady=20)
-        self.stack_slider_label = CTk.CTkLabel(master=self.tabview.tab("Fluorescence"), width=20, height=10, fg_color="transparent", text="T", text_color="black", font=CTk.CTkFont(weight="bold"))
-        self.stack_slider_label.grid(row=2, column=0, sticky="e", pady=20)
-
-        self.filename_label = CTk.CTkLabel(master=self.tabview.tab("Fluorescence"), width=100, height=10, fg_color="transparent", text="")
-        self.filename_label.place(relx=0.1, rely=0.96)
+        self.stack_slider.place(relx=0.68, rely=0.1)
+        self.stack_slider_label = CTk.CTkLabel(master=banner, fg_color="transparent", text="T", text_color="black", font=CTk.CTkFont(weight="bold"))
+        self.stack_slider_label.place(relx=0.95, rely=0.5)
+        CTk.CTkLabel(master=banner, fg_color="transparent", text="Stack", text_color="black", font=CTk.CTkFont(weight="bold")).place(relx=0.7, rely=0.5)
 
         self.axes_thrsh = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", width=App.size_axes[1], height=App.size_axes[0])
-        self.axes_thrsh.grid(row=0, column=0, padx=20, pady=20)
+        self.axes_thrsh.grid(row=0, column=0, padx=0, pady=0)
         banner = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent")
         banner.grid(row=0, column=1)
+        self.button(banner, text="", image=self.icons["contrast"], command=self.set_button_contrast_thrsh).grid(row=0, column=0, sticky="ne", padx=20, pady=20)
         self.contrast_thrsh_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_thrsh_slider_callback, button_color=App.my_orange[0], button_hover_color=App.my_orange[1])
-        self.contrast_thrsh_slider.grid(row=1, column=0)
+        self.contrast_thrsh_slider.grid(row=1, column=0, padx=20, pady=20)
+        self.button(banner, text="", image=self.icons["open_in_new"], command=self.export_mask).grid(row=2, column=0, padx=20, pady=20)
+        self.button(banner, text="", image=self.icons["palette"], command=self.change_colormap).grid(row=3, column=0, padx=20, pady=20)
+        self.button(banner, text="", image=self.icons["photo"], command=self.no_background).grid(row=4, column=0, padx=20, pady=20)
 
         self.ilow_slider = CTk.CTkSlider(master=self.tabview.tab("Thresholding/Mask"), from_=0, to=1, command=self.ilow_slider_callback, button_color=App.my_orange[0], button_hover_color=App.my_orange[1])
         self.ilow_slider.set(0)
@@ -243,17 +248,17 @@ uses Material Design icons by Google'''
 
     def initialize_slider(self, stack=[]):
         if stack:
-            self.stack_slider.configure(to=stack.nangle, number_of_steps=stack.nangle)
+            self.stack_slider.configure(to=stack["nangle"], number_of_steps=stack["nangle"])
         self.contrast_fluo_slider.set(1)
         self.contrast_thrsh_slider.set(1)
         self.ilow_slider.set(0)
 
     def initialize_noise(self):
         self.Noise = {'Height': 3, 'Width': 3, 'Factor': 1, 'RemovalLevel': 0}
-        self.NoiseWidth.configure(text=self.Noise.Width)
-        self.NoiseHeight.configure(text=self.Noise.Height)
-        self.NoiseFactor.configure(text=self.Noise.Factor)
-        self.NoiseRemovallevel.configure(text=self.Noise.RemovalLevel)
+        self.NoiseWidth.configure(text=self.Noise["Width"])
+        self.NoiseHeight.configure(text=self.Noise["Height"])
+        self.NoiseFactor.configure(text=self.Noise["Factor"])
+        self.NoiseRemovallevel.configure(text=self.Noise["RemovalLevel"])
 
     def initialize_table(self, mode='all'):
         for show, save in zip(self.Show, self.Save):
@@ -343,6 +348,24 @@ uses Material Design icons by Google'''
         self.ROI_ILow = np.zeros(self.itot.shape)
         self.Mask = np.zeros(self.itot.shape)
 
+    def export_mask(self):
+        filename = os.path.basename(self.filename)[0]
+        print("Not yet implemented... Stay tuned!")
+
+    def change_colormap(self):
+        if self.ThrshldColormap == "hot":
+            self.ThrshldColormap == "gray"
+        else:
+            self.ThrshldColormap == "hot"
+        #self.represent_thrsh(self.itot, True, False)
+
+    def no_background(self):
+        if self.axes_thrsh.cget("fg_color") == "black":
+            self.axes_thrsh.configure(fg_color="transparent")
+        else:
+            self.axes_thrsh.configure(fg_color="black")
+        #self.represent_thrsh(self.itot, False, False)
+
     def compute_angle(self):
         print("Not yet implemented... Stay tuned!")
 
@@ -355,11 +378,14 @@ uses Material Design icons by Google'''
         for i in range(dataset.n_frames):
            dataset.seek(i)
            stack_vals[:, :, i] = np.array(dataset)
-        self.stack = {'values': stack_vals, 'height': h, 'width': w, 'nangle': dataset.n_frames, 'mode': dataset.mode, 'display': "{:.0f}"}
+        dict = {'values': stack_vals, 'height': h, 'width': w, 'nangle': dataset.n_frames, 'mode': dataset.mode, 'display': "{:.0f}"}
+        self.stack = Stack()
+        for key in dict:
+            setattr(self.stack, key, dict[key])
         self.userdarkvalue = 480
         if self.stack.mode == "I":
             self.stack.display = ':.2f'
-            self.userdarkvalue = xp.amin(stack.values)
+            self.userdarkvalue = xp.amin(self.stack.values)
         if self.stack.nangle >= 2:
             self.stack_slider.configure(to=dataset.n_frames)
         else:
@@ -367,7 +393,7 @@ uses Material Design icons by Google'''
         self.ilow_slider.configure(to=np.amax(self.stack.values))
         self.ilow_slider.set(np.amax(self.stack.values))
         self.ilow_slider_label.configure(text=self.stack.display.format(np.amax(self.stack.values)))
-        self.filename_label.configure(text=os.path.basename(filename))
+        self.filename_label.configure(text=os.path.basename(filename).split('.')[0])
         app.sumcor, self.itot = self.define_itot(self.stack);
 
     def select_folder(self):
@@ -387,30 +413,35 @@ uses Material Design icons by Google'''
 
     def define_itot(self, stack):
         dark = self.compute_dark(stack);
-        sumcor = xp.sum((stack.values - dark) * (stack.values >= dark), axis=2)
+        sumcor = np.sum((stack.values - dark) * (stack.values >= dark), axis=2)
         itot = sumcor
         return sumcor, itot
 
     def compute_dark(self, stack):
-        SizeCell = 20;
-        NCellHeight = np.floor(stack.height / SizeCell);
-        NCellWidth = np.floor(stack.width / SizeCell);
-        Ncol = SizeCell * np.ones(NCellWidth)
-        Nrow = SizeCell * np.ones(NCellHeight)
+        SizeCell = 20
+        NCellHeight = int(np.floor(stack.height / SizeCell))
+        NCellWidth = int(np.floor(stack.width / SizeCell))
         cropIm = stack.values[:SizeCell * NCellHeight, :SizeCell * NCellWidth, :]
-        ImCG = np.split(cropIm, (Nrow, Ncol, stack.nangle))
-        mImCG = xp.zeros(NCellHeight, NCellWidth);
+        ImCG = np.asarray(np.split(np.asarray(np.split(cropIm, NCellHeight, axis=0)), NCellWidth, axis=2))
+        mImCG = np.zeros((NCellHeight, NCellWidth))
         for it in range(NCellHeight):
             for jt in range(NCellWidth):
-                CellInd = ImCG[it, jt][:, :, 1]
-                mImCG[it, jt] = np.mean(CellInd[CellInd])
-        val = np.amin(mImCG);
-        IndI, IndJ = np.argmin(mImCG)
-        CellInd = ImCG[IndI, IndJ]
-        return xp.mean(CellInd[CellInd])
+                cell = ImCG[it, jt, :, :, 0]
+                mImCG[it, jt] = np.mean(cell[cell != 0])
+        IndI, IndJ = np.where(mImCG == np.amin(mImCG))
+        cell = ImCG[IndI, IndJ, :, :, :]
+        return np.mean(cell[cell != 0])
 
     def circularmean(self, rho):
         return np.mod(np.angle(xp.mean(np.exp(2j * rho), deg=True)), 360) / 2
+
+class Stack():
+    def __init__(self):
+        self.values = []
+        self.height, self.width, self.nangle = 0, 0, 0
+        self.mode = "I"
+        self.display = []
+
 
 if __name__ == "__main__":
     app = App()
