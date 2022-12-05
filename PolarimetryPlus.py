@@ -27,6 +27,7 @@ class App(CTk.CTk):
     height_tab = height - 20
     pady_button = 25
     size_axes = (650, 650)
+    geometry_info = "400x300+400+300"
 
     my_orange = ("#FF7F4F", "#ffb295")
     text_color = "black"
@@ -42,12 +43,16 @@ class App(CTk.CTk):
         super().__init__()
 
 ## MAIN
+        delx = self.winfo_screenwidth() // 10
+        dely = self.winfo_screenheight() // 10
         self.title("Polarimetry Analysis")
-        self.geometry(f"{App.width}x{App.height}")
+        self.geometry("{}x{}+{}+{}".format(App.width, App.height, delx, dely))
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.bind("<Command-q>", self.on_closing)
         self.bind("<Command-w>", self.on_closing)
         self.createcommand('tk::mac::Quit', self.on_closing)
+
+        print(self.winfo_screenwidth())
 
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
@@ -93,8 +98,8 @@ class App(CTk.CTk):
         self.DropDownTool = self.dropdown(self.frame_left, values=["Thresholding (manual)", "Thresholding (auto)", "Mask (manual)", "Mask (auto)"], image=self.icons["build"], row=4, column=0, command=self.DropDownTool_callback)
 
 ## RIGHT FRAME: FLUO
-        self.axes_fluo = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", width=App.size_axes[1], height=App.size_axes[0])
-        self.axes_fluo.grid(row=0, column=0, padx=0, pady=0)
+        self.fluo_axis = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", width=App.size_axes[1], height=App.size_axes[0])
+        self.fluo_axis.grid(row=0, column=0, padx=0, pady=0)
         banner = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent")
         banner.grid(row=0, column=1)
         self.button(banner, text="", image=self.icons["contrast"], command=self.set_button_contrast_fluo).grid(row=0, column=0, sticky="ne", padx=20, pady=20)
@@ -114,8 +119,8 @@ class App(CTk.CTk):
         CTk.CTkLabel(master=banner, fg_color="transparent", text="Stack", text_color="black", font=CTk.CTkFont(weight="bold")).place(relx=0.7, rely=0.5)
 
 ## RIGHT FRAME: THRSH
-        self.axes_thrsh = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", width=App.size_axes[1], height=App.size_axes[0])
-        self.axes_thrsh.grid(row=0, column=0, padx=0, pady=0)
+        self.thrsh_axis = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", width=App.size_axes[1], height=App.size_axes[0])
+        self.thrsh_axis.grid(row=0, column=0, padx=0, pady=0)
         banner = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent")
         banner.grid(row=0, column=1)
         self.button(banner, text="", image=self.icons["contrast"], command=self.set_button_contrast_thrsh).grid(row=0, column=0, sticky="ne", padx=20, pady=20)
@@ -154,8 +159,8 @@ class App(CTk.CTk):
         plot_options = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=App.my_gray[0])
         plot_options.grid(row=2, column=0, padx=20, pady=20, sticky="nw")
         CTk.CTkLabel(master=plot_options, text="Plot options", width=160, text_color="black", font=CTk.CTkFont(size=16, weight="bold")).grid(row=0, column=0, padx=20, pady=(0, 20))
-        self.axes = self.checkbox(plot_options, text="Add axes on figures")
-        self.axes.grid(row=1, column=0, padx=20)
+        self.add_axes = self.checkbox(plot_options, text="Add axes on figures")
+        self.add_axes.grid(row=1, column=0, padx=20)
         CTk.CTkLabel(master=plot_options, text="Number of pixels separating sticks", text_color="black", font=CTk.CTkFont(weight="bold")).grid(row=2, column=0, padx=20, pady=20)
         labels = ["horizontal", "vertical"]
         self.pixelsperstick = [ttk.Spinbox(master=plot_options, from_=0, to=10, width=2, foreground=App.my_gray[1], background=App.my_gray[1]) for it in range(2)]
@@ -199,9 +204,9 @@ class App(CTk.CTk):
         self.offset_angle_entry.configure(state="disabled")
 
         labels = ["Bin width", "Bin height"]
-        self.binning = [self.entry(adv["Binning"], text=label, text_box="1", row=it+1, column=0) for it, label in enumerate(labels)]
+        self.binning_entries = [self.entry(adv["Binning"], text=label, text_box="1", row=it+1, column=0) for it, label in enumerate(labels)]
         labels = ["Stick (deg)", "Figure (deg)"]
-        self.rotation = [self.entry(adv["Rotation"], text=label, text_box="0", row=it+1, column=0) for it, label in enumerate(labels)]
+        self.rotation_entries = [self.entry(adv["Rotation"], text=label, text_box="0", row=it+1, column=0) for it, label in enumerate(labels)]
         labels = ["Noise factor", "Noise width", "Noise height", "Noise removal level"]
         vals = [1, 3, 3, 0]
         rows = [1, 2, 3, 5]
@@ -216,37 +221,9 @@ class App(CTk.CTk):
         self.button(banner, text="", image=self.icons["mail"], command=self.send_email).grid(row=0, column=1)
         self.button(banner, text="", image=self.icons["GitHub"], command=lambda:self.openweb(App.url_github)).grid(row=0, column=2, padx=40)
         self.button(banner, text="", image=self.icons["contact_support"], command=lambda:self.openweb(App.url_github + '/blob/master/README.md')).grid(row=0, column=3, padx=20)
-
         about_textbox = CTk.CTkTextbox(master=self.tabview.tab("About"), width=App.width_tab-30, height=500, font=CTk.CTkFont(weight="bold"), text_color="black", fg_color=App.my_orange[0])
         about_textbox.grid(row=1, column=0)
-        message = '''Version: 2.1 (December 1, 2022) created with Python and customtkinter
-
-
-Website: www.fresnel.fr/polarimetry/
-
-
-Source code available at github.com/cchandre/Polarimetry
-
-
-
-
-Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS)
-
-
-To report bugs, send an email to
-    manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS)
-    cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS)
-    sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS)
-
-
-
-BSD 2-Clause License
-
-Copyright(c) 2021, Cristel Chandre
-All rights reserved.
-
-
-uses Material Design icons by Google'''
+        message = "Version: 2.1 (December 1, 2022) created with Python and customtkinter\n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n    manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n uses Material Design icons by Google"
         about_textbox.insert("0.0", message)
         about_text = about_textbox.get("0.0", "end")
         about_textbox.configure(state="disabled")
@@ -258,7 +235,7 @@ uses Material Design icons by Google'''
         info = ["(1) Select a polarimetry method", "(2) Download a file or a folder", "(3) Select a method of analysis", "(4) Select one or several regions of interest", "(5) Click on Analysis"]
         self.info_window = CTk.CTkToplevel(self, fg_color=App.my_gray[1])
         self.info_window.title('Polarimetry Analysis')
-        self.info_window.geometry("400x300")
+        self.info_window.geometry(App.geometry_info)
         CTk.CTkLabel(self.info_window, text="  Welcome to Polarimetry Analysis", text_color="black", font=CTk.CTkFont(size=20, weight="bold"), image=self.icons['blur_circular'], compound="left").grid(row=0, column=0, padx=30, pady=(10, 0), sticky="w")
         for it, el in enumerate(info):
             CTk.CTkLabel(self.info_window, text=el, text_color="black", font=CTk.CTkFont(weight="bold")).grid(row=it+1, column=0, padx=70, pady=(5, 0), sticky="w")
@@ -279,10 +256,11 @@ uses Material Design icons by Google'''
 
     def initialize_slider(self, stack=[]):
         if stack:
-            self.stack_slider.configure(to=stack["nangle"], number_of_steps=stack["nangle"])
-        self.contrast_fluo_slider.set(1)
-        self.contrast_thrsh_slider.set(1)
-        self.ilow_slider.set(0)
+            self.stack_slider.configure(to=stack.nangle, number_of_steps=stack.nangle)
+            self.stack_slider.set(0)
+            self.ilow_slider.set(xp.amin(stack.values))
+        self.contrast_fluo_slider.set(0.5)
+        self.contrast_thrsh_slider.set(0.5)
 
     def initialize_noise(self):
         self.Noise = {'Height': 3, 'Width': 3, 'Factor': 1, 'RemovalLevel': 0}
@@ -414,10 +392,10 @@ uses Material Design icons by Google'''
         #self.represent_thrsh(self.itot, True, False)
 
     def no_background(self):
-        if self.axes_thrsh.cget("fg_color") == "black":
-            self.axes_thrsh.configure(fg_color="transparent")
+        if self.thrsh_axis.cget("fg_color") == "black":
+            self.thrsh_axis.configure(fg_color="transparent")
         else:
-            self.axes_thrsh.configure(fg_color="black")
+            self.thrsh_axis.configure(fg_color="black")
         #self.represent_thrsh(self.itot, False, False)
 
     def offset_angle_switched(self):
