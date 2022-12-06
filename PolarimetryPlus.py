@@ -14,6 +14,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 from skimage import exposure
 from scipy import ndimage
+import cv2
 
 CTk.set_default_color_theme("dark-blue")
 CTk.set_appearance_mode("dark")
@@ -124,8 +125,18 @@ class App(CTk.CTk):
         CTk.CTkLabel(master=banner, fg_color="transparent", text="Stack", text_color="black", font=CTk.CTkFont(weight="bold")).place(relx=0.7, rely=0.5)
 
 ## RIGHT FRAME: THRSH
-        self.thrsh_axis = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", width=App.axes_size[1], height=App.axes_size[0])
-        self.thrsh_axis.grid(row=0, column=0, padx=0, pady=0)
+        self.thrsh_frame = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", width=App.axes_size[1], height=App.axes_size[0])
+        self.thrsh_frame.grid(row=0, column=0, padx=0, pady=0)
+        self.thrsh_axis_facecolor = App.gray[1]
+        self.thrsh_fig = Figure(figsize=(6.5, 6.5), facecolor=self.thrsh_axis_facecolor)
+        self.thrsh_axis = self.thrsh_fig.add_axes([0, 0, 1, 1])
+        self.thrsh_axis.set_axis_off()
+        self.thrsh_axis.set_facecolor(self.thrsh_axis_facecolor)
+        self.thrsh_canvas = FigureCanvasTkAgg(self.thrsh_fig, master=self.thrsh_frame)
+        self.thrsh_canvas.draw()
+        self.thrsh_toolbar = NavigationToolbar2Tk(self.thrsh_canvas, self.thrsh_frame, pack_toolbar=False)
+        self.thrsh_toolbar.update()
+        self.thrsh_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
         banner = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent")
         banner.grid(row=0, column=1)
         self.button(banner, text="", image=self.icons["contrast"], command=self.contrast_thrsh_button_callback).grid(row=0, column=0, sticky="ne", padx=20, pady=20)
@@ -140,7 +151,8 @@ class App(CTk.CTk):
         self.ilow_slider.place(relx=0.2, rely=0.93, anchor="w")
         self.ilow_slider_label = CTk.CTkLabel(master=self.tabview.tab("Thresholding/Mask"), width=20, height=10, fg_color="transparent", text=0, text_color="black", font=CTk.CTkFont(weight="bold"))
         self.ilow_slider_label.place(relx=0.2, rely=0.96, anchor="w")
-        self.transparency_slider = CTk.CTkSlider(master=self.tabview.tab("Thresholding/Mask"), from_=0, to=1, button_color=App.orange[0], button_hover_color=App.orange[1])
+        self.transparency_slider = CTk.CTkSlider(master=self.tabview.tab("Thresholding/Mask"), from_=0, to=1, button_color=App.orange[0], button_hover_color=App.orange[1], command=self.transparency_slider_callback)
+        self.transparency_slider.set(0)
         self.transparency_slider.place(relx=0.6, rely=0.93, anchor="w")
 
 ## RIGHT FRAME: OPTIONS
@@ -254,14 +266,14 @@ class App(CTk.CTk):
         self.initialize_table()
         #self.initialize_variables()
         #self.initialize_diskcone()
-        self.thrsh_colormap = 'hot'
+        self.thrsh_colormap = "hot"
         self.disk_data = {'1': '488 nm (no distortions)', '2': '561 nm (no distortions)', '3': '640 nm (no distortions)', '4': '488 nm (16/03/2020 - 12/04/2022)', '5': '561 nm (16/03/2020 - 12/04/2022)', '6': '640 nm (16/03/2020 - 12/04/2022)', '7': '488 nm (13/12/2019 - 15/03/2020)', '8': '561 nm (13/12/2019 - 15/03/2020)', '9': '640 nm (13/12/2019 - 15/03/2020)', '10': '488 nm (before 13/12/2019)', '11': '561 nm (before 13/12/2019)', '12': '640 nm (before 13/12/2019)', '13': 'no distortions (before 12/04/2022)', '14': 'other'}
 
     def initialize_slider(self, stack=[]):
         if stack:
             self.stack_slider.configure(to=stack.nangle, number_of_steps=stack.nangle)
             self.stack_slider.set(0)
-            self.ilow_slider.set(xp.amin(stack.values))
+            self.ilow_slider.set(xp.amin(stack.itot))
         self.contrast_fluo_slider.set(0.5)
         self.contrast_thrsh_slider.set(0.5)
 
@@ -353,7 +365,8 @@ class App(CTk.CTk):
     def contrast_thrsh_slider_callback(self, value):
         if value <= 0.001:
             self.contrast_thrsh_slider.set(0.001)
-            #self.represent_thrsh(self.stack, True, False);
+        if hasattr(self, 'stack'):
+            self.represent_thrsh(self.stack, drawnow=True)
 
     def contrast_fluo_slider_callback(self, value):
         if value <= 0.001:
@@ -374,13 +387,15 @@ class App(CTk.CTk):
             self.contrast_thrsh_slider.set(0.5)
         else:
             self.contrast_thrsh_slider.set(1)
-        #self.represent_thrsh(self.stack, True, False)
+        if hasattr(self, 'stack'):
+            self.represent_thrsh(self.stack, drawnow=True)
 
     def reload_button_callback(self):
         self.int_roi = 0
         self.patch = {}
-        self.represent_fluo(self.stack, drawnow=True, update=False)
-        #self.represent_thrsh(self.stack, True, True)
+        if hasattr(self, 'stack'):
+            self.represent_fluo(self.stack, drawnow=True, update=False)
+            self.represent_thrsh(self.stack, drawnow=True, update=False)
         self.roi = np.zeros(self.stack.itot.shape)
         self.roi_ilow = np.zeros(self.stack.itot.shape)
         self.mask = np.zeros(self.stack.itot.shape)
@@ -391,17 +406,20 @@ class App(CTk.CTk):
 
     def change_colormap(self):
         if self.thrsh_colormap == "hot":
-            self.thrsh_colormap == "gray"
+            self.thrsh_colormap = "gray"
         else:
-            self.thrsh_colormap == "hot"
-        #self.represent_thrsh(self.stack, True, False)
+            self.thrsh_colormap = "hot"
+        if hasattr(self, 'stack'):
+            self.represent_thrsh(self.stack, drawnow=True)
 
     def no_background(self):
-        if self.thrsh_axis.cget("fg_color") == "black":
-            self.thrsh_axis.configure(fg_color="transparent")
+        if self.thrsh_axis_facecolor == "black":
+            self.thrsh_axis_facecolor = App.gray[1]
         else:
-            self.thrsh_axis.configure(fg_color="black")
-        #self.represent_thrsh(self.stack, False, False)
+            self.thrsh_axis_facecolor = "black"
+        self.thrsh_axis.set_facecolor(self.thrsh_axis_facecolor)
+        if hasattr(self, 'stack'):
+            self.represent_thrsh(self.stack)
 
     def offset_angle_switch_callback(self):
         if self.offset_angle_switch.get() == "on":
@@ -464,6 +482,7 @@ class App(CTk.CTk):
         self.stack = Stack()
         for key in dict:
             setattr(self.stack, key, dict[key])
+        self.stack = self.define_itot(self.stack)
         self.userdarkvalue = 480
         if self.stack.mode == "I":
             self.stack.display = ":.2f"
@@ -472,13 +491,14 @@ class App(CTk.CTk):
             self.stack_slider.configure(to=dataset.n_frames)
         else:
             self.stack_slider.configure(state="disabled")
-        self.ilow_slider.configure(from_=np.amin(self.stack.values), to=np.amax(self.stack.values))
-        self.ilow_slider.set(np.amin(self.stack.values))
-        self.ilow_slider_label.configure(text=self.stack.display.format(np.amin(self.stack.values)))
+        self.ilow_slider.configure(from_=np.amin(self.stack.itot), to=np.amax(self.stack.itot))
+        self.ilow_slider.set(np.amin(self.stack.itot))
+        self.ilow_slider_label.configure(text=self.stack.display.format(np.amin(self.stack.itot)))
         self.filename_label.configure(text=os.path.basename(filename).split('.')[0])
         self.folder = os.path.dirname(filename)
-        self.stack = self.define_itot(self.stack)
+
         self.represent_fluo(self.stack, drawnow=True, update=False)
+        self.represent_thrsh(self.stack, drawnow=True, update=False)
 
     def select_folder(self):
         self.folder = fd.askdirectory(title='Select a directory', initialdir='/')
@@ -488,7 +508,7 @@ class App(CTk.CTk):
         if method.startswith('Mask'):
             self.ilow_slider.set(np.amin(self.stack.itot))
             self.mask_folder = self.folder
-            #self.represent_thrsh(self.stack, False, False)
+            self.represent_thrsh(self.stack)
 
     def stack_slider_callback(self, value):
         self.stack_slider_label.configure(text=int(value))
@@ -502,6 +522,14 @@ class App(CTk.CTk):
 
     def ilow_slider_callback(self, value):
         self.ilow_slider_label.configure(text=int(value))
+        if hasattr(self, 'stack'):
+            self.represent_thrsh(self.stack)
+
+    def transparency_slider_callback(self, value):
+        if value <= 0.001:
+            self.transparency_slider.set(0.001)
+        if hasattr(self, 'stack'):
+            self.represent_thrsh(self.stack)
 
     def represent_fluo(self, stack, drawnow=False, update=True):
         if not drawnow:
@@ -512,7 +540,7 @@ class App(CTk.CTk):
         elif self.stack_slider.get() <= self.stack.nangle:
             field = (stack.values[:, :, int(self.stack_slider.get())-1] - np.amin(stack.values)) / (np.amax(stack.values) - np.amin(stack.values))
         field = exposure.adjust_gamma(field, self.contrast_fluo_slider.get())
-        field = ndimage.rotate(field, self.rotation_entries[1].get())
+        #field = ndimage.rotate(field, self.rotation_entries[1].get())
         if update:
             self.fluo_im.set_data(field)
         else:
@@ -526,7 +554,27 @@ class App(CTk.CTk):
         #        prot = self.fluo_axis.add_patch('XData', self.patch["XData"][it], 'YData', self.patch["YData"][it])
         #        rotate(prot, [0 0 -1], self.FigureRotationEditField.Value, [self.stack.width / 2, self.stack.height / 2, 0])
         #        htext = self.fluo_axis.text(self.patch["XData"][it][0], self.patch["YData"][it][0], str(it), fontsize=20, color="w")
-        #        rotate(htext,[0 0 -1],app.FigureRotationEditField.Value,[app.Stack.Width/2,app.Stack.Height/2,0]);
+        #        rotate(htext,[0 0 -1],app.FigureRotationEditField.Value,[app.Stack.Width/2,app.Stack.Height/2,0])
+
+    def represent_thrsh(self, stack, drawnow=False, update=True):
+        field = stack.itot / np.amax(stack.itot)
+        if self.method_dropdown.get().startswith("Mask"):
+            mask_name = os.path.basename(filename) + ".png"
+            if os.path.isfile(mask_name):
+                im_binarized = cv2.imread(mask_name)
+                mask = xp.asarray(im_binarized, dtype=xp.float64)
+                mask = mask / xp.amax(mask)
+                field =field * mask
+        alphadata = np.ones(field.shape)
+        thrsh = self.ilow_slider.get() / np.amax(stack.itot)
+        alphadata[field <= thrsh] *= self.transparency_slider.get()
+        field = exposure.adjust_gamma(field, self.contrast_thrsh_slider.get())
+        if update:
+            plt.setp(self.thrsh_im, alpha=alphadata, cmap=self.thrsh_colormap)
+            self.thrsh_im.set_data(field)
+        else:
+            self.thrsh_im = self.thrsh_axis.imshow(field, cmap=self.thrsh_colormap, extent=[0, 1, 0, 1], alpha=alphadata)
+        self.thrsh_fig.canvas.draw()
 
     def define_itot(self, stack):
         dark = self.compute_dark(stack);
