@@ -379,7 +379,7 @@ class App(CTk.CTk):
     def reload_button_callback(self):
         self.int_roi = 0
         self.patch = {}
-        #self.represent_fluo(self.stack, True)
+        self.represent_fluo(self.stack, drawnow=True, update=False)
         #self.represent_thrsh(self.stack, True, True)
         self.roi = np.zeros(self.stack.itot.shape)
         self.roi_ilow = np.zeros(self.stack.itot.shape)
@@ -478,7 +478,7 @@ class App(CTk.CTk):
         self.filename_label.configure(text=os.path.basename(filename).split('.')[0])
         self.folder = os.path.dirname(filename)
         self.stack = self.define_itot(self.stack)
-        self.represent_fluo(self.stack, drawnow=True, new=True)
+        self.represent_fluo(self.stack, drawnow=True, update=False)
 
     def select_folder(self):
         self.folder = fd.askdirectory(title='Select a directory', initialdir='/')
@@ -503,7 +503,7 @@ class App(CTk.CTk):
     def ilow_slider_callback(self, value):
         self.ilow_slider_label.configure(text=int(value))
 
-    def represent_fluo(self, stack, drawnow=False, new=False):
+    def represent_fluo(self, stack, drawnow=False, update=True):
         if not drawnow:
             xlim_fluo = self.fluo_axis.get_xlim()
             ylim_fluo = self.fluo_axis.get_ylim()
@@ -513,19 +513,19 @@ class App(CTk.CTk):
             field = (stack.values[:, :, int(self.stack_slider.get())-1] - np.amin(stack.values)) / (np.amax(stack.values) - np.amin(stack.values))
         field = exposure.adjust_gamma(field, self.contrast_fluo_slider.get())
         field = ndimage.rotate(field, self.rotation_entries[1].get())
-        if new:
-            self.fluo_im = self.fluo_axis.imshow(field, cmap=mpl.colormaps["gray"], extent=[0, 1, 0, 1])
-        else:
+        if update:
             self.fluo_im.set_data(field)
+        else:
+            self.fluo_im = self.fluo_axis.imshow(field, cmap=mpl.colormaps["gray"], extent=[0, 1, 0, 1])
         if not drawnow:
             self.fluo_axis.set_xlim(xlim_fluo)
             self.fluo_axis.set_ylim(ylim_fluo)
         self.fluo_fig.canvas.draw()
         #if self.int_roi and hasattr(self.patch, "XData"):
         #    for it in range(self.int_roi):
-        #        prot = patch(app.UIAxesFluo, 'XData', app.Patch["XData"][it], 'YData', self.patch["YData"][it], 'FaceAlpha', 0, 'EdgeColor', 'w')
+        #        prot = self.fluo_axis.add_patch('XData', self.patch["XData"][it], 'YData', self.patch["YData"][it])
         #        rotate(prot, [0 0 -1], self.FigureRotationEditField.Value, [self.stack.width / 2, self.stack.height / 2, 0])
-        #        htext = text(app.UIAxesFluo, app.Patch.XData{it}(1),app.Patch.YData{it}(1),num2str(it),'FontSize',20,'Color','w')
+        #        htext = self.fluo_axis.text(self.patch["XData"][it][0], self.patch["YData"][it][0], str(it), fontsize=20, color="w")
         #        rotate(htext,[0 0 -1],app.FigureRotationEditField.Value,[app.Stack.Width/2,app.Stack.Height/2,0]);
 
     def define_itot(self, stack):
