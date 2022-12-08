@@ -7,6 +7,8 @@ from tkinter import filedialog as fd
 from tkinter.messagebox import showinfo
 from PIL import ImageTk, Image
 import os
+import pathlib
+import scipy.io
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -223,8 +225,18 @@ class App(CTk.CTk):
 
         self.offset_angle_switch = CTk.CTkSwitch(master=adv["Offset angle"], text="", command=self.offset_angle_switch_callback, onvalue="on", offvalue="off", width=50)
         self.offset_angle_switch.grid(row=0, column=0, padx=20, pady=10, sticky="ne")
-        self.offset_angle_entry = self.entry(adv["Offset angle"], text="\n" + "Offset angle (deg)" +"\n", text_box=str(85), row=1)
+        self.offset_angle = tk.StringVar()
+        self.offset_angle.set(str(85))
+        self.offset_angle_entry = self.entry(adv["Offset angle"], text="\n" + "Offset angle (deg)" +"\n", textvariable=self.offset_angle, row=1)
         self.offset_angle_entry.configure(state="disabled")
+
+        self.calibration_data = ["Calib_20221102", "Calib_20221011", "other"]
+        self.dropdown_diskcone = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values=" ", width=App.button_size[0], height=App.button_size[1], dynamic_resizing=False, command=self.dropdown_diskcone_callback)
+        self.dropdown_diskcone.grid(row=1, column=0, pady=20)
+        self.button(adv["Disk cone / Calibration data"], text="Display", image=self.icons["photo"], command=self.diskcone_display).grid(row=2, column=0, pady=20)
+        self.diskcone_textbox = CTk.CTkTextbox(master=adv["Disk cone / Calibration data"], width=250, height=50, state="disabled")
+        self.diskcone_textbox.insert("0.0", " ")
+        self.diskcone_textbox.grid(row=3, column=0, pady=20)
 
         labels = ["Bin width", "Bin height"]
         self.binning_entries = []
@@ -280,7 +292,9 @@ class App(CTk.CTk):
         #self.initialize_variables()
         #self.initialize_diskcone()
         self.thrsh_colormap = "hot"
-        self.disk_data = {'1': '488 nm (no distortions)', '2': '561 nm (no distortions)', '3': '640 nm (no distortions)', '4': '488 nm (16/03/2020 - 12/04/2022)', '5': '561 nm (16/03/2020 - 12/04/2022)', '6': '640 nm (16/03/2020 - 12/04/2022)', '7': '488 nm (13/12/2019 - 15/03/2020)', '8': '561 nm (13/12/2019 - 15/03/2020)', '9': '640 nm (13/12/2019 - 15/03/2020)', '10': '488 nm (before 13/12/2019)', '11': '561 nm (before 13/12/2019)', '12': '640 nm (before 13/12/2019)', '13': 'no distortions (before 12/04/2022)', '14': 'other'}
+        self.DC = DiskCone()
+        self.CD = CalibrationData()
+        self.dropdown_diskcone.configure(values=DiskCone.list)
 
     def initialize_slider(self, stack=[]):
         if stack:
@@ -334,11 +348,11 @@ class App(CTk.CTk):
     def checkbox(self, master, text=""):
         return CTk.CTkCheckBox(master=master, onvalue=True, offvalue=False, text=text, width=30)
 
-    def entry(self, master, text="", text_box="", row=0, column=0):
+    def entry(self, master, text="", text_box="", textvariable="", row=0, column=0):
         banner = CTk.CTkFrame(master=master, fg_color=self.left_frame.cget("fg_color"))
         banner.grid(row=row, column=column, sticky="e")
         CTk.CTkLabel(master=banner, text=text).grid(row=0, column=0, padx=(20, 10))
-        entry = CTk.CTkEntry(master=banner, placeholder_text=text_box, width=50)
+        entry = CTk.CTkEntry(master=banner, placeholder_text=text_box, textvariable=textvariable, width=50)
         entry.grid(row=0, column=1, padx=(10, 20), pady=5)
         return entry
 
@@ -464,6 +478,32 @@ class App(CTk.CTk):
         else:
             self.dark_entry.configure(state="disabled")
 
+    def dropdown_diskcone_callback(self, value):
+        if self.method_dropdown.get() == "1PF":
+            for key, var in DiskCone.dict.items():
+                if var[0] == value:
+                    self.DC = DiskCone(key)
+            self.offset_angle.set(str(self.DC.offset_default))
+            self.diskcone_textbox.delete("0.0", "end")
+            self.diskcone_textbox.insert("0.0", self.DC.name)
+        elif self.method_dropdown.get() in ["4POLAR 2D", "4POLAR3D"]:
+            for key, var in CalibrationData.dict.items():
+                if var[0] == value:
+                    self.CD = CalibrationData(key)
+            self.offset_angle.set(str(self.CD.offset_default))
+            self.diskcone_textbox.delete("0.0", "end")
+            self.diskcone_textbox.insert("0.0", self.CD.name)
+
+    def diskcone_display(self):
+        if self.method_dropdown.get() == "1PF" and hasattr(self, "DC"):
+            fig, axs = plt.subplots(1, 2)
+            fig.canvas.manager.set_window_title("Disk Cone: " + self.DC.name)
+            axs[0].imshow(self.DC.Rho, cmap="jet")
+            axs[0].set_title("Rho Test")
+            axs[1].imshow(self.DC.Psi, cmap="jet")
+            axs[1].set_title("Psi Test")
+            plt.show()
+
     def variable_table_switch_callback(self):
         state = "normal" if self.variable_table_switch.get() == "on" else "disabled"
         for entry in self.variable_entries:
@@ -477,14 +517,18 @@ class App(CTk.CTk):
 
     def method_dropdown_callback(self, method):
         self.initialize_table(mode="all")
-        self.offset_angle_entry.configure(placeholder_text=str(0))
         self.clear_frame(self.variable_table_frame)
         self.variable_table_frame.configure(fg_color=self.left_frame.cget("fg_color"))
         CTk.CTkLabel(master=self.variable_table_frame, text="      Min                   Max", text_color="black", font=CTk.CTkFont(weight="bold"), width=200).grid(row=0, column=0, padx=20, pady=10, sticky="e")
         self.variable_table_switch = CTk.CTkSwitch(master=self.variable_table_frame, text="", progress_color=App.orange[0], command=self.variable_table_switch_callback, onvalue="on", offvalue="off", width=50)
         self.variable_table_switch.grid(row=0, column=0, padx=(10, 40), sticky="w")
+        if method == "1PF":
+            self.dropdown_diskcone.configure(values=DiskCone.list, state="normal")
+        elif method.startswith("4POLAR"):
+            self.dropdown_diskcone.configure(values=CalibrationData.list, state="normal")
+        else:
+            self.dropdown_diskcone.configure(values=" ", state="disabled")
         if method in ["1PF", "4POLAR 2D"]:
-            self.offset_angle_entry.configure(placeholder_text=str(85))
             variables = ["\u03C1", "\u03C8"]
             vals = [(0, 180), (40, 180)]
         elif method in ["CARS", "SRS", "2PF"]:
@@ -497,8 +541,12 @@ class App(CTk.CTk):
             variables = ["\u03C1", "\u03C8", "\u03B7"]
             vals = [(0, 180), (40, 180), (0, 90)]
         self.variable_entries = []
+        self.variable_table = [tk.StringVar() for _ in range(len(variables))]
         for it, (var, val) in enumerate(zip(variables, vals)):
-            self.variable_entries += self.double_entry(self.variable_table_frame, text=var, text_box=val, row=it+1)
+            frame = CTk.CTkFrame(master=self.variable_table_frame)
+            frame.grid(row=it+1, column=0)
+            CTk.CTkCheckBox(master=frame, text="", variable=self.variable_table[it]).grid(row=0, column=0)
+            self.variable_entries += self.double_entry(frame, text=var, text_box=val, row=0, column=1)
 
     def open_file(self, filename):
         dataset = Image.open(filename)
@@ -670,6 +718,130 @@ class App(CTk.CTk):
     def circularmean(self, rho):
         return np.mod(np.angle(xp.mean(np.exp(2j * rho), deg=True)), 360) / 2
 
+    def get_variable(self, i):
+        display = self.variable_table[i].get()
+        min, max = [self.variable_entries[i][_] for _ in range(2)]
+        return display, min, max
+
+    def analyze_stack(self, stack, mask):
+        chi2threshold = 500
+        shape = stack.roi.shape
+        if len(self.dark_entry.get()) >= 1:
+            dark = float(self.dark_entry.get())
+        else:
+            dark = stack.calculated_dark
+        field = stack.values - dark - float(self.noise[3].get())
+        field = field * (field >= 0)
+        if self.method_dropdown.get() == "1PF":
+            field = sqrt(field)
+        elif self.method_dropdown.get() in ["4POLAR 2D", "4POLAR 3D"]:
+            field[:, :, [2, 3]] = field[:, :, [3, 2]]
+        bin_shape = [self.binning_entries[_].get() for _ in range(2)]
+        if any(bin_shape):
+            bin_shape[bin_shape == ""] = 1
+            bin = np.ones(int(_) for _ in bin_shape)
+            field = convolve2d(field, bin, mode="same") / (bin_shape[0] * bin_shape[1])
+        if self.method_dropdown.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
+            angle3d = (np.linspace(0, 180, stack.nangle + 1) + 180 - float(self.offset_angle.get())).reshape(1, 1, -1)
+            e2 = exp(2j * np.deg2rad(angle3d))
+            a0 = np.mean(field, axis=2)
+            a2 = 2 * np.mean(field * e2, axis=2)
+            field_fit = a0 + (a2 * e2.conj()).real
+            a2 = a2 / a0
+            if self.method_dropdown.get() in ["CARS", "SRS", "SHG", "2PF"]:
+                e4 = e2**2
+                a4 = 2 * np.mean(field * e4, axis=2)
+                field_fit += (a4 * e4.conj()).real
+                a4 = a4 / a0
+            chi2 = np.mean((field - field_fit)**2 / field_fit, axis=2)
+        elif self.method_dropdown.get() == "4POLAR 3D":
+            mat = np.einsum("ij,mnj->imn", app.invKmat_3D, field)
+            s = mat[0, :, :] + mat[1, :, :] + mat[2, :, :]
+            pxy = ((mat[0, :, :] - mat[1, :, :]) / s).reshape(shape)
+            puv = (2 * mat[3, :, :] / s).reshape(shape)
+            pzz = (mat[2, :, :] / s).reshape(shape)
+            lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
+            a0 = np.mean(field, axis=2) / 4
+        elif self.method_dropdown.get() == '4POLAR 2D':
+            mat = np.einsum("ij,mnj->imn", app.invKmat_2D, field)
+            s = mat[0, :, :] + mat[1, :, :] + mat[2, :, :]
+            pxy = ((mat[0, :, :] - mat[1, :, :]) / s).reshape(shape)
+            puv = (2 * mat[3, :, :] / s).reshape(shape)
+            lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
+            a0 = np.mean(field, axis=2) / 4
+        rho_ = Variable(shape, 0)
+        rho_.name, rho_.latex = "Rho", "$\rho$"
+        rho_.display, rho_.min, rho_.max = self.get_variable(0)
+        rho_.colormap = hsv
+        Y, X = np.mgrid[0:shape[0], 0:shape[1]]
+        ind = (stack.roi > 0) * (mask != 0)
+        if self.method_dropdown.get() == "1PF":
+            ind *= (np.abs(a2) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
+            rho = np.empty(shape)
+            rho[ind] = app.DC.Rho[np.round_((a2.real[ind] + 1) * self.DC.h), np.round_((a2.imag[ind] + 1) * self.DC.h)] + 90
+            rho[xp.logical_not(ind)] = np.nan
+            psi = np.empty(shape)
+            psi[ind] = app.DC.Psi[np.round_((a2.real[ind] + 1) * self.DC.h), np.round_((a2.imag[ind] + 1) * self.DC.h)]
+            psi[xp.logical_not(ind)] = np.nan
+            ind *= (rho == np.nan) * (psi == np.nan)
+            rho_.value[ind] = np.mod(2 * (180 - rho[ind] + float(self.rotation_entries[0].get())), 360) / 2
+            psi_ = Variable(shape)
+            psi_.name, psi_.latex = "Psi", "$\psi$"
+            psi_.value[ind] = psi[ind]
+            psi_.display, psi_.min, psi_.max = self.get_variable(1)
+            psi_.colormap = jet
+        elif self.method_dropdown.get() in ["CARS", "SRS", "2PF"]:
+            ind *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
+            rho_.value[ind] = np.rad2deg(np.angle(a2[ind])) / 2
+            rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation_entries[0].get())), 360) / 2
+            s2_ = Variable(shape)
+            s2_.name, s2_.latex = "S2", "$S_2$"
+            s2_.value[ind] = 1.5 * np.abs(a2[ind])
+            s2_.display, s2_.min, s2_.max = self.get_variable(1)
+            s2_.colormap = jet
+            s4_ = Variable(shape)
+            s4_.name, s4_.latex = "S4", "$S_4$"
+            s4_.value[ind] = 6 * np.abs(a4[ind]) * np.cos(4 * (0.25 * np.angle(a4[ind]) - np.deg2rad(rho_.value[ind])))
+            s4_.display, s4_.min, s4_.max = self.get_variable(2)
+            s4_.colormap = jet
+        elif self.method_dropdown.get() == 'SHG':
+            ind *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
+            rho_.value[ind] = np.rad2deg(np.angle(a2[ind])) / 2
+            rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation_entries[0].get())), 360) / 2
+            s_shg_ = Variable(shape)
+            s_shg_.name, s_shg_.latex = "S_SHG", "$S_\mathrm{SHG}$"
+            s_shg_.value[ind] = -0.5 * (np.abs(a4[ind]) - np.abs(a2[ind])) / (np.abs(a4[ind]) + np.abs(a2[ind])) - 0.65
+            s_shg_.display, s_shg_.min, s_shg_.max = self.get_variable(1)
+            s_shg_.colormap = jet
+        elif self.method_dropdown.get() == "4POLAR 3D":
+            ind *= (lam < 1/3) * (lam > 0) * (pzz > lam)
+            rho_.value[ind] = 0.5 * np.rad2deg(np.atan2(puv[ind], pxy[ind]))
+            rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation_entries[0].get())), 360) / 2
+            psi_ = Variable(shape)
+            psi_.name, psi_.latex = "Psi", "$\psi$"
+            psi_.value[ind] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[ind])) / 2))
+            psi_.display, psi_.min, psi_.max = self.get_variable(1)
+            psi_.colormap = jet
+            eta_ = Variable(shape)
+            eta_.name, eta_.latex = "Eta", "$\eta$"
+            eta_.value[ind] = np.rad2deg(np.acos(np.sqrt((pzz[ind] - lam[ind]) / (1 - 3 * lam[ind]))))
+            eta_.display, eta_.min, eta_.max = self.get_variable(2)
+            eta_.colormap = parula
+        elif self.method_dropdown.get() == "4POLAR 2D":
+            ind *= (lam < 1/3) * (lam > 0)
+            rho_.value[ind] = 0.5 * np.rad2deg(np.atan2(puv[ind], pxy[ind]))
+            rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation_entries[0].get())), 360) / 2
+            psi_ = Variable(shape)
+            psi_.name, psi_.latex = "Psi", "$\psi$"
+            psi_.value[ind] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[ind])) / 2))
+            psi_.display, psi_.min, psi_.max = self.get_variable(2)
+            psi_.colormap = jet
+        a0[xp.logical_not(ind)] = np.nan
+        x[xp.logical_not(ind)] = np.nan
+        y[xp.logical_not(ind)] = np.nan
+        if self.method_dropdown.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
+            chi2[xp.logical_not(ind)] = np.nan
+
 class Stack():
     def __init__(self, filename):
         self.filename = filename
@@ -682,6 +854,59 @@ class Stack():
         self.roi = []
         self.roi_ilow = []
 
+class Variable():
+    def __init__(self, shape):
+        self.name = ""
+        self.latex = ""
+        self.value = np.empty(shape)
+        self.value[:] = np.nan
+        self.display = []
+        self.min = []
+        self.max = []
+        self.colormap = []
+
+class DiskCone():
+
+    dict = {"Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0": ("488 nm (no distortions)", 85), "Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0": ("561 nm (no distortions)", 30), "Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0": ("640 nm (no distortions)", 35), "Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0": ("488 nm (16/03/2020 - 12/04/2022)", 100), "Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0": ("561 nm (16/03/2020 - 12/04/2022)", 100), "Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0": ("640 nm (16/03/2020 - 12/04/2022)", 100), "Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0": ("488 nm (13/12/2019 - 15/03/2020)", 100), "Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0": ("561 nm (13/12/2019 - 15/03/2020)", 100), "Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0": ("640 nm (13/12/2019 - 15/03/2020)", 100), "Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0": ("488 nm (before 13/12/2019)", 100), "Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0": ("561 nm (before 13/12/2019)", 100), "Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0": ("640 nm (before 13/12/2019)", 100), "Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0": ("no distortions (before 12/04/2022)", 100), "other": ("other", 0)}
+
+    list = [value[0] for value in dict.values()]
+
+    folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "DiskCones")
+
+    def __init__(self, name="Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0"):
+        vars = DiskCone.dict.get(name, ("other", 0))
+        folder = DiskCone.folder
+        if vars == ("other", 0):
+            file = pathlib.Path(fd.askopenfilename(title='Select a disk cone', initialdir='/', filetypes='Disk*.mat'))
+            folder = file.parent
+            name = file.stem
+        disk = scipy.io.loadmat(folder + "/" + name + ".mat")
+        self.name = name
+        self.Rho = np.array(disk["RoTest"], dtype=np.float64)
+        self.Psi = np.array(disk["PsiTest"], dtype=np.float64)
+        self.h = float((disk["NbMapValues"] - 1) / 2)
+        self.offset_default = vars[1]
+
+class CalibrationData():
+
+    dict = {"Calib_20221102": ("Calib_20221102", 0), "Calib_20221011": ("Calib_20221011", 0), "other": ("other", 0)}
+
+    list = [value[0] for value in dict.values()]
+
+    folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "CalibrationData")
+
+    def __init__(self, name="Calib_20221102"):
+        vars = CalibrationData.dict.get(name, ("other", 0))
+        folder = CalibrationData.folder
+        if vars == ("other", 0):
+            file = pathlib.Path(fd.askopenfilename(title='Select calibration data', initialdir='/', filetypes='Calib*.mat'))
+            folder = file.parent
+            name = file.stem
+        disk = scipy.io.loadmat(folder + "/" + name + ".mat")
+        self.name = name
+        self.invKmat_2D = np.linalg.inv(np.array(disk["K2D"], dtype=np.float64))
+        self.invKmat_3D = np.linalg.inv(np.array(disk["K3D"], dtype=np.float64))
+        self.offset_default = vars[1]
 
 if __name__ == "__main__":
     app = App()
