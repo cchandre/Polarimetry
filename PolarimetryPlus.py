@@ -28,13 +28,13 @@ mpl.use('TkAgg')
 class App(CTk.CTk):
 
     left_frame_width = 180
-    right_frame_width = 800
-    height = 800
+    right_frame_width = 850
+    height = 850
     width = left_frame_width + right_frame_width
     tab_width = right_frame_width - 40
     height_tab = height - 20
     button_pady = 25
-    axes_size = (650, 650)
+    axes_size = (680, 680)
     button_size = (160, 40)
     info_size = (450, 320)
     geometry_info = "{}x{}+400+300".format(info_size[0], info_size[1])
@@ -91,10 +91,10 @@ class App(CTk.CTk):
         self.button(self.left_frame, text="Download File", command=self.select_file, image=self.icons['download_file']).grid(row=2, column=0, pady=App.button_pady, padx=17)
         self.button(self.left_frame, text="Download Folder", command=self.select_folder, image=self.icons['download_folder']).grid(row=3, column=0, pady=App.button_pady, padx=17)
         self.button(self.left_frame, text="Add ROI", image=self.icons['roi']).grid(row=5, column=0, pady=App.button_pady, padx=17)
-        self.analysis_button = self.button(self.left_frame, text="Analysis", image=self.icons['play'])
+        self.analysis_button = self.button(self.left_frame, text="Analysis", command=self.analysis_callback, image=self.icons['play'])
         self.analysis_button.configure(fg_color=App.green[0], hover_color=App.green[1])
         self.analysis_button.grid(row=6, column=0, pady=App.button_pady, padx=17)
-        button = self.button(self.left_frame, text="Close figures", image=self.icons['close'])
+        button = self.button(self.left_frame, text="Close figures", command=self.close_callback, image=self.icons['close'])
         button.configure(fg_color=App.red[0], hover_color=App.red[1])
         button.grid(row=7, column=0, pady=App.button_pady, padx=17)
         self.method_dropdown = self.dropdown(self.left_frame, values=["1PF", "CARS", "SRS", "SHG", "2PF", "4POLAR 2D", "4POLAR 3D"], image=self.icons["microscope"], row=1, column=0, command=self.method_dropdown_callback)
@@ -102,7 +102,7 @@ class App(CTk.CTk):
 
 ## RIGHT FRAME: FLUO
         self.fluo_frame = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", width=App.axes_size[1], height=App.axes_size[0])
-        self.fluo_frame.grid(row=0, column=0, padx=0, pady=0)
+        self.fluo_frame.grid(row=0, column=0, padx=0, pady=0, sticky="w")
         self.fluo_fig = Figure(figsize=(6.5, 6.5), facecolor=App.gray[1])
         self.fluo_axis = self.fluo_fig.add_axes([0, 0, 1, 1])
         self.fluo_axis.set_axis_off()
@@ -110,7 +110,6 @@ class App(CTk.CTk):
         self.fluo_canvas.draw()
         self.fluo_toolbar = NavigationToolbar2Tk(self.fluo_canvas, self.fluo_frame, pack_toolbar=False)
         self.fluo_toolbar.update()
-        self.fluo_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
         banner = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent")
         banner.grid(row=0, column=1)
         self.button(banner, text="", image=self.icons["contrast"], command=self.contrast_fluo_button_callback).grid(row=0, column=0, sticky="ne", padx=20, pady=20)
@@ -131,7 +130,7 @@ class App(CTk.CTk):
 
 ## RIGHT FRAME: THRSH
         self.thrsh_frame = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", width=App.axes_size[1], height=App.axes_size[0])
-        self.thrsh_frame.grid(row=0, column=0, padx=0, pady=0)
+        self.thrsh_frame.grid(row=0, column=0, padx=0, pady=0, sticky="w")
         self.thrsh_axis_facecolor = App.gray[1]
         self.thrsh_fig = Figure(figsize=(6.5, 6.5), facecolor=self.thrsh_axis_facecolor)
         self.thrsh_axis = self.thrsh_fig.add_axes([0, 0, 1, 1])
@@ -141,7 +140,6 @@ class App(CTk.CTk):
         self.thrsh_canvas.draw()
         self.thrsh_toolbar = NavigationToolbar2Tk(self.thrsh_canvas, self.thrsh_frame, pack_toolbar=False)
         self.thrsh_toolbar.update()
-        self.thrsh_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
         banner = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent")
         banner.grid(row=0, column=1)
         self.button(banner, text="", image=self.icons["contrast"], command=self.contrast_thrsh_button_callback).grid(row=0, column=0, sticky="ne", padx=20, pady=20)
@@ -226,17 +224,15 @@ class App(CTk.CTk):
         self.offset_angle_switch = CTk.CTkSwitch(master=adv["Offset angle"], text="", command=self.offset_angle_switch_callback, onvalue="on", offvalue="off", width=50)
         self.offset_angle_switch.grid(row=0, column=0, padx=20, pady=10, sticky="ne")
         self.offset_angle = tk.StringVar()
-        self.offset_angle.set(str(85))
         self.offset_angle_entry = self.entry(adv["Offset angle"], text="\n" + "Offset angle (deg)" +"\n", textvariable=self.offset_angle, row=1)
         self.offset_angle_entry.configure(state="disabled")
 
         self.calibration_data = ["Calib_20221102", "Calib_20221011", "other"]
-        self.dropdown_diskcone = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values=" ", width=App.button_size[0], height=App.button_size[1], dynamic_resizing=False, command=self.dropdown_diskcone_callback)
-        self.dropdown_diskcone.grid(row=1, column=0, pady=20)
+        self.dropdown_calib = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values=" ", width=App.button_size[0], height=App.button_size[1], dynamic_resizing=False, command=self.dropdown_calib_callback)
+        self.dropdown_calib.grid(row=1, column=0, pady=20)
         self.button(adv["Disk cone / Calibration data"], text="Display", image=self.icons["photo"], command=self.diskcone_display).grid(row=2, column=0, pady=20)
-        self.diskcone_textbox = CTk.CTkTextbox(master=adv["Disk cone / Calibration data"], width=250, height=50, state="disabled")
-        self.diskcone_textbox.insert("0.0", " ")
-        self.diskcone_textbox.grid(row=3, column=0, pady=20)
+        self.calib_textbox = CTk.CTkTextbox(master=adv["Disk cone / Calibration data"], width=250, height=50, state="disabled")
+        self.calib_textbox.grid(row=3, column=0, pady=20)
 
         labels = ["Bin width", "Bin height"]
         self.binning_entries = []
@@ -252,6 +248,7 @@ class App(CTk.CTk):
         rows = [1, 2, 3, 5]
         self.remove_background_entries = [self.entry(adv["Remove background"], text="\n" + label + "\n", text_box=vals[it], row=rows[it], column=0) for it, label in enumerate(labels)]
         self.remove_background_entries[3].configure(state="disabled")
+        self.click_background = False
         self.button(adv["Remove background"], text="Click background", image=self.icons["exposure"], command=self.click_background_callback).grid(row=4, column=0)
 
 ## RIGHT FRAME: ABOUT
@@ -263,7 +260,7 @@ class App(CTk.CTk):
         self.button(banner, text="", image=self.icons["contact_support"], command=lambda:self.openweb(App.url_github + '/blob/master/README.md')).grid(row=0, column=3, padx=20)
         about_textbox = CTk.CTkTextbox(master=self.tabview.tab("About"), width=App.tab_width-30, height=500)
         about_textbox.grid(row=1, column=0)
-        message = "Version: 2.1 (December 1, 2022) created with Python and customtkinter\n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n uses Material Design icons by Google"
+        message = "Version: 2.1 (December 1, 2022) created with Python and CustomTkinter\n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n uses Material Design icons by Google"
         about_textbox.insert("0.0", message)
         about_text = about_textbox.get("0.0", "end")
         about_textbox.configure(state="disabled")
@@ -281,28 +278,33 @@ class App(CTk.CTk):
         textbox = CTk.CTkTextbox(self.info_window, width=320, height=150, fg_color=App.gray[1])
         textbox.grid(row=1, column=0)
         textbox.insert("0.0", info)
-
         link = CTk.CTkLabel(self.info_window, text="For more information, visit the GitHub page", text_color="blue", font=CTk.CTkFont(underline=True), cursor="hand2")
         link.grid(row=2, column=0, padx=50, pady=10, sticky="w")
         link.bind("<Button-1>", lambda e: webbrowser.open_new_tab(App.url_github))
-        ok_button = self.button(master=self.info_window, text="       OK", command=self.on_click)
+        ok_button = self.button(master=self.info_window, text="       OK", command=lambda:self.info_window.withdraw())
         ok_button.configure(width=80, height=App.button_size[1])
         ok_button.grid(row=7, column=0, padx=20, pady=0)
-        self.initialize_table()
-        #self.initialize_variables()
-        #self.initialize_diskcone()
+        self.define_variable_table("1PF")
         self.thrsh_colormap = "hot"
-        self.DC = DiskCone()
-        self.CD = CalibrationData()
-        self.dropdown_diskcone.configure(values=DiskCone.list)
+        self.CD = Calibration("1PF")
+        self.dropdown_calib.configure(values=self.CD.list("1PF"))
+        self.dropdown_calib.set(self.CD.list("1PF")[0])
+        self.calib_textbox.configure(state="normal")
+        self.calib_textbox.delete("0.0", "end")
+        self.calib_textbox.insert("0.0", self.CD.name)
+        self.calib_textbox.configure(state="disabled")
+        self.offset_angle.set(str(85))
 
-    def initialize_slider(self, stack=[]):
-        if stack:
+    def initialize_slider(self):
+        if hasattr(self, "stack"):
             self.stack_slider.configure(to=stack.nangle, number_of_steps=stack.nangle)
-            self.stack_slider.set(0)
             self.ilow.set(stack.display.format(xp.amin(stack.itot)))
+        else:
+            self.ilow.set("0")
         self.contrast_fluo_slider.set(0.5)
         self.contrast_thrsh_slider.set(0.5)
+        self.stack_slider.set(0)
+        self.stack_slider_label.configure(text="T")
 
     def initialize_noise(self):
         self.noise = {'Height': 3, 'Width': 3, 'Factor': 1, 'RemovalLevel': 0}
@@ -310,6 +312,12 @@ class App(CTk.CTk):
         self.hoise_height.configure(text=self.noise["Height"])
         self.noise_factor.configure(text=self.noise["Factor"])
         self.noise_removallevel.configure(text=self.noise["RemovalLevel"])
+
+    def initialize_data(self):
+        self.int_roi = 0
+        self.Path = {}
+        self.initialize_slider()
+        self.initialize_noise()
 
     def initialize_table(self, mode='all'):
         for show, save in zip(self.show_table, self.save_table):
@@ -374,9 +382,6 @@ class App(CTk.CTk):
             widget.destroy()
         frame.pack_forget()
 
-    def on_click(self):
-        self.info_window.withdraw()
-
     def openweb(self, url):
         webbrowser.open(url)
 
@@ -425,29 +430,34 @@ class App(CTk.CTk):
             self.represent_thrsh(self.stack, drawnow=True, update=False)
             self.stack.roi = np.zeros(self.stack.itot.shape)
             self.stack.roi_ilow = np.zeros(self.stack.itot.shape)
-            self.mask = np.zeros(self.stack.itot.shape)
 
     def export_mask(self):
         if hasattr(self, 'stack'):
-            filename = os.path.basename(self.stack.filename)[0]
             window = CTk.CTkToplevel(self)
             window.attributes('-topmost', 'true')
             window.title('Polarimetry Analysis')
             window.geometry(App.geometry_info)
             CTk.CTkLabel(window, text="  Create Mask by ROI or by Intensity", font=CTk.CTkFont(size=20), image=self.icons['open_in_new'], compound="left").grid(row=0, column=0, padx=30, pady=20)
             CTk.CTkLabel(window, text="  select an output variable ").grid(row=1, column=0, padx=50, pady=20)
-            button = CTk.CTkSegmentedButton(master=window, values=["ROI","Intensity", "ROI x Intensity", "Cancel"], command=self.export_mask_callback)
+            button = CTk.CTkSegmentedButton(master=window, values=["ROI", "Intensity", "ROI x Intensity"], width=300)
             button.grid(row=2, column=0, padx=50, pady=20)
+            ok_button = self.button(master=window, text="       OK", command=lambda:self.export_mask_callback(button.get(), window))
+            ok_button.configure(width=80, height=App.button_size[1])
+            ok_button.grid(row=3, column=0, padx=20, pady=0)
 
-    def export_mask_callback(self, value):
+    def export_mask_callback(self, value, window):
+        array = []
         if value == "ROI":
-            mpl.image.imsave(self.stack.filename + 'png', np.where(self.stack.roi != 0))
+            array = np.int32(self.stack.roi != 0)
         elif value == "Intensity":
-            mpl.image.imsave(self.stack.filename + 'png', np.where(self.stack.itot >= float(self.ilow.get())))
+            array = np.int32(self.stack.itot >= float(self.ilow.get()))
         elif value == "ROI x Intensity":
-            A = np.zeros(self.stack.itot.shape)
-            A[self.stack.itot >= self.stack.roi_ilow] = 1
-            mpl.image.imsave(self.stack.filename + 'png', A * self.stack.roi)
+            array = np.zeros(self.stack.itot.shape)
+            array[self.stack.itot >= self.stack.roi_ilow] = 1
+            array *= self.stack.roi
+        if np.any(array):
+            plt.imsave(str(self.stack.folder) + "/" + self.stack.filename + '.png', array, cmap="gray")
+        window.withdraw()
 
     def change_colormap(self):
         if self.thrsh_colormap == "hot":
@@ -478,30 +488,25 @@ class App(CTk.CTk):
         else:
             self.dark_entry.configure(state="disabled")
 
-    def dropdown_diskcone_callback(self, value):
-        if self.method_dropdown.get() == "1PF":
-            for key, var in DiskCone.dict.items():
-                if var[0] == value:
-                    self.DC = DiskCone(key)
-            self.offset_angle.set(str(self.DC.offset_default))
-            self.diskcone_textbox.delete("0.0", "end")
-            self.diskcone_textbox.insert("0.0", self.DC.name)
-        elif self.method_dropdown.get() in ["4POLAR 2D", "4POLAR3D"]:
-            for key, var in CalibrationData.dict.items():
-                if var[0] == value:
-                    self.CD = CalibrationData(key)
-            self.offset_angle.set(str(self.CD.offset_default))
-            self.diskcone_textbox.delete("0.0", "end")
-            self.diskcone_textbox.insert("0.0", self.CD.name)
+    def dropdown_calib_callback(self, value):
+        self.CD = Calibration(self.method_dropdown.get(), label=value)
+        self.offset_angle.set(str(self.CD.offset_default))
+        self.calib_textbox.configure(state="normal")
+        self.calib_textbox.delete("0.0", "end")
+        self.calib_textbox.insert("0.0", self.CD.name)
+        self.calib_textbox.configure(state="disabled")
 
     def diskcone_display(self):
-        if self.method_dropdown.get() == "1PF" and hasattr(self, "DC"):
+        if self.method_dropdown.get() == "1PF" and hasattr(self, "CD"):
             fig, axs = plt.subplots(1, 2)
-            fig.canvas.manager.set_window_title("Disk Cone: " + self.DC.name)
-            axs[0].imshow(self.DC.Rho, cmap="jet")
+            fig.canvas.manager.set_window_title("Disk Cone: " + self.CD.name)
+            fig.patch.set_facecolor(App.gray[0])
+            axs[0].imshow(self.CD.Rho, cmap="jet")
             axs[0].set_title("Rho Test")
-            axs[1].imshow(self.DC.Psi, cmap="jet")
+            axs[0].set_facecolor(App.gray[0])
+            axs[1].imshow(self.CD.Psi, cmap="jet")
             axs[1].set_title("Psi Test")
+            axs[1].set_facecolor(App.gray[0])
             plt.show()
 
     def variable_table_switch_callback(self):
@@ -515,38 +520,42 @@ class App(CTk.CTk):
     def compute_angle(self):
         print("Not yet implemented... Stay tuned!")
 
-    def method_dropdown_callback(self, method):
+    def define_variable_table(self, method):
         self.initialize_table(mode="all")
         self.clear_frame(self.variable_table_frame)
         self.variable_table_frame.configure(fg_color=self.left_frame.cget("fg_color"))
         CTk.CTkLabel(master=self.variable_table_frame, text="      Min                   Max", text_color="black", font=CTk.CTkFont(weight="bold"), width=200).grid(row=0, column=0, padx=20, pady=10, sticky="e")
         self.variable_table_switch = CTk.CTkSwitch(master=self.variable_table_frame, text="", progress_color=App.orange[0], command=self.variable_table_switch_callback, onvalue="on", offvalue="off", width=50)
         self.variable_table_switch.grid(row=0, column=0, padx=(10, 40), sticky="w")
-        if method == "1PF":
-            self.dropdown_diskcone.configure(values=DiskCone.list, state="normal")
-        elif method.startswith("4POLAR"):
-            self.dropdown_diskcone.configure(values=CalibrationData.list, state="normal")
-        else:
-            self.dropdown_diskcone.configure(values=" ", state="disabled")
         if method in ["1PF", "4POLAR 2D"]:
-            variables = ["\u03C1", "\u03C8"]
+            variables = ["\u03C1 ", "\u03C8 "]
             vals = [(0, 180), (40, 180)]
         elif method in ["CARS", "SRS", "2PF"]:
-            variables = ["\u03C1", "S2", "S4"]
+            variables = ["\u03C1 ", "S2", "S4"]
             vals = [(0, 180), (0, 1), (-1, 1)]
         elif method == "SHG":
-            variables = ["\u03C1", "S"]
+            variables = ["\u03C1 ", "S "]
             vals = [(0, 180), (-1, 1)]
         elif method == "4POLAR 3D":
-            variables = ["\u03C1", "\u03C8", "\u03B7"]
+            variables = ["\u03C1 ", "\u03C8 ", "\u03B7 "]
             vals = [(0, 180), (40, 180), (0, 90)]
         self.variable_entries = []
         self.variable_table = [tk.StringVar() for _ in range(len(variables))]
         for it, (var, val) in enumerate(zip(variables, vals)):
-            frame = CTk.CTkFrame(master=self.variable_table_frame)
+            frame = CTk.CTkFrame(master=self.variable_table_frame, fg_color=self.left_frame.cget("fg_color"))
             frame.grid(row=it+1, column=0)
-            CTk.CTkCheckBox(master=frame, text="", variable=self.variable_table[it]).grid(row=0, column=0)
+            CTk.CTkCheckBox(master=frame, text="", variable=self.variable_table[it], width=30).grid(row=0, column=0, padx=(20, 0))
             self.variable_entries += self.double_entry(frame, text=var, text_box=val, row=0, column=1)
+
+    def method_dropdown_callback(self, method):
+        self.define_variable_table(method)
+        self.CD = Calibration(method)
+        self.dropdown_calib.configure(values=self.CD.list(method), state="normal")
+        self.dropdown_calib.set(self.CD.list(method)[0])
+        self.calib_textbox.configure(state="normal")
+        self.calib_textbox.delete("0.0", "end")
+        self.calib_textbox.insert("0.0", self.CD.name)
+        self.calib_textbox.configure(state="disabled")
 
     def open_file(self, filename):
         dataset = Image.open(filename)
@@ -571,7 +580,6 @@ class App(CTk.CTk):
         if filename:
             self.tabview.set("Fluorescence")
             self.stack = self.open_file(filename)
-            self.mask = np.zeros(self.stack.itot.shape)
             if self.stack.nangle >= 2:
                 self.stack_slider.configure(to=self.stack.nangle)
             else:
@@ -580,15 +588,14 @@ class App(CTk.CTk):
             self.ilow_slider.set(np.amin(self.stack.itot))
             self.ilow.set(self.stack.display.format(np.amin(self.stack.itot)))
             self.filename_label.configure(text=os.path.basename(filename).split('.')[0])
-            self.folder = os.path.dirname(filename)
             self.represent_fluo(self.stack, drawnow=True, update=False)
             self.represent_thrsh(self.stack, drawnow=True, update=False)
 
     def select_folder(self):
         self.single_file = False
-        self.folder = fd.askdirectory(title="Select a directory", initialdir="/")
-        list_file = [filename.endswith(('.tif', '.tiff')) for filename in os.listdir(self.folder)]
-        if self.folder and any(list_file):
+        folder = fd.askdirectory(title="Select a directory", initialdir="/")
+        list_file = [filename.endswith(('.tif', '.tiff')) for filename in os.listdir(folder)]
+        if folder and any(list_file):
             self.tabview.set("Fluorescence")
             for filename in list_file:
                 self.stack = Stack(filename)
@@ -599,14 +606,33 @@ class App(CTk.CTk):
         if hasattr(self, "stack"):
             if method.startswith("Mask"):
                 self.ilow.set(self.stack.display.format(np.amin(self.stack.itot)))
-                self.mask_folder = self.folder
                 self.represent_thrsh(self.stack)
+
+    def analysis_callback(self):
+        if hasattr(self, "stack"):
+            self.tabview.set("Fluorescence")
+            self.analysis_button.configure(image=self.icons["pause"])
+            if self.int_roi == 0:
+                self.stack.roi = np.ones(self.stack.roi.shape)
+                self.roi_ilow = self.stack.roi * float(self.ilow.get())
+            if not self.advance_file:
+                mask_ = np.ones(self.stack.roi.shape)
+                if self.method_dropdown.get().startswith("Mask"):
+                    mask_name = self.stack.folder + "/" + self.stack.filename + ".png"
+                    if os.path.isfile(mask_name):
+                        im_binarized = np.asarray(plt.imread(mask_name), dtype=np.float64)
+                        mask_ = im_binarized / np.amax(im_binarized)
+                mask = (self.stack.itot >= self.stack.roi_ilow) * mask_
+                self.analyze(self.stack, mask)
+
+    def close_callback(self):
+        plt.close("all")
 
     def stack_slider_callback(self, value):
         self.stack_slider_label.configure(text=int(value))
         if value == 0:
             self.stack_slider_label.configure(text="T")
-        if self.method_dropdown.get() in ["4POLAR 2D", "4POLAR 3D"]:
+        if self.method_dropdown.get().startswith("4POLAR"):
             labels = ["T", 0, 45, 90, 135]
             self.stack_slider_label.configure(text=labels[int(value)])
         if hasattr(self, "stack"):
@@ -650,10 +676,11 @@ class App(CTk.CTk):
             self.fluo_im.set_data(field)
         else:
             self.fluo_im = self.fluo_axis.imshow(field, cmap=mpl.colormaps["gray"], interpolation="nearest")
+            self.fluo_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+            self.fluo_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
         if not drawnow:
             self.fluo_axis.set_xlim(xlim_fluo)
             self.fluo_axis.set_ylim(ylim_fluo)
-
         self.fluo_fig.canvas.draw()
         #if self.int_roi and hasattr(self.patch, "XData"):
         #    for it in range(self.int_roi):
@@ -680,6 +707,8 @@ class App(CTk.CTk):
             self.thrsh_im.set_data(field)
         else:
             self.thrsh_im = self.thrsh_axis.imshow(field, cmap=self.thrsh_colormap, extent=[0, 1, 0, 1], alpha=alphadata)
+            self.thrsh_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+            self.thrsh_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
         self.thrsh_fig.canvas.draw()
 
     def define_itot(self, stack):
@@ -778,10 +807,10 @@ class App(CTk.CTk):
         if self.method_dropdown.get() == "1PF":
             ind *= (np.abs(a2) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho = np.empty(shape)
-            rho[ind] = app.DC.Rho[np.round_((a2.real[ind] + 1) * self.DC.h), np.round_((a2.imag[ind] + 1) * self.DC.h)] + 90
+            rho[ind] = app.CD.Rho[np.round_((a2.real[ind] + 1) * self.CD.h), np.round_((a2.imag[ind] + 1) * self.CD.h)] + 90
             rho[xp.logical_not(ind)] = np.nan
             psi = np.empty(shape)
-            psi[ind] = app.DC.Psi[np.round_((a2.real[ind] + 1) * self.DC.h), np.round_((a2.imag[ind] + 1) * self.DC.h)]
+            psi[ind] = app.CD.Psi[np.round_((a2.real[ind] + 1) * self.CD.h), np.round_((a2.imag[ind] + 1) * self.CD.h)]
             psi[xp.logical_not(ind)] = np.nan
             ind *= (rho == np.nan) * (psi == np.nan)
             rho_.value[ind] = np.mod(2 * (180 - rho[ind] + float(self.rotation_entries[0].get())), 360) / 2
@@ -844,7 +873,8 @@ class App(CTk.CTk):
 
 class Stack():
     def __init__(self, filename):
-        self.filename = filename
+        self.filename = pathlib.Path(filename).stem
+        self.folder = pathlib.Path(filename).parent
         self.values = []
         self.height, self.width, self.nangle = 0, 0, 0
         self.calculated_dark = 0
@@ -865,48 +895,55 @@ class Variable():
         self.max = []
         self.colormap = []
 
-class DiskCone():
+class Calibration():
 
-    dict = {"Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0": ("488 nm (no distortions)", 85), "Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0": ("561 nm (no distortions)", 30), "Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0": ("640 nm (no distortions)", 35), "Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0": ("488 nm (16/03/2020 - 12/04/2022)", 100), "Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0": ("561 nm (16/03/2020 - 12/04/2022)", 100), "Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0": ("640 nm (16/03/2020 - 12/04/2022)", 100), "Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0": ("488 nm (13/12/2019 - 15/03/2020)", 100), "Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0": ("561 nm (13/12/2019 - 15/03/2020)", 100), "Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0": ("640 nm (13/12/2019 - 15/03/2020)", 100), "Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0": ("488 nm (before 13/12/2019)", 100), "Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0": ("561 nm (before 13/12/2019)", 100), "Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0": ("640 nm (before 13/12/2019)", 100), "Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0": ("no distortions (before 12/04/2022)", 100), "other": ("other", 0)}
+    dict_1pf = {"488 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 85), "561 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 30), "640 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 35), "488 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0", 100), "561 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0", 100), "640 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0", 100), "488 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0", 100), "561 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0", 100), "640 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0", 100), "488 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0", 100), "561 nm (before 13/12/2019)": ("Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0", 100), "640 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0", 100), "no distortions (before 12/04/2022)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 100), "other": ("", 0)}
 
-    list = [value[0] for value in dict.values()]
+    folder_1pf = os.path.join(os.path.dirname(os.path.realpath(__file__)), "DiskCones")
 
-    folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "DiskCones")
+    dict_4polar = {"Calib_20221102": ("Calib_20221102", 0), "Calib_20221011": ("Calib_20221011", 0), "other": ("", 0)}
 
-    def __init__(self, name="Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0"):
-        vars = DiskCone.dict.get(name, ("other", 0))
-        folder = DiskCone.folder
-        if vars == ("other", 0):
-            file = pathlib.Path(fd.askopenfilename(title='Select a disk cone', initialdir='/', filetypes='Disk*.mat'))
-            folder = file.parent
-            name = file.stem
-        disk = scipy.io.loadmat(folder + "/" + name + ".mat")
-        self.name = name
-        self.Rho = np.array(disk["RoTest"], dtype=np.float64)
-        self.Psi = np.array(disk["PsiTest"], dtype=np.float64)
-        self.h = float((disk["NbMapValues"] - 1) / 2)
+    folder_4polar = os.path.join(os.path.dirname(os.path.realpath(__file__)), "CalibrationData")
+
+    def __init__(self, method, label=""):
+        if label == "":
+            if method == "1PF":
+                label = "488 nm (no distortions)"
+            elif method.startswith("4POLAR"):
+                label = "Calib_20221102"
+        if method == "1PF":
+            vars = Calibration.dict_1pf.get(label, ("", 0))
+            folder = Calibration.folder_1pf
+        elif method.startswith("4POLAR"):
+            vars = Calibration.dict_4polar.get(label, ("", 0))
+            folder = Calibration.folder_4polar
+        if method in ["1PF", "4POLAR 2D", "4POLAR 3D"]:
+            if label == "other":
+                file = pathlib.Path(fd.askopenfilename(title='Select file', initialdir='/', filetypes=[("MAT-files", "*.mat")]))
+                folder = str(file.parent)
+                vars = (str(file.stem), 0)
+            disk = scipy.io.loadmat(folder + "/" + vars[0] + ".mat")
+            if method == "1PF" and vars[0].startswith("Disk"):
+                self.Rho = np.array(disk["RoTest"], dtype=np.float64)
+                self.Psi = np.array(disk["PsiTest"], dtype=np.float64)
+                self.h = float((disk["NbMapValues"] - 1) / 2)
+            elif method.startswith("4POLAR") and vars[0].startswith("Calib"):
+                self.invKmat_2D = np.linalg.inv(np.array(disk["K2D"], dtype=np.float64))
+                self.invKmat_3D = np.linalg.inv(np.array(disk["K3D"], dtype=np.float64))
+            else:
+                vars = ("", 0)
+        else:
+            vars = ("", 0)
+        self.name = vars[0]
         self.offset_default = vars[1]
 
-class CalibrationData():
-
-    dict = {"Calib_20221102": ("Calib_20221102", 0), "Calib_20221011": ("Calib_20221011", 0), "other": ("other", 0)}
-
-    list = [value[0] for value in dict.values()]
-
-    folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "CalibrationData")
-
-    def __init__(self, name="Calib_20221102"):
-        vars = CalibrationData.dict.get(name, ("other", 0))
-        folder = CalibrationData.folder
-        if vars == ("other", 0):
-            file = pathlib.Path(fd.askopenfilename(title='Select calibration data', initialdir='/', filetypes='Calib*.mat'))
-            folder = file.parent
-            name = file.stem
-        disk = scipy.io.loadmat(folder + "/" + name + ".mat")
-        self.name = name
-        self.invKmat_2D = np.linalg.inv(np.array(disk["K2D"], dtype=np.float64))
-        self.invKmat_3D = np.linalg.inv(np.array(disk["K3D"], dtype=np.float64))
-        self.offset_default = vars[1]
+    def list(self, method):
+        if method == "1PF":
+            return [key for key in Calibration.dict_1pf.keys()]
+        elif method.startswith("4POLAR"):
+            return [key for key in Calibration.dict_4polar.keys()]
+        else:
+            return " "
 
 if __name__ == "__main__":
     app = App()
