@@ -26,6 +26,8 @@ CTk.set_appearance_mode("dark")
 
 mpl.use('TkAgg')
 
+plt.rcParams['font.size'] = '16'
+
 class App(CTk.CTk):
 
     left_frame_width = 180
@@ -38,6 +40,7 @@ class App(CTk.CTk):
     axes_size = (680, 680)
     button_size = (160, 40)
     info_size = (450, 320)
+    figsize = (6.5, 6.5)
     geometry_info = "{}x{}+400+300".format(info_size[0], info_size[1])
 
     orange = ("#FF7F4F", "#ffb295")
@@ -784,6 +787,33 @@ class App(CTk.CTk):
         min, max = [self.variable_entries[i][_] for _ in range(2)]
         return display, min, max
 
+    def plot_histo(self, data, type="normal", roi=[]):
+        suffix = "for ROI " + str(roi) if roi else ""
+        fig, ax = plt.figure(figsize=App.figsize)
+        fig.canvas.manager.set_window_title(data.name + "histogram" + suffix)
+        fig.patch.set_facecolor(App.gray[0])
+        if not roi:
+            roi = 1
+        data_vals = data.values((stack.roi == roi) * (~np.isnan(data.values)))
+        if type == "normal":
+            bins = np.linspace(np.amin(data), np.amax(data), np.amax(data)/60)
+            n, bins, patches = ax.hist(data.values, bins)
+            bin_centers = (bins[:-1] + bins[1:]) / 2
+            norm = mpl.colors.Normalize(data.min, data.max)
+            for bin, patch in zip(bin_centers, patches):
+                patch.set_facecolor(norm[bin])
+            ax.set_xlim(np.amin(data), np.amax(data))
+            ax.set_xlabel(data.latex, usetex=True, fontsize=20)
+            ax.set_title(data.filename, fontsize=14)
+            text = data.latex + " = " + "{:.2f}".format(np.mean(data_vals)) + " $\pm$ " "{:.2f}".format(np.std(data_vals))
+            ax.annotate(text, (0.2, 0.91), textcoords="figure fraction", fontsize=20, usetex=True)
+        elif type == "polar1":
+            data_vals = np.mod(2 * (data_vals + float(self.rotation_entries[1].get())), 360) / 2
+            meandata = self.circularmean(data_vals)
+            delta_rho = np.mod(2 * (data_vals - meandata), 180) / 2
+            
+        elif type == "polar2":
+
     def analyze_stack(self, stack, mask):
         chi2threshold = 500
         shape = stack.roi.shape
@@ -830,7 +860,7 @@ class App(CTk.CTk):
             puv = (2 * mat[3, :, :] / s).reshape(shape)
             lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
             a0 = np.mean(field, axis=2) / 4
-        rho_ = Variable(shape, 0)
+        rho_ = Variable(stack)
         rho_.name, rho_.latex = "Rho", "$\rho$"
         rho_.display, rho_.min, rho_.max = self.get_variable(0)
         rho_.colormap = hsv
@@ -846,7 +876,7 @@ class App(CTk.CTk):
             psi[xp.logical_not(ind)] = np.nan
             ind *= (rho == np.nan) * (psi == np.nan)
             rho_.value[ind] = np.mod(2 * (180 - rho[ind] + float(self.rotation_entries[0].get())), 360) / 2
-            psi_ = Variable(shape)
+            psi_ = Variable(stack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.value[ind] = psi[ind]
             psi_.display, psi_.min, psi_.max = self.get_variable(1)
@@ -855,7 +885,7 @@ class App(CTk.CTk):
             ind *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho_.value[ind] = np.rad2deg(np.angle(a2[ind])) / 2
             rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation_entries[0].get())), 360) / 2
-            s2_ = Variable(shape)
+            s2_ = Variable(stack)
             s2_.name, s2_.latex = "S2", "$S_2$"
             s2_.value[ind] = 1.5 * np.abs(a2[ind])
             s2_.display, s2_.min, s2_.max = self.get_variable(1)
@@ -869,7 +899,7 @@ class App(CTk.CTk):
             ind *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho_.value[ind] = np.rad2deg(np.angle(a2[ind])) / 2
             rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation_entries[0].get())), 360) / 2
-            s_shg_ = Variable(shape)
+            s_shg_ = Variable(stack)
             s_shg_.name, s_shg_.latex = "S_SHG", "$S_\mathrm{SHG}$"
             s_shg_.value[ind] = -0.5 * (np.abs(a4[ind]) - np.abs(a2[ind])) / (np.abs(a4[ind]) + np.abs(a2[ind])) - 0.65
             s_shg_.display, s_shg_.min, s_shg_.max = self.get_variable(1)
@@ -878,7 +908,7 @@ class App(CTk.CTk):
             ind *= (lam < 1/3) * (lam > 0) * (pzz > lam)
             rho_.value[ind] = 0.5 * np.rad2deg(np.atan2(puv[ind], pxy[ind]))
             rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation_entries[0].get())), 360) / 2
-            psi_ = Variable(shape)
+            psi_ = Variable(stack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.value[ind] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[ind])) / 2))
             psi_.display, psi_.min, psi_.max = self.get_variable(1)
@@ -892,7 +922,7 @@ class App(CTk.CTk):
             ind *= (lam < 1/3) * (lam > 0)
             rho_.value[ind] = 0.5 * np.rad2deg(np.atan2(puv[ind], pxy[ind]))
             rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation_entries[0].get())), 360) / 2
-            psi_ = Variable(shape)
+            psi_ = Variable(stack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.value[ind] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[ind])) / 2))
             psi_.display, psi_.min, psi_.max = self.get_variable(2)
@@ -917,15 +947,16 @@ class Stack():
         self.roi_ilow = []
 
 class Variable():
-    def __init__(self, shape):
+    def __init__(self, stack):
         self.name = ""
         self.latex = ""
-        self.value = np.empty(shape)
+        self.value = np.empty(stack.roi.shape)
         self.value[:] = np.nan
         self.display = []
         self.min = []
         self.max = []
         self.colormap = []
+        self.filename = stack.filename
 
 class Calibration():
 
