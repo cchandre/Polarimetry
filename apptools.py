@@ -1,5 +1,6 @@
 import tkinter as tk
 import os
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 import customtkinter as CTk
 
@@ -86,3 +87,8 @@ class ToolTip:
         self.tipwindow = None
         if tw:
             tw.destroy()
+
+
+
+#    def get_roi_coordinates(self):
+#        return list(zip(self.x, self.y))

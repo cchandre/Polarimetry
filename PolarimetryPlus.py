@@ -13,6 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.figure import Figure
+from matplotlib.path import Path as MplPath
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from skimage import exposure
 from scipy import ndimage
@@ -26,7 +27,7 @@ CTk.set_appearance_mode("dark")
 
 mpl.use('TkAgg')
 
-plt.rcParams['font.size'] = '16'
+plt.rcParams['font.size'] = 16
 
 class App(CTk.CTk):
 
@@ -94,7 +95,7 @@ class App(CTk.CTk):
         logo.grid(row=0, column=0, pady=30, padx=17)
         self.button(self.left_frame, text="Download File", command=self.select_file, image=self.icons['download_file']).grid(row=2, column=0, pady=App.button_pady, padx=17)
         self.button(self.left_frame, text="Download Folder", command=self.select_folder, image=self.icons['download_folder']).grid(row=3, column=0, pady=App.button_pady, padx=17)
-        button = self.button(self.left_frame, text="Add ROI", image=self.icons['roi'])
+        button = self.button(self.left_frame, text="Add ROI", image=self.icons['roi'], command=self.add_roi_callback)
         ToolTip.createToolTip(button, "Add a region of interest")
         button.grid(row=5, column=0, pady=App.button_pady, padx=17)
         self.analysis_button = self.button(self.left_frame, text="Analysis", command=self.analysis_callback, image=self.icons['play'])
@@ -636,6 +637,72 @@ class App(CTk.CTk):
                 self.ilow.set(self.stack.display.format(np.amin(self.stack.itot)))
                 self.represent_thrsh(self.stack)
 
+    def add_roi_callback(self):
+        if hasattr(self, "stack"):
+            self.tabview.set("Thresholding/Mask")
+            hroi = PolyRoi()
+            self.__cid1 = self.thrsh_canvas.mpl_connect('motion_notify_event', lambda event: self.motion_notify_callback(event, hroi))
+            self.__cid2 = self.thrsh_canvas.mpl_connect('button_press_event', lambda event: self.button_press_callback(event, hroi))
+
+    def motion_notify_callback(self, event, roi):
+        if event.inaxes == self.thrsh_axis:
+            x, y = event.xdata, event.ydata
+            if ((event.button is None or event.button == 1) and roi.lines):
+                roi.lines[-1].set_data([roi.previous_point[0], x], [roi.previous_point[1], y])
+                self.thrsh_canvas.draw()
+
+    def button_press_callback(self, event, roi):
+        if event.inaxes == self.thrsh_axis:
+            x, y = event.xdata, event.ydata
+            if event.button == 1 and not event.dblclick:
+                if not roi.lines:
+                    roi.lines = [plt.Line2D([x, x], [y, y], marker='o', color="w")]
+                    roi.start_point = [x, y]
+                    roi.previous_point = roi.start_point
+                    roi.x, roi.y = [x], [y]
+                    self.thrsh_axis.add_line(roi.lines[0])
+                    self.thrsh_canvas.draw()
+                else:
+                    roi.lines += [plt.Line2D([roi.previous_point[0], x], [roi.previous_point[1], y], marker='o', color="w")]
+                    roi.previous_point = [x, y]
+                    roi.x.append(x)
+                    roi.y.append(y)
+                    self.thrsh_axis.add_line(roi.lines[-1])
+                    self.thrsh_canvas.draw()
+            elif (((event.button == 1 and event.dblclick) or (event.button == 3 and not event.dblclick)) and roi.lines):
+                self.thrsh_canvas.mpl_disconnect(self.__cid1)
+                self.thrsh_canvas.mpl_disconnect(self.__cid2)
+                roi.lines += [plt.Line2D([roi.previous_point[0], roi.start_point[0]], [roi.previous_point[1], roi.start_point[1]], marker='o', color="w")]
+                self.thrsh_axis.add_line(roi.lines[-1])
+                self.thrsh_canvas.draw()
+
+                msg_box = tk.messagebox.askquestion("Polarimetry Analysis", "Add ROI?", icon="warning")
+                
+                if msg_box == "yes":
+                    self.int_roi += 1
+                    self.plot_roi(roi)
+                else:
+                    for line in roi.lines:
+                        line.remove()
+                    self.thrsh_canvas.draw()
+                roi.lines = []
+
+
+    def plot_roi(self, roi):
+        x, y = roi.x + [roi.x[0]], roi.y + [roi.y[0]]
+        line = plt.Line2D(self.x + [self.x[0]], self.y + [self.y[0]], marker="o", color="w")
+        self.fluo_axis.add_line(line)
+        self.fluo_canvas.draw()
+
+    def get_mask(self, roi):
+        ny, nx = np.shape(stack.roi.shape)
+        poly_verts = ([(self.x[0], self.y[0])] + list(zip(reversed(self.x), reversed(self.y))))
+        x, y = np.meshgrid(np.arange(nx), np.arange(ny))
+        x, y = x.flatten(), y.flatten()
+        points = np.vstack((x, y)).T
+        roi_path = MplPath(poly_verts)
+        return roi_path.contains_points(points).reshape((ny, nx))
+
     def analysis_callback(self):
         if hasattr(self, "stack"):
             self.tabview.set("Fluorescence")
@@ -811,8 +878,8 @@ class App(CTk.CTk):
             data_vals = np.mod(2 * (data_vals + float(self.rotation_entries[1].get())), 360) / 2
             meandata = self.circularmean(data_vals)
             delta_rho = np.mod(2 * (data_vals - meandata), 180) / 2
-            
         elif type == "polar2":
+            print("in progress...")
 
     def analyze_stack(self, stack, mask):
         chi2threshold = 500
@@ -957,6 +1024,15 @@ class Variable():
         self.max = []
         self.colormap = []
         self.filename = stack.filename
+
+class PolyRoi:
+    def __init__(self):
+        self.start_point = []
+        self.end_point = []
+        self.previous_point = []
+        self.x = []
+        self.y = []
+        self.lines = []
 
 class Calibration():
 
