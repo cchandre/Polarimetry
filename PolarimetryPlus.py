@@ -4,7 +4,7 @@ import tkinter.messagebox
 import webbrowser
 import customtkinter as CTk
 from tkinter import filedialog as fd
-from tkinter.messagebox import showinfo, showerror
+from tkinter.messagebox import showerror
 from PIL import ImageTk, Image
 import os
 import pathlib
@@ -40,9 +40,9 @@ class App(CTk.CTk):
     button_pady = 25
     axes_size = (680, 680)
     button_size = (160, 40)
-    info_size = (450, 320)
-    figsize = (6.5, 6.5)
-    geometry_info = "{}x{}+400+300".format(info_size[0], info_size[1])
+    info_size = ((420, 320), (300, 150))
+    figsize = (8.5, 8.5)
+    geometry_info = {"large": "{}x{}+400+300".format(info_size[0][0], info_size[0][1]), "small": "{}x{}+400+300".format(info_size[1][0], info_size[1][1])}
 
     orange = ("#FF7F4F", "#ffb295")
     text_color = "black"
@@ -112,7 +112,7 @@ class App(CTk.CTk):
 ## RIGHT FRAME: FLUO
         self.fluo_frame = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", width=App.axes_size[1], height=App.axes_size[0])
         self.fluo_frame.grid(row=0, column=0, padx=0, pady=0, sticky="w")
-        self.fluo_fig = Figure(figsize=(6.5, 6.5), facecolor=App.gray[1])
+        self.fluo_fig = Figure(figsize=App.figsize, facecolor=App.gray[1])
         self.fluo_axis = self.fluo_fig.add_axes([0, 0, 1, 1])
         self.fluo_axis.set_axis_off()
         self.fluo_canvas = FigureCanvasTkAgg(self.fluo_fig, master=self.fluo_frame)
@@ -137,17 +137,17 @@ class App(CTk.CTk):
         self.filename_label.place(relx=0, rely=0.2)
         self.stack_slider = CTk.CTkSlider(master=banner, from_=0, to=18, number_of_steps=18, command=self.stack_slider_callback)
         self.stack_slider.set(0)
-        self.stack_slider.place(relx=0.68, rely=0.1)
+        self.stack_slider.place(relx=0.6, rely=0.1)
         self.stack_slider_label = CTk.CTkLabel(master=banner, text="T")
         ToolTip.createToolTip(self.stack_slider_label, "Slider at T for the total intensity fluorescence, otherwise drag through the images of the stack")
-        self.stack_slider_label.place(relx=0.95, rely=0.5)
-        CTk.CTkLabel(master=banner, fg_color="transparent", text="Stack").place(relx=0.7, rely=0.5)
+        self.stack_slider_label.place(relx=0.9, rely=0.5)
+        CTk.CTkLabel(master=banner, fg_color="transparent", text="Stack").place(relx=0.6, rely=0.5)
 
 ## RIGHT FRAME: THRSH
         self.thrsh_frame = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", width=App.axes_size[1], height=App.axes_size[0])
         self.thrsh_frame.grid(row=0, column=0, padx=0, pady=0, sticky="w")
         self.thrsh_axis_facecolor = App.gray[1]
-        self.thrsh_fig = Figure(figsize=(6.5, 6.5), facecolor=self.thrsh_axis_facecolor)
+        self.thrsh_fig = Figure(figsize=App.figsize, facecolor=self.thrsh_axis_facecolor)
         self.thrsh_axis = self.thrsh_fig.add_axes([0, 0, 1, 1])
         self.thrsh_axis.set_axis_off()
         self.thrsh_axis.set_facecolor(self.thrsh_axis_facecolor)
@@ -298,7 +298,7 @@ class App(CTk.CTk):
         self.info_window = CTk.CTkToplevel(self)
         self.info_window.attributes('-topmost', 'true')
         self.info_window.title('Polarimetry Analysis')
-        self.info_window.geometry(App.geometry_info)
+        self.info_window.geometry(App.geometry_info["large"])
         CTk.CTkLabel(self.info_window, text="  Welcome to Polarimetry Analysis", font=CTk.CTkFont(size=20), image=self.icons['blur_circular'], compound="left").grid(row=0, column=0, padx=30, pady=20)
         textbox = CTk.CTkTextbox(self.info_window, width=320, height=150, fg_color=App.gray[1])
         textbox.grid(row=1, column=0)
@@ -402,6 +402,19 @@ class App(CTk.CTk):
             entry[it].configure(state="disabled")
         return entry
 
+    def showinfo(self, message="", image=None, question=False):
+        info_window = CTk.CTkToplevel(self)
+        info_window.attributes('-topmost', 'true')
+        info_window.title('Polarimetry Analysis')
+        info_window.geometry(App.geometry_info["small"])
+        CTk.CTkLabel(info_window, text=message, image=image, compound="left").grid(row=0, column=0, padx=30, pady=20)
+        if not question:
+            button = self.button(master=info_window, text="       OK", command=lambda:info_window.withdraw())
+            button.configure(width=80, height=App.button_size[1])
+            button.grid(row=1, column=0, padx=20, pady=0)
+        else:
+            
+
     def on_closing(self):
         self.destroy()
 
@@ -464,7 +477,7 @@ class App(CTk.CTk):
             window = CTk.CTkToplevel(self)
             window.attributes('-topmost', 'true')
             window.title('Polarimetry Analysis')
-            window.geometry(App.geometry_info)
+            window.geometry(App.geometry_info["small"])
             CTk.CTkLabel(window, text="  Create Mask by ROI or by Intensity", font=CTk.CTkFont(size=20), image=self.icons['open_in_new'], compound="left").grid(row=0, column=0, padx=30, pady=20)
             CTk.CTkLabel(window, text="  select an output variable ").grid(row=1, column=0, padx=50, pady=20)
             button = CTk.CTkSegmentedButton(master=window, values=["ROI", "Intensity", "ROI x Intensity"], width=300)
@@ -546,7 +559,41 @@ class App(CTk.CTk):
         print("Not yet implemented... Stay tuned!")
 
     def compute_angle(self):
-        print("Not yet implemented... Stay tuned!")
+        self.tabview.set("Fluorescence")
+        hroi = ROI()
+        self.__cid1 = self.fluo_canvas.mpl_connect('motion_notify_event', lambda event: self.compute_angle_motion_notify_callback(event, hroi))
+        self.__cid2 = self.fluo_canvas.mpl_connect('button_press_event', lambda event: self.compute_angle_button_press_callback(event, hroi))
+
+    def compute_angle_motion_notify_callback(self, event, roi):
+        if event.inaxes == self.fluo_axis:
+            x, y = event.xdata, event.ydata
+            if ((event.button is None or event.button == 1) and roi.lines):
+                roi.lines[-1].set_data([roi.previous_point[0], x], [roi.previous_point[1], y])
+                self.fluo_canvas.draw()
+
+    def compute_angle_button_press_callback(self, event, roi):
+        if event.inaxes == self.fluo_axis:
+            x, y = event.xdata, event.ydata
+            if event.button == 1:
+                if not roi.lines:
+                    roi.lines = [plt.Line2D([x, x], [y, y], lw=3, color="w")]
+                    roi.start_point = [x, y]
+                    roi.previous_point = roi.start_point
+                    self.fluo_axis.add_line(roi.lines[0])
+                    self.fluo_canvas.draw()
+                else:
+                    roi.lines += [plt.Line2D([roi.previous_point[0], x], [roi.previous_point[1], y], lw=3, color="w")]
+                    roi.previous_point = [x, y]
+                    self.fluo_axis.add_line(roi.lines[-1])
+                    self.fluo_canvas.draw()
+                    self.fluo_canvas.mpl_disconnect(self.__cid1)
+                    self.fluo_canvas.mpl_disconnect(self.__cid2)
+                    slope = 180 - np.rad2deg(np.arctan((roi.previous_point[1] - roi.start_point[1]) / (roi.previous_point[0] - roi.start_point[0])))
+                    slope = np.mod(2 * slope, 360) / 2
+                    self.showinfo(message="The value of the angle is {:.2f}".format(slope), image=self.icons["square"])
+                    for line in roi.lines:
+                        line.remove()
+                    self.fluo_canvas.draw()
 
     def define_variable_table(self, method):
         self.initialize_table(mode="all")
@@ -640,18 +687,18 @@ class App(CTk.CTk):
     def add_roi_callback(self):
         if hasattr(self, "stack"):
             self.tabview.set("Thresholding/Mask")
-            hroi = PolyRoi()
-            self.__cid1 = self.thrsh_canvas.mpl_connect('motion_notify_event', lambda event: self.motion_notify_callback(event, hroi))
-            self.__cid2 = self.thrsh_canvas.mpl_connect('button_press_event', lambda event: self.button_press_callback(event, hroi))
+            hroi = ROI()
+            self.__cid1 = self.thrsh_canvas.mpl_connect('motion_notify_event', lambda event: self.add_roi_motion_notify_callback(event, hroi))
+            self.__cid2 = self.thrsh_canvas.mpl_connect('button_press_event', lambda event: self.add_roi_button_press_callback(event, hroi))
 
-    def motion_notify_callback(self, event, roi):
+    def add_roi_motion_notify_callback(self, event, roi):
         if event.inaxes == self.thrsh_axis:
             x, y = event.xdata, event.ydata
             if ((event.button is None or event.button == 1) and roi.lines):
                 roi.lines[-1].set_data([roi.previous_point[0], x], [roi.previous_point[1], y])
                 self.thrsh_canvas.draw()
 
-    def button_press_callback(self, event, roi):
+    def add_roi_button_press_callback(self, event, roi):
         if event.inaxes == self.thrsh_axis:
             x, y = event.xdata, event.ydata
             if event.button == 1 and not event.dblclick:
@@ -670,14 +717,12 @@ class App(CTk.CTk):
                     self.thrsh_axis.add_line(roi.lines[-1])
                     self.thrsh_canvas.draw()
             elif (((event.button == 1 and event.dblclick) or (event.button == 3 and not event.dblclick)) and roi.lines):
-                self.thrsh_canvas.mpl_disconnect(self.__cid1)
-                self.thrsh_canvas.mpl_disconnect(self.__cid2)
                 roi.lines += [plt.Line2D([roi.previous_point[0], roi.start_point[0]], [roi.previous_point[1], roi.start_point[1]], marker='o', color="w")]
                 self.thrsh_axis.add_line(roi.lines[-1])
+                self.thrsh_canvas.mpl_disconnect(self.__cid1)
+                self.thrsh_canvas.mpl_disconnect(self.__cid2)
                 self.thrsh_canvas.draw()
-
                 msg_box = tk.messagebox.askquestion("Polarimetry Analysis", "Add ROI?", icon="warning")
-                
                 if msg_box == "yes":
                     self.int_roi += 1
                     self.plot_roi(roi)
@@ -770,6 +815,10 @@ class App(CTk.CTk):
         #field = ndimage.rotate(field, self.rotation_entries[1].get())
         #kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
         #field = cv2.filter2D(field, -1, kernel)
+        amount = 0.8
+        gaussian_3 = cv2.GaussianBlur(field, (0, 0), 1)
+        field = cv2.addWeighted(field, 1+amount, gaussian_3, -amount, 0)
+        field = np.maximum(field, vmin)
         field = exposure.adjust_gamma((field - vmin) / vmax, self.contrast_fluo_slider.get()) * vmax
         if update:
             self.fluo_im.set_data(field)
@@ -1025,7 +1074,7 @@ class Variable():
         self.colormap = []
         self.filename = stack.filename
 
-class PolyRoi:
+class ROI:
     def __init__(self):
         self.start_point = []
         self.end_point = []
