@@ -402,18 +402,15 @@ class App(CTk.CTk):
             entry[it].configure(state="disabled")
         return entry
 
-    def showinfo(self, message="", image=None, question=False):
+    def showinfo(self, message="", image=None):
         info_window = CTk.CTkToplevel(self)
         info_window.attributes('-topmost', 'true')
         info_window.title('Polarimetry Analysis')
         info_window.geometry(App.geometry_info["small"])
         CTk.CTkLabel(info_window, text=message, image=image, compound="left").grid(row=0, column=0, padx=30, pady=20)
-        if not question:
-            button = self.button(master=info_window, text="       OK", command=lambda:info_window.withdraw())
-            button.configure(width=80, height=App.button_size[1])
-            button.grid(row=1, column=0, padx=20, pady=0)
-        else:
-            
+        button = self.button(info_window, text="       OK", command=lambda:info_window.withdraw())
+        button.configure(width=80, height=App.button_size[1])
+        button.grid(row=1, column=0, padx=20, pady=20)
 
     def on_closing(self):
         self.destroy()
@@ -590,7 +587,8 @@ class App(CTk.CTk):
                     self.fluo_canvas.mpl_disconnect(self.__cid2)
                     slope = 180 - np.rad2deg(np.arctan((roi.previous_point[1] - roi.start_point[1]) / (roi.previous_point[0] - roi.start_point[0])))
                     slope = np.mod(2 * slope, 360) / 2
-                    self.showinfo(message="The value of the angle is {:.2f}".format(slope), image=self.icons["square"])
+                    dist = np.sqrt(((np.asarray(roi.previous_point) - np.asarray(roi.start_point))**2).sum())
+                    self.showinfo(message=" The value of the angle is {:.2f} \u00b0 \n The value of the distance is {} px".format(slope, int(dist)), image=self.icons["square"])
                     for line in roi.lines:
                         line.remove()
                     self.fluo_canvas.draw()
@@ -694,8 +692,15 @@ class App(CTk.CTk):
     def add_roi_motion_notify_callback(self, event, roi):
         if event.inaxes == self.thrsh_axis:
             x, y = event.xdata, event.ydata
-            if ((event.button is None or event.button == 1) and roi.lines):
+            if (event.button is None or event.button == 1) and roi.lines:
                 roi.lines[-1].set_data([roi.previous_point[0], x], [roi.previous_point[1], y])
+                self.thrsh_canvas.draw()
+            elif event.button == 3 and roi.lines:
+                roi.lines += [plt.Line2D([roi.previous_point[0], x], [roi.previous_point[1], y], color="w")]
+                roi.previous_point = [x, y]
+                roi.x.append(x)
+                roi.y.append(y)
+                self.thrsh_axis.add_line(roi.lines[-1])
                 self.thrsh_canvas.draw()
 
     def add_roi_button_press_callback(self, event, roi):
@@ -716,14 +721,15 @@ class App(CTk.CTk):
                     roi.y.append(y)
                     self.thrsh_axis.add_line(roi.lines[-1])
                     self.thrsh_canvas.draw()
-            elif (((event.button == 1 and event.dblclick) or (event.button == 3 and not event.dblclick)) and roi.lines):
+            elif (event.button == 1 and event.dblclick) and roi.lines:
                 roi.lines += [plt.Line2D([roi.previous_point[0], roi.start_point[0]], [roi.previous_point[1], roi.start_point[1]], marker='o', color="w")]
                 self.thrsh_axis.add_line(roi.lines[-1])
                 self.thrsh_canvas.mpl_disconnect(self.__cid1)
                 self.thrsh_canvas.mpl_disconnect(self.__cid2)
                 self.thrsh_canvas.draw()
-                msg_box = tk.messagebox.askquestion("Polarimetry Analysis", "Add ROI?", icon="warning")
-                if msg_box == "yes":
+                self.showinfo(message="Add ROI?", image=self.icons["roi"], question=True)
+                answer = "Yes"
+                if answer == "Yes":
                     self.int_roi += 1
                     self.plot_roi(roi)
                 else:
@@ -731,7 +737,6 @@ class App(CTk.CTk):
                         line.remove()
                     self.thrsh_canvas.draw()
                 roi.lines = []
-
 
     def plot_roi(self, roi):
         x, y = roi.x + [roi.x[0]], roi.y + [roi.y[0]]
@@ -800,6 +805,14 @@ class App(CTk.CTk):
         if hasattr(self, "stack"):
             self.represent_thrsh(self.stack)
 
+    def adjust(self, field, contrast, vmin, vmax):
+        amount = 0.8
+        gaussian_3 = cv2.GaussianBlur(field, (0, 0), 1)
+        field = cv2.addWeighted(field, 1 + amount, gaussian_3, -amount, 0)
+        field = np.maximum(field, vmin)
+        field = exposure.adjust_gamma((field - vmin) / vmax, contrast) * vmax
+        return field
+
     def represent_fluo(self, stack, drawnow=False, update=True):
         if not drawnow:
             xlim_fluo = self.fluo_axis.get_xlim()
@@ -813,13 +826,7 @@ class App(CTk.CTk):
             vmin, vmax = np.amin(stack.values), np.amax(stack.values)
             #field = (stack.values[:, :, int(self.stack_slider.get())-1] - np.amin(stack.values)) / (np.amax(stack.values) - np.amin(stack.values))
         #field = ndimage.rotate(field, self.rotation_entries[1].get())
-        #kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
-        #field = cv2.filter2D(field, -1, kernel)
-        amount = 0.8
-        gaussian_3 = cv2.GaussianBlur(field, (0, 0), 1)
-        field = cv2.addWeighted(field, 1+amount, gaussian_3, -amount, 0)
-        field = np.maximum(field, vmin)
-        field = exposure.adjust_gamma((field - vmin) / vmax, self.contrast_fluo_slider.get()) * vmax
+        field = self.adjust(field, self.contrast_fluo_slider.get(), vmin, vmax)
         if update:
             self.fluo_im.set_data(field)
         else:
@@ -851,7 +858,7 @@ class App(CTk.CTk):
         alphadata = np.ones(field.shape)
         thrsh = float(self.ilow.get())
         alphadata[field <= thrsh] *= self.transparency_slider.get()
-        field = exposure.adjust_gamma((field - vmin) / vmax, self.contrast_thrsh_slider.get()) * vmax
+        field = self.adjust(field, self.contrast_thrsh_slider.get(), vmin, vmax)
         if update:
             plt.setp(self.thrsh_im, alpha=alphadata, cmap=self.thrsh_colormap)
             self.thrsh_im.set_data(field)
