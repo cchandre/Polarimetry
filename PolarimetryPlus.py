@@ -339,8 +339,6 @@ class App(CTk.CTk):
         self.noise_removallevel.configure(text=self.noise["RemovalLevel"])
 
     def initialize_data(self):
-        self.int_roi = 0
-        self.Path = {}
         self.initialize_slider()
         self.initialize_noise()
 
@@ -402,15 +400,28 @@ class App(CTk.CTk):
             entry[it].configure(state="disabled")
         return entry
 
-    def showinfo(self, message="", image=None):
+    def showinfo(self, message="", image=None, question=False):
         info_window = CTk.CTkToplevel(self)
         info_window.attributes('-topmost', 'true')
         info_window.title('Polarimetry Analysis')
         info_window.geometry(App.geometry_info["small"])
-        CTk.CTkLabel(info_window, text=message, image=image, compound="left").grid(row=0, column=0, padx=30, pady=20)
-        button = self.button(info_window, text="       OK", command=lambda:info_window.withdraw())
-        button.configure(width=80, height=App.button_size[1])
-        button.grid(row=1, column=0, padx=20, pady=20)
+        CTk.CTkLabel(info_window, text=message, image=image, compound="left", width=250).grid(row=0, column=0, padx=30, pady=20)
+        if not question:
+            button = self.button(info_window, text="       OK", command=lambda:info_window.withdraw())
+            button.configure(width=80, height=App.button_size[1])
+            button.grid(row=1, column=0, padx=20, pady=20)
+        else:
+            self.answer = "No"
+            button = self.button(info_window, text="       Yes", command=lambda:self.yes_event(info_window))
+            button.configure(width=80, height=App.button_size[1])
+            button.grid(row=1, column=0, padx=20, pady=20, sticky="w")
+            button = self.button(info_window, text="       No", command=lambda:info_window.withdraw())
+            button.configure(width=80, height=App.button_size[1])
+            button.grid(row=1, column=0, padx=20, pady=20, sticky="e")
+
+    def yes_event(self, window):
+        self.answer = "Yes"
+        window.withdraw()
 
     def on_closing(self):
         self.destroy()
@@ -461,9 +472,9 @@ class App(CTk.CTk):
             self.represent_thrsh(self.stack, drawnow=True)
 
     def reload_button_callback(self):
-        self.int_roi = 0
-        self.patch = {}
         if hasattr(self, 'stack'):
+            self.stack.int_roi = 0
+            self.stack.patch = []
             self.represent_fluo(self.stack, drawnow=True, update=False)
             self.represent_thrsh(self.stack, drawnow=True, update=False)
             self.stack.roi = np.zeros(self.stack.itot.shape)
@@ -644,6 +655,7 @@ class App(CTk.CTk):
         stack = self.define_itot(stack)
         stack.roi = np.zeros(stack.itot.shape)
         stack.roi_ilow = np.zeros(stack.itot.shape)
+        stack.int_roi = 0
         return stack
 
     def select_file(self):
@@ -728,36 +740,39 @@ class App(CTk.CTk):
                 self.thrsh_canvas.mpl_disconnect(self.__cid2)
                 self.thrsh_canvas.draw()
                 self.showinfo(message="Add ROI?", image=self.icons["roi"], question=True)
-                answer = "Yes"
-                if answer == "Yes":
-                    self.int_roi += 1
-                    self.plot_roi(roi)
-                else:
-                    for line in roi.lines:
-                        line.remove()
-                    self.thrsh_canvas.draw()
+                for line in roi.lines:
+                    line.remove()
+                self.thrsh_canvas.draw()
+                print(self.answer)
+                if self.answer == "Yes":
+                    print(self.answer)
+                    self.stack.int_roi += 1
+                    self.add2mask(roi, self.stack.int_roi)
+                    self.stack.patch += [{"indx": self.stack.int_roi, "XData": roi.x + [roi.x[0]], "YData": roi.y + [roi.y[0]]}]
                 roi.lines = []
 
     def plot_roi(self, roi):
         x, y = roi.x + [roi.x[0]], roi.y + [roi.y[0]]
-        line = plt.Line2D(self.x + [self.x[0]], self.y + [self.y[0]], marker="o", color="w")
+        line = plt.Line2D(self.x + [self.x[0]], self.y + [self.y[0]], color="w")
         self.fluo_axis.add_line(line)
         self.fluo_canvas.draw()
+        self.thrsh_axis.add_line(line)
+        self.thrsh_canvas.draw()
 
-    def get_mask(self, roi):
+    def add2mask(self, roi, introi):
         ny, nx = np.shape(stack.roi.shape)
         poly_verts = ([(self.x[0], self.y[0])] + list(zip(reversed(self.x), reversed(self.y))))
         x, y = np.meshgrid(np.arange(nx), np.arange(ny))
         x, y = x.flatten(), y.flatten()
         points = np.vstack((x, y)).T
         roi_path = MplPath(poly_verts)
-        return roi_path.contains_points(points).reshape((ny, nx))
+        self.roi[roi_path.contains_points(points).reshape((ny, nx))] = introi
 
     def analysis_callback(self):
         if hasattr(self, "stack"):
             self.tabview.set("Fluorescence")
             self.analysis_button.configure(image=self.icons["pause"])
-            if self.int_roi == 0:
+            if self.stack.int_roi == 0:
                 self.stack.roi = np.ones(self.stack.roi.shape)
                 self.roi_ilow = self.stack.roi * float(self.ilow.get())
             if not self.advance_file:
@@ -837,13 +852,13 @@ class App(CTk.CTk):
             self.fluo_axis.set_xlim(xlim_fluo)
             self.fluo_axis.set_ylim(ylim_fluo)
         self.fluo_im.set_clim(vmin, vmax)
-        self.fluo_fig.canvas.draw()
-        #if self.int_roi and hasattr(self.patch, "XData"):
-        #    for it in range(self.int_roi):
-        #        prot = self.fluo_axis.add_patch('XData', self.patch["XData"][it], 'YData', self.patch["YData"][it])
+        if stack.int_roi and hasattr(stack.patch, "XData"):
+            for it in range(stack.int_roi):
+                prot = self.fluo_axis.add_patch('XData', self.patch["XData"][it], 'YData', self.patch["YData"][it])
         #        rotate(prot, [0 0 -1], self.FigureRotationEditField.Value, [self.stack.width / 2, self.stack.height / 2, 0])
-        #        htext = self.fluo_axis.text(self.patch["XData"][it][0], self.patch["YData"][it][0], str(it), fontsize=20, color="w")
+                htext = self.fluo_axis.text(self.patch["XData"][it][0], self.patch["YData"][it][0], str(it), fontsize=20, color="w")
         #        rotate(htext,[0 0 -1],app.FigureRotationEditField.Value,[app.Stack.Width/2,app.Stack.Height/2,0])
+        self.fluo_fig.canvas.draw()
 
     def represent_thrsh(self, stack, drawnow=False, update=True):
         field = stack.itot
@@ -855,10 +870,10 @@ class App(CTk.CTk):
                 mask = mask / xp.amax(mask)
                 field =field * mask
         vmin, vmax = np.amin(field), np.amax(field)
+        field = self.adjust(field, self.contrast_thrsh_slider.get(), vmin, vmax)
         alphadata = np.ones(field.shape)
         thrsh = float(self.ilow.get())
         alphadata[field <= thrsh] *= self.transparency_slider.get()
-        field = self.adjust(field, self.contrast_thrsh_slider.get(), vmin, vmax)
         if update:
             plt.setp(self.thrsh_im, alpha=alphadata, cmap=self.thrsh_colormap)
             self.thrsh_im.set_data(field)
@@ -1068,6 +1083,8 @@ class Stack():
         self.itot = []
         self.roi = []
         self.roi_ilow = []
+        self.int_roi = 0
+        self.patch = []
 
 class Variable():
     def __init__(self, stack):
