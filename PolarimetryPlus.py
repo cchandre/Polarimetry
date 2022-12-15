@@ -324,7 +324,7 @@ class App(CTk.CTk):
     def initialize_slider(self):
         if hasattr(self, "stack"):
             self.stack_slider.configure(to=stack.nangle, number_of_steps=stack.nangle)
-            self.ilow.set(stack.display.format(xp.amin(stack.itot)))
+            self.ilow.set(stack.display.format(np.amin(stack.itot)))
         else:
             self.ilow.set("0")
         self.contrast_fluo_slider.set(0.5)
@@ -650,6 +650,8 @@ class App(CTk.CTk):
         for key in dict:
             setattr(stack, key, dict[key])
         stack = self.define_itot(stack)
+        stack.Y, stack.X = np.mgrid[0:w, 0:h]
+        stack.points = np.vstack((stack.X.flatten(), stack.Y.flatten())).T
         stack.roi = np.zeros(stack.itot.shape)
         stack.roi_ilow = np.zeros(stack.itot.shape)
         stack.int_roi = 0
@@ -742,15 +744,16 @@ class App(CTk.CTk):
 
     def yes_add_roi_callback(self, window, roi):
         self.stack.int_roi += 1
-        poly_verts = ([(roi.x[0], roi.y[0])] + list(zip(reversed(roi.x), reversed(roi.y))))
-        roi_path = Path(poly_verts)
-        self.add2mask(roi_path, self.stack.int_roi)
-        self.stack.patch += [{"indx": self.stack.int_roi, "label": (roi.x[0], roi.y[0]), "Path": roi_path}]
+        roi_path = Path(([(roi.x[0], roi.y[0])] + list(zip(reversed(roi.x), reversed(roi.y)))))
+        self.stack.roi[roi_path.contains_points(self.stack.points).reshape(self.stack.roi.shape)] = self.stack.int_roi
+        self.stack.patch += [{"indx": self.stack.int_roi, "label": (roi.x[0], roi.y[0]), "Patch": PathPatch(roi_path, facecolor="none", edgecolor="white")}]
         window.withdraw()
         for line in roi.lines:
             line.remove()
         roi.lines = []
+        self.thrsh_canvas.draw()
         self.represent_fluo(self.stack)
+        self.represent_thrsh(self.stack)
 
     def no_add_roi_callback(self, window, roi):
         window.withdraw()
@@ -758,13 +761,6 @@ class App(CTk.CTk):
             line.remove()
         roi.lines = []
         self.thrsh_canvas.draw()
-
-    def add2mask(self, roi_path, introi):
-        ny, nx = self.stack.roi.shape
-        x, y = np.meshgrid(np.arange(nx), np.arange(ny))
-        x, y = x.flatten(), y.flatten()
-        points = np.vstack((x, y)).T
-        self.stack.roi[roi_path.contains_points(points).reshape((ny, nx))] = introi
 
     def analysis_callback(self):
         if hasattr(self, "stack"):
@@ -852,9 +848,9 @@ class App(CTk.CTk):
         self.fluo_im.set_clim(vmin, vmax)
         if stack.int_roi and len(stack.patch):
             for it in range(stack.int_roi):
-                prot = self.fluo_axis.add_patch("XData", self.stack.patch[it]["XData"], "YData", self.stack.patch[it]["YData"])
+                prot = self.fluo_axis.add_patch(self.stack.patch[it]["Patch"])
         #        rotate(prot, [0 0 -1], self.FigureRotationEditField.Value, [self.stack.width / 2, self.stack.height / 2, 0])
-                htext = self.fluo_axis.text(self.stack.patch[it]["XData"][0], self.stack.patch[it]["YData"][0], str(self.stack.patch[it]["indx"]), fontsize=20, color="w")
+                htext = self.fluo_axis.text(self.stack.patch[it]["label"][0], self.stack.patch[it]["label"][1], str(self.stack.patch[it]["indx"]), fontsize=20, color="w")
         #        rotate(htext,[0 0 -1],app.FigureRotationEditField.Value,[app.Stack.Width/2,app.Stack.Height/2,0])
         self.fluo_fig.canvas.draw()
 
@@ -864,8 +860,8 @@ class App(CTk.CTk):
             mask_name = os.path.basename(self.stack.filename) + ".png"
             if os.path.isfile(mask_name):
                 im_binarized = cv2.imread(mask_name)
-                mask = xp.asarray(im_binarized, dtype=xp.float64)
-                mask = mask / xp.amax(mask)
+                mask = np.asarray(im_binarized, dtype=np.float64)
+                mask = mask / np.amax(mask)
                 field =field * mask
         vmin, vmax = np.amin(field), np.amax(field)
         field = self.adjust(field, self.contrast_thrsh_slider.get(), vmin, vmax)
@@ -880,6 +876,12 @@ class App(CTk.CTk):
             self.thrsh_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
             self.thrsh_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
         self.thrsh_im.set_clim(vmin, vmax)
+        if stack.int_roi and len(stack.patch):
+            for it in range(stack.int_roi):
+                prot = self.thrsh_axis.add_patch(self.stack.patch[it]["Patch"])
+        #        rotate(prot, [0 0 -1], self.FigureRotationEditField.Value, [self.stack.width / 2, self.stack.height / 2, 0])
+                htext = self.thrsh_axis.text(self.stack.patch[it]["label"][0], self.stack.patch[it]["label"][1], str(self.stack.patch[it]["indx"]), fontsize=20, color="w")
+        #        rotate(htext,[0 0 -1],app.FigureRotationEditField.Value,[app.Stack.Width/2,app.Stack.Height/2,0])
         self.thrsh_fig.canvas.draw()
 
     def define_itot(self, stack):
@@ -916,7 +918,7 @@ class App(CTk.CTk):
         return dark
 
     def circularmean(self, rho):
-        return np.mod(np.angle(xp.mean(np.exp(2j * rho), deg=True)), 360) / 2
+        return np.mod(np.angle(np.mean(np.exp(2j * rho), deg=True)), 360) / 2
 
     def get_variable(self, i):
         display = self.variable_table[i].get()
@@ -1000,16 +1002,15 @@ class App(CTk.CTk):
         rho_.name, rho_.latex = "Rho", "$\rho$"
         rho_.display, rho_.min, rho_.max = self.get_variable(0)
         rho_.colormap = hsv
-        Y, X = np.mgrid[0:shape[0], 0:shape[1]]
         ind = (stack.roi > 0) * (mask != 0)
         if self.method_dropdown.get() == "1PF":
             ind *= (np.abs(a2) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho = np.empty(shape)
             rho[ind] = app.CD.Rho[np.round_((a2.real[ind] + 1) * self.CD.h), np.round_((a2.imag[ind] + 1) * self.CD.h)] + 90
-            rho[xp.logical_not(ind)] = np.nan
+            rho[np.logical_not(ind)] = np.nan
             psi = np.empty(shape)
             psi[ind] = app.CD.Psi[np.round_((a2.real[ind] + 1) * self.CD.h), np.round_((a2.imag[ind] + 1) * self.CD.h)]
-            psi[xp.logical_not(ind)] = np.nan
+            psi[np.logical_not(ind)] = np.nan
             ind *= (rho == np.nan) * (psi == np.nan)
             rho_.value[ind] = np.mod(2 * (180 - rho[ind] + float(self.rotation_entries[0].get())), 360) / 2
             psi_ = Variable(stack)
@@ -1063,11 +1064,13 @@ class App(CTk.CTk):
             psi_.value[ind] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[ind])) / 2))
             psi_.display, psi_.min, psi_.max = self.get_variable(2)
             psi_.colormap = jet
-        a0[xp.logical_not(ind)] = np.nan
-        x[xp.logical_not(ind)] = np.nan
-        y[xp.logical_not(ind)] = np.nan
+        a0[np.logical_not(ind)] = np.nan
+        x = stack.X
+        y = stack.Y
+        x[np.logical_not(ind)] = np.nan
+        y[np.logical_not(ind)] = np.nan
         if self.method_dropdown.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
-            chi2[xp.logical_not(ind)] = np.nan
+            chi2[np.logical_not(ind)] = np.nan
 
 class Stack():
     def __init__(self, filename):
@@ -1082,6 +1085,9 @@ class Stack():
         self.roi = []
         self.roi_ilow = []
         self.int_roi = 0
+        self.X = []
+        self.Y = []
+        self.points = []
         self.patch = []
 
 class Variable():
