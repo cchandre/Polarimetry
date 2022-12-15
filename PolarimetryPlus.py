@@ -13,7 +13,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.figure import Figure
-from matplotlib.path import Path as MplPath
+from matplotlib.path import Path
+from matplotlib.patches import PathPatch
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from skimage import exposure
 from scipy import ndimage
@@ -411,17 +412,13 @@ class App(CTk.CTk):
             button.configure(width=80, height=App.button_size[1])
             button.grid(row=1, column=0, padx=20, pady=20)
         else:
-            self.answer = "No"
-            button = self.button(info_window, text="       Yes", command=lambda:self.yes_event(info_window))
-            button.configure(width=80, height=App.button_size[1])
-            button.grid(row=1, column=0, padx=20, pady=20, sticky="w")
-            button = self.button(info_window, text="       No", command=lambda:info_window.withdraw())
-            button.configure(width=80, height=App.button_size[1])
-            button.grid(row=1, column=0, padx=20, pady=20, sticky="e")
-
-    def yes_event(self, window):
-        self.answer = "Yes"
-        window.withdraw()
+            button_yes = self.button(info_window, text="       Yes", command=lambda:self.yes_event(info_window))
+            button_yes.configure(width=80, height=App.button_size[1])
+            button_yes.grid(row=1, column=0, padx=20, pady=20, sticky="w")
+            button_no = self.button(info_window, text="       No")
+            button_no.configure(width=80, height=App.button_size[1])
+            button_no.grid(row=1, column=0, padx=20, pady=20, sticky="e")
+            return info_window, button_yes, button_no
 
     def on_closing(self):
         self.destroy()
@@ -739,34 +736,35 @@ class App(CTk.CTk):
                 self.thrsh_canvas.mpl_disconnect(self.__cid1)
                 self.thrsh_canvas.mpl_disconnect(self.__cid2)
                 self.thrsh_canvas.draw()
-                self.showinfo(message="Add ROI?", image=self.icons["roi"], question=True)
-                for line in roi.lines:
-                    line.remove()
-                self.thrsh_canvas.draw()
-                print(self.answer)
-                if self.answer == "Yes":
-                    print(self.answer)
-                    self.stack.int_roi += 1
-                    self.add2mask(roi, self.stack.int_roi)
-                    self.stack.patch += [{"indx": self.stack.int_roi, "XData": roi.x + [roi.x[0]], "YData": roi.y + [roi.y[0]]}]
-                roi.lines = []
+                window, button_yes, button_no = self.showinfo(message="Add ROI?", image=self.icons["roi"], question=True)
+                button_yes.configure(command=lambda:self.yes_add_roi_callback(window, roi))
+                button_no.configure(command=lambda:self.no_add_roi_callback(window, roi))
 
-    def plot_roi(self, roi):
-        x, y = roi.x + [roi.x[0]], roi.y + [roi.y[0]]
-        line = plt.Line2D(self.x + [self.x[0]], self.y + [self.y[0]], color="w")
-        self.fluo_axis.add_line(line)
-        self.fluo_canvas.draw()
-        self.thrsh_axis.add_line(line)
+    def yes_add_roi_callback(self, window, roi):
+        self.stack.int_roi += 1
+        poly_verts = ([(roi.x[0], roi.y[0])] + list(zip(reversed(roi.x), reversed(roi.y))))
+        roi_path = Path(poly_verts)
+        self.add2mask(roi_path, self.stack.int_roi)
+        self.stack.patch += [{"indx": self.stack.int_roi, "label": (roi.x[0], roi.y[0]), "Path": roi_path}]
+        window.withdraw()
+        for line in roi.lines:
+            line.remove()
+        roi.lines = []
+        self.represent_fluo(self.stack)
+
+    def no_add_roi_callback(self, window, roi):
+        window.withdraw()
+        for line in roi.lines:
+            line.remove()
+        roi.lines = []
         self.thrsh_canvas.draw()
 
-    def add2mask(self, roi, introi):
-        ny, nx = np.shape(stack.roi.shape)
-        poly_verts = ([(self.x[0], self.y[0])] + list(zip(reversed(self.x), reversed(self.y))))
+    def add2mask(self, roi_path, introi):
+        ny, nx = self.stack.roi.shape
         x, y = np.meshgrid(np.arange(nx), np.arange(ny))
         x, y = x.flatten(), y.flatten()
         points = np.vstack((x, y)).T
-        roi_path = MplPath(poly_verts)
-        self.roi[roi_path.contains_points(points).reshape((ny, nx))] = introi
+        self.stack.roi[roi_path.contains_points(points).reshape((ny, nx))] = introi
 
     def analysis_callback(self):
         if hasattr(self, "stack"):
@@ -852,11 +850,11 @@ class App(CTk.CTk):
             self.fluo_axis.set_xlim(xlim_fluo)
             self.fluo_axis.set_ylim(ylim_fluo)
         self.fluo_im.set_clim(vmin, vmax)
-        if stack.int_roi and hasattr(stack.patch, "XData"):
+        if stack.int_roi and len(stack.patch):
             for it in range(stack.int_roi):
-                prot = self.fluo_axis.add_patch('XData', self.patch["XData"][it], 'YData', self.patch["YData"][it])
+                prot = self.fluo_axis.add_patch("XData", self.stack.patch[it]["XData"], "YData", self.stack.patch[it]["YData"])
         #        rotate(prot, [0 0 -1], self.FigureRotationEditField.Value, [self.stack.width / 2, self.stack.height / 2, 0])
-                htext = self.fluo_axis.text(self.patch["XData"][it][0], self.patch["YData"][it][0], str(it), fontsize=20, color="w")
+                htext = self.fluo_axis.text(self.stack.patch[it]["XData"][0], self.stack.patch[it]["YData"][0], str(self.stack.patch[it]["indx"]), fontsize=20, color="w")
         #        rotate(htext,[0 0 -1],app.FigureRotationEditField.Value,[app.Stack.Width/2,app.Stack.Height/2,0])
         self.fluo_fig.canvas.draw()
 
