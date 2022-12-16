@@ -12,6 +12,8 @@ import scipy.io
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.transforms as mtransforms
+import imutils
 from matplotlib.figure import Figure
 from matplotlib.path import Path
 from matplotlib.patches import PathPatch
@@ -19,16 +21,16 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from skimage import exposure
 from scipy import ndimage
 import cv2
-from scipy.ndimage import gaussian_filter
 from scipy.signal import convolve2d
 from apptools import NToolbar2Tk, ToolTip
 
 CTk.set_default_color_theme("polarimetry.json")
 CTk.set_appearance_mode("dark")
 
-mpl.use('TkAgg')
+mpl.use("TkAgg")
 
-plt.rcParams['font.size'] = 16
+plt.rcParams["font.size"] = 16
+plt.rcParams["font.family"] = "Arial Rounded MT Bold"
 
 class App(CTk.CTk):
 
@@ -42,7 +44,7 @@ class App(CTk.CTk):
     axes_size = (680, 680)
     button_size = (160, 40)
     info_size = ((420, 320), (300, 150))
-    figsize = (8.5, 8.5)
+    figsize = (6.5, 6.5)
     geometry_info = {"large": "{}x{}+400+300".format(info_size[0][0], info_size[0][1]), "small": "{}x{}+400+300".format(info_size[1][0], info_size[1][1])}
 
     orange = ("#FF7F4F", "#ffb295")
@@ -243,13 +245,14 @@ class App(CTk.CTk):
         self.dark_switch.grid(row=0, column=0, padx=20, pady=10, sticky="ne")
         self.calculated_dark_label = CTk.CTkLabel(master=adv["Dark"], text="Calculated dark value = 0")
         self.calculated_dark_label.grid(row=1, column=0)
-        self.dark_entry = self.entry(adv["Dark"], text="User dark value", row=2, column=0)
+        self.dark = tk.DoubleVar()
+        self.dark_entry = self.entry(adv["Dark"], text="User dark value", textvariable=self.dark, row=2, column=0)
         self.dark_entry.bind("<Return>", command=self.itot_callback)
         self.dark_entry.configure(state="disabled")
 
         self.offset_angle_switch = CTk.CTkSwitch(master=adv["Offset angle"], text="", command=self.offset_angle_switch_callback, onvalue="on", offvalue="off", width=50)
         self.offset_angle_switch.grid(row=0, column=0, padx=20, pady=10, sticky="ne")
-        self.offset_angle = tk.StringVar()
+        self.offset_angle = tk.IntVar()
         self.offset_angle_entry = self.entry(adv["Offset angle"], text="\n" + "Offset angle (deg)" +"\n", textvariable=self.offset_angle, row=1)
         self.offset_angle_entry.configure(state="disabled")
 
@@ -261,14 +264,18 @@ class App(CTk.CTk):
         self.calib_textbox.grid(row=3, column=0, pady=20)
 
         labels = ["Bin width", "Bin height"]
-        self.binning_entries = []
+        self.bin = [tk.IntVar(), tk.IntVar()]
+        self.bin[0].set(1)
+        self.bin[1].set(1)
         for it in range(2):
-            entry = self.entry(adv["Binning"], text="\n" + labels[it] + "\n", text_box="1", row=it+1, column=0)
+            entry = self.entry(adv["Binning"], text="\n" + labels[it] + "\n", text_box=1, textvariable=self.bin[it], row=it+1, column=0)
             entry.bind("<Return>", command=self.itot_callback)
-            self.binning_entries += (entry,)
         labels = ["Stick (deg)", "Figure (deg)"]
-        self.rotation_entries = [self.entry(adv["Rotation"], text="\n" + label + "\n", text_box="0", row=it+1, column=0) for it, label in enumerate(labels)]
-        self.rotation_entries[1].bind("<Return>", command=self.itot_callback)
+        self.rotation = [tk.IntVar(), tk.IntVar()]
+        self.rotation[0].set(0)
+        self.rotation[1].set(0)
+        entries = [self.entry(adv["Rotation"], text="\n" + label + "\n", text_box=0, textvariable=self.rotation[it], row=it+1, column=0) for it, label in enumerate(labels)]
+        entries[1].bind("<Return>", command=self.rotation_callback)
         labels = ["Noise factor", "Noise width", "Noise height", "Noise removal level"]
         vals = [1, 3, 3, 0]
         rows = [1, 2, 3, 5]
@@ -319,7 +326,7 @@ class App(CTk.CTk):
         self.calib_textbox.delete("0.0", "end")
         self.calib_textbox.insert("0.0", self.CD.name)
         self.calib_textbox.configure(state="disabled")
-        self.offset_angle.set(str(85))
+        self.offset_angle.set(85)
 
     def initialize_slider(self):
         if hasattr(self, "stack"):
@@ -470,19 +477,16 @@ class App(CTk.CTk):
 
     def reload_button_callback(self):
         if hasattr(self, 'stack'):
-            self.stack.int_roi = 0
-            self.stack.patch = []
+            self.stack.rois = []
             self.represent_fluo(self.stack, drawnow=True, update=False)
             self.represent_thrsh(self.stack, drawnow=True, update=False)
-            self.stack.roi = np.zeros(self.stack.itot.shape)
-            self.stack.roi_ilow = np.zeros(self.stack.itot.shape)
 
     def export_mask(self):
         if hasattr(self, 'stack'):
             window = CTk.CTkToplevel(self)
             window.attributes('-topmost', 'true')
             window.title('Polarimetry Analysis')
-            window.geometry(App.geometry_info["small"])
+            window.geometry(App.geometry_info["large"])
             CTk.CTkLabel(window, text="  Create Mask by ROI or by Intensity", font=CTk.CTkFont(size=20), image=self.icons['open_in_new'], compound="left").grid(row=0, column=0, padx=30, pady=20)
             CTk.CTkLabel(window, text="  select an output variable ").grid(row=1, column=0, padx=50, pady=20)
             button = CTk.CTkSegmentedButton(master=window, values=["ROI", "Intensity", "ROI x Intensity"], width=300)
@@ -492,15 +496,13 @@ class App(CTk.CTk):
             ok_button.grid(row=3, column=0, padx=20, pady=0)
 
     def export_mask_callback(self, value, window):
-        array = []
+        roi_map, mask = self.compute_roi_map(self.stack)
         if value == "ROI":
-            array = np.int32(self.stack.roi != 0)
+            array = np.int32(roi_map != 0)
         elif value == "Intensity":
             array = np.int32(self.stack.itot >= float(self.ilow.get()))
         elif value == "ROI x Intensity":
-            array = np.zeros(self.stack.itot.shape)
-            array[self.stack.itot >= self.stack.roi_ilow] = 1
-            array *= self.stack.roi
+            array = mask
         if np.any(array):
             plt.imsave(str(self.stack.folder) + "/" + self.stack.filename + '.png', array, cmap="gray")
         window.withdraw()
@@ -531,12 +533,17 @@ class App(CTk.CTk):
     def dark_switch_callback(self):
         if self.dark_switch.get() == "on":
             self.dark_entry.configure(state="normal")
+            self.dark.set(stack.display.format(self.stack.calculated_dark))
         else:
             self.dark_entry.configure(state="disabled")
+            if hasattr(self, "stack"):
+                self.dark.set(stack.display.format(self.stack.calculated_dark))
+            else:
+                self.dark.set(0)
 
     def dropdown_calib_callback(self, value):
         self.CD = Calibration(self.method_dropdown.get(), label=value)
-        self.offset_angle.set(str(self.CD.offset_default))
+        self.offset_angle.set(self.CD.offset_default)
         self.calib_textbox.configure(state="normal")
         self.calib_textbox.delete("0.0", "end")
         self.calib_textbox.insert("0.0", self.CD.name)
@@ -650,11 +657,6 @@ class App(CTk.CTk):
         for key in dict:
             setattr(stack, key, dict[key])
         stack = self.define_itot(stack)
-        stack.Y, stack.X = np.mgrid[0:w, 0:h]
-        stack.points = np.vstack((stack.X.flatten(), stack.Y.flatten())).T
-        stack.roi = np.zeros(stack.itot.shape)
-        stack.roi_ilow = np.zeros(stack.itot.shape)
-        stack.int_roi = 0
         return stack
 
     def select_file(self):
@@ -743,10 +745,12 @@ class App(CTk.CTk):
                 button_no.configure(command=lambda:self.no_add_roi_callback(window, roi))
 
     def yes_add_roi_callback(self, window, roi):
-        self.stack.int_roi += 1
         roi_path = Path(([(roi.x[0], roi.y[0])] + list(zip(reversed(roi.x), reversed(roi.y)))))
-        self.stack.roi[roi_path.contains_points(self.stack.points).reshape(self.stack.roi.shape)] = self.stack.int_roi
-        self.stack.patch += [{"indx": self.stack.int_roi, "label": (roi.x[0], roi.y[0]), "Patch": PathPatch(roi_path, facecolor="none", edgecolor="white")}]
+        if self.stack.rois:
+            indx = self.stack.roi[-1]["indx"] + 1
+        else:
+            indx = 1
+        self.stack.rois += [{"indx": indx, "label": (roi.x[0], roi.y[0]), "Path": roi_path, "ILow": self.ilow.get()}]
         window.withdraw()
         for line in roi.lines:
             line.remove()
@@ -766,18 +770,15 @@ class App(CTk.CTk):
         if hasattr(self, "stack"):
             self.tabview.set("Fluorescence")
             self.analysis_button.configure(image=self.icons["pause"])
-            if self.stack.int_roi == 0:
-                self.stack.roi = np.ones(self.stack.roi.shape)
-                self.roi_ilow = self.stack.roi * float(self.ilow.get())
             if not self.advance_file:
-                mask_ = np.ones(self.stack.roi.shape)
                 if self.method_dropdown.get().startswith("Mask"):
                     mask_name = self.stack.folder + "/" + self.stack.filename + ".png"
                     if os.path.isfile(mask_name):
                         im_binarized = np.asarray(plt.imread(mask_name), dtype=np.float64)
-                        mask_ = im_binarized / np.amax(im_binarized)
-                mask = (self.stack.itot >= self.stack.roi_ilow) * mask_
-                self.analyze(self.stack, mask)
+                        mask = im_binarized / np.amax(im_binarized)
+                    self.analyze(self.stack, mask)
+                else:
+                    self.analyze(self.stack)
 
     def close_callback(self):
         plt.close("all")
@@ -797,16 +798,20 @@ class App(CTk.CTk):
             self.ilow.set(self.stack.display.format(value))
             self.represent_thrsh(self.stack)
 
-    def ilow2slider_callback(self, event=0):
+    def ilow2slider_callback(self, event):
         if event and hasattr(self, "stack"):
             self.ilow_slider.set(float(self.ilow.get()))
             self.represent_thrsh(self.stack)
 
-    def itot_callback(self, event=0):
+    def itot_callback(self, event):
         if event and hasattr(self, "stack"):
             self.stack = self.define_itot(self.stack)
-            self.represent_fluo(self.stack)
-            self.represent_thrsh(self.stack)
+            self.represent_fluo(self.stack, update=False)
+            self.represent_thrsh(self.stack, update=False)
+
+    def rotation_callback(self, event):
+        if event and hasattr(self, "stack"):
+            self.represent_fluo(self.stack, update=False)
 
     def transparency_slider_callback(self, value):
         if value <= 0.001:
@@ -827,15 +832,19 @@ class App(CTk.CTk):
             xlim_fluo = self.fluo_axis.get_xlim()
             ylim_fluo = self.fluo_axis.get_ylim()
         if self.stack_slider.get() == 0:
-            #field = (stack.itot - np.amin(stack.itot)) / (np.amax(stack.itot) - np.amin(stack.itot))
             field = stack.itot
             vmin, vmax = np.amin(stack.itot), np.amax(stack.itot)
         elif self.stack_slider.get() <= self.stack.nangle:
             field = stack.values[:, :, int(self.stack_slider.get())-1]
             vmin, vmax = np.amin(stack.values), np.amax(stack.values)
-            #field = (stack.values[:, :, int(self.stack_slider.get())-1] - np.amin(stack.values)) / (np.amax(stack.values) - np.amin(stack.values))
-        #field = ndimage.rotate(field, self.rotation_entries[1].get())
         field = self.adjust(field, self.contrast_fluo_slider.get(), vmin, vmax)
+        if self.rotation[1].get() != 0:
+            field = imutils.rotate(field, int(self.rotation[1].get()))
+            ts = self.fluo_axis.transData
+            coords = ts.transform([stack.width/2, stack.height/2])
+            tr = mpl.transforms.Affine2D().rotate_deg_around(coords[0], coords[1], int(self.rotation[1].get()))
+            transform = ts + tr
+            mat = cv2.getRotationMatrix2D((stack.width/2, stack.height/2), int(self.rotation[1].get()), 1.0)
         if update:
             self.fluo_im.set_data(field)
         else:
@@ -846,12 +855,18 @@ class App(CTk.CTk):
             self.fluo_axis.set_xlim(xlim_fluo)
             self.fluo_axis.set_ylim(ylim_fluo)
         self.fluo_im.set_clim(vmin, vmax)
-        if stack.int_roi and len(stack.patch):
-            for it in range(stack.int_roi):
-                prot = self.fluo_axis.add_patch(self.stack.patch[it]["Patch"])
-        #        rotate(prot, [0 0 -1], self.FigureRotationEditField.Value, [self.stack.width / 2, self.stack.height / 2, 0])
-                htext = self.fluo_axis.text(self.stack.patch[it]["label"][0], self.stack.patch[it]["label"][1], str(self.stack.patch[it]["indx"]), fontsize=20, color="w")
-        #        rotate(htext,[0 0 -1],app.FigureRotationEditField.Value,[app.Stack.Width/2,app.Stack.Height/2,0])
+        if self.fluo_axis.patches:
+            self.fluo_axis.texts.pop()
+            self.fluo_axis.patches.pop()
+            self.fluo_fig.canvas.draw()
+        if len(stack.rois):
+            for roi in stack.rois:
+                hpatch = PathPatch(roi["Path"], facecolor="none", edgecolor="white")
+                htext = self.fluo_axis.text(roi["label"][0], roi["label"][1], str(roi["indx"]), color="w", transform_rotates_text=False)
+                if self.rotation[1].get() != 0:
+                    hpatch.set_transform(transform)
+                    htext.set_transform(transform)
+                self.fluo_axis.add_patch(hpatch)
         self.fluo_fig.canvas.draw()
 
     def represent_thrsh(self, stack, drawnow=False, update=True):
@@ -876,27 +891,27 @@ class App(CTk.CTk):
             self.thrsh_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
             self.thrsh_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
         self.thrsh_im.set_clim(vmin, vmax)
-        if stack.int_roi and len(stack.patch):
-            for it in range(stack.int_roi):
-                prot = self.thrsh_axis.add_patch(self.stack.patch[it]["Patch"])
-        #        rotate(prot, [0 0 -1], self.FigureRotationEditField.Value, [self.stack.width / 2, self.stack.height / 2, 0])
-                htext = self.thrsh_axis.text(self.stack.patch[it]["label"][0], self.stack.patch[it]["label"][1], str(self.stack.patch[it]["indx"]), fontsize=20, color="w")
-        #        rotate(htext,[0 0 -1],app.FigureRotationEditField.Value,[app.Stack.Width/2,app.Stack.Height/2,0])
+        if self.thrsh_axis.patches:
+            self.thrsh_axis.texts.pop()
+            self.thrsh_axis.patches.pop()
+            self.thrsh_fig.canvas.draw()
+        if len(stack.rois):
+            for roi in stack.rois:
+                self.thrsh_axis.add_patch(PathPatch(roi["Path"], facecolor="none", edgecolor="white"))
+                self.thrsh_axis.text(roi["label"][0], roi["label"][1], str(roi["indx"]), color="w")
         self.thrsh_fig.canvas.draw()
 
     def define_itot(self, stack):
         stack.calculated_dark = self.compute_dark(stack)
         self.calculated_dark_label.configure(text="Calculated dark value = " + stack.display.format(stack.calculated_dark))
-        if len(self.dark_entry.get()) >= 1:
-            dark = float(self.dark_entry.get())
+        if self.dark_switch.get() == "on":
+            dark = self.dark.get()
         else:
             dark = stack.calculated_dark
         stack.sumcor = np.sum((stack.values - dark) * (stack.values >= dark), axis=2)
-        bin_shape = [self.binning_entries[_].get() for _ in range(2)]
-        if any(bin_shape):
-            bin_shape[bin_shape == ""] = 1
-            bin = np.ones(int(_) for _ in bin_shape)
-            stack.itot = convolve2d(stack.sumcor, bin, mode="same") / (bin_shape[0] * bin_shape[1])
+        bin_shape = [self.bin[_].get() for _ in range(2)]
+        if sum(bin_shape) != 2:
+            stack.itot = convolve2d(stack.sumcor, np.ones(bin_shape), mode="same") / (bin_shape[0] * bin_shape[1])
         else:
             stack.itot = stack.sumcor
         return stack
@@ -946,32 +961,50 @@ class App(CTk.CTk):
             text = data.latex + " = " + "{:.2f}".format(np.mean(data_vals)) + " $\pm$ " "{:.2f}".format(np.std(data_vals))
             ax.annotate(text, (0.2, 0.91), textcoords="figure fraction", fontsize=20, usetex=True)
         elif type == "polar1":
-            data_vals = np.mod(2 * (data_vals + float(self.rotation_entries[1].get())), 360) / 2
+            data_vals = np.mod(2 * (data_vals + float(self.rotation[1].get())), 360) / 2
             meandata = self.circularmean(data_vals)
             delta_rho = np.mod(2 * (data_vals - meandata), 180) / 2
         elif type == "polar2":
             print("in progress...")
 
-    def analyze_stack(self, stack, mask):
+    def compute_roi_map(self, stack):
+        shape = (stack.height, stack.width)
+        if len(stack.rois):
+            roi_map = np.zeros(shape)
+            roi_ilow_map = np.zeros(shape)
+            for roi in stack.rois:
+                roi_map[roi["Path"].contains_points(points).reshape(shape)] = roi["indx"]
+                roi_ilow_map[roi["Path"].contains_points(points).reshape(shape)] = roi["ILow"]
+        else:
+            roi_map = np.ones(shape)
+            roi_ilow_map = np.ones(shape) * self.ilow.get()
+        return roi_map, (stack.itot >= roi_ilow_map)
+
+    def analyze_stack(self, stack, mask=[]):
         chi2threshold = 500
-        shape = stack.roi.shape
-        if len(self.dark_entry.get()) >= 1:
-            dark = float(self.dark_entry.get())
+        shape = (stack.height, stack.width)
+        roi_map, mask_ = self.compute_roi_map(stack)
+        if mask:
+            mask_ *= mask
+        if self.dark_switch.get() == "on":
+            dark = self.dark.get()
         else:
             dark = stack.calculated_dark
+        Y, X = np.mgrid[0:stack.width, 0:stack.height]
+        points = np.vstack((X.flatten(), Y.flatten())).T
         field = stack.values - dark - float(self.noise[3].get())
         field = field * (field >= 0)
         if self.method_dropdown.get() == "1PF":
             field = sqrt(field)
         elif self.method_dropdown.get() in ["4POLAR 2D", "4POLAR 3D"]:
             field[:, :, [2, 3]] = field[:, :, [3, 2]]
-        bin_shape = [self.binning_entries[_].get() for _ in range(2)]
+        bin_shape = [self.bin[_].get() for _ in range(2)]
         if any(bin_shape):
             bin_shape[bin_shape == ""] = 1
             bin = np.ones(int(_) for _ in bin_shape)
             field = convolve2d(field, bin, mode="same") / (bin_shape[0] * bin_shape[1])
         if self.method_dropdown.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
-            angle3d = (np.linspace(0, 180, stack.nangle + 1) + 180 - float(self.offset_angle.get())).reshape(1, 1, -1)
+            angle3d = (np.linspace(0, 180, stack.nangle + 1) + 180 - self.offset_angle.get()).reshape(1, 1, -1)
             e2 = exp(2j * np.deg2rad(angle3d))
             a0 = np.mean(field, axis=2)
             a2 = 2 * np.mean(field * e2, axis=2)
@@ -1002,7 +1035,7 @@ class App(CTk.CTk):
         rho_.name, rho_.latex = "Rho", "$\rho$"
         rho_.display, rho_.min, rho_.max = self.get_variable(0)
         rho_.colormap = hsv
-        ind = (stack.roi > 0) * (mask != 0)
+        ind = (roi_map > 0) * (mask_ != 0)
         if self.method_dropdown.get() == "1PF":
             ind *= (np.abs(a2) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho = np.empty(shape)
@@ -1012,7 +1045,7 @@ class App(CTk.CTk):
             psi[ind] = app.CD.Psi[np.round_((a2.real[ind] + 1) * self.CD.h), np.round_((a2.imag[ind] + 1) * self.CD.h)]
             psi[np.logical_not(ind)] = np.nan
             ind *= (rho == np.nan) * (psi == np.nan)
-            rho_.value[ind] = np.mod(2 * (180 - rho[ind] + float(self.rotation_entries[0].get())), 360) / 2
+            rho_.value[ind] = np.mod(2 * (180 - rho[ind] + float(self.rotation[0].get())), 360) / 2
             psi_ = Variable(stack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.value[ind] = psi[ind]
@@ -1021,7 +1054,7 @@ class App(CTk.CTk):
         elif self.method_dropdown.get() in ["CARS", "SRS", "2PF"]:
             ind *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho_.value[ind] = np.rad2deg(np.angle(a2[ind])) / 2
-            rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation_entries[0].get())), 360) / 2
+            rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation[0].get())), 360) / 2
             s2_ = Variable(stack)
             s2_.name, s2_.latex = "S2", "$S_2$"
             s2_.value[ind] = 1.5 * np.abs(a2[ind])
@@ -1035,7 +1068,7 @@ class App(CTk.CTk):
         elif self.method_dropdown.get() == 'SHG':
             ind *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho_.value[ind] = np.rad2deg(np.angle(a2[ind])) / 2
-            rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation_entries[0].get())), 360) / 2
+            rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation[0].get())), 360) / 2
             s_shg_ = Variable(stack)
             s_shg_.name, s_shg_.latex = "S_SHG", "$S_\mathrm{SHG}$"
             s_shg_.value[ind] = -0.5 * (np.abs(a4[ind]) - np.abs(a2[ind])) / (np.abs(a4[ind]) + np.abs(a2[ind])) - 0.65
@@ -1044,7 +1077,7 @@ class App(CTk.CTk):
         elif self.method_dropdown.get() == "4POLAR 3D":
             ind *= (lam < 1/3) * (lam > 0) * (pzz > lam)
             rho_.value[ind] = 0.5 * np.rad2deg(np.atan2(puv[ind], pxy[ind]))
-            rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation_entries[0].get())), 360) / 2
+            rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation[0].get())), 360) / 2
             psi_ = Variable(stack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.value[ind] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[ind])) / 2))
@@ -1058,17 +1091,15 @@ class App(CTk.CTk):
         elif self.method_dropdown.get() == "4POLAR 2D":
             ind *= (lam < 1/3) * (lam > 0)
             rho_.value[ind] = 0.5 * np.rad2deg(np.atan2(puv[ind], pxy[ind]))
-            rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation_entries[0].get())), 360) / 2
+            rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation[0].get())), 360) / 2
             psi_ = Variable(stack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.value[ind] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[ind])) / 2))
             psi_.display, psi_.min, psi_.max = self.get_variable(2)
             psi_.colormap = jet
         a0[np.logical_not(ind)] = np.nan
-        x = stack.X
-        y = stack.Y
-        x[np.logical_not(ind)] = np.nan
-        y[np.logical_not(ind)] = np.nan
+        X[np.logical_not(ind)] = np.nan
+        Y[np.logical_not(ind)] = np.nan
         if self.method_dropdown.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
             chi2[np.logical_not(ind)] = np.nan
 
@@ -1082,13 +1113,7 @@ class Stack():
         self.mode = "I"
         self.display = []
         self.itot = []
-        self.roi = []
-        self.roi_ilow = []
-        self.int_roi = 0
-        self.X = []
-        self.Y = []
-        self.points = []
-        self.patch = []
+        self.rois = []
 
 class Variable():
     def __init__(self, stack):
