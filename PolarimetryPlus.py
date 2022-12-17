@@ -9,6 +9,7 @@ from PIL import ImageTk, Image
 import os
 import pathlib
 import scipy.io
+import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -719,9 +720,20 @@ class App(CTk.CTk):
             self.calib_dropdown.configure(state="disabled")
         if method.startswith("4POLAR"):
             self.polar_dropdown.configure(state="normal")
-
+            window, buttons = self.showinfo(message="Perform: Select a beads file (*.tif)\n Load: Select a registration file (*_reg.mat)\n Registration is performed with Whitelight.tif which should be in the same folder as the beads file", image=self.icons["blur_circular"], button_labels=["Perform", "Load", "Cancel"])
+            buttons[0].configure(command=lambda:self.perform_registration(window))
+            buttons[1].configure(command=lambda:self.load_registration(window))
+            buttons[2].configure(command=lambda:window.withdraw())
         else:
             self.polar_dropdown.configure(state="disabled")
+
+    def load_registration(self, window):
+        filename = fd.askopenfilename(title="Select a registration file", initialdir="/", filetypes=[("MAT-files", "*.mat")])
+        file = h5py.File(filename, "r")
+        self.tform = file.get("tform_")
+        self.xpos = file.get("xpos_")
+        self.ypos = file.get("ypos_")
+        self.npix = file.get("npix_")
 
     def open_file(self, filename):
         dataset = Image.open(filename, mode="r")
