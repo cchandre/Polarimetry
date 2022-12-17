@@ -128,9 +128,6 @@ class App(CTk.CTk):
         self.contrast_fluo_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_fluo_slider_callback)
         ToolTip.createToolTip(self.contrast_fluo_slider, " The chosen contrast will be the one used\n for the fluorescence images in figures")
         self.contrast_fluo_slider.grid(row=1, column=0, padx=20, pady=20)
-        button = self.button(banner, image=self.icons["refresh"], command=self.reload_button_callback)
-        #ToolTip.createToolTip(button, "Erase ROIs and reload image")
-        button.grid(row=2, column=0, padx=20, pady=20)
         button = self.button(banner, image=self.icons["square"], command=self.compute_angle)
         #ToolTip.createToolTip(button, " Left click and hold to trace a line\n segment and determine its angle")
         button.grid(row=3, column=0, padx=20, pady=20)
@@ -172,7 +169,9 @@ class App(CTk.CTk):
         button = self.button(banner, image=self.icons["photo"], command=self.no_background)
         #ToolTip.createToolTip(button, " Change background to enhance visibility")
         button.grid(row=4, column=0, padx=20, pady=20)
-
+        button = self.button(banner, image=self.icons["format_list"], command=self.change_list_button_callback)
+        #ToolTip.createToolTip(button, "Erase selected ROIs and reload image")
+        button.grid(row=5, column=0, padx=20, pady=20)
         self.ilow = tk.StringVar()
         self.ilow_slider = CTk.CTkSlider(master=self.tabview.tab("Thresholding/Mask"), from_=0, to=1, command=self.ilow_slider_callback)
         self.ilow_slider.set(0)
@@ -180,7 +179,6 @@ class App(CTk.CTk):
         entry = CTk.CTkEntry(master=self.tabview.tab("Thresholding/Mask"), width=100, height=10, placeholder_text="0", textvariable=self.ilow, border_color=App.gray[1])
         entry.bind("<Return>", command=self.ilow2slider_callback)
         entry.place(relx=0.2, rely=0.96, anchor="w")
-
         self.transparency_slider = CTk.CTkSlider(master=self.tabview.tab("Thresholding/Mask"), from_=0, to=1, command=self.transparency_slider_callback)
         ToolTip.createToolTip(self.transparency_slider, " Adjust the transparency of the background image")
         self.transparency_slider.set(0)
@@ -277,11 +275,13 @@ class App(CTk.CTk):
         entries = [self.entry(adv["Rotation"], text="\n" + label + "\n", text_box=0, textvariable=self.rotation[it], row=it+1, column=0) for it, label in enumerate(labels)]
         entries[1].bind("<Return>", command=self.rotation_callback)
         labels = ["Noise factor", "Noise width", "Noise height", "Noise removal level"]
+        self.noise = [tk.DoubleVar(), tk.IntVar(), tk.IntVar(), tk.DoubleVar()]
         vals = [1, 3, 3, 0]
+        for val, _ in zip(vals, self.noise):
+            _.set(vals)
         rows = [1, 2, 3, 5]
-        self.remove_background_entries = [self.entry(adv["Remove background"], text="\n" + label + "\n", text_box=vals[it], row=rows[it], column=0) for it, label in enumerate(labels)]
-        self.remove_background_entries[3].configure(state="disabled")
-        self.click_background = False
+        entries = [self.entry(adv["Remove background"], text="\n" + label + "\n", textvariable=self.noise[it], row=rows[it], column=0) for it, label in enumerate(labels)]
+        entries[3].configure(state="disabled")
         self.button(adv["Remove background"], text="Click background", image=self.icons["exposure"], command=self.click_background_callback).grid(row=4, column=0)
 
 ## RIGHT FRAME: ABOUT
@@ -340,11 +340,9 @@ class App(CTk.CTk):
         self.stack_slider_label.configure(text="T")
 
     def initialize_noise(self):
-        self.noise = {'Height': 3, 'Width': 3, 'Factor': 1, 'RemovalLevel': 0}
-        self.noise_width.configure(text=self.noise["Width"])
-        self.hoise_height.configure(text=self.noise["Height"])
-        self.noise_factor.configure(text=self.noise["Factor"])
-        self.noise_removallevel.configure(text=self.noise["RemovalLevel"])
+        vals = [1, 3, 3, 0]
+        for val, _ in zip(vals, self.noise):
+            _.set(vals)
 
     def initialize_data(self):
         self.initialize_slider()
@@ -368,7 +366,7 @@ class App(CTk.CTk):
             self.show_individual_fit_checkbox.deselect()
 
     def determine_order(self, polquad):
-        self.order = {'UL0-UR45-LR90-LL135': [1, 2, 3, 4], 'UL0-UR45-LR135-LL90': [1, 2, 4, 3], 'UL0-UR90-LR45-LL135': [1, 3, 2, 4], 'UL0-UR90-LR135-LL45': [1, 3, 4, 2], 'UL0-UR135-LR45-LL90': [1, 4, 2, 3], 'UL0-UR135-LR90-LL45': [1, 4, 3, 2], 'UL45-UR0-LR90-LL135': [2, 1, 3, 4],  'UL45-UR0-LR135-LL90': [2, 1, 4, 3], 'UL45-UR90-LR0-LL135': [2, 3, 1, 4], 'UL45-UR90-LR135-LL0': [2, 3, 4, 1], 'UL45-UR135-LR0-LL90': [2, 4, 1, 3], 'UL45-UR135-LR90-LL0': [2, 4, 3, 1], 'UL90-UR0-LR45-LL135': [3, 1, 2, 4], 'UL90-UR0-LR135-LL45': [3, 1, 4, 2], 'UL90-UR45-LR0-LL135': [3, 2, 1, 4], 'UL90-UR45-LR135-LL0': [3, 2, 4, 1], 'UL90-UR135-LR0-LL45': [3, 4, 1, 2], 'UL90-UR135-LR45-LL0': [3, 4, 2, 1], 'UL135-UR0-LR45-LL90': [4, 1, 2, 3], 'UL135-UR0-LR90-LL45': [4, 1, 3, 2], 'UL135-UR45-LR0-LL90': [4, 2, 1, 3], 'UL135-UR45-LR90-LL0': [4, 2, 3, 1], 'UL135-UR90-LR0-LL45': [4, 3, 1, 2], 'UL135-UR90-LR45-LL0': [4, 3, 2, 1]}.get(polquad)
+        return {'UL0-UR45-LR90-LL135': [1, 2, 3, 4], 'UL0-UR45-LR135-LL90': [1, 2, 4, 3], 'UL0-UR90-LR45-LL135': [1, 3, 2, 4], 'UL0-UR90-LR135-LL45': [1, 3, 4, 2], 'UL0-UR135-LR45-LL90': [1, 4, 2, 3], 'UL0-UR135-LR90-LL45': [1, 4, 3, 2], 'UL45-UR0-LR90-LL135': [2, 1, 3, 4],  'UL45-UR0-LR135-LL90': [2, 1, 4, 3], 'UL45-UR90-LR0-LL135': [2, 3, 1, 4], 'UL45-UR90-LR135-LL0': [2, 3, 4, 1], 'UL45-UR135-LR0-LL90': [2, 4, 1, 3], 'UL45-UR135-LR90-LL0': [2, 4, 3, 1], 'UL90-UR0-LR45-LL135': [3, 1, 2, 4], 'UL90-UR0-LR135-LL45': [3, 1, 4, 2], 'UL90-UR45-LR0-LL135': [3, 2, 1, 4], 'UL90-UR45-LR135-LL0': [3, 2, 4, 1], 'UL90-UR135-LR0-LL45': [3, 4, 1, 2], 'UL90-UR135-LR45-LL0': [3, 4, 2, 1], 'UL135-UR0-LR45-LL90': [4, 1, 2, 3], 'UL135-UR0-LR90-LL45': [4, 1, 3, 2], 'UL135-UR45-LR0-LL90': [4, 2, 1, 3], 'UL135-UR45-LR90-LL0': [4, 2, 3, 1], 'UL135-UR90-LR0-LL45': [4, 3, 1, 2], 'UL135-UR90-LR45-LL0': [4, 3, 2, 1]}.get(polquad)
 
     def button(self, master, text=None, image=None, command=None):
         if text is not None:
@@ -475,11 +473,41 @@ class App(CTk.CTk):
         if hasattr(self, 'stack'):
             self.represent_thrsh(self.stack, drawnow=True)
 
-    def reload_button_callback(self):
+    def change_list_button_callback(self):
         if hasattr(self, 'stack'):
-            self.stack.rois = []
-            self.represent_fluo(self.stack, drawnow=True, update=False)
-            self.represent_thrsh(self.stack, drawnow=True, update=False)
+            if hasattr(self.stack, "rois"):
+                window = CTk.CTkToplevel(self)
+                window.attributes('-topmost', 'true')
+                window.title('Polarimetry Analysis')
+                window.geometry(App.geometry_info["large"])
+                CTk.CTkLabel(window, text="  Select ROIs to be removed ", font=CTk.CTkFont(size=20), image=self.icons["format_list"], compound="left").grid(row=0, column=0, padx=30, pady=20)
+                variable = tk.StringVar()
+                variable.set("all")
+                values = ["all"] + [str(_ + 1) for _ in range(len(self.stack.rois))]
+                menu = CTk.CTkOptionMenu(master=window, values=values, variable=variable)
+                menu.grid(row=1, column=0, padx=20, pady=20)
+                ok_button = self.button(master=window, text="       OK", command=lambda:self.remove_roi(window, variable.get()))
+                ok_button.configure(width=80, height=App.button_size[1])
+                ok_button.grid(row=2, column=0, padx=20, pady=20)
+
+    def remove_roi(self, window, variable):
+        if variable == "all":
+            self.stack.rois.clear()
+        else:
+            self.fluo_axis.texts.pop()
+            self.fluo_axis.patches.pop()
+            self.fluo_fig.canvas.draw()
+            self.thrsh_axis.texts.pop()
+            self.thrsh_axis.patches.pop()
+            self.thrsh_fig.canvas.draw()
+            indx = int(variable)
+            del self.stack.rois[indx - 1]
+            for roi in self.stack.rois:
+                if roi["indx"] > indx:
+                    roi["indx"] -= 1
+        self.represent_fluo(self.stack, drawnow=True, update=False)
+        self.represent_thrsh(self.stack, drawnow=True, update=False)
+        window.withdraw()
 
     def export_mask(self):
         if hasattr(self, 'stack'):
@@ -568,7 +596,38 @@ class App(CTk.CTk):
             entry.configure(state=state)
 
     def click_background_callback(self):
-        print("Not yet implemented... Stay tuned!")
+        if hasattr(self, "stack"):
+            self.tabview.set("Fluorescence")
+            xlim, ylim = self.fluo_axis.get_xlim(), self.fluo_axis.get_ylim()
+            hlines = [plt.Line2D([xlim[0]/2, xlim[1]/2], ylim, lw=1, color="w"), plt.Line2D(xlim, [ylim[0]/2, ylim[1]/2], lw=1, color="w")]
+            self.fluo_axis.add_line(hlines[0])
+            self.fluo_axis.add_line(hlines[1])
+            self.__cid1 = self.fluo_canvas.mpl_connect('motion_notify_event', lambda event: self.click_background_motion_notify_callback(event, hlines))
+            self.__cid2 = self.fluo_canvas.mpl_connect('button_press_event', lambda event: self.click_background_button_press_callback(event, hlines))
+
+    def click_background_motion_notify_callback(self, event, hlines):
+        if event.inaxes == self.fluo_axis:
+            x, y = event.xdata, event.ydata
+            xlim, ylim = self.fluo_axis.get_xlim(), self.fluo_axis.get_ylim()
+            if event.button is None:
+                hlines[0].set_data([x, x], ylim)
+                hlines[1].set_data(xlim, [y, y])
+                self.fluo_canvas.draw()
+
+    def click_background_button_press_callback(self, event, hlines):
+        if event.inaxes == self.fluo_axis:
+            x, y = event.xdata, event.ydata
+            if event.button == 1:
+                x1 = round(x) - self.noise[1].get()//2
+                x2 = round(x) + self.noise[1].get()//2
+                y1 = round(y) - self.noise[2].get()//2
+                y2 = round(y) + self.noise[2].get()//2
+                self.noise[3].set(np.mean(self.stack.itot[y1::y2, x1::x2]) / self.stack.nangle * self.noise[0].get())
+                self.fluo_canvas.mpl_disconnect(self.__cid1)
+                self.fluo_canvas.mpl_disconnect(self.__cid2)
+                for line in hlines:
+                    line.remove()
+                self.fluo_canvas.draw()
 
     def compute_angle(self):
         self.tabview.set("Fluorescence")
@@ -646,12 +705,12 @@ class App(CTk.CTk):
         self.calib_textbox.configure(state="disabled")
 
     def open_file(self, filename):
-        dataset = Image.open(filename)
+        dataset = Image.open(filename, mode="r")
         h, w = np.shape(dataset)
         stack_vals = np.zeros((h, w, dataset.n_frames), dtype=np.float64)
-        for i in range(dataset.n_frames):
-           dataset.seek(i)
-           stack_vals[:, :, i] = np.array(dataset)
+        for _ in range(dataset.n_frames):
+           dataset.seek(_)
+           stack_vals[:, :, _] = np.array(dataset)
         dict = {"values": stack_vals, "height": h, "width": w, "nangle": dataset.n_frames, "mode": dataset.mode, "display": "{:.2f}" if dataset.mode == "I" else "{:.0f}"}
         stack = Stack(filename)
         for key in dict:
@@ -661,7 +720,7 @@ class App(CTk.CTk):
 
     def select_file(self):
         filetypes = [("Tiff files", "*.tiff"), ("Tiff files", "*.tif")]
-        filename = fd.askopenfilename(title='Select a file', initialdir='/', filetypes=filetypes)
+        filename = fd.askopenfilename(title="Select a file", initialdir="/", filetypes=filetypes)
         self.single_file = True
         if filename:
             self.tabview.set("Fluorescence")
@@ -670,9 +729,6 @@ class App(CTk.CTk):
                 self.stack_slider.configure(to=self.stack.nangle)
             else:
                 self.stack_slider.configure(state="disabled")
-            self.ilow_slider.configure(from_=np.amin(self.stack.itot), to=np.amax(self.stack.itot))
-            self.ilow_slider.set(np.amin(self.stack.itot))
-            self.ilow.set(self.stack.display.format(np.amin(self.stack.itot)))
             self.filename_label.configure(text=os.path.basename(filename).split('.')[0])
             self.represent_fluo(self.stack, drawnow=True, update=False)
             self.represent_thrsh(self.stack, drawnow=True, update=False)
@@ -747,7 +803,7 @@ class App(CTk.CTk):
     def yes_add_roi_callback(self, window, roi):
         roi_path = Path(([(roi.x[0], roi.y[0])] + list(zip(reversed(roi.x), reversed(roi.y)))))
         if self.stack.rois:
-            indx = self.stack.roi[-1]["indx"] + 1
+            indx = self.stack.rois[-1]["indx"] + 1
         else:
             indx = 1
         self.stack.rois += [{"indx": indx, "label": (roi.x[0], roi.y[0]), "Path": roi_path, "ILow": self.ilow.get()}]
@@ -766,19 +822,21 @@ class App(CTk.CTk):
         roi.lines = []
         self.thrsh_canvas.draw()
 
+    def get_mask(self):
+        mask = np.ones((self.stack.height, self.stack.width))
+        if self.method_dropdown.get().startswith("Mask"):
+            mask_name = self.stack.folder + "/" + self.stack.filename + ".png"
+            if os.path.isfile(mask_name):
+                im_binarized = np.asarray(plt.imread(mask_name), dtype=np.float64)
+                mask = im_binarized / np.amax(im_binarized)
+        return mask
+
     def analysis_callback(self):
         if hasattr(self, "stack"):
             self.tabview.set("Fluorescence")
             self.analysis_button.configure(image=self.icons["pause"])
             if not self.advance_file:
-                if self.method_dropdown.get().startswith("Mask"):
-                    mask_name = self.stack.folder + "/" + self.stack.filename + ".png"
-                    if os.path.isfile(mask_name):
-                        im_binarized = np.asarray(plt.imread(mask_name), dtype=np.float64)
-                        mask = im_binarized / np.amax(im_binarized)
-                    self.analyze(self.stack, mask)
-                else:
-                    self.analyze(self.stack)
+                self.analyze(self.stack)
 
     def close_callback(self):
         plt.close("all")
@@ -908,12 +966,15 @@ class App(CTk.CTk):
             dark = self.dark.get()
         else:
             dark = stack.calculated_dark
-        stack.sumcor = np.sum((stack.values - dark) * (stack.values >= dark), axis=2)
+        sumcor = np.sum((stack.values - dark) * (stack.values >= dark), axis=2)
         bin_shape = [self.bin[_].get() for _ in range(2)]
         if sum(bin_shape) != 2:
-            stack.itot = convolve2d(stack.sumcor, np.ones(bin_shape), mode="same") / (bin_shape[0] * bin_shape[1])
+            stack.itot = convolve2d(sumcor, np.ones(bin_shape), mode="same") / (bin_shape[0] * bin_shape[1])
         else:
-            stack.itot = stack.sumcor
+            stack.itot = sumcor
+        self.ilow_slider.configure(from_=np.amin(stack.itot), to=np.amax(stack.itot))
+        self.ilow_slider.set(np.amin(stack.itot))
+        self.ilow.set(stack.display.format(np.amin(stack.itot)))
         return stack
 
     def compute_dark(self, stack):
@@ -947,7 +1008,7 @@ class App(CTk.CTk):
         fig.patch.set_facecolor(App.gray[0])
         if not roi:
             roi = 1
-        data_vals = data.values((stack.roi == roi) * (~np.isnan(data.values)))
+        data_vals = data.values((roi_map == roi) * (~np.isnan(data.values)))
         if type == "normal":
             bins = np.linspace(np.amin(data), np.amax(data), np.amax(data)/60)
             n, bins, patches = ax.hist(data.values, bins)
@@ -978,14 +1039,32 @@ class App(CTk.CTk):
         else:
             roi_map = np.ones(shape)
             roi_ilow_map = np.ones(shape) * self.ilow.get()
-        return roi_map, (stack.itot >= roi_ilow_map)
+        mask = self.get_mask()
+        return roi_map, (stack.itot >= roi_ilow_map) * mask
 
-    def analyze_stack(self, stack, mask=[]):
+    def slice4polar(self, stack, xpos, ypos, npix):
+        stack_ = Stack(stack.filename)
+        stack_.display = stack.display
+        stack_.nangle = 4
+        stack_.height = np.amax(ypos[1, :] - ypos[0, :]) + 2 * npix
+        stack_.width = np.amax(xpos[1, :] - xpos[0, :]) + 2 * npix
+        stack_.values = np.zeros((stack_.height, stack_.width, 4))
+        ims = []
+        for it in range(4):
+            ddx = stack_.width - npix + xpos[0, it] - 1
+            ddy = stack_.height - npix + ypos[0, it] - 1
+            ims += [stack.values[ypos[0, it] - npix:ddy, xpos[0, it] - npix:ddx, 0]]
+        ims_reg = ims
+        #for it in range(1, 4):
+        #    ims_reg[it] = imwarp(ims[it], app.tform{1,it}, 'OutputView', imref2d(size(ims[0])))
+        #    ims_reg[it] = imwarp(ims_reg{it},app.tform{2,it},'OutputView',imref2d(size(ims[0])))
+        for it in range(4):
+            stack_.values[:, :, self.order[it]] = ims_reg[it]
+
+    def analyze_stack(self, stack):
         chi2threshold = 500
         shape = (stack.height, stack.width)
-        roi_map, mask_ = self.compute_roi_map(stack)
-        if mask:
-            mask_ *= mask
+        roi_map, mask = self.compute_roi_map(stack)
         if self.dark_switch.get() == "on":
             dark = self.dark.get()
         else:
@@ -999,8 +1078,7 @@ class App(CTk.CTk):
         elif self.method_dropdown.get() in ["4POLAR 2D", "4POLAR 3D"]:
             field[:, :, [2, 3]] = field[:, :, [3, 2]]
         bin_shape = [self.bin[_].get() for _ in range(2)]
-        if any(bin_shape):
-            bin_shape[bin_shape == ""] = 1
+        if sum(bin_shape) != 2:
             bin = np.ones(int(_) for _ in bin_shape)
             field = convolve2d(field, bin, mode="same") / (bin_shape[0] * bin_shape[1])
         if self.method_dropdown.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
@@ -1035,7 +1113,7 @@ class App(CTk.CTk):
         rho_.name, rho_.latex = "Rho", "$\rho$"
         rho_.display, rho_.min, rho_.max = self.get_variable(0)
         rho_.colormap = hsv
-        ind = (roi_map > 0) * (mask_ != 0)
+        ind = (roi_map > 0) * (mask != 0)
         if self.method_dropdown.get() == "1PF":
             ind *= (np.abs(a2) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho = np.empty(shape)
@@ -1119,7 +1197,7 @@ class Variable():
     def __init__(self, stack):
         self.name = ""
         self.latex = ""
-        self.value = np.empty(stack.roi.shape)
+        self.value = np.empty((stack.height, stack.width))
         self.value[:] = np.nan
         self.display = []
         self.min = []
