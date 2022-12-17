@@ -93,19 +93,19 @@ class App(CTk.CTk):
             self.tabview.add(tab)
 
 ## LEFT FRAME
-        logo = self.button(self.left_frame, text="POLARIMETRY \n ANALYSIS", image=self.icons['blur_circular'], command=self.on_click_tab)
+        logo = self.button(self.left_frame, text="POLARIMETRY \n ANALYSIS", image=self.icons["blur_circular"], command=self.on_click_tab)
         logo.configure(hover=False, fg_color="transparent", anchor="e")
         logo.grid(row=0, column=0, pady=30, padx=17)
-        self.button(self.left_frame, text="Download File", command=self.select_file, image=self.icons['download_file']).grid(row=2, column=0, pady=App.button_pady, padx=17)
-        self.button(self.left_frame, text="Download Folder", command=self.select_folder, image=self.icons['download_folder']).grid(row=3, column=0, pady=App.button_pady, padx=17)
-        button = self.button(self.left_frame, text="Add ROI", image=self.icons['roi'], command=self.add_roi_callback)
+        self.button(self.left_frame, text="Download File", command=self.select_file, image=self.icons["download_file"]).grid(row=2, column=0, pady=App.button_pady, padx=17)
+        self.button(self.left_frame, text="Download Folder", command=self.select_folder, image=self.icons["download_folder"]).grid(row=3, column=0, pady=App.button_pady, padx=17)
+        button = self.button(self.left_frame, text="Add ROI", image=self.icons["roi"], command=self.add_roi_callback)
         ToolTip.createToolTip(button, "Add a region of interest")
         button.grid(row=5, column=0, pady=App.button_pady, padx=17)
-        self.analysis_button = self.button(self.left_frame, text="Analysis", command=self.analysis_callback, image=self.icons['play'])
+        self.analysis_button = self.button(self.left_frame, text="Analysis", command=self.analysis_callback, image=self.icons["play"])
         ToolTip.createToolTip(self.analysis_button, "Polarimetry analysis")
         self.analysis_button.configure(fg_color=App.green[0], hover_color=App.green[1])
         self.analysis_button.grid(row=6, column=0, pady=App.button_pady, padx=17)
-        button = self.button(self.left_frame, text="Close figures", command=self.close_callback, image=self.icons['close'])
+        button = self.button(self.left_frame, text="Close figures", command=self.close_callback, image=self.icons["close"])
         button.configure(fg_color=App.red[0], hover_color=App.red[1])
         button.grid(row=7, column=0, pady=App.button_pady, padx=17)
         self.method_dropdown = self.dropdown(self.left_frame, values=["1PF", "CARS", "SRS", "SHG", "2PF", "4POLAR 2D", "4POLAR 3D"], image=self.icons["microscope"], row=1, column=0, command=self.method_dropdown_callback)
@@ -166,9 +166,9 @@ class App(CTk.CTk):
         button = self.button(banner, image=self.icons["palette"], command=self.change_colormap)
         #ToolTip.createToolTip(button, " Change the colormap used for thresholding ('hot' or 'gray')")
         button.grid(row=3, column=0, padx=20, pady=20)
-        button = self.button(banner, image=self.icons["photo"], command=self.no_background)
+        self.no_background_button = self.button(banner, image=self.icons["photo_fill"], command=self.no_background)
         #ToolTip.createToolTip(button, " Change background to enhance visibility")
-        button.grid(row=4, column=0, padx=20, pady=20)
+        self.no_background_button.grid(row=4, column=0, padx=20, pady=20)
         button = self.button(banner, image=self.icons["format_list"], command=self.change_list_button_callback)
         #ToolTip.createToolTip(button, "Erase selected ROIs and reload image")
         button.grid(row=5, column=0, padx=20, pady=20)
@@ -278,7 +278,7 @@ class App(CTk.CTk):
         self.noise = [tk.DoubleVar(), tk.IntVar(), tk.IntVar(), tk.DoubleVar()]
         vals = [1, 3, 3, 0]
         for val, _ in zip(vals, self.noise):
-            _.set(vals)
+            _.set(val)
         rows = [1, 2, 3, 5]
         entries = [self.entry(adv["Remove background"], text="\n" + label + "\n", textvariable=self.noise[it], row=rows[it], column=0) for it, label in enumerate(labels)]
         entries[3].configure(state="disabled")
@@ -342,7 +342,7 @@ class App(CTk.CTk):
     def initialize_noise(self):
         vals = [1, 3, 3, 0]
         for val, _ in zip(vals, self.noise):
-            _.set(vals)
+            _.set(val)
 
     def initialize_data(self):
         self.initialize_slider()
@@ -475,7 +475,7 @@ class App(CTk.CTk):
 
     def change_list_button_callback(self):
         if hasattr(self, 'stack'):
-            if hasattr(self.stack, "rois"):
+            if len(self.stack.rois):
                 window = CTk.CTkToplevel(self)
                 window.attributes('-topmost', 'true')
                 window.title('Polarimetry Analysis')
@@ -544,11 +544,13 @@ class App(CTk.CTk):
             self.represent_thrsh(self.stack, drawnow=True)
 
     def no_background(self):
-        if self.thrsh_axis_facecolor == "black":
-            self.thrsh_axis_facecolor = App.gray[1]
+        if self.thrsh_fig.patch.get_facecolor() == mpl.colors.to_rgba("k", 1):
+            self.thrsh_fig.patch.set_facecolor(App.gray[1])
+            self.no_background_button.configure(image=self.icons["photo_fill"])
         else:
-            self.thrsh_axis_facecolor = "black"
-        self.thrsh_axis.set_facecolor(self.thrsh_axis_facecolor)
+            self.thrsh_fig.patch.set_facecolor("k")
+            self.no_background_button.configure(image=self.icons["photo"])
+        self.thrsh_canvas.draw()
         if hasattr(self, 'stack'):
             self.represent_thrsh(self.stack)
 
