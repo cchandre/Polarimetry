@@ -634,7 +634,7 @@ class App(CTk.CTk):
                 x2 = round(x) + self.noise[1].get()//2
                 y1 = round(y) - self.noise[2].get()//2
                 y2 = round(y) + self.noise[2].get()//2
-                self.noise[3].set(np.mean(self.stack.itot[y1::y2, x1::x2]) / self.stack.nangle * self.noise[0].get())
+                self.noise[3].set(np.mean(self.stack.itot[y1:y2, x1:x2]) / self.stack.nangle * self.noise[0].get())
                 self.fluo_canvas.mpl_disconnect(self.__cid1)
                 self.fluo_canvas.mpl_disconnect(self.__cid2)
                 for line in hlines:
@@ -727,6 +727,86 @@ class App(CTk.CTk):
         else:
             self.polar_dropdown.configure(state="disabled")
 
+    def perform_registration(self, window):
+        self.npix = 5
+        filename = fd.askopenfilename(title="Select a beads file", initialdir="/", filetypes=[("Tiff files", "*.tiff"), ("Tiff files", "*.tif")])
+        beadstack = self.open_file(filename)
+        dark = self.compute_dark(beadstack);
+        itot = np.sum((beadstack.values - dark) * (beadstack.values >= dark), 3)
+        whitelight = self.open_file(beadstack.folder + "/" + "Whitelight.tif")
+        whitelight = whitelight / np.amax(whitelight) * 255
+        ret, thrsh = cv2.threshold(whitelight, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        contours, hierarchy = cv2.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+        lengths = [len(contour) for contour in contours]
+        del contours[lengths <= 200]
+        xpos_ = np.zeros((2, 4))
+        ypos_ = np.zeros((2, 4))
+        for _, contour in enumerate(contours):
+            xpos_[:, _] = [np.amin(contour[:, 1]), np.amax(contour[:, 1])]
+            ypos_[:, _] = [np.amin(contour[:, 1]), np.amax(contour[:, 1])]
+        dx = np.amax(xpos_[1, :] - xpos_[0, :])
+        dy = np.amax(ypos_[1, :] - ypos_[0, :])
+        ind = np.arange(4)
+        Iul = np.argmin(xpos_[0, :] + 1j * ypos_[0, :])
+        Ilr = np.argmax(xpos_[0, :] + 1j * ypos_[0, :])
+        ind[ind==Iul or ind==Ilr] = [];
+        Iur = np.amin(ypos_[0, ind])
+        Ill = np.amax(ypos_[0, ind])
+        self.xpos[:, 0:3] = xpos_[:, [Iul, ind[Iur], Ilr, ind[Ill]]]
+        self.ypos[:, 0:3] = ypos_[:, [Iul, ind[Iur], Ilr, ind[Ill]]]
+        for it in range(4):
+            ddx = dx + self.npix + self.xpos[0, it] - 1
+            ddy = dy + self.npix + self.ypos[0, it] - 1
+            im = itot[self.ypos[0, it]-self.npix:ddy, self.xpos[0, it]-app.npix:ddx]
+            im = im / np.amax(im) * 255
+            ret, im = cv2.threshold(im, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            ims += [im]
+
+                            [optimizer,metric] = imregconfig('multimodal');
+                            optimizer.MaximumIterations = 1000;
+                            optimizer.InitialRadius = 1e-3;
+                            optimizer.Epsilon = 1.5e-6;
+                            optimizer.GrowthFactor = 1.0001;
+                            ims_reg = ims;
+                            tform_ = cell(2,length(ims));
+                            tform_{1,1} = rigid2d;
+                            tform_{2,1} = rigid2d;
+                            for it = 2:length(ims)
+                                tform_{1,it} = imregtform(ims{it},ims{1},'translation',optimizer,metric);
+                                ims_reg{it} = imwarp(ims{it},tform_{1,it},'OutputView',imref2d(size(ims{1})));
+                                tform_{2,it} = imregtform(ims_reg{it},ims{1},'affine',optimizer,metric);
+                                ims_reg{it} = imwarp(ims_reg{it},tform_{2,it},'OutputView',imref2d(size(ims{1})));
+                            end
+                            fig = figure('Name','Quality of calibration');
+                            titles = {'UL','UR','LR','LL'};
+                            panel = [1 2 4 3];
+                            for it = 2:length(ims)
+                                subplot(2,2,panel(it));
+                                imshowpair(ims{1},ims_reg{it},'Scaling','joint'); axis image;
+                                set(gca,'visible','off');
+                                title(titles{it})
+                            end
+                            ok_reg = uiconfirm(app.PolarimetryAnalysisUIFigure,'Are you okay with this registration?', ...
+                                'Registration','Options',{'Yes','Yes and Save','No'},'DefaultOption',2,'Icon','Icons/round_blur_circular_black_48dp.png');
+                            switch ok_reg
+                                case 'Yes'
+                                    close(fig)
+                                    app.tform = tform_;
+                                case 'Yes and Save'
+                                    close(fig)
+                                    [~,name,~] = fileparts([path_ filename]);
+                                    xpos_ = app.xpos;
+                                    ypos_ = app.ypos;
+                                    npix_ = app.npix;
+                                    save([path_ name '_reg.mat'],'tform_','xpos_','ypos_','npix_');
+                                    app.tform = tform_;
+                                case 'No'
+                                    close(fig)
+                                    app.PolarimetryMethod.Value = '1PF';
+                                    app.PolarimetryMethod.ValueChangedFcn(app,event)
+                                    app.tform = [];
+                            end
+
     def load_registration(self, window):
         filename = fd.askopenfilename(title="Select a registration file", initialdir="/", filetypes=[("MAT-files", "*.mat")])
         file = h5py.File(filename, "r")
@@ -734,6 +814,7 @@ class App(CTk.CTk):
         self.xpos = file.get("xpos_")
         self.ypos = file.get("ypos_")
         self.npix = file.get("npix_")
+        window.withdraw()
 
     def open_file(self, filename):
         dataset = Image.open(filename, mode="r")
