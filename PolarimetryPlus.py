@@ -254,12 +254,13 @@ class App(CTk.CTk):
         self.offset_angle_entry = self.entry(adv["Offset angle"], text="\n" + "Offset angle (deg)" +"\n", textvariable=self.offset_angle, row=1)
         self.offset_angle_entry.configure(state="disabled")
 
-        self.calibration_data = ["Calib_20221102", "Calib_20221011", "other"]
-        self.dropdown_calib = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=App.button_size[0], height=App.button_size[1], dynamic_resizing=False, command=self.dropdown_calib_callback)
-        self.dropdown_calib.grid(row=1, column=0, pady=20)
+        self.calib_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=App.button_size[0], height=App.button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback)
+        self.calib_dropdown.grid(row=1, column=0, pady=20)
         self.button(adv["Disk cone / Calibration data"], text="Display", image=self.icons["photo"], command=self.diskcone_display).grid(row=2, column=0, pady=20)
         self.calib_textbox = CTk.CTkTextbox(master=adv["Disk cone / Calibration data"], width=250, height=50, state="disabled")
         self.calib_textbox.grid(row=3, column=0, pady=20)
+        self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=App.button_size[0], height=App.button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled")
+        self.polar_dropdown.grid(row=4, column=0, pady=20)
 
         labels = ["Bin width", "Bin height"]
         self.bin = [tk.IntVar(), tk.IntVar()]
@@ -320,13 +321,16 @@ class App(CTk.CTk):
         self.define_variable_table("1PF")
         self.thrsh_colormap = "hot"
         self.CD = Calibration("1PF")
-        self.dropdown_calib.configure(values=self.CD.list("1PF"))
-        self.dropdown_calib.set(self.CD.list("1PF")[0])
+        self.calib_dropdown.configure(values=self.CD.list("1PF"))
+        self.calib_dropdown.set(self.CD.list("1PF")[0])
         self.calib_textbox.configure(state="normal")
         self.calib_textbox.delete("0.0", "end")
         self.calib_textbox.insert("0.0", self.CD.name)
         self.calib_textbox.configure(state="disabled")
         self.offset_angle.set(85)
+        self.dict_polar = {'UL0-UR45-LR90-LL135': [1, 2, 3, 4], 'UL0-UR45-LR135-LL90': [1, 2, 4, 3], 'UL0-UR90-LR45-LL135': [1, 3, 2, 4], 'UL0-UR90-LR135-LL45': [1, 3, 4, 2], 'UL0-UR135-LR45-LL90': [1, 4, 2, 3], 'UL0-UR135-LR90-LL45': [1, 4, 3, 2], 'UL45-UR0-LR90-LL135': [2, 1, 3, 4],  'UL45-UR0-LR135-LL90': [2, 1, 4, 3], 'UL45-UR90-LR0-LL135': [2, 3, 1, 4], 'UL45-UR90-LR135-LL0': [2, 3, 4, 1], 'UL45-UR135-LR0-LL90': [2, 4, 1, 3], 'UL45-UR135-LR90-LL0': [2, 4, 3, 1], 'UL90-UR0-LR45-LL135': [3, 1, 2, 4], 'UL90-UR0-LR135-LL45': [3, 1, 4, 2], 'UL90-UR45-LR0-LL135': [3, 2, 1, 4], 'UL90-UR45-LR135-LL0': [3, 2, 4, 1], 'UL90-UR135-LR0-LL45': [3, 4, 1, 2], 'UL90-UR135-LR45-LL0': [3, 4, 2, 1], 'UL135-UR0-LR45-LL90': [4, 1, 2, 3], 'UL135-UR0-LR90-LL45': [4, 1, 3, 2], 'UL135-UR45-LR0-LL90': [4, 2, 1, 3], 'UL135-UR45-LR90-LL0': [4, 2, 3, 1], 'UL135-UR90-LR0-LL45': [4, 3, 1, 2], 'UL135-UR90-LR45-LL0': [4, 3, 2, 1]}
+        self.polar_dropdown.configure(values=list(self.dict_polar.keys()))
+        self.polar_dropdown.set(list(self.dict_polar.keys())[0])
 
     def initialize_slider(self):
         if hasattr(self, "stack"):
@@ -365,14 +369,15 @@ class App(CTk.CTk):
             self.show_individual_fit_checkbox.configure(state=tk.NORMAL)
             self.show_individual_fit_checkbox.deselect()
 
-    def determine_order(self, polquad):
-        return {'UL0-UR45-LR90-LL135': [1, 2, 3, 4], 'UL0-UR45-LR135-LL90': [1, 2, 4, 3], 'UL0-UR90-LR45-LL135': [1, 3, 2, 4], 'UL0-UR90-LR135-LL45': [1, 3, 4, 2], 'UL0-UR135-LR45-LL90': [1, 4, 2, 3], 'UL0-UR135-LR90-LL45': [1, 4, 3, 2], 'UL45-UR0-LR90-LL135': [2, 1, 3, 4],  'UL45-UR0-LR135-LL90': [2, 1, 4, 3], 'UL45-UR90-LR0-LL135': [2, 3, 1, 4], 'UL45-UR90-LR135-LL0': [2, 3, 4, 1], 'UL45-UR135-LR0-LL90': [2, 4, 1, 3], 'UL45-UR135-LR90-LL0': [2, 4, 3, 1], 'UL90-UR0-LR45-LL135': [3, 1, 2, 4], 'UL90-UR0-LR135-LL45': [3, 1, 4, 2], 'UL90-UR45-LR0-LL135': [3, 2, 1, 4], 'UL90-UR45-LR135-LL0': [3, 2, 4, 1], 'UL90-UR135-LR0-LL45': [3, 4, 1, 2], 'UL90-UR135-LR45-LL0': [3, 4, 2, 1], 'UL135-UR0-LR45-LL90': [4, 1, 2, 3], 'UL135-UR0-LR90-LL45': [4, 1, 3, 2], 'UL135-UR45-LR0-LL90': [4, 2, 1, 3], 'UL135-UR45-LR90-LL0': [4, 2, 3, 1], 'UL135-UR90-LR0-LL45': [4, 3, 1, 2], 'UL135-UR90-LR45-LL0': [4, 3, 2, 1]}.get(polquad)
-
-    def button(self, master, text=None, image=None, command=None):
+    def button(self, master, text=None, image=None, command=None, width=None, height=None):
+        if width == None:
+            width = App.button_size[0]
+        if height == None:
+            height = App.button_size[1]
         if text is not None:
-            button = CTk.CTkButton(master=master, width=App.button_size[0], height=App.button_size[1], text=text, anchor="w", image=image, compound=tk.LEFT, command=command)
+            button = CTk.CTkButton(master=master, width=width, height=height, text=text, anchor="w", image=image, compound=tk.LEFT, command=command)
         else:
-            button = CTk.CTkButton(master=master, text=None, width=App.button_size[1], height=App.button_size[1], anchor="w", image=image, command=command)
+            button = CTk.CTkButton(master=master, text=None, width=height, height=height, anchor="w", image=image, command=command)
         return button
 
     def dropdown(self, master, values=[], image=None, row=0, column=0, command=None):
@@ -397,7 +402,7 @@ class App(CTk.CTk):
         return entry
 
     def double_entry(self, master, text=None, text_box=(None, None), row=0, column=0):
-        banner = CTk.CTkFrame(master=master, fg_color = self.left_frame.cget("fg_color"))
+        banner = CTk.CTkFrame(master=master, fg_color=self.left_frame.cget("fg_color"))
         banner.grid(row=row, column=column, sticky="e")
         CTk.CTkLabel(master=banner, text=text).grid(row=0, column=0, padx=20)
         entry = [CTk.CTkEntry(master=banner, placeholder_text=text_box[it], width=50) for it in range(2)]
@@ -406,24 +411,25 @@ class App(CTk.CTk):
             entry[it].configure(state="disabled")
         return entry
 
-    def showinfo(self, message="", image=None, question=False):
+    def showinfo(self, message="", image=None, button_labels=[]):
         info_window = CTk.CTkToplevel(self)
         info_window.attributes('-topmost', 'true')
         info_window.title('Polarimetry Analysis')
         info_window.geometry(App.geometry_info["small"])
         CTk.CTkLabel(info_window, text=message, image=image, compound="left", width=250).grid(row=0, column=0, padx=30, pady=20)
-        if not question:
-            button = self.button(info_window, text="       OK", command=lambda:info_window.withdraw())
-            button.configure(width=80, height=App.button_size[1])
-            button.grid(row=1, column=0, padx=20, pady=20)
-        else:
-            button_yes = self.button(info_window, text="       Yes", command=lambda:self.yes_event(info_window))
-            button_yes.configure(width=80, height=App.button_size[1])
-            button_yes.grid(row=1, column=0, padx=20, pady=20, sticky="w")
-            button_no = self.button(info_window, text="       No")
-            button_no.configure(width=80, height=App.button_size[1])
-            button_no.grid(row=1, column=0, padx=20, pady=20, sticky="e")
-            return info_window, button_yes, button_no
+        buttons = []
+        if button_labels:
+            if len(button_labels) >= 2:
+                banner = CTk.CTkFrame(master=info_window, fg_color="transparent")
+                banner.grid(row=1, column=0)
+                master, row_ = banner, 0
+            else:
+                master, row_ = info_window, 1
+            for it, label in enumerate(button_labels):
+                button = self.button(master, text="       " + label, width=80, height=App.button_size[1])
+                buttons += [button]
+                button.grid(row=row_, column=it, padx=20, pady=20)
+            return info_window, buttons
 
     def on_closing(self):
         self.destroy()
@@ -561,23 +567,26 @@ class App(CTk.CTk):
             self.offset_angle_entry.configure(state="disabled")
 
     def dark_switch_callback(self):
-        if self.dark_switch.get() == "on":
-            self.dark_entry.configure(state="normal")
-            self.dark.set(stack.display.format(self.stack.calculated_dark))
-        else:
-            self.dark_entry.configure(state="disabled")
-            if hasattr(self, "stack"):
-                self.dark.set(stack.display.format(self.stack.calculated_dark))
+        if hasattr(self, "stack"):
+            if self.dark_switch.get() == "on":
+                self.dark_entry.configure(state="normal")
+                self.dark.set(self.stack.display.format(self.stack.calculated_dark))
             else:
-                self.dark.set(0)
+                self.dark_entry.configure(state="disabled")
+                self.dark.set(self.stack.display.format(self.stack.calculated_dark))
+        else:
+            self.dark.set(0)
 
-    def dropdown_calib_callback(self, value):
+    def calib_dropdown_callback(self, value):
         self.CD = Calibration(self.method_dropdown.get(), label=value)
         self.offset_angle.set(self.CD.offset_default)
         self.calib_textbox.configure(state="normal")
         self.calib_textbox.delete("0.0", "end")
         self.calib_textbox.insert("0.0", self.CD.name)
         self.calib_textbox.configure(state="disabled")
+
+    def polar_dropdown_callback(self, value):
+        self.order = self.dict_polar.get(value)
 
     def diskcone_display(self):
         if self.method_dropdown.get() == "1PF" and hasattr(self, "CD"):
@@ -664,7 +673,8 @@ class App(CTk.CTk):
                     slope = 180 - np.rad2deg(np.arctan((roi.previous_point[1] - roi.start_point[1]) / (roi.previous_point[0] - roi.start_point[0])))
                     slope = np.mod(2 * slope, 360) / 2
                     dist = np.sqrt(((np.asarray(roi.previous_point) - np.asarray(roi.start_point))**2).sum())
-                    self.showinfo(message="The value of the angle is {:.2f} \u00b0 \n The value of the distance is {} px".format(slope, int(dist)), image=self.icons["square"])
+                    window, buttons = self.showinfo(message="The value of the angle is {:.2f} \u00b0 \n The value of the distance is {} px".format(slope, int(dist)), image=self.icons["square"], button_labels = ["OK"])
+                    buttons[0].configure(command=lambda:window.withdraw())
                     for line in roi.lines:
                         line.remove()
                     self.fluo_canvas.draw()
@@ -699,12 +709,19 @@ class App(CTk.CTk):
     def method_dropdown_callback(self, method):
         self.define_variable_table(method)
         self.CD = Calibration(method)
-        self.dropdown_calib.configure(values=self.CD.list(method), state="normal")
-        self.dropdown_calib.set(self.CD.list(method)[0])
+        self.calib_dropdown.configure(values=self.CD.list(method), state="normal")
+        self.calib_dropdown.set(self.CD.list(method)[0])
         self.calib_textbox.configure(state="normal")
         self.calib_textbox.delete("0.0", "end")
         self.calib_textbox.insert("0.0", self.CD.name)
         self.calib_textbox.configure(state="disabled")
+        if method in ["2PF", "SRS", "SHG", "CARS"]:
+            self.calib_dropdown.configure(state="disabled")
+        if method.startswith("4POLAR"):
+            self.polar_dropdown.configure(state="normal")
+
+        else:
+            self.polar_dropdown.configure(state="disabled")
 
     def open_file(self, filename):
         dataset = Image.open(filename, mode="r")
@@ -798,9 +815,9 @@ class App(CTk.CTk):
                 self.thrsh_canvas.mpl_disconnect(self.__cid1)
                 self.thrsh_canvas.mpl_disconnect(self.__cid2)
                 self.thrsh_canvas.draw()
-                window, button_yes, button_no = self.showinfo(message="Add ROI?", image=self.icons["roi"], question=True)
-                button_yes.configure(command=lambda:self.yes_add_roi_callback(window, roi))
-                button_no.configure(command=lambda:self.no_add_roi_callback(window, roi))
+                window, buttons = self.showinfo(message="Add ROI?", image=self.icons["roi"], button_labels=["Yes", "No"])
+                buttons[0].configure(command=lambda:self.yes_add_roi_callback(window, roi))
+                buttons[1].configure(command=lambda:self.no_add_roi_callback(window, roi))
 
     def yes_add_roi_callback(self, window, roi):
         roi_path = Path(([(roi.x[0], roi.y[0])] + list(zip(reversed(roi.x), reversed(roi.y)))))
@@ -965,8 +982,10 @@ class App(CTk.CTk):
         stack.calculated_dark = self.compute_dark(stack)
         self.calculated_dark_label.configure(text="Calculated dark value = " + stack.display.format(stack.calculated_dark))
         if self.dark_switch.get() == "on":
+            self.calculated_dark_label.configure(font=CTk.CTkFont(weight="normal"))
             dark = self.dark.get()
         else:
+            self.calculated_dark_label.configure(font=CTk.CTkFont(weight="bold"))
             dark = stack.calculated_dark
         sumcor = np.sum((stack.values - dark) * (stack.values >= dark), axis=2)
         bin_shape = [self.bin[_].get() for _ in range(2)]
