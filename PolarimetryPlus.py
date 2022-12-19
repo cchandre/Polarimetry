@@ -335,8 +335,8 @@ class App(CTk.CTk):
 
     def initialize_slider(self):
         if hasattr(self, "stack"):
-            self.stack_slider.configure(to=stack.nangle, number_of_steps=stack.nangle)
-            self.ilow.set(stack.display.format(np.amin(stack.itot)))
+            self.stack_slider.configure(to=self.stack.nangle, number_of_steps=self.stack.nangle)
+            self.ilow.set(self.stack.display.format(np.amin(self.stack.itot)))
         else:
             self.ilow.set("0")
         self.contrast_fluo_slider.set(0.5)
@@ -731,12 +731,12 @@ class App(CTk.CTk):
         self.npix = 5
         filename = fd.askopenfilename(title="Select a beads file", initialdir="/", filetypes=[("Tiff files", "*.tiff"), ("Tiff files", "*.tif")])
         beadstack = self.open_file(filename)
-        dark = self.compute_dark(beadstack);
+        dark = self.compute_dark(beadstack)
         itot = np.sum((beadstack.values - dark) * (beadstack.values >= dark), 3)
         whitelight = self.open_file(beadstack.folder + "/" + "Whitelight.tif")
         whitelight = whitelight / np.amax(whitelight) * 255
-        ret, thrsh = cv2.threshold(whitelight, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        contours, hierarchy = cv2.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+        ret, thresh = cv2.threshold(whitelight, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         lengths = [len(contour) for contour in contours]
         del contours[lengths <= 200]
         xpos_ = np.zeros((2, 4))
@@ -747,73 +747,92 @@ class App(CTk.CTk):
         dx = np.amax(xpos_[1, :] - xpos_[0, :])
         dy = np.amax(ypos_[1, :] - ypos_[0, :])
         ind = np.arange(4)
-        Iul = np.argmin(xpos_[0, :] + 1j * ypos_[0, :])
-        Ilr = np.argmax(xpos_[0, :] + 1j * ypos_[0, :])
-        ind[ind==Iul or ind==Ilr] = [];
-        Iur = np.amin(ypos_[0, ind])
-        Ill = np.amax(ypos_[0, ind])
+        Iul = np.argmin(np.abs(xpos_[0, :] + 1j * ypos_[0, :]))
+        Ilr = np.argmax(np.abs(xpos_[0, :] + 1j * ypos_[0, :]))
+        ind = np.delete(ind, [Iul, Ilr])
+        Iur = np.argmin(ypos_[0, ind])
+        Ill = np.argmax(ypos_[0, ind])
         self.xpos[:, 0:3] = xpos_[:, [Iul, ind[Iur], Ilr, ind[Ill]]]
         self.ypos[:, 0:3] = ypos_[:, [Iul, ind[Iur], Ilr, ind[Ill]]]
         for it in range(4):
             ddx = dx + self.npix + self.xpos[0, it] - 1
             ddy = dy + self.npix + self.ypos[0, it] - 1
-            im = itot[self.ypos[0, it]-self.npix:ddy, self.xpos[0, it]-app.npix:ddx]
+            im = itot[self.ypos[0, it]-self.npix:ddy, self.xpos[0, it]-self.npix:ddx]
             im = im / np.amax(im) * 255
             ret, im = cv2.threshold(im, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
             ims += [im]
+        ims_reg = ims
+        orb_detector = cv2.ORB_create(5000)
+        matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        kp0, d0 = orb_detector.detectAndCompute(ims[0], None)
+        for it in range(1, 4):
+            kp, d = orb_detector.detectAndCompute(ims[it], None)
+            matches = matcher.match(d0, d)
+            matches.sort(key=lambda x: x.distance)
+            matches = matches[:int(len(matches)*0.9)]
+            no_of_matches = len(matches)
+            p0 = np.zeros((no_of_matches, 2))
+            p = np.zeros((no_of_matches, 2))
+            for i in range(len(matches)):
+                p0[i, :] = kp0[matches[i].queryIdx].pt
+                p[i, :] = kp[matches[i].trainIdx].pt
+            self.tform[it], mask = cv2.findHomography(p0, p, cv2.RANSAC)
+            ims_reg[it] = cv2.warpPerspective(ims[0], self.tform[it], ims[it].shape)
+        
+        #[optimizer,metric] = imregconfig('multimodal')
+        #optimizer.MaximumIterations = 1000
+        #optimizer.InitialRadius = 1e-3
+        #optimizer.Epsilon = 1.5e-6
+        #optimizer.GrowthFactor = 1.0001
+        #ims_reg = ims
+        #self.tform = cell(2,length(ims))
+        #self.tform{1,1} = rigid2d
+        #self.tform{2,1} = rigid2d
+        #for it = 2:length(ims):
+        #    self.tform{1,it} = imregtform(ims{it},ims{1},'translation',optimizer,metric)
+        #    ims_reg{it} = imwarp(ims{it},self.tform{1,it},'OutputView',imref2d(size(ims{1})))
+        #    self.tform{2,it} = imregtform(ims_reg{it},ims{1},'affine',optimizer,metric)
+        #    ims_reg{it} = imwarp(ims_reg{it},self.tform{2,it},'OutputView',imref2d(size(ims{1})))
+        fig = plt.figure(title="Quality of calibration")
+        titles = ["UL", "UR", "LR", "LL"]
+        panel = [1, 2, 4, 3]
+        for it = 2:length(ims):
+            subplot(2,2,panel(it))
+            imshowpair(ims{1},ims_reg{it},'Scaling','joint')
+            axis image
+            set(gca,'visible','off')
+            title(titles{it})
+        window, buttons = self.showinfo(message="Are you okay with this registration?", button_labels=["Yes", "Yes and Save", "No"], image=self.icons["blur_circular"])
+        buttons[0].configure(command=lambda:self.yes_registration_callback(window, fig))
+        buttons[1].configure(command=lambda:self.yes_save_registration_callback(window, fig))
+        buttons[2].configure(command=lambda:self.no_registration_callback(window, fig))
 
-                            [optimizer,metric] = imregconfig('multimodal');
-                            optimizer.MaximumIterations = 1000;
-                            optimizer.InitialRadius = 1e-3;
-                            optimizer.Epsilon = 1.5e-6;
-                            optimizer.GrowthFactor = 1.0001;
-                            ims_reg = ims;
-                            tform_ = cell(2,length(ims));
-                            tform_{1,1} = rigid2d;
-                            tform_{2,1} = rigid2d;
-                            for it = 2:length(ims)
-                                tform_{1,it} = imregtform(ims{it},ims{1},'translation',optimizer,metric);
-                                ims_reg{it} = imwarp(ims{it},tform_{1,it},'OutputView',imref2d(size(ims{1})));
-                                tform_{2,it} = imregtform(ims_reg{it},ims{1},'affine',optimizer,metric);
-                                ims_reg{it} = imwarp(ims_reg{it},tform_{2,it},'OutputView',imref2d(size(ims{1})));
-                            end
-                            fig = figure('Name','Quality of calibration');
-                            titles = {'UL','UR','LR','LL'};
-                            panel = [1 2 4 3];
-                            for it = 2:length(ims)
-                                subplot(2,2,panel(it));
-                                imshowpair(ims{1},ims_reg{it},'Scaling','joint'); axis image;
-                                set(gca,'visible','off');
-                                title(titles{it})
-                            end
-                            ok_reg = uiconfirm(app.PolarimetryAnalysisUIFigure,'Are you okay with this registration?', ...
-                                'Registration','Options',{'Yes','Yes and Save','No'},'DefaultOption',2,'Icon','Icons/round_blur_circular_black_48dp.png');
-                            switch ok_reg
-                                case 'Yes'
-                                    close(fig)
-                                    app.tform = tform_;
-                                case 'Yes and Save'
-                                    close(fig)
-                                    [~,name,~] = fileparts([path_ filename]);
-                                    xpos_ = app.xpos;
-                                    ypos_ = app.ypos;
-                                    npix_ = app.npix;
-                                    save([path_ name '_reg.mat'],'tform_','xpos_','ypos_','npix_');
-                                    app.tform = tform_;
-                                case 'No'
-                                    close(fig)
-                                    app.PolarimetryMethod.Value = '1PF';
-                                    app.PolarimetryMethod.ValueChangedFcn(app,event)
-                                    app.tform = [];
-                            end
+    def yes_registration_callback(self, window, fig):
+        plt.close(fig)
+        window.withdraw()
+
+    def yes_save_registration_callback(self, window, fig, filename):
+        with h5py.File(self.stack.path + "/" + self.stack.filename +"_reg.h5", "w") as file:
+            file.create_dataset("xpos", data=self.xpos)
+            file.create_dataset("ypos", data=self.ypos)
+            file.create_dataset("npix", data=self.npix)
+            file.create_dataset("tform", data=self.tform)
+        plt.close(fig)
+        window.withdraw()
+
+    def no_registration_callback(self, window, fig):
+        self.tform = []
+        self.method_dropdown.set("1PF")
+        plt.close(fig)
+        window.withdraw()
 
     def load_registration(self, window):
-        filename = fd.askopenfilename(title="Select a registration file", initialdir="/", filetypes=[("MAT-files", "*.mat")])
-        file = h5py.File(filename, "r")
-        self.tform = file.get("tform_")
-        self.xpos = file.get("xpos_")
-        self.ypos = file.get("ypos_")
-        self.npix = file.get("npix_")
+        filename = fd.askopenfilename(title="Select a registration file", initialdir="/", filetypes=[("HDF5-files", "*.h5")])
+        with h5py.File(filename, "r") as file:
+            self.tform = file.get("tform")
+            self.xpos = file.get("xpos")
+            self.ypos = file.get("ypos")
+            self.npix = file.get("npix")
         window.withdraw()
 
     def open_file(self, filename):
@@ -1188,7 +1207,7 @@ class App(CTk.CTk):
         field = stack.values - dark - float(self.noise[3].get())
         field = field * (field >= 0)
         if self.method_dropdown.get() == "1PF":
-            field = sqrt(field)
+            field = np.sqrt(field)
         elif self.method_dropdown.get() in ["4POLAR 2D", "4POLAR 3D"]:
             field[:, :, [2, 3]] = field[:, :, [3, 2]]
         bin_shape = [self.bin[_].get() for _ in range(2)]
@@ -1197,7 +1216,7 @@ class App(CTk.CTk):
             field = convolve2d(field, bin, mode="same") / (bin_shape[0] * bin_shape[1])
         if self.method_dropdown.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
             angle3d = (np.linspace(0, 180, stack.nangle + 1) + 180 - self.offset_angle.get()).reshape(1, 1, -1)
-            e2 = exp(2j * np.deg2rad(angle3d))
+            e2 = np.exp(2j * np.deg2rad(angle3d))
             a0 = np.mean(field, axis=2)
             a2 = 2 * np.mean(field * e2, axis=2)
             field_fit = a0 + (a2 * e2.conj()).real
@@ -1217,7 +1236,7 @@ class App(CTk.CTk):
             lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
             a0 = np.mean(field, axis=2) / 4
         elif self.method_dropdown.get() == '4POLAR 2D':
-            mat = np.einsum("ij,mnj->imn", app.invKmat_2D, field)
+            mat = np.einsum("ij,mnj->imn", self.invKmat_2D, field)
             s = mat[0, :, :] + mat[1, :, :] + mat[2, :, :]
             pxy = ((mat[0, :, :] - mat[1, :, :]) / s).reshape(shape)
             puv = (2 * mat[3, :, :] / s).reshape(shape)
@@ -1226,15 +1245,15 @@ class App(CTk.CTk):
         rho_ = Variable(stack)
         rho_.name, rho_.latex = "Rho", "$\rho$"
         rho_.display, rho_.min, rho_.max = self.get_variable(0)
-        rho_.colormap = hsv
+        rho_.colormap = "hsv"
         ind = (roi_map > 0) * (mask != 0)
         if self.method_dropdown.get() == "1PF":
             ind *= (np.abs(a2) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho = np.empty(shape)
-            rho[ind] = app.CD.Rho[np.round_((a2.real[ind] + 1) * self.CD.h), np.round_((a2.imag[ind] + 1) * self.CD.h)] + 90
+            rho[ind] = self.CD.Rho[np.round_((a2.real[ind] + 1) * self.CD.h), np.round_((a2.imag[ind] + 1) * self.CD.h)] + 90
             rho[np.logical_not(ind)] = np.nan
             psi = np.empty(shape)
-            psi[ind] = app.CD.Psi[np.round_((a2.real[ind] + 1) * self.CD.h), np.round_((a2.imag[ind] + 1) * self.CD.h)]
+            psi[ind] = self.CD.Psi[np.round_((a2.real[ind] + 1) * self.CD.h), np.round_((a2.imag[ind] + 1) * self.CD.h)]
             psi[np.logical_not(ind)] = np.nan
             ind *= (rho == np.nan) * (psi == np.nan)
             rho_.value[ind] = np.mod(2 * (180 - rho[ind] + float(self.rotation[0].get())), 360) / 2
@@ -1242,7 +1261,7 @@ class App(CTk.CTk):
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.value[ind] = psi[ind]
             psi_.display, psi_.min, psi_.max = self.get_variable(1)
-            psi_.colormap = jet
+            psi_.colormap = "jet"
         elif self.method_dropdown.get() in ["CARS", "SRS", "2PF"]:
             ind *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho_.value[ind] = np.rad2deg(np.angle(a2[ind])) / 2
@@ -1256,7 +1275,7 @@ class App(CTk.CTk):
             s4_.name, s4_.latex = "S4", "$S_4$"
             s4_.value[ind] = 6 * np.abs(a4[ind]) * np.cos(4 * (0.25 * np.angle(a4[ind]) - np.deg2rad(rho_.value[ind])))
             s4_.display, s4_.min, s4_.max = self.get_variable(2)
-            s4_.colormap = jet
+            s4_.colormap = "jet"
         elif self.method_dropdown.get() == 'SHG':
             ind *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho_.value[ind] = np.rad2deg(np.angle(a2[ind])) / 2
@@ -1265,7 +1284,7 @@ class App(CTk.CTk):
             s_shg_.name, s_shg_.latex = "S_SHG", "$S_\mathrm{SHG}$"
             s_shg_.value[ind] = -0.5 * (np.abs(a4[ind]) - np.abs(a2[ind])) / (np.abs(a4[ind]) + np.abs(a2[ind])) - 0.65
             s_shg_.display, s_shg_.min, s_shg_.max = self.get_variable(1)
-            s_shg_.colormap = jet
+            s_shg_.colormap = "jet"
         elif self.method_dropdown.get() == "4POLAR 3D":
             ind *= (lam < 1/3) * (lam > 0) * (pzz > lam)
             rho_.value[ind] = 0.5 * np.rad2deg(np.atan2(puv[ind], pxy[ind]))
@@ -1279,7 +1298,7 @@ class App(CTk.CTk):
             eta_.name, eta_.latex = "Eta", "$\eta$"
             eta_.value[ind] = np.rad2deg(np.acos(np.sqrt((pzz[ind] - lam[ind]) / (1 - 3 * lam[ind]))))
             eta_.display, eta_.min, eta_.max = self.get_variable(2)
-            eta_.colormap = parula
+            eta_.colormap = "parula"
         elif self.method_dropdown.get() == "4POLAR 2D":
             ind *= (lam < 1/3) * (lam > 0)
             rho_.value[ind] = 0.5 * np.rad2deg(np.atan2(puv[ind], pxy[ind]))
@@ -1288,7 +1307,7 @@ class App(CTk.CTk):
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.value[ind] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[ind])) / 2))
             psi_.display, psi_.min, psi_.max = self.get_variable(2)
-            psi_.colormap = jet
+            psi_.colormap = "jet"
         a0[np.logical_not(ind)] = np.nan
         X[np.logical_not(ind)] = np.nan
         Y[np.logical_not(ind)] = np.nan
