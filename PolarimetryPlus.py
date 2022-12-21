@@ -18,6 +18,7 @@ import imutils
 from matplotlib.figure import Figure
 from matplotlib.path import Path
 from matplotlib.patches import PathPatch
+from matplotlib.collections import PatchCollection
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from skimage import exposure
 from scipy import ndimage
@@ -216,10 +217,11 @@ class App(CTk.CTk):
         self.add_axes_checkbox.grid(row=1, column=0, padx=20)
         CTk.CTkLabel(master=plot_options, text="Number of pixels separating sticks").grid(row=2, column=0, padx=20, pady=20)
         labels = ["horizontal", "vertical"]
-        self.pixelsperstick_spinboxes = [ttk.Spinbox(master=plot_options, from_=0, to=10, width=2, foreground=App.gray[1], background=App.gray[1]) for it in range(2)]
+        self.pixelsperstick = [tk.StringVar(), tk.StringVar()]
+        spinboxes = [ttk.Spinbox(master=plot_options, from_=0, to=10, textvariable=self.pixelsperstick[it], width=2, foreground=App.gray[1], background=App.gray[1]) for it in range(2)]
         for it in range(2):
-            self.pixelsperstick_spinboxes[it].set(1)
-            self.pixelsperstick_spinboxes[it].grid(row=it+3, column=0, padx=20, pady=10)
+            self.pixelsperstick[it].set(1)
+            spinboxes[it].grid(row=it+3, column=0, padx=20, pady=10)
         self.show_individual_fit_checkbox = self.checkbox(self.tabview.tab("Options"), text="Show individual fit")
         self.show_individual_fit_checkbox.grid(row=3, column=0, pady=20)
 
@@ -841,7 +843,7 @@ class App(CTk.CTk):
                 dataset.seek(_)
                 stack_vals[:, :, _] = np.array(dataset)
             dict = {"values": stack_vals, "height": h, "width": w, "nangle": dataset.n_frames, "mode": dataset.mode, "display": "{:.2f}" if dataset.mode == "I" else "{:.0f}"}
-            stack = Stack(filename)
+            stack = Stack(os.path.basename(filename).split('.')[0])
             Y, X = np.mgrid[0:h, 0:w]
             stack.points = np.vstack((X.flatten(), Y.flatten())).T
             for key in dict:
@@ -1126,6 +1128,7 @@ class App(CTk.CTk):
         IndI, IndJ = np.where(mImCG == np.amin(mImCG))
         cell = ImCG[IndI, IndJ, :, :, :]
         dark = np.mean(cell[cell != 0])
+        self.dark.set(dark)
         return dark
 
     def circularmean(self, rho):
@@ -1139,16 +1142,17 @@ class App(CTk.CTk):
     def plot_histo(self, data, stack, roi_map, roi=[]):
         if data.display and self.show_table[2].get():
             suffix = "for ROI " + str(roi) if roi else ""
-            fig, ax = plt.figure(figsize=App.figsize)
+            fig = plt.figure(figsize=App.figsize)
             fig.canvas.manager.set_window_title(data.name + "histogram" + suffix)
             fig.patch.set_facecolor(App.gray[0])
             mask = (roi_map == roi) if roi else (roi_map == 1)
             data_vals = data.values(mask * (~np.isnan(data.values)))
+            ax = plt.gca()
             if data.type_histo == "normal":
                 bins = np.linspace(np.amin(data), np.amax(data), np.amax(data)/60)
                 n, bins, patches = ax.hist(data.values, bins)
                 bin_centers = (bins[:-1] + bins[1:]) / 2
-                norm = mpl.colors.Normalize(data.min, data.max)
+                norm = plt.Normalize(data.min, data.max)
                 for bin, patch in zip(bin_centers, patches):
                     patch.set_facecolor(norm[bin])
                 ax.set_xlim(np.amin(data), np.amax(data))
@@ -1164,7 +1168,7 @@ class App(CTk.CTk):
                 print("in progress...")
             suffix = "_perROI_" + str(roi) if roi else ""
             filename = self.stack.folder + "/n" + self.stack.name + "_Histo" + data.name + suffix
-            if self.extension_table[0]:
+            if self.extension_table[0].get():
                 print("To be implemented... Stay tuned!")
             if self.save_table[2].get() and self.extension_table[1].get():
                 plt.savefig(filename + ".tif")
@@ -1179,9 +1183,10 @@ class App(CTk.CTk):
 
     def plot_composite(self, data, stack):
         if data.display and self.show_table[0].get():
-            fig, ax = plt.figure(figsize=App.figsize)
+            fig = plt.figure(figsize=App.figsize)
             fig.canvas.manager.set_window_title(data.name + " Composite")
             fig.patch.set_facecolor(App.gray[0])
+            ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
             self.add_fluo(stack, ax)
             im = data.values
@@ -1190,11 +1195,11 @@ class App(CTk.CTk):
                     im = np.mod(2 * (im + int(self.rotation[1].get())), 360) / 2
                 im = imutils.imrotate(im, int(self.rotation[1].get()), interpolation='nearest')
                 im[im == 0] = np.nan
-            h2 = ax.imshow(im, vmin=data.min, vmax=data.max, cmap=data.colormap, alpha=np.isfinite(im)) 
+            h2 = ax.imshow(im, vmin=data.min, vmax=data.max, cmap=data.colormap) 
             plt.colorbar(h2)
             ax.set_title(stack.name)
             suffix = "_" + data.name + "Composite"
-            if self.extension_table[0]:
+            if self.extension_table[0].get():
                 print("To be implemented... Stay tuned!")
             if self.save_table[0].get() and self.extension_table[1].get():
                 plt.savefig(stack.folder + "/n" + stack.name + suffix + ".tif")  
@@ -1202,9 +1207,10 @@ class App(CTk.CTk):
     def plot_sticks(self, data, stack, rho):
         L, W = 6, 0.2
         if data.display and self.show_table[1].get():
-            fig, ax = plt.figure(figsize=App.figsize)
+            fig = plt.figure(figsize=App.figsize)
             fig.canvas.manager.set_window_title(data.name + " Sticks")
             fig.patch.set_facecolor(App.gray[0])
+            ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
             self.add_fluo(stack, ax)
             im = data.values
@@ -1213,9 +1219,9 @@ class App(CTk.CTk):
                     im = np.mod(2 * (im + int(self.rotation[1].get())), 360) / 2
                 im = imutils.imrotate(im, int(self.rotation[1].get()), interpolation='nearest')
                 im[im == 0] = np.nan
-            rho_ = rho[::self.pixelsperstick_spinboxes[0].get(), ::self.pixelsperstick_spinboxes[1].get()]
-            data_ = data.values[::self.pixelsperstick_spinboxes[0].get(), ::self.pixelsperstick_spinboxes[1].get()]
-            Y, X = np.mgrid[:stack.height+self.bin[1]-1:self.pixelsperstick_spinboxes[1].get(), :stack.width+self.bin[0]-1:self.pixelsperstick_spinboxes[0].get()]
+            rho_ = rho.values[::int(self.pixelsperstick[0].get()), ::int(self.pixelsperstick[1].get())]
+            data_ = data.values[::int(self.pixelsperstick[0].get()), ::int(self.pixelsperstick[1].get())]
+            Y, X = np.mgrid[:stack.height+self.bin[1].get()-1:int(self.pixelsperstick[1].get()), :stack.width+self.bin[0].get()-1:int(self.pixelsperstick[0].get())]
             X = X[np.isfinite(rho_)]
             Y = Y[np.isfinite(rho_)]
             data_ = data_[np.isfinite(rho_)]
@@ -1224,16 +1230,18 @@ class App(CTk.CTk):
                 data_color = np.mod(2 * (data_ + int(self.rotation[1].get())), 360) / 2
             else:
                 data_color = data_
-            vertex_ = (data_color * np.ones((1, 4))).T
-            rectangles = [mpl.patches.Rectangle((x - L/2, y - W/2), L, W, rotation=rho, rotation_point= (x, y), facecolor=color, edgecolor=color) for x, y, rho, color in zip(X, Y, np.deg2rad(rho_), data_color)]
-            ax.add_patch(rectangles)
+            norm = mpl.colors.Normalize(data.min, data.max)
+            cmap = mpl.colormaps[data.colormap]
+            sticks = [mpl.patches.Rectangle((x - L/2, y - W/2), L, W, angle=rho, rotation_point= (x, y), facecolor=cmap(norm(color)), edgecolor=cmap(norm(color))) for x, y, rho, color in zip(X, Y, np.deg2rad(rho_), data_color)]
+            p = PatchCollection(sticks, cmap=cmap)
+            ax.add_collection(p)
+            fig.colorbar(p, ax=ax)
             ax.set_title(stack.name)
             suffix = "_" + data.name + "Sticks"
-            if self.extension_table[0]:
+            if self.extension_table[0].get():
                 print("To be implemented... Stay tuned!")
             if self.save_table[1].get() and self.extension_table[1].get():
-                plt.savefig(stack.folder + "/n" + stack.name + suffix + ".tif")
-            
+                plt.savefig(stack.folder + "/n" + stack.name + suffix + ".tif")  
 
     def compute_roi_map(self, stack):
         shape = (stack.height, stack.width)
@@ -1277,7 +1285,6 @@ class App(CTk.CTk):
             dark = self.dark.get()
         else:
             dark = stack.calculated_dark
-        Y, X = np.float64(np.mgrid[:stack.height, :stack.width])
         field = stack.values - dark - float(self.noise[3].get())
         field = field * (field >= 0)
         if self.method.get() == "1PF":
@@ -1292,15 +1299,16 @@ class App(CTk.CTk):
             angle3d = (np.linspace(0, 180, stack.nangle, endpoint=False) + 180 - self.offset_angle.get()).reshape(1, 1, -1)
             e2 = np.exp(2j * np.deg2rad(angle3d))
             a0 = np.mean(field, axis=2)
+            a0[a0 == 0] = np.nan
             a2 = 2 * np.mean(field * e2, axis=2)
             field_fit = a0.reshape(a0.shape + (1,)) + (a2.reshape(a0.shape + (1,)) * e2.conj()).real
-            a2 = np.divide(a2, a0, where=a0!=0)
+            a2 = np.divide(a2, a0, where=np.all((a0!=0, np.isfinite(a0)), axis=0))
             if self.method.get() in ["CARS", "SRS", "SHG", "2PF"]:
                 e4 = e2**2
                 a4 = 2 * np.mean(field * e4, axis=2)
                 field_fit += (a4 * e4.conj()).real
-                a4 = np.divide(a4, a0, where=a0!=0)
-            chi2 = np.mean(np.divide((field - field_fit)**2, field_fit, where=field_fit!=0), axis=2)
+                a4 = np.divide(a4, a0, where=np.all((a0!=0, np.isfinite(a0)), axis=0))
+            chi2 = np.mean(np.divide((field - field_fit)**2, field_fit, where=np.all((field_fit!=0, np.isfinite(field_fit)), axis=0)), axis=2)
         elif self.method.get() == "4POLAR 3D":
             mat = np.einsum("ij,mnj->imn", app.invKmat_3D, field)
             s = mat[0, :, :] + mat[1, :, :] + mat[2, :, :]
@@ -1325,10 +1333,10 @@ class App(CTk.CTk):
         mask = (roi_map > 0) * (mask != 0)
         if self.method.get() == "1PF":
             mask *= (np.abs(a2) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
-            ixgrid = np.ix_(X[mask].flatten(), Y[mask].flatten())
+            ixgrid = np.where(mask)
             a2_vals = np.moveaxis(np.asarray([a2.real[mask].flatten(), a2.imag[mask].flatten()]), 0, -1)
-            rho = interpn(self.CD.xy, self.CD.Rho, a2_vals) + 90
-            psi = interpn(self.CD.xy, self.CD.Psi, a2_vals)
+            rho, psi = np.moveaxis(interpn(self.CD.xy, self.CD.RhoPsi, a2_vals), 0, 1)
+            rho += 90
             rho_.values = np.nan * np.ones(a0.shape)
             rho_.values[ixgrid] = np.mod(2 * (180 - rho + float(self.rotation[0].get())), 360) / 2
             psi_ = Variable(stack)
@@ -1338,7 +1346,7 @@ class App(CTk.CTk):
             psi_.display, psi_.min, psi_.max = self.get_variable(1)
             psi_.colormap = "jet"
             mask *= np.isfinite(rho_.values) * np.isfinite(psi_.values)
-            vars_ = [rho_, psi_]
+            vars = [rho_, psi_]
         elif self.method.get() in ["CARS", "SRS", "2PF"]:
             mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho_.value[mask] = np.rad2deg(np.angle(a2[mask])) / 2
@@ -1353,7 +1361,7 @@ class App(CTk.CTk):
             s4_.value[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.value[mask])))
             s4_.display, s4_.min, s4_.max = self.get_variable(2)
             s4_.colormap = "jet"
-            vars_ = [rho_, s2_, s4_]
+            vars = [rho_, s2_, s4_]
         elif self.method.get() == 'SHG':
             mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho_.value[mask] = np.rad2deg(np.angle(a2[mask])) / 2
@@ -1363,7 +1371,7 @@ class App(CTk.CTk):
             s_shg_.value[mask] = -0.5 * (np.abs(a4[mask]) - np.abs(a2[mask])) / (np.abs(a4[mask]) + np.abs(a2[mask])) - 0.65
             s_shg_.display, s_shg_.min, s_shg_.max = self.get_variable(1)
             s_shg_.colormap = "jet"
-            vars_ = [rho_, s_shg_]
+            vars = [rho_, s_shg_]
         elif self.method.get() == "4POLAR 3D":
             mask *= (lam < 1/3) * (lam > 0) * (pzz > lam)
             rho_.value[mask] = 0.5 * np.rad2deg(np.atan2(puv[mask], pxy[mask]))
@@ -1391,6 +1399,9 @@ class App(CTk.CTk):
             psi_.colormap = "jet"
             vars = [rho_, psi_]
         a0[np.logical_not(mask)] = np.nan
+        X, Y = np.meshgrid(np.arange(stack.width), np.arange(stack.height))
+        X = X.astype(np.float64)
+        Y = Y.astype(np.float64)
         X[np.logical_not(mask)] = np.nan
         Y[np.logical_not(mask)] = np.nan
         if self.method.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
@@ -1401,13 +1412,15 @@ class App(CTk.CTk):
             self.plot_sticks(var, stack, rho_)
             if int_roi >= 2:
                 for roi in np.arange(1, int_roi + 1):
-                    self.plot_histos(var, stack, roi_map, roi=roi)
+                    self.plot_histo(var, stack, roi_map, roi=roi)
             else:
-                self.plot_histos(rho_, stack, roi_map, roi=[])
+                self.plot_histo(var, stack, roi_map, roi=[])
+        plt.show()
 
 class Stack():
     def __init__(self, filename):
-        self.filename = pathlib.Path(filename).stem
+        self.filename = filename
+        self.name = pathlib.Path(filename).stem
         self.folder = pathlib.Path(filename).parent
         self.values = []
         self.height, self.width, self.nangle = 0, 0, 0
@@ -1470,8 +1483,7 @@ class Calibration():
                 vars = (str(file.stem), 0)
             disk = scipy.io.loadmat(folder + "/" + vars[0] + ".mat")
             if method == "1PF" and vars[0].startswith("Disk"):
-                self.Rho = np.array(disk["RoTest"], dtype=np.float64)
-                self.Psi = np.array(disk["PsiTest"], dtype=np.float64)
+                self.RhoPsi = np.moveaxis(np.stack((np.array(disk["RoTest"], dtype=np.float64), np.array(disk["PsiTest"], dtype=np.float64))), 0, -1)
                 self.xy = 2 * (np.linspace(-1, 1, int(disk["NbMapValues"]), dtype=np.float64),)
             elif method.startswith("4POLAR") and vars[0].startswith("Calib"):
                 self.invKmat_2D = np.linalg.inv(np.array(disk["K2D"], dtype=np.float64))
