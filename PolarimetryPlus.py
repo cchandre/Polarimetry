@@ -23,6 +23,7 @@ from skimage import exposure
 from scipy import ndimage
 import cv2
 from scipy.signal import convolve2d
+from scipy.interpolate import interpn
 from apptools import NToolbar2Tk, ToolTip
 
 CTk.set_default_color_theme("polarimetry.json")
@@ -1276,7 +1277,7 @@ class App(CTk.CTk):
             dark = self.dark.get()
         else:
             dark = stack.calculated_dark
-        Y, X = np.mgrid[:stack.height, :stack.width]
+        Y, X = np.float64(np.mgrid[:stack.height, :stack.width])
         field = stack.values - dark - float(self.noise[3].get())
         field = field * (field >= 0)
         if self.method.get() == "1PF":
@@ -1293,13 +1294,13 @@ class App(CTk.CTk):
             a0 = np.mean(field, axis=2)
             a2 = 2 * np.mean(field * e2, axis=2)
             field_fit = a0.reshape(a0.shape + (1,)) + (a2.reshape(a0.shape + (1,)) * e2.conj()).real
-            a2 = a2 / a0
+            a2 = np.divide(a2, a0, where=a0!=0)
             if self.method.get() in ["CARS", "SRS", "SHG", "2PF"]:
                 e4 = e2**2
                 a4 = 2 * np.mean(field * e4, axis=2)
                 field_fit += (a4 * e4.conj()).real
-                a4 = a4 / a0
-            chi2 = np.mean((field - field_fit)**2 / field_fit, axis=2)
+                a4 = np.divide(a4, a0, where=a0!=0)
+            chi2 = np.mean(np.divide((field - field_fit)**2, field_fit, where=field_fit!=0), axis=2)
         elif self.method.get() == "4POLAR 3D":
             mat = np.einsum("ij,mnj->imn", app.invKmat_3D, field)
             s = mat[0, :, :] + mat[1, :, :] + mat[2, :, :]
@@ -1321,78 +1322,79 @@ class App(CTk.CTk):
         rho_.orientation = True
         rho_.type_histo = "polar1"
         rho_.colormap = "hsv"
-        ind = (roi_map > 0) * (mask != 0)
+        mask = (roi_map > 0) * (mask != 0)
         if self.method.get() == "1PF":
-            ind *= (np.abs(a2) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
-            Y, X = np.indices(np.where(ind))
-            rho = self.CD.Rho[np.ravel_multi_index(np.round_((a2.real[ind] + 1) * self.CD.h), np.round_((a2.imag[ind] + 1) * self.CD.h), self.CD.Rho.shape)] + 90
-            psi = self.CD.Psi[np.ravel_multi_index(np.round_((a2.real[ind] + 1) * self.CD.h), np.round_((a2.imag[ind] + 1) * self.CD.h), self.CD.Rho.shape)]
-            filter = np.isnan(rho) * np.isnan(psi)
-            ind = np.ravel_multi_index(Y[filter], X[filter], a0.shape)
+            mask *= (np.abs(a2) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
+            ixgrid = np.ix_(X[mask].flatten(), Y[mask].flatten())
+            a2_vals = np.moveaxis(np.asarray([a2.real[mask].flatten(), a2.imag[mask].flatten()]), 0, -1)
+            rho = interpn(self.CD.xy, self.CD.Rho, a2_vals) + 90
+            psi = interpn(self.CD.xy, self.CD.Psi, a2_vals)
             rho_.values = np.nan * np.ones(a0.shape)
-            rho_.value[ind] = np.mod(2 * (180 - rho[filter] + float(self.rotation[0].get())), 360) / 2
+            rho_.values[ixgrid] = np.mod(2 * (180 - rho + float(self.rotation[0].get())), 360) / 2
             psi_ = Variable(stack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
-            psi_.value[ind] = psi[filter]
+            psi_.values = np.nan * np.ones(a0.shape)
+            psi_.values[ixgrid] = psi
             psi_.display, psi_.min, psi_.max = self.get_variable(1)
             psi_.colormap = "jet"
+            mask *= np.isfinite(rho_.values) * np.isfinite(psi_.values)
             vars_ = [rho_, psi_]
         elif self.method.get() in ["CARS", "SRS", "2PF"]:
-            ind *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
-            rho_.value[ind] = np.rad2deg(np.angle(a2[ind])) / 2
-            rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation[0].get())), 360) / 2
+            mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
+            rho_.value[mask] = np.rad2deg(np.angle(a2[mask])) / 2
+            rho_.value[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
             s2_ = Variable(stack)
             s2_.name, s2_.latex = "S2", "$S_2$"
-            s2_.value[ind] = 1.5 * np.abs(a2[ind])
+            s2_.value[mask] = 1.5 * np.abs(a2[mask])
             s2_.display, s2_.min, s2_.max = self.get_variable(1)
             s2_.colormap = "jet"
             s4_ = Variable(shape)
             s4_.name, s4_.latex = "S4", "$S_4$"
-            s4_.value[ind] = 6 * np.abs(a4[ind]) * np.cos(4 * (0.25 * np.angle(a4[ind]) - np.deg2rad(rho_.value[ind])))
+            s4_.value[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.value[mask])))
             s4_.display, s4_.min, s4_.max = self.get_variable(2)
             s4_.colormap = "jet"
             vars_ = [rho_, s2_, s4_]
         elif self.method.get() == 'SHG':
-            ind *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
-            rho_.value[ind] = np.rad2deg(np.angle(a2[ind])) / 2
-            rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation[0].get())), 360) / 2
+            mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
+            rho_.value[mask] = np.rad2deg(np.angle(a2[mask])) / 2
+            rho_.value[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
             s_shg_ = Variable(stack)
             s_shg_.name, s_shg_.latex = "S_SHG", "$S_\mathrm{SHG}$"
-            s_shg_.value[ind] = -0.5 * (np.abs(a4[ind]) - np.abs(a2[ind])) / (np.abs(a4[ind]) + np.abs(a2[ind])) - 0.65
+            s_shg_.value[mask] = -0.5 * (np.abs(a4[mask]) - np.abs(a2[mask])) / (np.abs(a4[mask]) + np.abs(a2[mask])) - 0.65
             s_shg_.display, s_shg_.min, s_shg_.max = self.get_variable(1)
             s_shg_.colormap = "jet"
             vars_ = [rho_, s_shg_]
         elif self.method.get() == "4POLAR 3D":
-            ind *= (lam < 1/3) * (lam > 0) * (pzz > lam)
-            rho_.value[ind] = 0.5 * np.rad2deg(np.atan2(puv[ind], pxy[ind]))
-            rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation[0].get())), 360) / 2
+            mask *= (lam < 1/3) * (lam > 0) * (pzz > lam)
+            rho_.value[mask] = 0.5 * np.rad2deg(np.atan2(puv[mask], pxy[mask]))
+            rho_.value[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
             psi_ = Variable(stack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
-            psi_.value[ind] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[ind])) / 2))
+            psi_.value[mask] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
             psi_.display, psi_.min, psi_.max = self.get_variable(1)
             psi_.colormap = "jet"
             eta_ = Variable(shape)
             eta_.name, eta_.latex = "Eta", "$\eta$"
-            eta_.value[ind] = np.rad2deg(np.acos(np.sqrt((pzz[ind] - lam[ind]) / (1 - 3 * lam[ind]))))
+            eta_.value[mask] = np.rad2deg(np.acos(np.sqrt((pzz[mask] - lam[mask]) / (1 - 3 * lam[mask]))))
             eta_.display, eta_.min, eta_.max = self.get_variable(2)
             eta_.type_histo = "polar2"
             eta_.colormap = "parula"
             vars = [rho_, psi_, eta_]
         elif self.method.get() == "4POLAR 2D":
-            ind *= (lam < 1/3) * (lam > 0)
-            rho_.value[ind] = 0.5 * np.rad2deg(np.atan2(puv[ind], pxy[ind]))
-            rho_.value[ind] = np.mod(2 * (180 - rho_.value[ind] + float(self.rotation[0].get())), 360) / 2
+            mask *= (lam < 1/3) * (lam > 0)
+            rho_.value[mask] = 0.5 * np.rad2deg(np.atan2(puv[mask], pxy[mask]))
+            rho_.value[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
             psi_ = Variable(stack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
-            psi_.value[ind] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[ind])) / 2))
+            psi_.value[mask] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
             psi_.display, psi_.min, psi_.max = self.get_variable(2)
             psi_.colormap = "jet"
             vars = [rho_, psi_]
-        a0[np.logical_not(ind)] = np.nan
-        X[np.logical_not(ind)] = np.nan
-        Y[np.logical_not(ind)] = np.nan
+        a0[np.logical_not(mask)] = np.nan
+        X[np.logical_not(mask)] = np.nan
+        Y[np.logical_not(mask)] = np.nan
         if self.method.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
-            chi2[np.logical_not(ind)] = np.nan
+            chi2[np.logical_not(mask)] = np.nan
         int_roi = np.amax(roi_map)
         for var in vars:
             self.plot_composite(var, stack)
@@ -1470,7 +1472,7 @@ class Calibration():
             if method == "1PF" and vars[0].startswith("Disk"):
                 self.Rho = np.array(disk["RoTest"], dtype=np.float64)
                 self.Psi = np.array(disk["PsiTest"], dtype=np.float64)
-                self.h = float((disk["NbMapValues"] - 1) / 2)
+                self.xy = 2 * (np.linspace(-1, 1, int(disk["NbMapValues"]), dtype=np.float64),)
             elif method.startswith("4POLAR") and vars[0].startswith("Calib"):
                 self.invKmat_2D = np.linalg.inv(np.array(disk["K2D"], dtype=np.float64))
                 self.invKmat_3D = np.linalg.inv(np.array(disk["K3D"], dtype=np.float64))
