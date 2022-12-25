@@ -211,7 +211,7 @@ class App(CTk.CTk):
         plot_options = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
         plot_options.grid(row=2, column=0, padx=20, pady=20)
         CTk.CTkLabel(master=plot_options, text="Plot options", font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=2, padx=20, pady=(0, 20))
-        self.add_axes_checkbox = self.checkbox(plot_options, text="\n Add axes on figures\n")
+        self.add_axes_checkbox = self.checkbox(plot_options, text="\n Add axes on figures\n", command=self.add_axes_on_all_figures)
         self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=20, pady=0)
         CTk.CTkLabel(master=plot_options, text="\n Number of pixels separating sticks\n").grid(row=2, column=0, columnspan=2, padx=20, pady=0)
         labels = ["horizontal", "vertical"]
@@ -223,6 +223,7 @@ class App(CTk.CTk):
             CTk.CTkLabel(master=plot_options, text=labels[it], anchor="w").grid(row=it+3, column=1, padx=(0, 20), pady=20)
         self.show_individual_fit_checkbox = self.checkbox(self.tabview.tab("Options"), text="Show individual fit")
         self.show_individual_fit_checkbox.grid(row=3, column=0, pady=20)
+        self.button(self.tabview.tab("Options"), text="Download analysis", image=self.icons["download"], command=self.download_callback).grid(row=3, column=1, pady=20)
 
         self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab("Options"), width=300)
         self.variable_table_frame.grid(row=0, column=1, padx=(40, 20), pady=20, sticky="nw")
@@ -319,7 +320,7 @@ class App(CTk.CTk):
         textbox.insert("0.0", info)
         link = CTk.CTkLabel(self.info_window, text="For more information, visit the GitHub page", text_color="blue", font=CTk.CTkFont(underline=True), cursor="hand2")
         link.grid(row=2, column=0, padx=50, pady=10, sticky="w")
-        link.bind("<Button-1>", lambda e: webbrowser.open_new_tab(App.url_github))
+        link.bind("<Button-1>", lambda e:webbrowser.open_new_tab(App.url_github))
         ok_button = self.button(master=self.info_window, text="       OK", command=lambda:self.info_window.withdraw())
         ok_button.configure(width=80, height=App.button_size[1])
         ok_button.grid(row=7, column=0, padx=20, pady=0)
@@ -344,7 +345,7 @@ class App(CTk.CTk):
     def initialize_slider(self):
         if hasattr(self, "stack"):
             self.stack_slider.configure(to=self.stack.nangle, number_of_steps=self.stack.nangle)
-            self.ilow.set(self.stack.display.format(np.amin(self.stack.itot)))
+            self.ilow.set(self.stack.display.format(np.amin(self.datastack.itot)))
             self.contrast_fluo_slider.set(0.5)
             self.contrast_thrsh_slider.set(0.5)
             self.stack_slider.set(0)
@@ -358,10 +359,10 @@ class App(CTk.CTk):
     def initialize(self):
         self.initialize_slider()
         self.initialize_noise()
-        if hasattr(self, "stack"):
-            self.stack.rois = []
-            self.represent_fluo(self.stack)
-            self.represent_thrsh(self.stack)
+        if hasattr(self, "datastack"):
+            self.datastack.rois = []
+            self.represent_fluo(self.datastack)
+            self.represent_thrsh(self.datastack)
 
     def initialize_tables(self, mode='all'):
         for show, save in zip(self.show_table, self.save_table):
@@ -401,8 +402,8 @@ class App(CTk.CTk):
         option_menu.grid(row=0, column=1)
         return option_menu
 
-    def checkbox(self, master, text=None):
-        return CTk.CTkCheckBox(master=master, onvalue=True, offvalue=False, text=text, width=30)
+    def checkbox(self, master, text=None, command=None):
+        return CTk.CTkCheckBox(master=master, onvalue=True, offvalue=False, text=text, command=command, width=30)
 
     def entry(self, master, text=None, text_box=None, textvariable=None, row=0, column=0):
         banner = CTk.CTkFrame(master=master, fg_color=self.left_frame.cget("fg_color"))
@@ -466,34 +467,34 @@ class App(CTk.CTk):
     def contrast_thrsh_slider_callback(self, value):
         if value <= 0.001:
             self.contrast_thrsh_slider.set(0.001)
-        if hasattr(self, "stack"):
-            self.represent_thrsh(self.stack, drawnow=True)
+        if hasattr(self, "datastack"):
+            self.represent_thrsh(self.datastack)
 
     def contrast_fluo_slider_callback(self, value):
         if value <= 0.001:
             self.contrast_fluo_slider.set(0.001)
-        if hasattr(self, "stack"):
-            self.represent_fluo(self.stack)
+        if hasattr(self, "datastack"):
+            self.represent_fluo(self.datastack)
 
     def contrast_fluo_button_callback(self):
         if self.contrast_fluo_slider.get() <= 0.5:
             self.contrast_fluo_slider.set(0.5)
         else:
             self.contrast_fluo_slider.set(1)
-        if hasattr(self, "stack"):
-            self.represent_fluo(self.stack)
+        if hasattr(self, "datastack"):
+            self.represent_fluo(self.datastack)
 
     def contrast_thrsh_button_callback(self):
         if self.contrast_thrsh_slider.get() <= 0.5:
             self.contrast_thrsh_slider.set(0.5)
         else:
             self.contrast_thrsh_slider.set(1)
-        if hasattr(self, "stack"):
-            self.represent_thrsh(self.stack, drawnow=True)
+        if hasattr(self, "datastack"):
+            self.represent_thrsh(self.datastack, update=True)
 
     def change_list_button_callback(self):
-        if hasattr(self, "stack"):
-            if len(self.stack.rois):
+        if hasattr(self, "datastack"):
+            if len(self.datastack.rois):
                 window = CTk.CTkToplevel(self)
                 window.attributes('-topmost', 'true')
                 window.title('Polarimetry Analysis')
@@ -501,12 +502,23 @@ class App(CTk.CTk):
                 CTk.CTkLabel(window, text="  Select ROIs to be removed ", font=CTk.CTkFont(size=20), image=self.icons["format_list"], compound="left").grid(row=0, column=0, padx=30, pady=20)
                 variable = tk.StringVar()
                 variable.set("all")
-                values = ["all"] + [str(_ + 1) for _ in range(len(self.stack.rois))]
+                values = ["all"] + [str(_ + 1) for _ in range(len(self.datastack.rois))]
                 menu = CTk.CTkOptionMenu(master=window, values=values, variable=variable)
                 menu.grid(row=1, column=0, padx=20, pady=20)
                 ok_button = self.button(master=window, text="       OK", command=lambda:self.remove_roi(window, variable.get()))
                 ok_button.configure(width=80, height=App.button_size[1])
                 ok_button.grid(row=2, column=0, padx=20, pady=20)
+
+    def add_axes_on_all_figures(self):
+        figs = list(map(plt.figure, plt.get_fignums()))
+        for fig in figs:
+            fig.axes[0].axis(self.add_axes_checkbox.get())
+            fig.canvas.draw()
+
+    def download_callback(self):
+        filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir="/", filetypes=[("MAT-files", "*.mat")])
+        scipy.io.loadmat(filename)
+        self.plot_data(vars)
 
     def clear_patches(self, ax, fig):
         if ax.patches:
@@ -519,21 +531,21 @@ class App(CTk.CTk):
     
     def remove_roi(self, window, variable):
         if variable == "all":
-            self.stack.rois = []
+            self.datastack.rois = []
         else:
             self.clear_patches(self.fluo_axis, self.fluo_canvas)
             self.clear_patches(self.thrsh_axis, self.thrsh_canvas)
             indx = int(variable)
-            del self.stack.rois[indx - 1]
-            for roi in self.stack.rois:
+            del self.datastack.rois[indx - 1]
+            for roi in self.datastack.rois:
                 if roi["indx"] > indx:
                     roi["indx"] -= 1
-        self.represent_fluo(self.stack, drawnow=True, update=False)
-        self.represent_thrsh(self.stack, drawnow=True, update=False)
+        self.represent_fluo(self.datastack, update=False)
+        self.represent_thrsh(self.datastack, update=False)
         window.withdraw()
 
     def export_mask(self):
-        if hasattr(self, "stack"):
+        if hasattr(self, "datastack"):
             window = CTk.CTkToplevel(self)
             window.attributes('-topmost', 'true')
             window.title('Polarimetry Analysis')
@@ -542,21 +554,21 @@ class App(CTk.CTk):
             CTk.CTkLabel(window, text="  select an output variable ").grid(row=1, column=0, padx=50, pady=20)
             button = CTk.CTkSegmentedButton(master=window, values=["ROI", "Intensity", "ROI x Intensity"], width=300)
             button.grid(row=2, column=0, padx=50, pady=20)
-            ok_button = self.button(master=window, text="       OK", command=lambda:self.export_mask_callback(self.stack, button.get(), window))
+            ok_button = self.button(master=window, text="       OK", command=lambda:self.export_mask_callback(self.datastack, button.get(), window))
             ok_button.configure(width=80, height=App.button_size[1])
             ok_button.grid(row=3, column=0, padx=20, pady=0)
 
     def export_mask_callback(self, value, window):
-        if hasattr(self, "stack"):
-            roi_map, mask = self.compute_roi_map(self.stack)
+        if hasattr(self, "datastack"):
+            roi_map, mask = self.compute_roi_map(self.datastack)
             if value == "ROI":
                 array = np.int32(roi_map != 0)
             elif value == "Intensity":
-                array = np.int32(self.stack.itot >= float(self.ilow.get()))
+                array = np.int32(self.datastack.itot >= float(self.ilow.get()))
             elif value == "ROI x Intensity":
                 array = mask
             if np.any(array):
-                plt.imsave(str(self.stack.folder) + "/" + self.stack.filename + '.png', array, cmap="gray")
+                plt.imsave(self.datastack.filename + ".png", array, cmap="gray")
             window.withdraw()
 
     def change_colormap(self):
@@ -564,8 +576,8 @@ class App(CTk.CTk):
             self.thrsh_colormap = "gray"
         else:
             self.thrsh_colormap = "hot"
-        if hasattr(self, "stack"):
-            self.represent_thrsh(self.stack, drawnow=True)
+        if hasattr(self, "datastack"):
+            self.represent_thrsh(self.datastack, update=True)
 
     def no_background(self):
         if self.thrsh_fig.patch.get_facecolor() == mpl.colors.to_rgba("k", 1):
@@ -625,8 +637,8 @@ class App(CTk.CTk):
         self.variable_entries[1].configure(state="disabled")
 
     def click_background_callback(self):
-        if hasattr(self, "stack"):
-            self.tabview.set("Fluorescence")
+        self.tabview.set("Fluorescence")
+        if hasattr(self, "datastack"):
             xlim, ylim = self.fluo_axis.get_xlim(), self.fluo_axis.get_ylim()
             hlines = [plt.Line2D([xlim[0]/2, xlim[1]/2], ylim, lw=1, color="w"), plt.Line2D(xlim, [ylim[0]/2, ylim[1]/2], lw=1, color="w")]
             self.fluo_axis.add_line(hlines[0])
@@ -651,7 +663,7 @@ class App(CTk.CTk):
                 x2 = round(x) + self.noise[1].get()//2
                 y1 = round(y) - self.noise[2].get()//2
                 y2 = round(y) + self.noise[2].get()//2
-                self.noise[3].set(np.mean(self.stack.itot[y1:y2, x1:x2]) / self.stack.nangle * self.noise[0].get())
+                self.noise[3].set(np.mean(self.datastack.itot[y1:y2, x1:x2]) / self.stack.nangle * self.noise[0].get())
                 self.fluo_canvas.mpl_disconnect(self.__cid1)
                 self.fluo_canvas.mpl_disconnect(self.__cid2)
                 for line in hlines:
@@ -751,10 +763,11 @@ class App(CTk.CTk):
     def perform_registration(self, window):
         self.npix = 5
         filename = fd.askopenfilename(title="Select a beads file", initialdir="/", filetypes=[("Tiff files", "*.tiff"), ("Tiff files", "*.tif")])
-        beadstack = self.define_stack(filename)
-        dark = self.compute_dark(beadstack)
+        beadstack = self.define_data(filename, data=False)
+        self.compute_dark(beadstack)
+        dark = self.dark.get()
         itot = np.sum((beadstack.values - dark) * (beadstack.values >= dark), 3)
-        whitelight = self.define_stack(beadstack.folder + "/" + "Whitelight.tif")
+        whitelight = self.define_data(beadstack.folder + "/" + "Whitelight.tif", data=False)
         whitelight = whitelight / np.amax(whitelight) * 255
         ret, thresh = cv2.threshold(whitelight, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -842,7 +855,7 @@ class App(CTk.CTk):
             self.npix = file.get("npix")
         window.withdraw()
 
-    def define_stack(self, filename):
+    def define_data(self, filename, data=True):
         with Image.open(filename, mode="r") as dataset:
             h, w = np.shape(dataset)
             stack_vals = np.zeros((h, w, dataset.n_frames), dtype=np.float64)
@@ -850,42 +863,47 @@ class App(CTk.CTk):
                 dataset.seek(_)
                 stack_vals[:, :, _] = np.array(dataset)
             dict = {"values": stack_vals, "height": h, "width": w, "nangle": dataset.n_frames, "mode": dataset.mode, "display": "{:.2f}" if dataset.mode == "I" else "{:.0f}"}
-            stack = Stack(os.path.basename(filename).split('.')[0])
-            Y, X = np.mgrid[0:h, 0:w]
-            stack.points = np.vstack((X.flatten(), Y.flatten())).T
+            stack = Stack(filename)
             for key in dict:
                 setattr(stack, key, dict[key])
-            stack.calculated_dark = self.compute_dark(stack)
-            stack = self.define_itot(stack)
+            self.compute_dark(stack)
+            self.compute_itot(stack)
             if stack.nangle >= 2:
                 self.stack_slider.configure(to=stack.nangle)
             else:
                 self.stack_slider.configure(state="disabled")
-            self.filename_label.configure(text=os.path.basename(filename).split('.')[0])
-            self.represent_fluo(stack, drawnow=True, update=False)
-            self.represent_thrsh(stack, drawnow=True, update=False)
+            self.filename_label.configure(text=stack.name)
             self.tabview.set("Fluorescence")
+            if data:
+                datastack = DataStack(stack)
+                self.represent_fluo(datastack, update=False)
+                self.represent_thrsh(datastack, update=False)
+                return stack, datastack
             return stack
+
+    def open_file(self, filename):
+        self.stack, self.datastack = self.define_data(filename)
+        Y, X = np.mgrid[0:self.stack.height, 0:self.stack.width]
+        self.points = np.vstack((X.flatten(), Y.flatten())).T
 
     def select_file(self):
         filetypes = [("Tiff files", "*.tiff"), ("Tiff files", "*.tif")]
         filename = fd.askopenfilename(title="Select a file", initialdir="/", filetypes=filetypes)
         if filename:
-            self.stack = self.define_stack(filename)
+            self.open_file(filename)
             
-
     def select_folder(self):
         folder = fd.askdirectory(title="Select a directory", initialdir="/")
         list_file = [filename.endswith(('.tif', '.tiff')) for filename in os.listdir(folder)]
         if folder and any(list_file):
-            self.stack = self.define_stack(list_file[0])
+            self.open_file(list_file[0])
 
     def tool_dropdown_callback(self, method):
         self.advance_file = True if method.endswith("(auto)") else False
-        if hasattr(self, "stack"):
+        if hasattr(self, "datastack"):
             if method.startswith("Mask"):
-                self.ilow.set(self.stack.display.format(np.amin(self.stack.itot)))
-                self.represent_thrsh(self.stack)
+                self.ilow.set(self.stack.display.format(np.amin(self.datastack.itot)))
+                self.represent_thrsh(self.datastack)
 
     def add_roi_callback(self):
         if hasattr(self, "stack"):
@@ -937,20 +955,19 @@ class App(CTk.CTk):
                 buttons[1].configure(command=lambda:self.no_add_roi_callback(window, roi))
 
     def yes_add_roi_callback(self, window, roi):
-        #vertices = np.asarray([(roi.x[0], roi.y[0])] + list(zip(reversed(roi.x), reversed(roi.y))))
         vertices = np.asarray([roi.x, roi.y])
-        if self.stack.rois:
-            indx = self.stack.rois[-1]["indx"] + 1
+        if self.datastack.rois:
+            indx = self.datastack.rois[-1]["indx"] + 1
         else:
             indx = 1
-        self.stack.rois += [{"indx": indx, "label": (roi.x[0], roi.y[0]), "vertices": vertices, "ILow": self.ilow.get()}]
+        self.datastack.rois += [{"indx": indx, "label": (roi.x[0], roi.y[0]), "vertices": vertices, "ILow": self.ilow.get()}]
         window.withdraw()
         for line in roi.lines:
             line.remove()
         roi.lines = []
         self.thrsh_canvas.draw()
-        self.represent_fluo(self.stack)
-        self.represent_thrsh(self.stack)
+        self.represent_fluo(self.datastack)
+        self.represent_thrsh(self.datastack)
 
     def no_add_roi_callback(self, window, roi):
         window.withdraw()
@@ -962,7 +979,7 @@ class App(CTk.CTk):
     def get_mask(self):
         mask = np.ones((self.stack.height, self.stack.width))
         if self.tool.get().startswith("Mask"):
-            mask_name = self.stack.folder + "/" + self.stack.filename + ".png"
+            mask_name = self.datastack.filename + ".png"
             if os.path.isfile(mask_name):
                 im_binarized = np.asarray(plt.imread(mask_name), dtype=np.float64)
                 mask = im_binarized / np.amax(im_binarized)
@@ -973,16 +990,15 @@ class App(CTk.CTk):
             self.tabview.set("Fluorescence")
             self.analysis_button.configure(image=self.icons["pause"])
             if not self.advance_file:
-                self.analyze_stack(self.stack)
+                self.analyze_stack(self.datastack)
             else:
                 for file in os.listdir(self.stack.folder):
-                    self.stack = self.define_stack(file)
-                    self.analyze_stack(self.stack)
+                    self.open_file(file)
+                    self.analyze_stack(self.datastack)
                 window, buttons = self.showinfo(message="End of analysis", image=self.icons["check_circle"], button_labels=["OK"])
                 buttons.configure(command=lambda:window.withdraw())
                 self.initialize()
-
-            self.analysis_button.configure(image=self.icons["pause"])
+            self.analysis_button.configure(image=self.icons["play"])
 
     def close_callback(self):
         plt.close("all")
@@ -994,34 +1010,35 @@ class App(CTk.CTk):
         if self.method.get().startswith("4POLAR"):
             labels = ["T", 0, 45, 90, 135]
             self.stack_slider_label.configure(text=labels[int(value)])
-        if hasattr(self, "stack"):
-            self.represent_fluo(self.stack)
+        if hasattr(self, "datastack"):
+            self.represent_fluo(self.datastack)
 
     def ilow_slider_callback(self, value):
-        if hasattr(self, "stack"):
+        if hasattr(self, "datastack"):
             self.ilow.set(self.stack.display.format(value))
-            self.represent_thrsh(self.stack)
+            self.represent_thrsh(self.datastack)
 
     def ilow2slider_callback(self, event):
-        if event and hasattr(self, "stack"):
+        if event and hasattr(self, "datastack"):
             self.ilow_slider.set(float(self.ilow.get()))
-            self.represent_thrsh(self.stack)
+            self.represent_thrsh(self.datastack)
 
     def itot_callback(self, event):
-        if event and hasattr(self, "stack"):
-            self.stack = self.define_itot(self.stack)
-            self.represent_fluo(self.stack, update=False)
-            self.represent_thrsh(self.stack, update=False)
+        if event and hasattr(self, "datastack"):
+            self.compute_itot(self.stack)
+            self.datastack.itot = self.stack.itot
+            self.represent_fluo(self.datastack, update=False)
+            self.represent_thrsh(self.datastack, update=False)
 
     def rotation_callback(self, event):
-        if event and hasattr(self, "stack"):
-            self.represent_fluo(self.stack, update=False)
+        if event and hasattr(self, "datastack"):
+            self.represent_fluo(self.datastack, update=False)
 
     def transparency_slider_callback(self, value):
         if value <= 0.001:
             self.transparency_slider.set(0.001)
-        if hasattr(self, "stack"):
-            self.represent_thrsh(self.stack)
+        if hasattr(self, "datastack"):
+            self.represent_thrsh(self.datastack)
 
     def adjust(self, field, contrast, vmin, vmax):
         radius, amount = 1, 0.8
@@ -1031,16 +1048,13 @@ class App(CTk.CTk):
         field_im = exposure.adjust_gamma((field_im - vmin) / vmax, contrast) * vmax
         return field_im
 
-    def represent_fluo(self, stack, drawnow=False, update=True):
-        if not drawnow:
-            xlim_fluo = self.fluo_axis.get_xlim()
-            ylim_fluo = self.fluo_axis.get_ylim()
+    def represent_fluo(self, datastack, update=True):
         if self.stack_slider.get() == 0:
-            field = stack.itot
-            vmin, vmax = np.amin(stack.itot), np.amax(stack.itot)
+            field = datastack.itot
+            vmin, vmax = np.amin(datastack.itot), np.amax(datastack.itot)
         elif self.stack_slider.get() <= self.stack.nangle:
-            field = stack.values[:, :, int(self.stack_slider.get())-1]
-            vmin, vmax = np.amin(stack.values), np.amax(stack.values)
+            field = self.stack.values[:, :, int(self.stack_slider.get())-1]
+            vmin, vmax = np.amin(self.stack.values), np.amax(self.stack.values)
         field_im = self.adjust(field, self.contrast_fluo_slider.get(), vmin, vmax)
         if int(self.rotation[1].get()) != 0:
             field_im = imutils.rotate(field_im, int(self.rotation[1].get()))
@@ -1050,24 +1064,21 @@ class App(CTk.CTk):
             self.fluo_im = self.fluo_axis.imshow(field_im, cmap=mpl.colormaps["gray"], interpolation="none")
             self.fluo_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
             self.fluo_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
-        if not drawnow:
-            self.fluo_axis.set_xlim(xlim_fluo)
-            self.fluo_axis.set_ylim(ylim_fluo)
         self.fluo_im.set_clim(vmin, vmax)
         self.clear_patches(self.fluo_axis, self.fluo_fig.canvas)
-        self.add_patches(stack, self.fluo_axis, self.fluo_fig.canvas)
+        self.add_patches(datastack, self.fluo_axis, self.fluo_fig.canvas)
+        self.fluo_canvas.draw()
 
-    def represent_thrsh(self, stack, drawnow=False, update=True):
-        field = stack.itot
+    def represent_thrsh(self, datastack, update=True):
+        field = datastack.itot
         if self.tool.get().startswith("Mask"):
-            mask_name = os.path.basename(self.stack.filename) + ".png"
+            mask_name = os.path.basename(datastack.filename) + ".png"
             if os.path.isfile(mask_name):
                 im_binarized = cv2.imread(mask_name)
                 mask = np.asarray(im_binarized, dtype=np.float64)
-                mask = mask / np.amax(mask)
-                field = field * mask
-        vmin, vmax = np.amin(stack.itot), np.amax(stack.itot)
-        field_im = self.adjust(stack.itot, self.contrast_thrsh_slider.get(), vmin, vmax)
+                field *= mask / np.amax(mask)
+        vmin, vmax = np.amin(datastack.itot), np.amax(datastack.itot)
+        field_im = self.adjust(datastack.itot, self.contrast_thrsh_slider.get(), vmin, vmax)
         alphadata = np.ones(field.shape)
         thrsh = float(self.ilow.get())
         alphadata[field <= thrsh] *= self.transparency_slider.get()
@@ -1080,9 +1091,10 @@ class App(CTk.CTk):
             self.thrsh_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
         self.thrsh_im.set_clim(vmin, vmax)
         self.clear_patches(self.thrsh_axis, self.thrsh_fig.canvas)
-        self.add_patches(stack, self.thrsh_axis, self.thrsh_fig.canvas, rotation=False)
+        self.add_patches(datastack, self.thrsh_axis, self.thrsh_fig.canvas, rotation=False)
+        self.thrsh_canvas.draw()
 
-    def define_itot(self, stack):
+    def compute_itot(self, stack):
         dark = float(self.dark.get())
         sumcor = np.sum((stack.values - dark) * (stack.values >= dark), axis=2)
         bin_shape = [self.bin[_].get() for _ in range(2)]
@@ -1093,7 +1105,6 @@ class App(CTk.CTk):
         self.ilow_slider.configure(from_=np.amin(stack.itot), to=np.amax(stack.itot))
         self.ilow_slider.set(np.amin(stack.itot))
         self.ilow.set(stack.display.format(np.amin(stack.itot)))
-        return stack
 
     def compute_dark(self, stack):
         SizeCell = 20
@@ -1111,7 +1122,6 @@ class App(CTk.CTk):
         dark = np.mean(cell[cell != 0])
         self.calculated_dark_label.configure(text="Calculated dark value = " + stack.display.format(dark))
         self.dark.set(stack.display.format(dark))
-        return dark
 
     def circularmean(self, rho):
         return np.mod(np.angle(np.mean(np.exp(2j * rho), deg=True)), 360) / 2
@@ -1121,110 +1131,111 @@ class App(CTk.CTk):
         min, max = float(self.variable_min[indx].get()), float(self.variable_max[indx].get())
         return display, min, max
 
-    def plot_histo(self, data, stack, roi_map, roi=[]):
-        if data.display and (self.show_table[2].get() or self.save_table[2].get()):
+    def plot_histo(self, var, datastack, roi_map, roi=[]):
+        if var.display and (self.show_table[2].get() or self.save_table[2].get()):
             suffix = "for ROI " + str(roi) if roi else ""
             fig = plt.figure(figsize=App.figsize)
-            fig.canvas.manager.set_window_title(data.name + "histogram" + suffix)
+            fig.canvas.manager.set_window_title(var.name + "histogram" + suffix)
             fig.patch.set_facecolor(App.gray[0])
             mask = (roi_map == roi) if roi else (roi_map == 1)
-            data_vals = data.values(mask * (~np.isnan(data.values)))
+            data_vals = var.values(mask * (~np.isnan(var.values)))
             ax = plt.gca()
-            if data.type_histo == "normal":
-                bins = np.linspace(np.amin(data), np.amax(data), np.amax(data)/60)
-                n, bins, patches = ax.hist(data.values, bins)
+            if var.type_histo == "normal":
+                bins = np.linspace(np.amin(var.values), np.amax(var.values), np.amax(var.values)/60)
+                n, bins, patches = ax.hist(var.values, bins)
                 bin_centers = (bins[:-1] + bins[1:]) / 2
-                norm = plt.Normalize(data.min, data.max)
+                norm = plt.Normalize(var.min, var.max)
                 for bin, patch in zip(bin_centers, patches):
                     patch.set_facecolor(norm[bin])
-                ax.set_xlim(np.amin(data), np.amax(data))
-                ax.set_xlabel(data.latex, usetex=True, fontsize=20)
-                ax.set_title(data.filename, fontsize=14)
-                text = data.latex + " = " + "{:.2f}".format(np.mean(data_vals)) + " $\pm$ " "{:.2f}".format(np.std(data_vals))
+                ax.set_xlim(np.amin(var.values), np.amax(var.values))
+                ax.set_xlabel(var.latex, usetex=True, fontsize=20)
+                ax.set_title(datastack.name, fontsize=14)
+                text = var.latex + " = " + "{:.2f}".format(np.mean(data_vals)) + " $\pm$ " "{:.2f}".format(np.std(data_vals))
                 ax.annotate(text, (0.2, 0.91), textcoords="figure fraction", fontsize=20, usetex=True)
-            elif data.type_histo == "polar1":
+            elif var.type_histo == "polar1":
                 data_vals = np.mod(2 * (data_vals + float(self.rotation[1].get())), 360) / 2
                 meandata = self.circularmean(data_vals)
                 delta_rho = np.mod(2 * (data_vals - meandata), 180) / 2
-            elif data.type_histo == "polar2":
+            elif var.type_histo == "polar2":
                 print("in progress...")
             suffix = "_perROI_" + str(roi) if roi else ""
-            filename = self.stack.folder + "/n" + self.stack.name + "_Histo" + data.name + suffix
+            filename = datastack.filename + "_Histo" + var.name + suffix
             if self.extension_table[0].get():
                 print("To be implemented... Stay tuned!")
             if self.save_table[2].get() and self.extension_table[1].get():
                 plt.savefig(filename + ".tif")
 
-    def add_fluo(self, stack, ax):
-        vmin, vmax = np.amin(stack.itot), np.amax(stack.itot)
-        field = self.adjust(stack.itot, self.contrast_fluo_slider.get(), vmin, vmax)
+    def add_fluo(self, itot, ax):
+        vmin, vmax = np.amin(itot), np.amax(itot)
+        field = self.adjust(itot, self.contrast_fluo_slider.get(), vmin, vmax)
         if int(self.rotation[1].get()) != 0:
             field = imutils.rotate(field, int(self.rotation[1].get()))   
         ax_im = ax.imshow(field, cmap=mpl.colormaps["gray"], interpolation="none") 
         ax_im.set_clim(vmin, vmax)
 
-    def add_patches(self, stack, ax, fig, rotation=True):
-        if len(stack.rois):
-            for roi in stack.rois:
+    def add_patches(self, datastack, ax, fig, rotation=True):
+        if len(datastack.rois):
+            for roi in datastack.rois:
                 vertices = roi["vertices"]
                 coord = roi["label"][0], roi["label"][1]
                 if (int(self.rotation[1].get()) != 0) and rotation:
                     theta = np.deg2rad(int(self.rotation[1].get()))
-                    x0, y0 = stack.width / 2, stack.height / 2
+                    x0, y0 = datastack.width / 2, datastack.height / 2
                     coord = x0 + (coord[0] - x0) * np.cos(theta) + (coord[1] - y0) * np.sin(theta), y0 - (coord[0] - x0) * np.sin(theta) + (coord[1] - y0) * np.cos(theta)
                     vertices = np.asarray([x0 + (vertices[0] - x0) * np.cos(theta) + (vertices[1] - y0) * np.sin(theta), y0 - (vertices[0] - x0) * np.sin(theta) + (vertices[1] - y0) * np.cos(theta)])
                 ax.add_patch(Polygon(vertices.T, facecolor="none", edgecolor="white"))
                 ax.text(coord[0], coord[1], str(roi["indx"]), color="w")
             fig.draw()
 
-    def plot_composite(self, data, stack):
-        if data.display and (self.show_table[0].get() or self.save_table[0].get()):
+    def plot_composite(self, var, datastack):
+        if var.display and (self.show_table[0].get() or self.save_table[0].get()):
             fig = plt.figure(figsize=App.figsize)
-            fig.canvas.manager.set_window_title(data.name + " Composite")
+            fig.canvas.manager.set_window_title(var.name + " Composite")
             fig.patch.set_facecolor(App.gray[0])
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
-            self.add_fluo(stack, ax)
-            im = data.values
+            self.add_fluo(datastack.itot, ax)
+            im = var.values
             if int(self.rotation[1].get()) != 0:
-                if data.orientation:
+                if var.orientation:
                     im = np.mod(2 * (im + int(self.rotation[1].get())), 360) / 2
                 im = imutils.rotate(im, int(self.rotation[1].get()))
                 im[im == 0] = np.nan
-            h2 = ax.imshow(im, vmin=data.min, vmax=data.max, cmap=data.colormap, interpolation="none") 
+            h2 = ax.imshow(im, vmin=var.min, vmax=var.max, cmap=var.colormap, interpolation="none") 
             plt.colorbar(h2)
-            ax.set_title(stack.name)
-            suffix = "_" + data.name + "Composite"
+            ax.set_title(datastack.name)
+            suffix = "_" + var.name + "Composite"
             if self.extension_table[0].get():
                 print("To be implemented... Stay tuned!")
             if self.save_table[0].get() and self.extension_table[1].get():
-                plt.savefig(stack.folder + "/" + stack.name + suffix + ".tif") 
+                plt.savefig(datastack.filename + suffix + ".tif") 
             if not self.show_table[0].get():
                 plt.close(fig) 
 
-    def plot_sticks(self, data, stack, rho):
+    def plot_sticks(self, var, datastack):
         L, W = 6, 0.2
         l, w = L / 2, W / 2
-        if data.display and (self.show_table[1].get() or self.save_table[1].get()):
+        if var.display and (self.show_table[1].get() or self.save_table[1].get()):
             fig = plt.figure(figsize=App.figsize)
-            fig.canvas.manager.set_window_title(data.name + " Sticks")
+            fig.canvas.manager.set_window_title(var.name + " Sticks")
             #fig.patch.set_facecolor(App.gray[0])
             fig.patch.set_facecolor("w")
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
-            self.add_fluo(stack, ax)
-            im = data.values
+            self.add_fluo(datastack.itot, ax)
+            im = var.values
             if self.rotation[1].get() != 0:
-                if data.orientation:
+                if var.orientation:
                     im = np.mod(2 * (im + int(self.rotation[1].get())), 360) / 2
                 im = imutils.rotate(im, int(self.rotation[1].get()))
                 im[im == 0] = np.nan
+            rho = datastack.vars[0]
             rho_ = rho.values[::int(self.pixelsperstick[1].get()), ::int(self.pixelsperstick[0].get())]
-            data_ = data.values[::int(self.pixelsperstick[1].get()), ::int(self.pixelsperstick[0].get())]
-            Y, X = np.mgrid[:stack.height+self.bin[1].get()-1:int(self.pixelsperstick[1].get()), :stack.width+self.bin[0].get()-1:int(self.pixelsperstick[0].get())]
+            data_ = var.values[::int(self.pixelsperstick[1].get()), ::int(self.pixelsperstick[0].get())]
+            Y, X = np.mgrid[:datastack.height+self.bin[1].get()-1:int(self.pixelsperstick[1].get()), :datastack.width+self.bin[0].get()-1:int(self.pixelsperstick[0].get())]
             X, Y = X[np.isfinite(rho_)], Y[np.isfinite(rho_)]
             data_, rho_ = data_[np.isfinite(rho_)], rho_[np.isfinite(rho_)]
-            if data.orientation:
+            if var.orientation:
                 stick_colors = np.mod(2 * (data_ + int(self.rotation[1].get())), 360) / 2
             else:
                 stick_colors = data_
@@ -1236,63 +1247,86 @@ class App(CTk.CTk):
                 x0, y0 = self.stack.width / 2, self.stack.height / 2 
                 vertices = np.asarray([x0 + (vertices[0] - x0) * np.cos(theta) + (vertices[1] - y0) * np.sin(theta), y0 - (vertices[0] - x0) * np.sin(theta) + (vertices[1] - y0) * np.cos(theta)])
             vertices = np.swapaxes(vertices, 0, 2)
-            p = PolyCollection(vertices, cmap=mpl.colormaps[data.colormap], lw=2, array=stick_colors)
-            p.set_clim([data.min, data.max])
+            p = PolyCollection(vertices, cmap=mpl.colormaps[var.colormap], lw=2, array=stick_colors)
+            p.set_clim([var.min, var.max])
             ax.add_collection(p)
             fig.colorbar(p, ax=ax)
-            ax.set_title(stack.name)
-            suffix = "_" + data.name + "Sticks"
+            ax.set_title(datastack.name)
+            suffix = "_" + var.name + "Sticks"
             if self.extension_table[0].get():
                 print("To be implemented... Stay tuned!")
             if self.save_table[1].get() and self.extension_table[1].get():
-                plt.savefig(stack.folder + "/" + stack.name + suffix + ".tif")  
+                plt.savefig(datastack.filename + suffix + ".tif")  
             if not self.show_table[1].get():
                 plt.close(fig)
 
-    def plot_fluo(self, stack):
+    def plot_fluo(self, datastack):
         if self.show_table[3].get() or self.save_table[3].get():
             fig = plt.figure(figsize=App.figsize)
             fig.canvas.manager.set_window_title("Fluorescence")
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
-            self.add_fluo(stack, ax)
-            self.add_patches(stack, ax, fig.canvas)
-            ax.set_title(stack.name)
+            self.add_fluo(datastack.itot, ax)
+            self.add_patches(datastack, ax, fig.canvas)
+            ax.set_title(datastack.name)
             suffix = "_Fluo"
             if self.extension_table[0].get():
                 print("To be implemented... Stay tuned!")
             if self.save_table[3].get() and self.extension_table[1].get():
-                plt.savefig(stack.folder + "/" + stack.name + suffix + ".tif") 
+                plt.savefig(datastack.filename + suffix + ".tif") 
             if not self.show_table[3].get():
                 plt.close(fig)
 
-    def save_mat(self, vars, stack, roi_map, roi=[]):
+    def plot_data(self, datastack):
+        self.plot_fluo(datastack)
+        roi_map, mask = self.compute_roi_map(datastack)
+        int_roi = np.amax(roi_map)
+        for var in datastack.vars:
+            if var.name not in ["X", "Y", "Int"]:
+                self.plot_composite(var, datastack)
+                self.plot_sticks(var, datastack)
+                if int_roi >= 2:
+                    for roi in np.arange(1, int_roi + 1):
+                        self.plot_histo(var, datastack, roi_map, roi=roi)
+                else:
+                    self.plot_histo(var, datastack, roi_map, roi=[])
+
+    def save_data(self, datastack):
+        roi_map, mask = self.compute_roi_map(datastack)
+        int_roi = np.amax(roi_map)
+        if int_roi >= 2:
+            for roi in np.arange(1, int_roi + 1):
+                self.save_mat(datastack, roi_map, roi=roi)
+        else:
+            self.save_mat(datastack, roi_map, roi=[])
+
+    def save_mat(self, datastack, roi_map, roi=[]):
         if self.extension_table[2].get():
             suffix = "_ROI" + str(roi) if roi else ""
-            filename = stack.folder + "/" + stack.name + suffix + ".mat"
+            filename = datastack.filename + suffix + ".mat"
             mask = (roi_map == roi) if roi else (roi_map == 1)
             dict_ = {}
-            for var in vars:
+            for var in datastack.vars:
                 data = var.values(mask * np.isfinite(var.values))
                 dict_.update({var.name: data})
             scipy.io.savemat(filename, dict_) 
 
-    def compute_roi_map(self, stack):
-        shape = (stack.height, stack.width)
-        if len(stack.rois):
-            roi_map = np.zeros(shape, dtype=np.int16)
+    def compute_roi_map(self, datastack):
+        shape = (datastack.height, datastack.width)
+        if len(datastack.rois):
+            roi_map = np.zeros(shape, dtype=np.int32)
             roi_ilow_map = np.zeros(shape)
-            for roi in stack.rois:
+            for roi in datastack.rois:
                 patch= Polygon(roi["vertices"].T)
-                roi_map[patch.contains_points(stack.points).reshape(shape)] = roi["indx"]
-                roi_ilow_map[patch.contains_points(stack.points).reshape(shape)] = roi["ILow"]
+                roi_map[patch.contains_points(self.points).reshape(shape)] = roi["indx"]
+                roi_ilow_map[patch.contains_points(self.points).reshape(shape)] = roi["ILow"]
         else:
-            roi_map = np.ones(shape, dtype=np.int16)
+            roi_map = np.ones(shape, dtype=np.int32)
             roi_ilow_map = np.ones(shape, dtype=np.float64) * np.float64(self.ilow.get())
         mask = self.get_mask()
         if self.per_roi.get() == "off":
             roi_map[roi_map != 0] = 1
-        return roi_map, (stack.itot >= roi_ilow_map) * mask
+        return roi_map, (datastack.itot >= roi_ilow_map) * mask
 
     def slice4polar(self, stack, xpos, ypos, npix):
         stack_ = Stack(stack.filename)
@@ -1301,8 +1335,6 @@ class App(CTk.CTk):
         stack_.height = np.amax(ypos[1, :] - ypos[0, :]) + 2 * npix
         stack_.width = np.amax(xpos[1, :] - xpos[0, :]) + 2 * npix
         stack_.values = np.zeros((stack_.height, stack_.width, 4))
-        Y, X = np.mgrid[:stack_.height, :stack_.width]
-        stack_.points = np.vstack((X.flatten(), Y.flatten())).T
         ims = []
         for it in range(4):
             ddx = stack_.width - npix + xpos[0, it] - 1
@@ -1312,12 +1344,12 @@ class App(CTk.CTk):
         for it in range(4):
             stack_.values[:, :, self.order[it]] = ims_reg[it]
 
-    def analyze_stack(self, stack):
+    def analyze_stack(self, datastack):
         chi2threshold = 500
-        shape = (stack.height, stack.width)
-        roi_map, mask = self.compute_roi_map(stack)
-        dark = float(self.dark.get())
-        field = stack.values - dark - float(self.noise[3].get())
+        shape = (self.stack.height, self.stack.width)
+        roi_map, mask = self.compute_roi_map(datastack)
+        datastack.dark = float(self.dark.get())
+        field = self.stack.values - datastack.dark - float(self.noise[3].get())
         field = field * (field >= 0)
         if self.method.get() == "1PF":
             field = np.sqrt(field)
@@ -1328,7 +1360,7 @@ class App(CTk.CTk):
             bin = np.ones(int(_) for _ in bin_shape)
             field = convolve2d(field, bin, mode="same") / (bin_shape[0] * bin_shape[1])
         if self.method.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
-            angle3d = (np.linspace(0, 180, stack.nangle, endpoint=False) + 180 - self.offset_angle.get()).reshape(1, 1, -1)
+            angle3d = (np.linspace(0, 180, self.stack.nangle, endpoint=False) + 180 - self.offset_angle.get()).reshape(1, 1, -1)
             e2 = np.exp(2j * np.deg2rad(angle3d))
             a0 = np.mean(field, axis=2)
             a0[a0 == 0] = np.nan
@@ -1356,7 +1388,7 @@ class App(CTk.CTk):
             puv = (2 * mat[3, :, :] / s).reshape(shape)
             lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
             a0 = np.mean(field, axis=2) / 4
-        rho_ = Variable(stack)
+        rho_ = Variable(datastack)
         rho_.name, rho_.latex = "Rho", "$\rho$"
         rho_.display, rho_.min, rho_.max = self.get_variable(0)
         rho_.orientation = True
@@ -1369,124 +1401,115 @@ class App(CTk.CTk):
             a2_vals = np.moveaxis(np.asarray([a2.real[mask].flatten(), a2.imag[mask].flatten()]), 0, -1)
             rho, psi = np.moveaxis(interpn(self.CD.xy, self.CD.RhoPsi, a2_vals), 0, 1)
             rho += 90
-            rho_.values = np.nan * np.ones(a0.shape)
             rho_.values[ixgrid] = np.mod(2 * (180 - rho + float(self.rotation[0].get())), 360) / 2
-            psi_ = Variable(stack)
+            psi_ = Variable(datastack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.values = np.nan * np.ones(a0.shape)
             psi_.values[ixgrid] = psi
             psi_.display, psi_.min, psi_.max = self.get_variable(1)
             psi_.colormap = "jet"
             mask *= np.isfinite(rho_.values) * np.isfinite(psi_.values)
-            vars = [rho_, psi_]
+            datastack.vars = [rho_, psi_]
         elif self.method.get() in ["CARS", "SRS", "2PF"]:
             mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
-            rho_.value[mask] = np.rad2deg(np.angle(a2[mask])) / 2
-            rho_.value[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
-            s2_ = Variable(stack)
+            rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
+            rho_.values[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
+            s2_ = Variable(datastack)
             s2_.name, s2_.latex = "S2", "$S_2$"
-            s2_.value[mask] = 1.5 * np.abs(a2[mask])
+            s2_.values[mask] = 1.5 * np.abs(a2[mask])
             s2_.display, s2_.min, s2_.max = self.get_variable(1)
             s2_.colormap = "jet"
             s4_ = Variable(shape)
             s4_.name, s4_.latex = "S4", "$S_4$"
-            s4_.value[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.value[mask])))
+            s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.value[mask])))
             s4_.display, s4_.min, s4_.max = self.get_variable(2)
             s4_.colormap = "jet"
-            vars = [rho_, s2_, s4_]
+            datastack.vars = [rho_, s2_, s4_]
         elif self.method.get() == 'SHG':
             mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
-            rho_.value[mask] = np.rad2deg(np.angle(a2[mask])) / 2
-            rho_.value[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
-            s_shg_ = Variable(stack)
+            rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
+            rho_.values[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
+            s_shg_ = Variable(datastack)
             s_shg_.name, s_shg_.latex = "S_SHG", "$S_\mathrm{SHG}$"
-            s_shg_.value[mask] = -0.5 * (np.abs(a4[mask]) - np.abs(a2[mask])) / (np.abs(a4[mask]) + np.abs(a2[mask])) - 0.65
+            s_shg_.values[mask] = -0.5 * (np.abs(a4[mask]) - np.abs(a2[mask])) / (np.abs(a4[mask]) + np.abs(a2[mask])) - 0.65
             s_shg_.display, s_shg_.min, s_shg_.max = self.get_variable(1)
             s_shg_.colormap = "jet"
-            vars = [rho_, s_shg_]
+            datastack.vars = [rho_, s_shg_]
         elif self.method.get() == "4POLAR 3D":
             mask *= (lam < 1/3) * (lam > 0) * (pzz > lam)
-            rho_.value[mask] = 0.5 * np.rad2deg(np.atan2(puv[mask], pxy[mask]))
-            rho_.value[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
-            psi_ = Variable(stack)
+            rho_.values[mask] = 0.5 * np.rad2deg(np.atan2(puv[mask], pxy[mask]))
+            rho_.values[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
+            psi_ = Variable(datastack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
-            psi_.value[mask] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
+            psi_.values[mask] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
             psi_.display, psi_.min, psi_.max = self.get_variable(1)
             psi_.colormap = "jet"
             eta_ = Variable(shape)
             eta_.name, eta_.latex = "Eta", "$\eta$"
-            eta_.value[mask] = np.rad2deg(np.acos(np.sqrt((pzz[mask] - lam[mask]) / (1 - 3 * lam[mask]))))
+            eta_.values[mask] = np.rad2deg(np.acos(np.sqrt((pzz[mask] - lam[mask]) / (1 - 3 * lam[mask]))))
             eta_.display, eta_.min, eta_.max = self.get_variable(2)
             eta_.type_histo = "polar2"
             eta_.colormap = "parula"
-            vars = [rho_, psi_, eta_]
+            datastack.vars = [rho_, psi_, eta_]
         elif self.method.get() == "4POLAR 2D":
             mask *= (lam < 1/3) * (lam > 0)
-            rho_.value[mask] = 0.5 * np.rad2deg(np.atan2(puv[mask], pxy[mask]))
-            rho_.value[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
-            psi_ = Variable(stack)
+            rho_.values[mask] = 0.5 * np.rad2deg(np.atan2(puv[mask], pxy[mask]))
+            rho_.values[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
+            psi_ = Variable(datastack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
-            psi_.value[mask] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
+            psi_.values[mask] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
             psi_.display, psi_.min, psi_.max = self.get_variable(2)
             psi_.colormap = "jet"
-            vars = [rho_, psi_]
+            datastack.vars = [rho_, psi_]
         a0[np.logical_not(mask)] = np.nan
-        X, Y = np.meshgrid(np.arange(stack.width), np.arange(stack.height))
+        X, Y = np.meshgrid(np.arange(datastack.width), np.arange(datastack.height))
         X = X.astype(np.float64)
         Y = Y.astype(np.float64)
         X[np.logical_not(mask)] = np.nan
         Y[np.logical_not(mask)] = np.nan
-        X_, Y_, a0_ = Variable(shape), Variable(shape), Variable(shape)
-        X_.name, Y_.name, a0_.name = "X", "Y", "Int"
-        X_.values, Y_.values, a0_.values = X, Y, a0
+        X_, Y_, Int_ = Variable(datastack), Variable(datastack), Variable(datastack)
+        X_.name, Y_.name, Int_.name = "X", "Y", "Int"
+        X_.values, Y_.values, Int_.values = X, Y, a0
+        datastack.vars += [X_, Y_, Int_] 
         if self.method.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
             chi2[np.logical_not(mask)] = np.nan
-        int_roi = np.amax(roi_map)
-        self.plot_fluo(stack)
-        for var in vars:
-            self.plot_composite(var, stack)
-            self.plot_sticks(var, stack, rho_)
-            if int_roi >= 2:
-                for roi in np.arange(1, int_roi + 1):
-                    self.plot_histo(var, stack, roi_map, roi=roi)
-            else:
-                self.plot_histo(var, stack, roi_map, roi=[])
-        vars += [X_, Y_, a0_] 
-        if int_roi >= 2:
-            for roi in np.arange(1, int_roi + 1):
-                self.save_mat(vars, stack, roi_map, roi=roi)
-        else:
-            self.save_mat(vars, stack, roi_map, roi=[])
-
+        self.plot_data(datastack)
+        self.save_data(datastack)
         plt.show()
 
 class Stack():
     def __init__(self, filename):
-        self.filename = filename
+        self.filename = os.path.basename(filename).split('.')[0]
         self.name = pathlib.Path(filename).stem
         self.folder = pathlib.Path(filename).parent
-        self.values = []
         self.height, self.width, self.nangle = 0, 0, 0
-        self.calculated_dark = 0
         self.mode = "I"
-        self.display = []
+        self.values = []
         self.itot = []
-        self.points = []
+        self.display = []
+
+class DataStack():
+    def __init__(self, stack):
+        self.filename = stack.filename
+        self.folder = stack.folder
+        self.name = stack.name
+        self.height, self.width = stack.height, stack.width
+        self.dark = 0
+        self.itot = stack.itot
         self.rois = []
+        self.vars = []
 
 class Variable():
-    def __init__(self, stack):
+    def __init__(self, datastack):
         self.name = ""
         self.latex = ""
-        self.value = np.empty((stack.height, stack.width))
-        self.value[:] = np.nan
+        self.values = np.nan * np.ones((datastack.height, datastack.width))
         self.display = []
         self.min = []
         self.max = []
         self.orientation = False
         self.type_histo = "normal"
         self.colormap = []
-        self.filename = stack.filename
 
 class ROI:
     def __init__(self):
