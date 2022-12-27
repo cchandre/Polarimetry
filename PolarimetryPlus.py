@@ -19,6 +19,7 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Polygon
 from matplotlib.collections import PolyCollection
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.animation as manimation
 from skimage import exposure
 import cv2
 from scipy.signal import convolve2d
@@ -231,7 +232,7 @@ class App(CTk.CTk):
         save_ext = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
         save_ext.grid(row=2, column=1, padx=(40, 20), pady=20, sticky="nw")
         CTk.CTkLabel(master=save_ext, text="Save extension", width=100).grid(row=0, column=1, padx=(0, 20))
-        labels = ["figures (.fig)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "stack (.mp4)"]
+        labels = ["figures (.pickle)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "stack (.mp4)"]
         self.extension_table = [self.checkbox(save_ext) for it in range(len(labels))]
         for it in range(len(labels)):
             CTk.CTkLabel(master=save_ext, text=labels[it], anchor="w", width=120).grid(row=it+1, column=0, padx=(20, 0))
@@ -359,21 +360,17 @@ class App(CTk.CTk):
     def initialize(self):
         self.initialize_slider()
         self.initialize_noise()
-        if hasattr(self, "datastack"):
-            self.datastack.rois = []
-            self.represent_fluo(self.datastack)
-            self.represent_thrsh(self.datastack)
+        self.datastack.rois = []
+        self.represent_fluo()
+        self.represent_thrsh()
 
     def initialize_tables(self, mode='all'):
         for show, save in zip(self.show_table, self.save_table):
             show.deselect()
             save.deselect()
         #self.Variable[:].set(False)
-        if mode == 'part':
-            self.extension_table[0].deselect()
-        else:
-            for ext in self.extension_table:
-                ext.deselect()
+        for ext in self.extension_table:
+            ext.deselect()
         if self.method.get().startswith("4POLAR"):
             self.show_individual_fit_checkbox.deselect()
             self.show_individual_fit_checkbox.configure(state=tk.DISABLED)
@@ -467,30 +464,26 @@ class App(CTk.CTk):
     def contrast_thrsh_slider_callback(self, value):
         if value <= 0.001:
             self.contrast_thrsh_slider.set(0.001)
-        if hasattr(self, "datastack"):
-            self.represent_thrsh(self.datastack)
+        self.represent_thrsh()
 
     def contrast_fluo_slider_callback(self, value):
         if value <= 0.001:
             self.contrast_fluo_slider.set(0.001)
-        if hasattr(self, "datastack"):
-            self.represent_fluo(self.datastack)
+        self.represent_fluo()
 
     def contrast_fluo_button_callback(self):
         if self.contrast_fluo_slider.get() <= 0.5:
             self.contrast_fluo_slider.set(0.5)
         else:
             self.contrast_fluo_slider.set(1)
-        if hasattr(self, "datastack"):
-            self.represent_fluo(self.datastack)
+        self.represent_fluo()
 
     def contrast_thrsh_button_callback(self):
         if self.contrast_thrsh_slider.get() <= 0.5:
             self.contrast_thrsh_slider.set(0.5)
         else:
             self.contrast_thrsh_slider.set(1)
-        if hasattr(self, "datastack"):
-            self.represent_thrsh(self.datastack, update=True)
+        self.represent_thrsh(update=True)
 
     def change_list_button_callback(self):
         if hasattr(self, "datastack"):
@@ -516,9 +509,14 @@ class App(CTk.CTk):
             fig.canvas.draw()
 
     def download_callback(self):
-        filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir="/", filetypes=[("MAT-files", "*.mat")])
-        scipy.io.loadmat(filename)
-        self.plot_data(vars)
+        self.fluo_axis.clear()
+        self.thrsh_axis.clear()
+        filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir="/", filetypes=[("PICKLE files", "*.pickle")])
+        f = open(filename, "rb") 
+        datastack = pickle.load(f)
+        self.method.set(datastack.method)
+        self.plot_data(datastack)
+        plt.show()
 
     def clear_patches(self, ax, fig):
         if ax.patches:
@@ -540,8 +538,8 @@ class App(CTk.CTk):
             for roi in self.datastack.rois:
                 if roi["indx"] > indx:
                     roi["indx"] -= 1
-        self.represent_fluo(self.datastack, update=False)
-        self.represent_thrsh(self.datastack, update=False)
+        self.represent_fluo(update=False)
+        self.represent_thrsh(update=False)
         window.withdraw()
 
     def export_mask(self):
@@ -576,8 +574,7 @@ class App(CTk.CTk):
             self.thrsh_colormap = "gray"
         else:
             self.thrsh_colormap = "hot"
-        if hasattr(self, "datastack"):
-            self.represent_thrsh(self.datastack, update=True)
+        self.represent_thrsh()
 
     def no_background(self):
         if self.thrsh_fig.patch.get_facecolor() == mpl.colors.to_rgba("k", 1):
@@ -876,15 +873,14 @@ class App(CTk.CTk):
             self.tabview.set("Fluorescence")
             if data:
                 datastack = DataStack(stack)
-                self.represent_fluo(datastack, update=False)
-                self.represent_thrsh(datastack, update=False)
+                datastack.method = self.method.get()
                 return stack, datastack
             return stack
 
     def open_file(self, filename):
         self.stack, self.datastack = self.define_data(filename)
-        Y, X = np.mgrid[0:self.stack.height, 0:self.stack.width]
-        self.points = np.vstack((X.flatten(), Y.flatten())).T
+        self.represent_fluo(update=False)
+        self.represent_thrsh(update=False)
 
     def select_file(self):
         filetypes = [("Tiff files", "*.tiff"), ("Tiff files", "*.tif")]
@@ -903,7 +899,7 @@ class App(CTk.CTk):
         if hasattr(self, "datastack"):
             if method.startswith("Mask"):
                 self.ilow.set(self.stack.display.format(np.amin(self.datastack.itot)))
-                self.represent_thrsh(self.datastack)
+                self.represent_thrsh()
 
     def add_roi_callback(self):
         if hasattr(self, "stack"):
@@ -966,8 +962,8 @@ class App(CTk.CTk):
             line.remove()
         roi.lines = []
         self.thrsh_canvas.draw()
-        self.represent_fluo(self.datastack)
-        self.represent_thrsh(self.datastack)
+        self.represent_fluo()
+        self.represent_thrsh()
 
     def no_add_roi_callback(self, window, roi):
         window.withdraw()
@@ -976,10 +972,10 @@ class App(CTk.CTk):
         roi.lines = []
         self.thrsh_canvas.draw()
 
-    def get_mask(self):
-        mask = np.ones((self.stack.height, self.stack.width))
+    def get_mask(self, datastack):
+        mask = np.ones((datastack.height, datastack.width))
         if self.tool.get().startswith("Mask"):
-            mask_name = self.datastack.filename + ".png"
+            mask_name = datastack.filename + ".png"
             if os.path.isfile(mask_name):
                 im_binarized = np.asarray(plt.imread(mask_name), dtype=np.float64)
                 mask = im_binarized / np.amax(im_binarized)
@@ -1010,35 +1006,34 @@ class App(CTk.CTk):
         if self.method.get().startswith("4POLAR"):
             labels = ["T", 0, 45, 90, 135]
             self.stack_slider_label.configure(text=labels[int(value)])
-        if hasattr(self, "datastack"):
-            self.represent_fluo(self.datastack)
+        self.represent_fluo()
 
     def ilow_slider_callback(self, value):
-        if hasattr(self, "datastack"):
+        if hasattr(self, "stack"):
             self.ilow.set(self.stack.display.format(value))
-            self.represent_thrsh(self.datastack)
+            self.represent_thrsh()
 
     def ilow2slider_callback(self, event):
-        if event and hasattr(self, "datastack"):
+        if event and hasattr(self, "stack"):
             self.ilow_slider.set(float(self.ilow.get()))
-            self.represent_thrsh(self.datastack)
+            self.represent_thrsh()
 
     def itot_callback(self, event):
-        if event and hasattr(self, "datastack"):
+        if event and hasattr(self, "stack"):
             self.compute_itot(self.stack)
-            self.datastack.itot = self.stack.itot
-            self.represent_fluo(self.datastack, update=False)
-            self.represent_thrsh(self.datastack, update=False)
+            if hasattr(self, "datastack"):
+                self.datastack.itot = self.stack.itot
+            self.represent_fluo(update=False)
+            self.represent_thrsh(update=False)
 
     def rotation_callback(self, event):
-        if event and hasattr(self, "datastack"):
-            self.represent_fluo(self.datastack, update=False)
+        if event:
+            self.represent_fluo(update=False)
 
     def transparency_slider_callback(self, value):
         if value <= 0.001:
             self.transparency_slider.set(0.001)
-        if hasattr(self, "datastack"):
-            self.represent_thrsh(self.datastack)
+        self.represent_thrsh()
 
     def adjust(self, field, contrast, vmin, vmax):
         radius, amount = 1, 0.8
@@ -1048,51 +1043,55 @@ class App(CTk.CTk):
         field_im = exposure.adjust_gamma((field_im - vmin) / vmax, contrast) * vmax
         return field_im
 
-    def represent_fluo(self, datastack, update=True):
-        if self.stack_slider.get() == 0:
-            field = datastack.itot
-            vmin, vmax = np.amin(datastack.itot), np.amax(datastack.itot)
-        elif self.stack_slider.get() <= self.stack.nangle:
-            field = self.stack.values[:, :, int(self.stack_slider.get())-1]
-            vmin, vmax = np.amin(self.stack.values), np.amax(self.stack.values)
-        field_im = self.adjust(field, self.contrast_fluo_slider.get(), vmin, vmax)
-        if int(self.rotation[1].get()) != 0:
-            field_im = imutils.rotate(field_im, int(self.rotation[1].get()))
-        if update:
-            self.fluo_im.set_data(field_im)
-        else:
-            self.fluo_im = self.fluo_axis.imshow(field_im, cmap=mpl.colormaps["gray"], interpolation="none")
-            self.fluo_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
-            self.fluo_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
-        self.fluo_im.set_clim(vmin, vmax)
-        self.clear_patches(self.fluo_axis, self.fluo_fig.canvas)
-        self.add_patches(datastack, self.fluo_axis, self.fluo_fig.canvas)
-        self.fluo_canvas.draw()
+    def represent_fluo(self, update=True):
+        if hasattr(self, "stack"):
+            if self.stack_slider.get() == 0:
+                field = self.stack.itot
+                vmin, vmax = np.amin(self.stack.itot), np.amax(self.stack.itot)
+            elif self.stack_slider.get() <= self.stack.nangle:
+                field = self.stack.values[:, :, int(self.stack_slider.get())-1]
+                vmin, vmax = np.amin(self.stack.values), np.amax(self.stack.values)
+            field_im = self.adjust(field, self.contrast_fluo_slider.get(), vmin, vmax)
+            if int(self.rotation[1].get()) != 0:
+                field_im = imutils.rotate(field_im, int(self.rotation[1].get()))
+            if update:
+                self.fluo_im.set_data(field_im)
+            else:
+                self.fluo_im = self.fluo_axis.imshow(field_im, cmap=mpl.colormaps["gray"], interpolation="none")
+                self.fluo_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+                self.fluo_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
+            self.fluo_im.set_clim(vmin, vmax)
+            self.clear_patches(self.fluo_axis, self.fluo_fig.canvas)
+            if hasattr(self, "datastack"):
+                self.add_patches(self.datastack, self.fluo_axis, self.fluo_fig.canvas)
+            self.fluo_canvas.draw()
 
-    def represent_thrsh(self, datastack, update=True):
-        field = datastack.itot
-        if self.tool.get().startswith("Mask"):
-            mask_name = os.path.basename(datastack.filename) + ".png"
-            if os.path.isfile(mask_name):
-                im_binarized = cv2.imread(mask_name)
-                mask = np.asarray(im_binarized, dtype=np.float64)
-                field *= mask / np.amax(mask)
-        vmin, vmax = np.amin(datastack.itot), np.amax(datastack.itot)
-        field_im = self.adjust(datastack.itot, self.contrast_thrsh_slider.get(), vmin, vmax)
-        alphadata = np.ones(field.shape)
-        thrsh = float(self.ilow.get())
-        alphadata[field <= thrsh] *= self.transparency_slider.get()
-        if update:
-            plt.setp(self.thrsh_im, alpha=alphadata, cmap=self.thrsh_colormap)
-            self.thrsh_im.set_data(field_im)
-        else:
-            self.thrsh_im = self.thrsh_axis.imshow(field_im, cmap=self.thrsh_colormap, alpha=alphadata, interpolation="none")
-            self.thrsh_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
-            self.thrsh_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
-        self.thrsh_im.set_clim(vmin, vmax)
-        self.clear_patches(self.thrsh_axis, self.thrsh_fig.canvas)
-        self.add_patches(datastack, self.thrsh_axis, self.thrsh_fig.canvas, rotation=False)
-        self.thrsh_canvas.draw()
+    def represent_thrsh(self, update=True):
+        if hasattr(self, "stack"):
+            field = self.stack.itot
+            if self.tool.get().startswith("Mask"):
+                mask_name = os.path.basename(self.stack.filename) + ".png"
+                if os.path.isfile(mask_name):
+                    im_binarized = cv2.imread(mask_name)
+                    mask = np.asarray(im_binarized, dtype=np.float64)
+                    field *= mask / np.amax(mask)
+            vmin, vmax = np.amin(self.stack.itot), np.amax(self.stack.itot)
+            field_im = self.adjust(self.stack.itot, self.contrast_thrsh_slider.get(), vmin, vmax)
+            alphadata = np.ones(field.shape)
+            thrsh = float(self.ilow.get())
+            alphadata[field <= thrsh] *= self.transparency_slider.get()
+            if update:
+                plt.setp(self.thrsh_im, alpha=alphadata, cmap=self.thrsh_colormap)
+                self.thrsh_im.set_data(field_im)
+            else:
+                self.thrsh_im = self.thrsh_axis.imshow(field_im, cmap=self.thrsh_colormap, alpha=alphadata, interpolation="none")
+                self.thrsh_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+                self.thrsh_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
+            self.thrsh_im.set_clim(vmin, vmax)
+            self.clear_patches(self.thrsh_axis, self.thrsh_fig.canvas)
+            if hasattr(self, "datastack"):
+                self.add_patches(self.datastack, self.thrsh_axis, self.thrsh_fig.canvas, rotation=False)
+            self.thrsh_canvas.draw()
 
     def compute_itot(self, stack):
         dark = float(self.dark.get())
@@ -1160,8 +1159,6 @@ class App(CTk.CTk):
                 print("in progress...")
             suffix = "_perROI_" + str(roi) if roi else ""
             filename = datastack.filename + "_Histo" + var.name + suffix
-            if self.extension_table[0].get():
-                print("To be implemented... Stay tuned!")
             if self.save_table[2].get() and self.extension_table[1].get():
                 plt.savefig(filename + ".tif")
 
@@ -1187,11 +1184,11 @@ class App(CTk.CTk):
                 ax.text(coord[0], coord[1], str(roi["indx"]), color="w")
             fig.draw()
 
-    def plot_composite(self, var, datastack):
-        if var.display and (self.show_table[0].get() or self.save_table[0].get()):
+    def plot_composite(self, var, datastack, *args):
+        if self.show_table[0].get() or self.save_table[0].get():
             fig = plt.figure(figsize=App.figsize)
             fig.canvas.manager.set_window_title(var.name + " Composite")
-            fig.patch.set_facecolor(App.gray[0])
+            fig.patch.set_facecolor("w")
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
             self.add_fluo(datastack.itot, ax)
@@ -1201,24 +1198,21 @@ class App(CTk.CTk):
                     im = np.mod(2 * (im + int(self.rotation[1].get())), 360) / 2
                 im = imutils.rotate(im, int(self.rotation[1].get()))
                 im[im == 0] = np.nan
-            h2 = ax.imshow(im, vmin=var.min, vmax=var.max, cmap=var.colormap, interpolation="none") 
+            h2 = ax.imshow(im, vmin=args[0], vmax=args[1], cmap=var.colormap, interpolation="none") 
             plt.colorbar(h2)
             ax.set_title(datastack.name)
             suffix = "_" + var.name + "Composite"
-            if self.extension_table[0].get():
-                print("To be implemented... Stay tuned!")
             if self.save_table[0].get() and self.extension_table[1].get():
                 plt.savefig(datastack.filename + suffix + ".tif") 
             if not self.show_table[0].get():
                 plt.close(fig) 
 
-    def plot_sticks(self, var, datastack):
+    def plot_sticks(self, var, datastack, *args):
         L, W = 6, 0.2
         l, w = L / 2, W / 2
-        if var.display and (self.show_table[1].get() or self.save_table[1].get()):
+        if self.show_table[1].get() or self.save_table[1].get():
             fig = plt.figure(figsize=App.figsize)
             fig.canvas.manager.set_window_title(var.name + " Sticks")
-            #fig.patch.set_facecolor(App.gray[0])
             fig.patch.set_facecolor("w")
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
@@ -1248,13 +1242,11 @@ class App(CTk.CTk):
                 vertices = np.asarray([x0 + (vertices[0] - x0) * np.cos(theta) + (vertices[1] - y0) * np.sin(theta), y0 - (vertices[0] - x0) * np.sin(theta) + (vertices[1] - y0) * np.cos(theta)])
             vertices = np.swapaxes(vertices, 0, 2)
             p = PolyCollection(vertices, cmap=mpl.colormaps[var.colormap], lw=2, array=stick_colors)
-            p.set_clim([var.min, var.max])
+            p.set_clim([args[0], args])
             ax.add_collection(p)
             fig.colorbar(p, ax=ax)
             ax.set_title(datastack.name)
             suffix = "_" + var.name + "Sticks"
-            if self.extension_table[0].get():
-                print("To be implemented... Stay tuned!")
             if self.save_table[1].get() and self.extension_table[1].get():
                 plt.savefig(datastack.filename + suffix + ".tif")  
             if not self.show_table[1].get():
@@ -1270,8 +1262,6 @@ class App(CTk.CTk):
             self.add_patches(datastack, ax, fig.canvas)
             ax.set_title(datastack.name)
             suffix = "_Fluo"
-            if self.extension_table[0].get():
-                print("To be implemented... Stay tuned!")
             if self.save_table[3].get() and self.extension_table[1].get():
                 plt.savefig(datastack.filename + suffix + ".tif") 
             if not self.show_table[3].get():
@@ -1281,10 +1271,12 @@ class App(CTk.CTk):
         self.plot_fluo(datastack)
         roi_map, mask = self.compute_roi_map(datastack)
         int_roi = np.amax(roi_map)
-        for var in datastack.vars:
+        for _, var in enumerate(datastack.vars):
             if var.name not in ["X", "Y", "Int"]:
-                self.plot_composite(var, datastack)
-                self.plot_sticks(var, datastack)
+                display, min, max = self.get_variable(_)
+                if display:
+                    self.plot_composite(var, datastack, [min, max])
+                    self.plot_sticks(var, datastack, [min, max])
                 if int_roi >= 2:
                     for roi in np.arange(1, int_roi + 1):
                         self.plot_histo(var, datastack, roi_map, roi=roi)
@@ -1299,31 +1291,58 @@ class App(CTk.CTk):
                 self.save_mat(datastack, roi_map, roi=roi)
         else:
             self.save_mat(datastack, roi_map, roi=[])
+        if self.extension_table[0].get():
+            filename = self.stack.filename + ".pickle"
+            with open(filename, "wb") as f:
+                pickle.dump(datastack, f, pickle.HIGHEST_PROTOCOL)
+        if self.extension_table[4].get():
+            filename = self.stack.filename + ".mp4"
+            size = self.stack.itot.shape
+            fps = 5
+            FFMpegWriter = manimation.writers['ffmpeg']
+            metadata = dict(title=self.stack.name, comment="polarimetry of the file " + self.stack.name)
+            writer = FFMpegWriter(fps=fps, metadata=metadata)
+            writer.framesize = size
+            fig, ax = plt.subplots()
+            ax.axis(self.add_axes_checkbox.get())
+            ax.set_title(self.stack.name, fontsize=14)
+            vmin, vmax = np.amin(self.stack.values), np.amax(self.stack.values)
+            with writer.saving(fig, filename, 300):
+                for _ in range(self.stack.nangle):
+                    field = self.stack.values[:, :, _]
+                    im = self.adjust(field, self.contrast_fluo_slider.get(), vmin, vmax)
+                    if int(self.rotation[1].get()) != 0:
+                        im = imutils.rotate(im, int(self.rotation[1].get()))
+                    plt.imshow(im, cmap=mpl.colormaps["gray"], interpolation="none")
+                    writer.grab_frame()
+            plt.close(fig)
 
     def save_mat(self, datastack, roi_map, roi=[]):
         if self.extension_table[2].get():
             suffix = "_ROI" + str(roi) if roi else ""
             filename = datastack.filename + suffix + ".mat"
             mask = (roi_map == roi) if roi else (roi_map == 1)
-            dict_ = {}
+            dict_ = {"dark": datastack.dark}
             for var in datastack.vars:
                 data = var.values(mask * np.isfinite(var.values))
                 dict_.update({var.name: data})
-            scipy.io.savemat(filename, dict_) 
+            scipy.io.savemat(filename, dict_)
 
     def compute_roi_map(self, datastack):
         shape = (datastack.height, datastack.width)
         if len(datastack.rois):
+            Y, X = np.mgrid[:datastack.height, :datastack.width]
+            points = np.vstack((X.flatten(), Y.flatten())).T
             roi_map = np.zeros(shape, dtype=np.int32)
             roi_ilow_map = np.zeros(shape)
             for roi in datastack.rois:
                 patch= Polygon(roi["vertices"].T)
-                roi_map[patch.contains_points(self.points).reshape(shape)] = roi["indx"]
-                roi_ilow_map[patch.contains_points(self.points).reshape(shape)] = roi["ILow"]
+                roi_map[patch.contains_points(points).reshape(shape)] = roi["indx"]
+                roi_ilow_map[patch.contains_points(points).reshape(shape)] = roi["ILow"]
         else:
             roi_map = np.ones(shape, dtype=np.int32)
             roi_ilow_map = np.ones(shape, dtype=np.float64) * np.float64(self.ilow.get())
-        mask = self.get_mask()
+        mask = self.get_mask(datastack)
         if self.per_roi.get() == "off":
             roi_map[roi_map != 0] = 1
         return roi_map, (datastack.itot >= roi_ilow_map) * mask
@@ -1381,6 +1400,7 @@ class App(CTk.CTk):
             pzz = (mat[2, :, :] / s).reshape(shape)
             lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
             a0 = np.mean(field, axis=2) / 4
+            a0[a0 == 0] = np.nan
         elif self.method.get() == '4POLAR 2D':
             mat = np.einsum("ij,mnj->imn", self.invKmat_2D, field)
             s = mat[0, :, :] + mat[1, :, :] + mat[2, :, :]
@@ -1388,9 +1408,9 @@ class App(CTk.CTk):
             puv = (2 * mat[3, :, :] / s).reshape(shape)
             lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
             a0 = np.mean(field, axis=2) / 4
+            a0[a0 == 0] = np.nan
         rho_ = Variable(datastack)
         rho_.name, rho_.latex = "Rho", "$\rho$"
-        rho_.display, rho_.min, rho_.max = self.get_variable(0)
         rho_.orientation = True
         rho_.type_histo = "polar1"
         rho_.colormap = "hsv"
@@ -1406,7 +1426,6 @@ class App(CTk.CTk):
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.values = np.nan * np.ones(a0.shape)
             psi_.values[ixgrid] = psi
-            psi_.display, psi_.min, psi_.max = self.get_variable(1)
             psi_.colormap = "jet"
             mask *= np.isfinite(rho_.values) * np.isfinite(psi_.values)
             datastack.vars = [rho_, psi_]
@@ -1422,7 +1441,6 @@ class App(CTk.CTk):
             s4_ = Variable(shape)
             s4_.name, s4_.latex = "S4", "$S_4$"
             s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.value[mask])))
-            s4_.display, s4_.min, s4_.max = self.get_variable(2)
             s4_.colormap = "jet"
             datastack.vars = [rho_, s2_, s4_]
         elif self.method.get() == 'SHG':
@@ -1432,7 +1450,6 @@ class App(CTk.CTk):
             s_shg_ = Variable(datastack)
             s_shg_.name, s_shg_.latex = "S_SHG", "$S_\mathrm{SHG}$"
             s_shg_.values[mask] = -0.5 * (np.abs(a4[mask]) - np.abs(a2[mask])) / (np.abs(a4[mask]) + np.abs(a2[mask])) - 0.65
-            s_shg_.display, s_shg_.min, s_shg_.max = self.get_variable(1)
             s_shg_.colormap = "jet"
             datastack.vars = [rho_, s_shg_]
         elif self.method.get() == "4POLAR 3D":
@@ -1447,7 +1464,6 @@ class App(CTk.CTk):
             eta_ = Variable(shape)
             eta_.name, eta_.latex = "Eta", "$\eta$"
             eta_.values[mask] = np.rad2deg(np.acos(np.sqrt((pzz[mask] - lam[mask]) / (1 - 3 * lam[mask]))))
-            eta_.display, eta_.min, eta_.max = self.get_variable(2)
             eta_.type_histo = "polar2"
             eta_.colormap = "parula"
             datastack.vars = [rho_, psi_, eta_]
@@ -1458,7 +1474,6 @@ class App(CTk.CTk):
             psi_ = Variable(datastack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.values[mask] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
-            psi_.display, psi_.min, psi_.max = self.get_variable(2)
             psi_.colormap = "jet"
             datastack.vars = [rho_, psi_]
         a0[np.logical_not(mask)] = np.nan
@@ -1479,7 +1494,7 @@ class App(CTk.CTk):
 
 class Stack():
     def __init__(self, filename):
-        self.filename = os.path.basename(filename).split('.')[0]
+        self.filename = os.path.splitext(filename)[0]
         self.name = pathlib.Path(filename).stem
         self.folder = pathlib.Path(filename).parent
         self.height, self.width, self.nangle = 0, 0, 0
@@ -1493,6 +1508,7 @@ class DataStack():
         self.filename = stack.filename
         self.folder = stack.folder
         self.name = stack.name
+        self.method = ""
         self.height, self.width = stack.height, stack.width
         self.dark = 0
         self.itot = stack.itot
