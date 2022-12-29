@@ -10,7 +10,6 @@ import pathlib
 import scipy.io
 import h5py
 import pickle
-import io
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -25,6 +24,7 @@ import cv2
 from scipy.signal import convolve2d
 from scipy.interpolate import interpn
 from apptools import NToolbar2Tk, ToolTip
+from time import sleep
 
 CTk.set_default_color_theme("polarimetry.json")
 CTk.set_appearance_mode("dark")
@@ -45,9 +45,9 @@ class App(CTk.CTk):
     button_pady = 25
     axes_size = (680, 680)
     button_size = (160, 40)
-    info_size = ((420, 320), (300, 150))
+    info_size = ((420, 320), (360, 240), (300, 150))
     figsize = (6.5, 6.5)
-    geometry_info = {"large": "{}x{}+400+300".format(info_size[0][0], info_size[0][1]), "small": "{}x{}+400+300".format(info_size[1][0], info_size[1][1])}
+    geometry_info = {"large": "{}x{}+400+300".format(info_size[0][0], info_size[0][1]), "medium": "{}x{}+400+300".format(info_size[1][0], info_size[1][1]), "small": "{}x{}+400+300".format(info_size[2][0], info_size[2][1])}
 
     orange = ("#FF7F4F", "#ffb295")
     text_color = "black"
@@ -214,14 +214,15 @@ class App(CTk.CTk):
         CTk.CTkLabel(master=plot_options, text="Plot options", font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=2, padx=20, pady=(0, 20))
         self.add_axes_checkbox = self.checkbox(plot_options, text="\n Add axes on figures\n", command=self.add_axes_on_all_figures)
         self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=20, pady=0)
-        CTk.CTkLabel(master=plot_options, text="\n Number of pixels separating sticks\n").grid(row=2, column=0, columnspan=2, padx=20, pady=0)
+        self.button(plot_options, text="Crop figures", image=self.icons["crop"], command=self.crop_figures_callback).grid(row=2, column=0, columnspan=2, padx=20, pady=0)
+        CTk.CTkLabel(master=plot_options, text="\n Number of pixels separating sticks\n").grid(row=3, column=0, columnspan=2, padx=20, pady=(20, 0))
         labels = ["horizontal", "vertical"]
         self.pixelsperstick = [tk.StringVar(), tk.StringVar()]
         spinboxes = [ttk.Spinbox(master=plot_options, from_=0, to=10, textvariable=self.pixelsperstick[it], width=2, foreground=App.gray[1], background=App.gray[1]) for it in range(2)]
         for it in range(2):
             self.pixelsperstick[it].set(1)
-            spinboxes[it].grid(row=it+3, column=0, padx=0, pady=0)
-            CTk.CTkLabel(master=plot_options, text=labels[it], anchor="w").grid(row=it+3, column=1, padx=(0, 20), pady=20)
+            spinboxes[it].grid(row=it+4, column=0, padx=0, pady=(0, 20))
+            CTk.CTkLabel(master=plot_options, text=labels[it], anchor="w").grid(row=it+4, column=1, padx=(0, 20), pady=(0, 20))
         self.show_individual_fit_checkbox = self.checkbox(self.tabview.tab("Options"), text="Show individual fit")
         self.show_individual_fit_checkbox.grid(row=3, column=0, pady=20)
         self.button(self.tabview.tab("Options"), text="Download analysis", image=self.icons["download"], command=self.download_callback).grid(row=3, column=1, pady=20)
@@ -410,14 +411,14 @@ class App(CTk.CTk):
         entry.grid(row=0, column=1, padx=(10, 20), pady=5)
         return entry
 
-    def double_entry(self, master, text=None, variables=(None, None), row=0, column=0):
+    def double_entry(self, master, text=None, variables=(None, None), row=0, column=0, state="disabled"):
         banner = CTk.CTkFrame(master=master, fg_color=self.left_frame.cget("fg_color"))
         banner.grid(row=row, column=column, sticky="e")
         CTk.CTkLabel(master=banner, text=text).grid(row=0, column=0, padx=20)
         entries = [CTk.CTkEntry(master=banner, textvariable=variables[_], width=50) for _ in range(2)]
         for _, entry in enumerate(entries):
             entry.grid(row=0, column=_+1, padx=20, pady=10)
-            entry.configure(state="disabled")
+            entry.configure(state=state)
         return entries
 
     def showinfo(self, message="", image=None, button_labels=[]):
@@ -517,6 +518,34 @@ class App(CTk.CTk):
         self.method.set(datastack.method)
         self.plot_data(datastack)
         plt.show()
+
+    def crop_figures_callback(self):
+        info_window = CTk.CTkToplevel(self)
+        info_window.attributes('-topmost', 'true')
+        info_window.title('Polarimetry Analysis')
+        info_window.geometry(App.geometry_info["medium"])
+        CTk.CTkLabel(info_window, text="Define xlim and ylim", image=self.icons["crop"], compound="left", width=250).grid(row=0, column=0, padx=30, pady=20)
+        self.xlim = [tk.IntVar() for _ in range(2)]
+        self.ylim = [tk.IntVar() for _ in range(2)]
+        if not hasattr(self, "xlim") and hasattr(self, "datastack"):
+            self.xlim[0].set(1)
+            self.xlim[1].set(self.datastack.width)
+            self.ylim[0].set(1)
+            self.ylim[1].set(self.datastack.height)
+        self.double_entry(info_window, text="xlim", variables=self.xlim, row=1, state="normal")
+        self.double_entry(info_window, text="ylim", variables=self.ylim, row=2, state="normal")
+        ok_button = self.button(info_window, text="       OK", command=lambda:self.crop_figures(info_window))
+        ok_button.configure(width=80, height=App.button_size[1])
+        ok_button.grid(row=3, column=0, pady=20)
+
+    def crop_figures(self, window):
+        figs = list(map(plt.figure, plt.get_fignums()))
+        for fig in figs:
+            if fig.canvas.manager.get_window_title().endswith(("Sticks", "Composite", "Fluorescence")):
+                fig.axes[0].set_xlim((self.xlim[0].get(), self.xlim[1].get()))
+                fig.axes[0].set_ylim((self.ylim[1].get(), self.ylim[0].get()))
+            plt.show()
+        window.withdraw()
 
     def clear_patches(self, ax, fig):
         if ax.patches:
@@ -859,7 +888,7 @@ class App(CTk.CTk):
             for _ in range(dataset.n_frames):
                 dataset.seek(_)
                 stack_vals[:, :, _] = np.array(dataset)
-            dict = {"values": stack_vals, "height": h, "width": w, "nangle": dataset.n_frames, "mode": dataset.mode, "display": "{:.2f}" if dataset.mode == "I" else "{:.0f}"}
+            dict = {"values": stack_vals, "height": h, "width": w, "nangle": dataset.n_frames, "display": "{:.2f}" if dataset.mode == "I" else "{:.0f}"}
             stack = Stack(filename)
             for key in dict:
                 setattr(stack, key, dict[key])
@@ -885,14 +914,16 @@ class App(CTk.CTk):
     def select_file(self):
         filetypes = [("Tiff files", "*.tiff"), ("Tiff files", "*.tif")]
         filename = fd.askopenfilename(title="Select a file", initialdir="/", filetypes=filetypes)
+        self.filelist = []
         if filename:
             self.open_file(filename)
             
     def select_folder(self):
         folder = fd.askdirectory(title="Select a directory", initialdir="/")
-        list_file = [filename.endswith(('.tif', '.tiff')) for filename in os.listdir(folder)]
-        if folder and any(list_file):
-            self.open_file(list_file[0])
+        self.filelist = [filename.endswith(('.tif', '.tiff')) for filename in os.listdir(folder)]
+        self.indxlist = 0
+        if folder and any(self.filelist):
+            self.open_file(self.filelist[0])
 
     def tool_dropdown_callback(self, method):
         self.advance_file = True if method.endswith("(auto)") else False
@@ -985,8 +1016,20 @@ class App(CTk.CTk):
         if hasattr(self, "stack"):
             self.tabview.set("Fluorescence")
             self.analysis_button.configure(image=self.icons["pause"])
+            sleep(0.1)
             if not self.advance_file:
                 self.analyze_stack(self.datastack)
+                if self.filelist:
+                    self.indxlist += 1
+                    if self.indxlist < len(self.filelist):
+                        self.open_file(self.filelist[self.indxlist])
+                        self.initialize_noise()
+                    else:
+                        self.indxlist = 0
+                        self.open_file(self.filelist[self.indxlist])
+                        window, buttons = self.showinfo(message="End of analysis", image=self.icons["check_circle"], button_labels=["OK"])
+                        buttons.configure(command=lambda:window.withdraw())
+                        self.initialize()
             else:
                 for file in os.listdir(self.stack.folder):
                     self.open_file(file)
@@ -995,6 +1038,7 @@ class App(CTk.CTk):
                 buttons.configure(command=lambda:window.withdraw())
                 self.initialize()
             self.analysis_button.configure(image=self.icons["play"])
+            sleep(0.1)
 
     def close_callback(self):
         plt.close("all")
@@ -1123,40 +1167,59 @@ class App(CTk.CTk):
         self.dark.set(stack.display.format(dark))
 
     def circularmean(self, rho):
-        return np.mod(np.angle(np.mean(np.exp(2j * rho), deg=True)), 360) / 2
+        return np.mod(np.angle(np.mean(np.exp(2j * rho)), deg=True), 360) / 2
 
     def get_variable(self, indx):
         display = self.variable_display[indx].get()
         min, max = float(self.variable_min[indx].get()), float(self.variable_max[indx].get())
         return display, min, max
 
-    def plot_histo(self, var, datastack, roi_map, roi=[]):
-        if var.display and (self.show_table[2].get() or self.save_table[2].get()):
+    def plot_histo(self, var, datastack, min, max, roi_map, roi=[]):
+        if self.show_table[2].get() or self.save_table[2].get():
             suffix = "for ROI " + str(roi) if roi else ""
             fig = plt.figure(figsize=App.figsize)
-            fig.canvas.manager.set_window_title(var.name + "histogram" + suffix)
-            fig.patch.set_facecolor(App.gray[0])
+            fig.canvas.manager.set_window_title(var.name + " Histogram" + suffix)
+            fig.patch.set_facecolor("w")
             mask = (roi_map == roi) if roi else (roi_map == 1)
-            data_vals = var.values(mask * (~np.isnan(var.values)))
-            ax = plt.gca()
+            data_vals = var.values[mask * (~np.isnan(var.values))]
+            norm = mpl.colors.Normalize(min, max)
+            cmap = mpl.colormaps[var.colormap]
+            bins = np.arange(min, max, 3)
             if var.type_histo == "normal":
-                bins = np.linspace(np.amin(var.values), np.amax(var.values), np.amax(var.values)/60)
-                n, bins, patches = ax.hist(var.values, bins)
+                ax = plt.gca()
+                n, bins, patches = ax.hist(data_vals, bins=bins)
                 bin_centers = (bins[:-1] + bins[1:]) / 2
-                norm = plt.Normalize(var.min, var.max)
                 for bin, patch in zip(bin_centers, patches):
-                    patch.set_facecolor(norm[bin])
-                ax.set_xlim(np.amin(var.values), np.amax(var.values))
+                    color = cmap(norm(bin))
+                    patch.set_facecolor(color)
+                ax.set_xlim((min, max))
                 ax.set_xlabel(var.latex, usetex=True, fontsize=20)
                 ax.set_title(datastack.name, fontsize=14)
                 text = var.latex + " = " + "{:.2f}".format(np.mean(data_vals)) + " $\pm$ " "{:.2f}".format(np.std(data_vals))
-                ax.annotate(text, (0.2, 0.91), textcoords="figure fraction", fontsize=20, usetex=True)
-            elif var.type_histo == "polar1":
-                data_vals = np.mod(2 * (data_vals + float(self.rotation[1].get())), 360) / 2
-                meandata = self.circularmean(data_vals)
-                delta_rho = np.mod(2 * (data_vals - meandata), 180) / 2
-            elif var.type_histo == "polar2":
-                print("in progress...")
+                ax.annotate(text, xy=(0.2, 0.91), xycoords="axes fraction", fontsize=20, usetex=True)
+            elif var.type_histo.startswith("polar"):
+                ax = plt.subplot(projection="polar")
+                if var.type_histo == "polar1":
+                    data_vals = np.mod(2 * (data_vals + float(self.rotation[1].get())), 360) / 2
+                    meandata = self.circularmean(data_vals)
+                    std = np.std(np.mod(2 * (data_vals - meandata), 180) / 2)
+                elif var.type_histo == "polar2":
+                    ax.set_theta_zero_location("N")
+                    ax.set_theta_direction(-1)
+                    meandata = np.mean(data_vals)
+                    std = np.std(data_vals)
+                distribution, bin_edges = np.histogram(data_vals, bins=bins, range=(min, max))
+                bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+                width = np.deg2rad(bins[1] - bins[0])
+                colors = cmap(norm(bins))
+                ax.bar(np.deg2rad(bin_centers), distribution, width=width, color=colors, edgecolor="k", linewidth=0.5)
+                num = 10**(len(str(np.amax(distribution))) - 2)
+                ax.set_rticks(np.floor(np.linspace(0, np.max(distribution), 3) / num) * num)
+                ax.set_thetamin(min)
+                ax.set_thetamax(max)
+                ax.set_title(datastack.name, fontsize=14)
+                text = var.latex + " = " + "{:.2f}".format(meandata) + " $\pm$ " "{:.2f}".format(std)
+                ax.annotate(text, xy=(0.2, 0.91), xycoords="axes fraction", fontsize=20, usetex=True)
             suffix = "_perROI_" + str(roi) if roi else ""
             filename = datastack.filename + "_Histo" + var.name + suffix
             if self.save_table[2].get() and self.extension_table[1].get():
@@ -1184,7 +1247,7 @@ class App(CTk.CTk):
                 ax.text(coord[0], coord[1], str(roi["indx"]), color="w")
             fig.draw()
 
-    def plot_composite(self, var, datastack, *args):
+    def plot_composite(self, var, datastack, vmin, vmax):
         if self.show_table[0].get() or self.save_table[0].get():
             fig = plt.figure(figsize=App.figsize)
             fig.canvas.manager.set_window_title(var.name + " Composite")
@@ -1198,7 +1261,7 @@ class App(CTk.CTk):
                     im = np.mod(2 * (im + int(self.rotation[1].get())), 360) / 2
                 im = imutils.rotate(im, int(self.rotation[1].get()))
                 im[im == 0] = np.nan
-            h2 = ax.imshow(im, vmin=args[0], vmax=args[1], cmap=var.colormap, interpolation="none") 
+            h2 = ax.imshow(im, vmin=vmin, vmax=vmax, cmap=var.colormap, interpolation="none") 
             plt.colorbar(h2)
             ax.set_title(datastack.name)
             suffix = "_" + var.name + "Composite"
@@ -1207,7 +1270,7 @@ class App(CTk.CTk):
             if not self.show_table[0].get():
                 plt.close(fig) 
 
-    def plot_sticks(self, var, datastack, *args):
+    def plot_sticks(self, var, datastack, min, max):
         L, W = 6, 0.2
         l, w = L / 2, W / 2
         if self.show_table[1].get() or self.save_table[1].get():
@@ -1242,7 +1305,7 @@ class App(CTk.CTk):
                 vertices = np.asarray([x0 + (vertices[0] - x0) * np.cos(theta) + (vertices[1] - y0) * np.sin(theta), y0 - (vertices[0] - x0) * np.sin(theta) + (vertices[1] - y0) * np.cos(theta)])
             vertices = np.swapaxes(vertices, 0, 2)
             p = PolyCollection(vertices, cmap=mpl.colormaps[var.colormap], lw=2, array=stick_colors)
-            p.set_clim([args[0], args])
+            p.set_clim([min, max])
             ax.add_collection(p)
             fig.colorbar(p, ax=ax)
             ax.set_title(datastack.name)
@@ -1275,13 +1338,13 @@ class App(CTk.CTk):
             if var.name not in ["X", "Y", "Int"]:
                 display, min, max = self.get_variable(_)
                 if display:
-                    self.plot_composite(var, datastack, [min, max])
-                    self.plot_sticks(var, datastack, [min, max])
-                if int_roi >= 2:
-                    for roi in np.arange(1, int_roi + 1):
-                        self.plot_histo(var, datastack, roi_map, roi=roi)
-                else:
-                    self.plot_histo(var, datastack, roi_map, roi=[])
+                    self.plot_composite(var, datastack, min, max)
+                    self.plot_sticks(var, datastack, min, max)
+                    if int_roi >= 2:
+                        for roi in np.arange(1, int_roi + 1):
+                            self.plot_histo(var, datastack, min, max, roi_map, roi=roi)
+                    else:
+                        self.plot_histo(var, datastack, min, max, roi_map, roi=[])
 
     def save_data(self, datastack):
         roi_map, mask = self.compute_roi_map(datastack)
@@ -1410,7 +1473,7 @@ class App(CTk.CTk):
             a0 = np.mean(field, axis=2) / 4
             a0[a0 == 0] = np.nan
         rho_ = Variable(datastack)
-        rho_.name, rho_.latex = "Rho", "$\rho$"
+        rho_.name, rho_.latex = "Rho", r"$\rho$"
         rho_.orientation = True
         rho_.type_histo = "polar1"
         rho_.colormap = "hsv"
@@ -1495,13 +1558,12 @@ class App(CTk.CTk):
 class Stack():
     def __init__(self, filename):
         self.filename = os.path.splitext(filename)[0]
-        self.name = pathlib.Path(filename).stem
         self.folder = pathlib.Path(filename).parent
+        self.name = pathlib.Path(filename).stem
         self.height, self.width, self.nangle = 0, 0, 0
-        self.mode = "I"
+        self.display = "{:.0f}"
         self.values = []
         self.itot = []
-        self.display = []
 
 class DataStack():
     def __init__(self, stack):
@@ -1520,9 +1582,6 @@ class Variable():
         self.name = ""
         self.latex = ""
         self.values = np.nan * np.ones((datastack.height, datastack.width))
-        self.display = []
-        self.min = []
-        self.max = []
         self.orientation = False
         self.type_histo = "normal"
         self.colormap = []
