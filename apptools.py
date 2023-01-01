@@ -61,8 +61,6 @@ class ToolTip:
     def __init__(self, widget):
         self.widget = widget
         self.tipwindow = None
-        self.id = None
-        self.x = self.y = 0
 
     def showtip(self, text):
         self.text = text
@@ -71,7 +69,7 @@ class ToolTip:
         x, y, _, _ = self.widget.bbox("insert")
         x = x + self.widget.winfo_rootx() + self.widget.winfo_width()
         y = y + self.widget.winfo_rooty()
-        self.tipwindow = tw = tk.Toplevel(self.widget)
+        self.tipwindow = tw = CTk.CTkToplevel(self.widget)
         tw.wm_overrideredirect(1)
         tw.wm_geometry("+%d+%d" % (x, y))
         try:
@@ -87,8 +85,3 @@ class ToolTip:
         self.tipwindow = None
         if tw:
             tw.destroy()
-
-
-
-#    def get_roi_coordinates(self):
-#        return list(zip(self.x, self.y))

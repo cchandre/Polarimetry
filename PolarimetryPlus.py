@@ -15,13 +15,12 @@ from scipy.interpolate import interpn
 from scipy.ndimage import rotate
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import imutils
 from matplotlib.figure import Figure
 from matplotlib.patches import Polygon
 from matplotlib.collections import PolyCollection
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.animation as manimation
-from PIL import Image, ImageEnhance
+from PIL import Image
 from skimage import exposure
 import cv2
 import openpyxl
@@ -100,8 +99,7 @@ class App(CTk.CTk):
         logo = self.button(self.left_frame, text="POLARIMETRY \n ANALYSIS", image=self.icons["blur_circular"], command=self.on_click_tab)
         logo.configure(hover=False, fg_color="transparent", anchor="e")
         logo.grid(row=0, column=0, pady=30, padx=17)
-        self.button(self.left_frame, text="Download File", command=self.select_file, image=self.icons["download_file"], anchor="w").grid(row=2, column=0, pady=App.button_pady, padx=17)
-        self.button(self.left_frame, text="Download Folder", command=self.select_folder, image=self.icons["download_folder"], anchor="w").grid(row=3, column=0, pady=App.button_pady, padx=17)
+        self.dropdown(self.left_frame, values=["Open file", "Open folder"], image=self.icons["download_file"], command=self.open_file_callback, row=2, column=0)
         button = self.button(self.left_frame, text="Add ROI", image=self.icons["roi"], command=self.add_roi_callback, anchor="w")
         ToolTip.createToolTip(button, "Add a region of interest: polygon (left button), freehand (right button)")
         button.grid(row=5, column=0, pady=App.button_pady, padx=17)
@@ -110,13 +108,14 @@ class App(CTk.CTk):
         self.analysis_button.configure(fg_color=App.green[0], hover_color=App.green[1])
         self.analysis_button.grid(row=6, column=0, pady=App.button_pady, padx=17)
         button = self.button(self.left_frame, text="Close figures", command=self.close_callback, image=self.icons["close"], anchor="w")
+        ToolTip.createToolTip(button, "Close all open figures")
         button.configure(fg_color=App.red[0], hover_color=App.red[1])
         button.grid(row=7, column=0, pady=App.button_pady, padx=17)
         self.method = tk.StringVar()
         self.dropdown(self.left_frame, values=["1PF", "CARS", "SRS", "SHG", "2PF", "4POLAR 2D", "4POLAR 3D"], image=self.icons["microscope"], row=1, column=0, command=self.method_dropdown_callback, variable=self.method)
-        self.tool = tk.StringVar()
-        dropdown = self.dropdown(self.left_frame, values=["Thresholding (manual)", "Thresholding (auto)", "Mask (manual)", "Mask (auto)"], image=self.icons["build"], row=4, column=0, command=self.tool_dropdown_callback, variable=self.tool)
-        ToolTip.createToolTip(dropdown, " Select the method of analysis: intensity thresholding or segmentation\n mask for single file analysis (manual) or batch processing (auto).\n The mask has to be binary and in a PNG format and have the same\n file name as the respective polarimetry data file.")
+        self.option = tk.StringVar()
+        self.options_dropdown = self.dropdown(self.left_frame, values=["Thresholding (manual)", "Mask (manual)"], image=self.icons["build"], row=4, column=0, variable=self.option, state="disabled")
+        ToolTip.createToolTip(self.options_dropdown, " Select the method of analysis: intensity thresholding or segmentation\n mask for single file analysis (manual) or batch processing (auto).\n The mask has to be binary and in a PNG format and have the same\n file name as the respective polarimetry data file.")
 
 ## RIGHT FRAME: FLUO
         self.fluo_frame = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", width=App.axes_size[1], height=App.axes_size[0])
@@ -328,7 +327,7 @@ class App(CTk.CTk):
         ok_button.configure(width=80, height=App.button_size[1])
         ok_button.grid(row=7, column=0, padx=20, pady=0)
         self.method.set("1PF")
-        self.tool.set("Thresholding (manual)")
+        self.option.set("Thresholding (manual)")
         self.define_variable_table("1PF")
         self.CD = Calibration("1PF")
         self.calib_dropdown.configure(values=self.CD.list("1PF"))
@@ -389,16 +388,16 @@ class App(CTk.CTk):
         if text is not None:
             button = CTk.CTkButton(master=master, width=width, height=height, text=text, anchor=anchor, image=image, compound=tk.LEFT, command=command)
         else:
-            button = CTk.CTkButton(master=master, text=None, width=height, height=height, anchor=anchor, image=image, command=command)
+            button = CTk.CTkButton(master=master, width=height, height=height, text=None, anchor=anchor, image=image, compound=tk.LEFT,command=command)
         return button
 
-    def dropdown(self, master, values=[], image=None, row=0, column=0, command=None, variable=None):
+    def dropdown(self, master, values=[], image=None, row=0, column=0, command=None, variable=None, state="normal"):
         menu = CTk.CTkFrame(master=master, fg_color=self.left_frame.cget("fg_color"))
         menu.grid(row=row, column=column, padx=17, pady=App.button_pady)
         menu_icon = self.button(menu, image=image)
         menu_icon.configure(hover=False)
         menu_icon.grid(row=0, column=0)
-        option_menu = CTk.CTkOptionMenu(master=menu, values=values, width=App.button_size[0]-App.button_size[1], height=App.button_size[1], dynamic_resizing=False, anchor="w", command=command, variable=variable)
+        option_menu = CTk.CTkOptionMenu(master=menu, values=values, width=App.button_size[0]-App.button_size[1], height=App.button_size[1], dynamic_resizing=False, anchor="w", command=command, variable=variable, state=state)
         option_menu.grid(row=0, column=1)
         return option_menu
 
@@ -494,13 +493,13 @@ class App(CTk.CTk):
                 window = CTk.CTkToplevel(self)
                 window.attributes('-topmost', 'true')
                 window.title('Polarimetry Analysis')
-                window.geometry(App.geometry_info(App.info_size[0]))
-                CTk.CTkLabel(window, text="  Select ROIs to be removed ", font=CTk.CTkFont(size=20), image=self.icons["format_list"], compound="left").grid(row=0, column=0, padx=30, pady=20)
+                window.geometry(App.geometry_info((350, 180)))
+                CTk.CTkLabel(window, text="  Select ROIs to be removed ", font=CTk.CTkFont(size=20), image=self.icons["format_list"], compound="left").grid(row=0, column=0, padx=30, pady=10)
                 variable = tk.StringVar()
                 variable.set("all")
                 values = ["all"] + [str(_ + 1) for _ in range(len(self.datastack.rois))]
                 menu = CTk.CTkOptionMenu(master=window, values=values, variable=variable)
-                menu.grid(row=1, column=0, padx=20, pady=20)
+                menu.grid(row=1, column=0, padx=20, pady=10)
                 ok_button = self.button(master=window, text="OK", command=lambda:self.remove_roi(window, variable.get()))
                 ok_button.configure(width=80, height=App.button_size[1])
                 ok_button.grid(row=2, column=0, padx=20, pady=20)
@@ -510,6 +509,28 @@ class App(CTk.CTk):
         for fig in figs:
             fig.axes[0].axis(self.add_axes_checkbox.get())
             fig.canvas.draw()
+
+    def open_file_callback(self, value):
+        if value == "Open file":
+            filetypes = [("Tiff files", "*.tiff"), ("Tiff files", "*.tif")]
+            filename = fd.askopenfilename(title="Select a file", initialdir="/", filetypes=filetypes)
+            self.filelist = []
+            if filename:
+                self.open_file(filename)
+                self.options_dropdown.configure(state="normal", values=["Thresholding (manual)", "Mask (manual)"])
+        elif value == "Open folder":
+            folder = fd.askdirectory(title="Select a directory", initialdir="/")
+            self.filelist = []
+            for filename in os.listdir(folder):
+                if filename.endswith(('.tif', '.tiff')):
+                    self.filelist += [folder + "/" + filename]
+            self.indxlist = 0
+            if folder and any(self.filelist):
+                self.open_file(self.filelist[0])
+                self.options_dropdown.configure(state="normal", values=["Thresholding (manual)", "Thresholding (auto)", "Mask (manual)", "Mask (auto)"])
+            else:
+                window, buttons = self.showinfo(message="The folder does not contain TIFF or TIF files", image=self.icons["warning"], button_labels=["OK"], geometry=(340, 140))
+                buttons[0].configure(command=lambda:window.withdraw())
 
     def download_callback(self):
         self.fluo_axis.clear()
@@ -575,20 +596,21 @@ class App(CTk.CTk):
 
     def export_mask(self):
         if hasattr(self, "datastack"):
-            window, buttons = self.showinfo(message=" Select output mask type ", image=self.icons['open_in_new'], button_labels=["ROI", "Intensity", "ROI x Intensity", "Cancel"], geometry=(500, 150))
-            for _, button in enumerate(buttons):
-                button.configure(command=lambda:self.export_mask_callback(window, _))
+            window, buttons = self.showinfo(message=" Select output mask type: \n\n   - ROI: export ROIs as segmentation mask \n   - Intensity: export intensity-thresholded image as segmentation mask \n   - ROI x Intensity: export intensity-thresholded ROIs as segmentation mask", image=self.icons['open_in_new'], button_labels=["ROI", "Intensity", "ROI x Intensity", "Cancel"], geometry=(530, 200))
+            buttons[0].configure(command=lambda:self.export_mask_callback(window, 0))
+            buttons[1].configure(command=lambda:self.export_mask_callback(window, 1))
+            buttons[2].configure(command=lambda:self.export_mask_callback(window, 2))
+            buttons[3].configure(command=lambda:self.export_mask_callback(window, 3))
 
     def export_mask_callback(self, window, event):
         roi_map, mask = self.compute_roi_map(self.datastack)
         array = []
-        print(event)
         if event == 0:
-            array = np.int32(roi_map != 0)
+            array = np.uint8(roi_map != 0)
         elif event == 1:
-            array = np.int32(self.datastack.itot >= float(self.ilow.get()))
+            array = np.uint8(self.datastack.itot >= float(self.ilow.get()))
         elif event == 2:
-            array = mask
+            array = mask.astype(np.uint8)
         if np.any(array):
             plt.imsave(self.datastack.filename + ".png", array, cmap="gray")
         window.withdraw()
@@ -798,7 +820,7 @@ class App(CTk.CTk):
         self.compute_dark(beadstack)
         dark = float(self.dark.get())
         itot = np.sum((beadstack.values - dark) * (beadstack.values >= dark), axis=2)
-        whitelight = cv2.imread(str(beadstack.folder) + "/" + "Whitelight.tif", cv2.IMREAD_GRAYSCALE)
+        whitelight = cv2.imread(beadstack.folder + "/" + "Whitelight.tif", cv2.IMREAD_GRAYSCALE)
         ret, thresh = cv2.threshold(whitelight, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         filter = np.asarray([len(contour) >= 200 for contour in contours])
@@ -923,27 +945,10 @@ class App(CTk.CTk):
         self.represent_fluo(update=False)
         self.represent_thrsh(update=False)
 
-    def select_file(self):
-        filetypes = [("Tiff files", "*.tiff"), ("Tiff files", "*.tif")]
-        filename = fd.askopenfilename(title="Select a file", initialdir="/", filetypes=filetypes)
-        self.filelist = []
-        if filename:
-            self.open_file(filename)
-            
-    def select_folder(self):
-        folder = fd.askdirectory(title="Select a directory", initialdir="/")
-        self.filelist = [filename.endswith(('.tif', '.tiff')) for filename in os.listdir(folder)]
-        self.indxlist = 0
-        if folder and any(self.filelist):
-            self.open_file(self.filelist[0])
-        else:
-             window, buttons = self.showinfo(message="The folder does not contain TIFF or TIF files", image=self.icons["warning"], button_labels=["OK"], geometry=(340, 140))
-             buttons[0].configure(command=lambda:window.withdraw())
-
-    def tool_dropdown_callback(self, method):
-        self.advance_file = True if method.endswith("(auto)") else False
+    def tool_dropdown_callback(self, option):
+        self.advance_file = True if option.endswith("(auto)") else False
         if hasattr(self, "datastack"):
-            if method.startswith("Mask"):
+            if option.startswith("Mask"):
                 self.ilow.set(self.stack.display.format(np.amin(self.datastack.itot)))
                 self.represent_thrsh()
 
@@ -1020,7 +1025,7 @@ class App(CTk.CTk):
 
     def get_mask(self, datastack):
         mask = np.ones((datastack.height, datastack.width))
-        if self.tool.get().startswith("Mask"):
+        if self.option.get().startswith("Mask"):
             mask_name = datastack.filename + ".png"
             if os.path.isfile(mask_name):
                 im_binarized = np.asarray(plt.imread(mask_name), dtype=np.float64)
@@ -1128,7 +1133,7 @@ class App(CTk.CTk):
     def represent_thrsh(self, update=True):
         if hasattr(self, "stack"):
             field = self.stack.itot
-            if self.tool.get().startswith("Mask"):
+            if self.option.get().startswith("Mask"):
                 mask_name = os.path.basename(self.stack.filename) + ".png"
                 if os.path.isfile(mask_name):
                     im_binarized = cv2.imread(mask_name)
@@ -1382,9 +1387,10 @@ class App(CTk.CTk):
             if not self.show_table[3].get():
                 plt.close(fig)
 
-    def plot_data(self, datastack):
+    def plot_data(self, datastack, roi_map=[]):
         self.plot_fluo(datastack)
-        roi_map, mask = self.compute_roi_map(datastack)
+        if len(roi_map) == 0:
+            roi_map, mask = self.compute_roi_map(datastack)
         int_roi = np.amax(roi_map)
         for _, var in enumerate(datastack.vars):
             if var.name not in ["X", "Y", "Int"]:
@@ -1398,8 +1404,9 @@ class App(CTk.CTk):
                     else:
                         self.plot_histo(var, datastack, min, max, roi_map, roi=[])
 
-    def save_data(self, datastack):
-        roi_map, mask = self.compute_roi_map(datastack)
+    def save_data(self, datastack, roi_map=[]):
+        if len(roi_map) == 0:
+            roi_map, mask = self.compute_roi_map(datastack)
         int_roi = np.amax(roi_map)
         if int_roi >= 2:
             for roi in np.arange(1, int_roi + 1):
@@ -1434,7 +1441,7 @@ class App(CTk.CTk):
             plt.close(fig)
         if self.extension_table[3].get():
             if self.filelist:
-                filename = str(self.stack.folder) + "/" + os.path.basename(self.stack.folder) + "_Stats.xlsx"
+                filename = self.stack.folder + "/" + os.path.basename(self.stack.folder) + "_Stats.xlsx"
                 title = os.path.basename(self.stack.folder)
             else:
                 filename = self.stack.filename + "_Stats.xlsx"
@@ -1496,7 +1503,7 @@ class App(CTk.CTk):
             Y, X = np.mgrid[:datastack.height, :datastack.width]
             points = np.vstack((X.flatten(), Y.flatten())).T
             roi_map = np.zeros(shape, dtype=np.int32)
-            roi_ilow_map = np.zeros(shape)
+            roi_ilow_map = np.zeros(shape, dtype=np.float64)
             for roi in datastack.rois:
                 patch= Polygon(roi["vertices"].T)
                 roi_map[patch.contains_points(points).reshape(shape)] = roi["indx"]
@@ -1507,7 +1514,8 @@ class App(CTk.CTk):
         mask = self.get_mask(datastack)
         if self.per_roi.get() == "off":
             roi_map[roi_map != 0] = 1
-        return roi_map, (datastack.itot >= roi_ilow_map) * mask
+        mask *= (datastack.itot >= roi_ilow_map) * (roi_map > 0)
+        return roi_map, mask != 0
 
     def slice4polar(self, stack, xpos, ypos, npix):
         stack_ = Stack(stack.filename)
@@ -1534,7 +1542,7 @@ class App(CTk.CTk):
         field = field * (field >= 0)
         if self.method.get() == "1PF":
             field = np.sqrt(field)
-        elif self.method.get() in ["4POLAR 2D", "4POLAR 3D"]:
+        elif self.method.get().startswith("4POLAR"):
             field[:, :, [2, 3]] = field[:, :, [3, 2]]
         bin_shape = [self.bin[_].get() for _ in range(2)]
         if sum(bin_shape) != 2:
@@ -1576,7 +1584,6 @@ class App(CTk.CTk):
         rho_.orientation = True
         rho_.type_histo = "polar1"
         rho_.colormap = "hsv"
-        mask = (roi_map > 0) * (mask != 0)
         if self.method.get() == "1PF":
             mask *= (np.abs(a2) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             ixgrid = np.where(mask)
@@ -1655,15 +1662,15 @@ class App(CTk.CTk):
             self.field_fit = field_fit
             self.chi2 = chi2
             self.datastack = datastack
-        self.plot_data(datastack)
-        self.save_data(datastack)
+        self.plot_data(datastack, roi_map=roi_map)
+        self.save_data(datastack, roi_map=roi_map)
         plt.show()
 
 class Stack():
     def __init__(self, filename):
         self.filename = os.path.splitext(filename)[0]
-        self.folder = pathlib.Path(filename).parent
-        self.name = pathlib.Path(filename).stem
+        self.folder = str(pathlib.Path(filename).parent)
+        self.name = str(pathlib.Path(filename).stem)
         self.height, self.width, self.nangle = 0, 0, 0
         self.display = "{:.0f}"
         self.values = []
