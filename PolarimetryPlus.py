@@ -42,13 +42,12 @@ class App(CTk.CTk):
     height = 850
     width = left_frame_width + right_frame_width
     tab_width = right_frame_width - 40
-    height_tab = height - 20
-    button_pady = 25
+    tab_height = height - 20
     axes_size = (680, 680)
+    figsize = (450, 450)
     button_size = (160, 40)
     info_size = ((420, 320), (360, 240), (300, 150))
-    figsize = (6.5, 6.5)
-    geometry_info = lambda dim: "{}x{}+400+300".format(dim[0], dim[1])
+    geometry_info = lambda dim: f"{dim[0]}x{dim[1]}+400+300"
 
     orange = ("#FF7F4F", "#ffb295")
     text_color = "black"
@@ -65,129 +64,159 @@ class App(CTk.CTk):
 ## MAIN
         delx = self.winfo_screenwidth() // 10
         dely = self.winfo_screenheight() // 10
+        dpi = self.winfo_fpixels("1i")
+        self.figsize = (App.figsize[0] / dpi, App.figsize[1] / dpi)
         self.title("Polarimetry Analysis")
-        self.geometry("{}x{}+{}+{}".format(App.width, App.height, delx, dely))
+        self.geometry(f"{App.width}x{App.height}+{delx}+{dely}")
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.bind("<Command-q>", self.on_closing)
         self.bind("<Command-w>", self.on_closing)
-        self.createcommand('tk::mac::Quit', self.on_closing)
-
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        self.createcommand("tk::mac::Quit", self.on_closing)
         self.configure(fg_color=App.gray[0])
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
 
         image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Icons_Python")
         self.icons = {}
         for file in os.listdir(image_path):
-            if file.endswith('.png'):
+            if file.endswith(".png"):
                 self.icons.update({os.path.splitext(file)[0]: CTk.CTkImage(dark_image=Image.open(image_path + "/" + file), size=(30, 30))})
 
 ## DEFINE FRAMES
         self.left_frame = CTk.CTkFrame(master=self, width=App.left_frame_width, corner_radius=0, fg_color=App.gray[0])
-        self.left_frame.grid(row=0, column=0, sticky="nswe")
+        self.left_frame.grid(row=0, column=0, sticky="nsew")
         self.right_frame = CTk.CTkFrame(master=self, width=App.right_frame_width)
-        self.right_frame.grid(row=0, column=1, sticky="nswe", padx=0, pady=0)
+        self.right_frame.grid_rowconfigure(0, weight=1)
+        self.right_frame.grid_rowconfigure(1, weight=0)
+        self.right_frame.grid_columnconfigure(0, weight=1)
+        self.right_frame.grid(row=0, column=1, sticky="nsew")
 
 ## DEFINE TABS
-        self.tabview = CTk.CTkTabview(master=self.right_frame, width=App.tab_width, height=App.height_tab, segmented_button_selected_color=App.orange[0], segmented_button_unselected_color=App.gray[1], segmented_button_selected_hover_color=App.orange[1], text_color="black", segmented_button_fg_color=App.gray[0], fg_color=App.gray[1])
-        self.tabview.grid(row=0, column=0, padx=10, pady=0)
+        self.tabview = CTk.CTkTabview(master=self.right_frame, width=App.tab_width, height=App.tab_height, segmented_button_selected_color=App.orange[0], segmented_button_unselected_color=App.gray[1], segmented_button_selected_hover_color=App.orange[1], text_color="black", segmented_button_fg_color=App.gray[0], fg_color=App.gray[1])
+        self.tabview.pack(fill=tk.BOTH, expand=True)
         list_tabs = ["Fluorescence", "Thresholding/Mask", "Options", "Advanced", "About"]
         for tab in list_tabs:
             self.tabview.add(tab)
 
 ## LEFT FRAME
-        logo = self.button(self.left_frame, text="POLARIMETRY \n ANALYSIS", image=self.icons["blur_circular"], command=self.on_click_tab)
-        logo.configure(hover=False, fg_color="transparent", anchor="e")
-        logo.grid(row=0, column=0, pady=30, padx=17)
-        self.dropdown(self.left_frame, values=["Open file", "Open folder"], image=self.icons["download_file"], command=self.open_file_callback, row=2, column=0)
-        button = self.button(self.left_frame, text="Add ROI", image=self.icons["roi"], command=self.add_roi_callback, anchor="w")
-        ToolTip.createToolTip(button, "Add a region of interest: polygon (left button), freehand (right button)")
-        button.grid(row=5, column=0, pady=App.button_pady, padx=17)
-        self.analysis_button = self.button(self.left_frame, text="Analysis", command=self.analysis_callback, image=self.icons["play"], anchor="w")
-        ToolTip.createToolTip(self.analysis_button, "Polarimetry analysis")
-        self.analysis_button.configure(fg_color=App.green[0], hover_color=App.green[1])
-        self.analysis_button.grid(row=6, column=0, pady=App.button_pady, padx=17)
-        button = self.button(self.left_frame, text="Close figures", command=self.close_callback, image=self.icons["close"], anchor="w")
-        ToolTip.createToolTip(button, "Close all open figures")
-        button.configure(fg_color=App.red[0], hover_color=App.red[1])
-        button.grid(row=7, column=0, pady=App.button_pady, padx=17)
+        logo = self.button(self.left_frame, text="POLARIMETRY\n          ANALYSIS", image=self.icons["blur_circular"], command=self.on_click_tab)
+        logo.configure(hover=False, fg_color="transparent")
+        logo.pack(padx=20, pady=(10, 40))
+
         self.method = tk.StringVar()
-        self.dropdown(self.left_frame, values=["1PF", "CARS", "SRS", "SHG", "2PF", "4POLAR 2D", "4POLAR 3D"], image=self.icons["microscope"], row=1, column=0, command=self.method_dropdown_callback, variable=self.method)
+        self.dropdown(self.left_frame, values=["1PF", "CARS", "SRS", "SHG", "2PF", "4POLAR 2D", "4POLAR 3D"], image=self.icons["microscope"], command=self.method_dropdown_callback, variable=self.method)
+
+        self.dropdown(self.left_frame, values=["Open file", "Open folder"], image=self.icons["download_file"], command=self.open_file_callback)
+
         self.option = tk.StringVar()
-        self.options_dropdown = self.dropdown(self.left_frame, values=["Thresholding (manual)", "Mask (manual)"], image=self.icons["build"], row=4, column=0, variable=self.option, state="disabled")
+        self.options_dropdown = self.dropdown(self.left_frame, values=["Thresholding (manual)", "Mask (manual)"], image=self.icons["build"], variable=self.option, state="disabled")
         ToolTip.createToolTip(self.options_dropdown, " Select the method of analysis: intensity thresholding or segmentation\n mask for single file analysis (manual) or batch processing (auto).\n The mask has to be binary and in a PNG format and have the same\n file name as the respective polarimetry data file.")
 
+        button = self.button(self.left_frame, text="Add ROI", image=self.icons["roi"], command=self.add_roi_callback)
+        ToolTip.createToolTip(button, "Add a region of interest: polygon (left button), freehand (right button)")
+        button.pack(padx=20, pady=20)
+
+        self.analysis_button = self.button(self.left_frame, text="Analysis", command=self.analysis_callback, image=self.icons["play"])
+        ToolTip.createToolTip(self.analysis_button, "Polarimetry analysis")
+        self.analysis_button.configure(fg_color=App.green[0], hover_color=App.green[1])
+        self.analysis_button.pack(padx=20, pady=20)
+
+        button = self.button(self.left_frame, text="Close figures", command=self.close_callback, image=self.icons["close"])
+        ToolTip.createToolTip(button, "Close all open figures")
+        button.configure(fg_color=App.red[0], hover_color=App.red[1])
+        button.pack(padx=20, pady=20)
+        
+
 ## RIGHT FRAME: FLUO
-        self.fluo_frame = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", width=App.axes_size[1], height=App.axes_size[0])
-        self.fluo_frame.grid(row=0, column=0, padx=0, pady=0, sticky="w")
-        self.fluo_fig = Figure(figsize=App.figsize, facecolor=App.gray[1])
+        bottomframe = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", height=40, width=App.axes_size[1])
+        bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=20)
+
+        canvasframe = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", height=App.axes_size[0], width=App.axes_size[1])
+        canvasframe.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.fluo_fig = Figure(figsize=self.figsize, facecolor=App.gray[1])
         self.fluo_axis = self.fluo_fig.add_axes([0, 0, 1, 1])
         self.fluo_axis.set_axis_off()
-        self.fluo_canvas = FigureCanvasTkAgg(self.fluo_fig, master=self.fluo_frame)
+        self.fluo_canvas = FigureCanvasTkAgg(self.fluo_fig, master=canvasframe)
         self.fluo_canvas.draw()
-        self.fluo_toolbar = NToolbar2Tk(self.fluo_canvas, self.fluo_frame, pack_toolbar=False)
+        self.fluo_toolbar = NToolbar2Tk(self.fluo_canvas, canvasframe, pack_toolbar=False)
+        self.fluo_toolbar.config(background=App.gray[1])
+        self.fluo_toolbar._message_label.config(background=App.gray[1])
+        for button in self.fluo_toolbar.winfo_children():
+            button.config(background=App.gray[1])
         self.fluo_toolbar.update()
-        banner = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent")
-        banner.grid(row=0, column=1)
-        self.button(banner, image=self.icons["contrast"], command=self.contrast_fluo_button_callback).grid(row=0, column=0, sticky="ne", padx=20, pady=20)
+
+        banner = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", height=App.axes_size[0], width=40)
+        banner.pack(side=tk.RIGHT, fill=tk.Y)
+        self.button(banner, image=self.icons["contrast"], command=self.contrast_fluo_button_callback).pack(side=tk.TOP, padx=20, pady=20)
         self.contrast_fluo_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_fluo_slider_callback)
         ToolTip.createToolTip(self.contrast_fluo_slider, " The chosen contrast will be the one used\n for the fluorescence images in figures")
-        self.contrast_fluo_slider.grid(row=1, column=0, padx=20, pady=20)
+        self.contrast_fluo_slider.pack(padx=20, pady=20)
         button = self.button(banner, image=self.icons["square"], command=self.compute_angle)
         #ToolTip.createToolTip(button, " Left click and hold to trace a line\n segment and determine its angle")
-        button.grid(row=3, column=0, padx=20, pady=20)
-        banner = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", width=App.axes_size[1], height=40)
-        banner.grid(row=1, column=0, pady=20)
-        self.filename_label = CTk.CTkLabel(master=banner, text=None)
-        self.filename_label.place(relx=0, rely=0.2)
-        self.stack_slider = CTk.CTkSlider(master=banner, from_=0, to=18, number_of_steps=18, command=self.stack_slider_callback)
+        button.pack(padx=20, pady=20)
+
+        self.filename_label = CTk.CTkLabel(master=bottomframe, text=None)
+        self.filename_label.pack(side=tk.LEFT)
+        sliderframe = CTk.CTkFrame(master=bottomframe, fg_color="transparent")
+        sliderframe.pack(side=tk.RIGHT, padx=100)
+        self.stack_slider = CTk.CTkSlider(master=sliderframe, from_=0, to=18, number_of_steps=18, command=self.stack_slider_callback)
         self.stack_slider.set(0)
-        self.stack_slider.place(relx=0.6, rely=0.1)
-        self.stack_slider_label = CTk.CTkLabel(master=banner, text="T")
+        self.stack_slider.grid(row=0, column=0, columnspan=2)
+        self.stack_slider_label = CTk.CTkLabel(master=sliderframe, text="T")
         ToolTip.createToolTip(self.stack_slider_label, "Slider at T for the total intensity fluorescence, otherwise drag through the images of the stack")
-        self.stack_slider_label.place(relx=0.9, rely=0.5)
-        CTk.CTkLabel(master=banner, fg_color="transparent", text="Stack").place(relx=0.6, rely=0.5)
+        self.stack_slider_label.grid(row=1, column=0, sticky="w")
+        CTk.CTkLabel(master=sliderframe, fg_color="transparent", text="Stack").grid(row=1, column=1, sticky="e")
 
 ## RIGHT FRAME: THRSH
-        self.thrsh_frame = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", width=App.axes_size[1], height=App.axes_size[0])
-        self.thrsh_frame.grid(row=0, column=0, padx=0, pady=0, sticky="w")
+        bottomframe = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=40, width=App.axes_size[1])
+        bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=20)
+
+        canvasframe = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=App.axes_size[0], width=App.axes_size[1])
+        canvasframe.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.thrsh_axis_facecolor = App.gray[1]
-        self.thrsh_fig = Figure(figsize=App.figsize, facecolor=self.thrsh_axis_facecolor)
+        self.thrsh_fig = Figure(figsize=self.figsize, facecolor=self.thrsh_axis_facecolor)
         self.thrsh_axis = self.thrsh_fig.add_axes([0, 0, 1, 1])
         self.thrsh_axis.set_axis_off()
         self.thrsh_axis.set_facecolor(self.thrsh_axis_facecolor)
-        self.thrsh_canvas = FigureCanvasTkAgg(self.thrsh_fig, master=self.thrsh_frame)
+        self.thrsh_canvas = FigureCanvasTkAgg(self.thrsh_fig, master=canvasframe)
         self.thrsh_canvas.draw()
-        self.thrsh_toolbar = NToolbar2Tk(self.thrsh_canvas, self.thrsh_frame, pack_toolbar=False)
+        self.thrsh_toolbar = NToolbar2Tk(self.thrsh_canvas, canvasframe, pack_toolbar=False)
+        self.thrsh_toolbar.config(background=App.gray[1])
+        self.thrsh_toolbar._message_label.config(background=App.gray[1])
+        for button in self.thrsh_toolbar.winfo_children():
+            button.config(background=App.gray[1])
         self.thrsh_toolbar.update()
-        banner = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent")
-        banner.grid(row=0, column=1)
-        self.button(banner, image=self.icons["contrast"], command=self.contrast_thrsh_button_callback).grid(row=0, column=0, sticky="ne", padx=20, pady=20)
+
+        banner = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=App.axes_size[0], width=40)
+        banner.pack(side=tk.RIGHT, fill=tk.Y)
+        self.button(banner, image=self.icons["contrast"], command=self.contrast_thrsh_button_callback).pack(side=tk.TOP, padx=20, pady=20)
         self.contrast_thrsh_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_thrsh_slider_callback)
-        self.contrast_thrsh_slider.grid(row=1, column=0, padx=20, pady=20)
+        self.contrast_thrsh_slider.pack(padx=20, pady=20)
         button = self.button(banner, image=self.icons["open_in_new"], command=self.export_mask)
         #ToolTip.createToolTip(button, " Export mask as .png")
-        button.grid(row=2, column=0, padx=20, pady=20)
+        button.pack(padx=20, pady=20)
         button = self.button(banner, image=self.icons["palette"], command=self.change_colormap)
         #ToolTip.createToolTip(button, " Change the colormap used for thresholding ('hot' or 'gray')")
-        button.grid(row=3, column=0, padx=20, pady=20)
+        button.pack(padx=20, pady=20)
         self.no_background_button = self.button(banner, image=self.icons["photo_fill"], command=self.no_background)
         #ToolTip.createToolTip(button, " Change background to enhance visibility")
-        self.no_background_button.grid(row=4, column=0, padx=20, pady=20)
+        self.no_background_button.pack(padx=20, pady=20)
         button = self.button(banner, image=self.icons["format_list"], command=self.change_list_button_callback)
         #ToolTip.createToolTip(button, "Erase selected ROIs and reload image")
-        button.grid(row=5, column=0, padx=20, pady=20)
+        button.pack(padx=20, pady=20)
+
         self.ilow = tk.StringVar()
-        self.ilow_slider = CTk.CTkSlider(master=self.tabview.tab("Thresholding/Mask"), from_=0, to=1, command=self.ilow_slider_callback)
+        self.ilow_slider = CTk.CTkSlider(master=bottomframe, from_=0, to=1, command=self.ilow_slider_callback)
         self.ilow_slider.set(0)
-        self.ilow_slider.place(relx=0.2, rely=0.93, anchor="w")
-        entry = CTk.CTkEntry(master=self.tabview.tab("Thresholding/Mask"), width=100, height=10, placeholder_text="0", textvariable=self.ilow, border_color=App.gray[1])
-        entry.bind("<Return>", command=self.ilow2slider_callback)
-        entry.place(relx=0.2, rely=0.96, anchor="w")
-        self.transparency_slider = CTk.CTkSlider(master=self.tabview.tab("Thresholding/Mask"), from_=0, to=1, command=self.transparency_slider_callback)
+        self.ilow_slider.grid(row=0, column=0, padx=20, pady=0)
+        self.transparency_slider = CTk.CTkSlider(master=bottomframe, from_=0, to=1, command=self.transparency_slider_callback)
         ToolTip.createToolTip(self.transparency_slider, " Adjust the transparency of the background image")
         self.transparency_slider.set(0)
-        self.transparency_slider.place(relx=0.6, rely=0.93, anchor="w")
+        self.transparency_slider.grid(row=0, column=1, padx=100, pady=0)
+        entry = CTk.CTkEntry(master=bottomframe, width=100, placeholder_text="0", textvariable=self.ilow, border_color=App.gray[1])
+        entry.bind("<Return>", command=self.ilow2slider_callback)
+        entry.grid(row=1, column=0, padx=20)
 
 ## RIGHT FRAME: OPTIONS
         show_save = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
@@ -215,7 +244,7 @@ class App(CTk.CTk):
         CTk.CTkLabel(master=plot_options, text="Plot options", font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=2, padx=20, pady=(0, 20))
         self.add_axes_checkbox = self.checkbox(plot_options, text="\n Add axes on figures\n", command=self.add_axes_on_all_figures)
         self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=20, pady=0)
-        self.button(plot_options, text="Crop figures", image=self.icons["crop"], command=self.crop_figures_callback, anchor="w").grid(row=2, column=0, columnspan=2, padx=20, pady=0)
+        self.button(plot_options, text="Crop figures", image=self.icons["crop"], command=self.crop_figures_callback).grid(row=2, column=0, columnspan=2, padx=20, pady=0)
         CTk.CTkLabel(master=plot_options, text="\n Number of pixels separating sticks\n").grid(row=3, column=0, columnspan=2, padx=20, pady=(20, 0))
         labels = ["horizontal", "vertical"]
         self.pixelsperstick = [tk.StringVar(), tk.StringVar()]
@@ -226,7 +255,7 @@ class App(CTk.CTk):
             CTk.CTkLabel(master=plot_options, text=labels[it], anchor="w").grid(row=it+4, column=1, padx=(0, 20), pady=(0, 20))
         self.show_individual_fit_checkbox = self.checkbox(self.tabview.tab("Options"), text="Show individual fit", command=self.show_individual_fit_callback)
         self.show_individual_fit_checkbox.grid(row=3, column=0, pady=20)
-        self.button(self.tabview.tab("Options"), text="Download analysis", image=self.icons["download"], command=self.download_callback, anchor="w").grid(row=3, column=1, pady=20)
+        self.button(self.tabview.tab("Options"), text="Download analysis", image=self.icons["download"], command=self.download_callback).grid(row=3, column=1, pady=20)
 
         self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab("Options"), width=300)
         self.variable_table_frame.grid(row=0, column=1, padx=(40, 20), pady=20, sticky="nw")
@@ -265,7 +294,7 @@ class App(CTk.CTk):
 
         self.calib_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=App.button_size[0], height=App.button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback)
         self.calib_dropdown.grid(row=1, column=0, pady=20)
-        self.button(adv["Disk cone / Calibration data"], text="Display", image=self.icons["photo"], command=self.diskcone_display, anchor="w").grid(row=2, column=0, pady=20)
+        self.button(adv["Disk cone / Calibration data"], text="Display", image=self.icons["photo"], command=self.diskcone_display).grid(row=2, column=0, pady=20)
         self.calib_textbox = CTk.CTkTextbox(master=adv["Disk cone / Calibration data"], width=250, height=50, state="disabled")
         self.calib_textbox.grid(row=3, column=0, pady=20)
         self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=App.button_size[0], height=App.button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled")
@@ -292,20 +321,19 @@ class App(CTk.CTk):
         rows = [1, 2, 3, 5]
         entries = [self.entry(adv["Remove background"], text="\n" + label + "\n", textvariable=self.noise[it], row=rows[it], column=0) for it, label in enumerate(labels)]
         entries[3].configure(state="disabled")
-        self.button(adv["Remove background"], text="Click background", image=self.icons["exposure"], command=lambda:self.click_callback(self.fluo_axis, self.fluo_canvas, "click background"), anchor="w").grid(row=4, column=0)
+        self.button(adv["Remove background"], text="Click background", image=self.icons["exposure"], command=lambda:self.click_callback(self.fluo_axis, self.fluo_canvas, "click background")).grid(row=4, column=0)
 
 ## RIGHT FRAME: ABOUT
         banner = CTk.CTkFrame(master=self.tabview.tab("About"))
         banner.grid(row=0, column=0, pady=20)
-        self.button(banner, text="CHECK WEBSITE FOR UPDATES", image=self.icons["web"], command=lambda:self.openweb(App.url_fresnel)).grid(row=0, column=0, padx=40)
-        self.button(banner, image=self.icons["mail"], command=self.send_email).grid(row=0, column=1)
-        self.button(banner, image=self.icons["GitHub"], command=lambda:self.openweb(App.url_github)).grid(row=0, column=2, padx=40)
-        self.button(banner, image=self.icons["contact_support"], command=lambda:self.openweb(App.url_github + '/blob/master/README.md')).grid(row=0, column=3, padx=20)
+        self.button(banner, text="CHECK WEBSITE FOR UPDATES", image=self.icons["web"], command=lambda:self.openweb(App.url_fresnel)).pack(side=tk.LEFT, padx=40)
+        self.button(banner, image=self.icons["mail"], command=self.send_email).pack(side=tk.LEFT)
+        self.button(banner, image=self.icons["GitHub"], command=lambda:self.openweb(App.url_github)).pack(side=tk.LEFT, padx=40)
+        self.button(banner, image=self.icons["contact_support"], command=lambda:self.openweb(App.url_github + '/blob/master/README.md')).pack(side=tk.LEFT, padx=20)
         about_textbox = CTk.CTkTextbox(master=self.tabview.tab("About"), width=App.tab_width-30, height=500)
         about_textbox.grid(row=1, column=0)
         message = "Version: 2.1 (December 1, 2022) created with Python and CustomTkinter\n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n uses Material Design icons by Google"
         about_textbox.insert("0.0", message)
-        about_text = about_textbox.get("0.0", "end")
         about_textbox.configure(state="disabled")
         self.tabview.set("Fluorescence")
         self.startup()
@@ -380,25 +408,28 @@ class App(CTk.CTk):
             self.show_individual_fit_checkbox.configure(state=tk.NORMAL)
             self.show_individual_fit_checkbox.deselect()
 
-    def button(self, master, text=None, image=None, command=None, width=None, height=None, anchor=tk.CENTER):
+    def button(self, master, text=None, image=None, command=None, width=None, height=None):
         if width == None:
             width = App.button_size[0]
         if height == None:
             height = App.button_size[1]
         if text is not None:
-            button = CTk.CTkButton(master=master, width=width, height=height, text=text, anchor=anchor, image=image, compound=tk.LEFT, command=command)
+            if image is not None:
+                button = CTk.CTkButton(master=master, width=width, height=height, text=text, anchor="w", image=image, compound=tk.LEFT, command=command)
+            else:
+                button = CTk.CTkButton(master=master, width=width, height=height, text=text, image=image, compound=tk.LEFT, command=command)
         else:
-            button = CTk.CTkButton(master=master, width=height, height=height, text=None, anchor=anchor, image=image, compound=tk.LEFT,command=command)
+            button = CTk.CTkButton(master=master, width=height, height=height, text=None, image=image, compound=tk.LEFT,command=command)
         return button
 
-    def dropdown(self, master, values=[], image=None, row=0, column=0, command=None, variable=None, state="normal"):
+    def dropdown(self, master, values=[], image=None, command=None, variable=None, state="normal"):
         menu = CTk.CTkFrame(master=master, fg_color=self.left_frame.cget("fg_color"))
-        menu.grid(row=row, column=column, padx=17, pady=App.button_pady)
+        menu.pack(padx=20, pady=20)
         menu_icon = self.button(menu, image=image)
         menu_icon.configure(hover=False)
-        menu_icon.grid(row=0, column=0)
-        option_menu = CTk.CTkOptionMenu(master=menu, values=values, width=App.button_size[0]-App.button_size[1], height=App.button_size[1], dynamic_resizing=False, anchor="w", command=command, variable=variable, state=state)
-        option_menu.grid(row=0, column=1)
+        menu_icon.pack(side=tk.LEFT)
+        option_menu = CTk.CTkOptionMenu(master=menu, values=values, width=App.button_size[0]-App.button_size[1], height=App.button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state)
+        option_menu.pack(side=tk.LEFT)
         return option_menu
 
     def checkbox(self, master, text=None, command=None):
@@ -529,18 +560,18 @@ class App(CTk.CTk):
                 self.open_file(self.filelist[0])
                 self.options_dropdown.configure(state="normal", values=["Thresholding (manual)", "Thresholding (auto)", "Mask (manual)", "Mask (auto)"])
             else:
-                window, buttons = self.showinfo(message="The folder does not contain TIFF or TIF files", image=self.icons["warning"], button_labels=["OK"], geometry=(340, 140))
+                window, buttons = self.showinfo(message="The folder does not contain TIFF or TIF files", image=self.icons["download_folder"], button_labels=["OK"], geometry=(340, 140))
                 buttons[0].configure(command=lambda:window.withdraw())
 
     def download_callback(self):
         self.fluo_axis.clear()
         self.thrsh_axis.clear()
         filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir="/", filetypes=[("PICKLE files", "*.pickle")])
-        f = open(filename, "rb") 
-        datastack = pickle.load(f)
-        self.method.set(datastack.method)
-        self.plot_data(datastack)
-        plt.show()
+        with open(filename, "rb") as f:
+            datastack = pickle.load(f)
+            self.method.set(datastack.method)
+            self.plot_data(datastack)
+            plt.show()
 
     def crop_figures_callback(self):
         info_window = CTk.CTkToplevel(self)
@@ -1197,7 +1228,7 @@ class App(CTk.CTk):
     def plot_histo(self, var, datastack, min, max, roi_map, roi=[]):
         if self.show_table[2].get() or self.save_table[2].get():
             suffix = "for ROI " + str(roi) if roi else ""
-            fig = plt.figure(figsize=App.figsize)
+            fig = plt.figure(figsize=self.figsize)
             fig.canvas.manager.set_window_title(var.name + " Histogram" + suffix)
             fig.patch.set_facecolor("w")
             mask = (roi_map == roi) if roi else (roi_map == 1)
@@ -1269,7 +1300,7 @@ class App(CTk.CTk):
 
     def plot_composite(self, var, datastack, vmin, vmax):
         if self.show_table[0].get() or self.save_table[0].get():
-            fig = plt.figure(figsize=App.figsize)
+            fig = plt.figure(figsize=self.figsize)
             fig.canvas.manager.set_window_title(var.name + " Composite")
             fig.patch.set_facecolor("w")
             ax = plt.gca()
@@ -1298,7 +1329,7 @@ class App(CTk.CTk):
             if event.button == 1:
                 x, y = int(round(x)), int(round(y))
                 if np.isfinite(self.datastack.vars[0].values[y, x]):
-                    fig_, axs = plt.subplots(2, 1, figsize=App.figsize)
+                    fig_, axs = plt.subplots(2, 1, figsize=self.figsize)
                     fig_.canvas.manager.set_window_title("Individual Fit")
                     signal = self.field[y, x, :]
                     signal_fit = self.field_fit[y, x, :]
@@ -1332,7 +1363,7 @@ class App(CTk.CTk):
         L, W = 6, 0.2
         l, w = L / 2, W / 2
         if self.show_table[1].get() or self.save_table[1].get():
-            fig = plt.figure(figsize=App.figsize)
+            fig = plt.figure(figsize=self.figsize)
             fig.canvas.manager.set_window_title(var.name + " Sticks")
             fig.patch.set_facecolor("w")
             ax = plt.gca()
@@ -1375,7 +1406,7 @@ class App(CTk.CTk):
 
     def plot_fluo(self, datastack):
         if self.show_table[3].get() or self.save_table[3].get():
-            fig, ax = plt.subplots(figsize=App.figsize)
+            fig, ax = plt.subplots(figsize=self.figsize)
             fig.canvas.manager.set_window_title("Fluorescence")
             ax.axis(self.add_axes_checkbox.get())
             self.add_fluo(datastack.itot, ax)
