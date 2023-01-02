@@ -26,6 +26,7 @@ import cv2
 import openpyxl
 from apptools import NToolbar2Tk, ToolTip
 from time import sleep
+from datetime import date
 
 CTk.set_default_color_theme("polarimetry.json")
 CTk.set_appearance_mode("dark")
@@ -36,6 +37,9 @@ plt.rcParams["font.size"] = 16
 plt.rcParams["font.family"] = "Arial Rounded MT Bold"
 
 class App(CTk.CTk):
+
+    version = 2.2
+    today = date.today().strftime("%B %d, %Y")
 
     left_frame_width = 180
     right_frame_width = 850
@@ -150,7 +154,7 @@ class App(CTk.CTk):
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         self.button(banner, image=self.icons["contrast"], command=self.contrast_fluo_button_callback).pack(side=tk.TOP, padx=20, pady=20)
         self.contrast_fluo_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_fluo_slider_callback)
-        ToolTip.createToolTip(self.contrast_fluo_slider, " The chosen contrast will be the one used\n for the fluorescence images in figures")
+        ToolTip.createToolTip(self.contrast_fluo_slider, " Adjust contrast\n The chosen contrast will be the one used\n for the fluorescence images in figures")
         self.contrast_fluo_slider.pack(padx=20, pady=20)
         button = self.button(banner, image=self.icons["square"], command=self.compute_angle)
         #ToolTip.createToolTip(button, " Left click and hold to trace a line\n segment and determine its angle")
@@ -164,7 +168,7 @@ class App(CTk.CTk):
         self.stack_slider.set(0)
         self.stack_slider.grid(row=0, column=0, columnspan=2)
         self.stack_slider_label = CTk.CTkLabel(master=sliderframe, text="T")
-        ToolTip.createToolTip(self.stack_slider_label, "Slider at T for the total intensity fluorescence, otherwise drag through the images of the stack")
+        ToolTip.createToolTip(self.stack_slider, "Slider at T for the total intensity fluorescence, otherwise scroll through the images of the stack")
         self.stack_slider_label.grid(row=1, column=0, sticky="w")
         CTk.CTkLabel(master=sliderframe, fg_color="transparent", text="Stack").grid(row=1, column=1, sticky="e")
 
@@ -192,6 +196,7 @@ class App(CTk.CTk):
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         self.button(banner, image=self.icons["contrast"], command=self.contrast_thrsh_button_callback).pack(side=tk.TOP, padx=20, pady=20)
         self.contrast_thrsh_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_thrsh_slider_callback)
+        ToolTip.createToolTip(self.contrast_thrsh_slider, " Adjust contrast\n The chosen contrast does not affect the analysis")
         self.contrast_thrsh_slider.pack(padx=20, pady=20)
         button = self.button(banner, image=self.icons["open_in_new"], command=self.export_mask)
         #ToolTip.createToolTip(button, " Export mask as .png")
@@ -207,16 +212,19 @@ class App(CTk.CTk):
         button.pack(padx=20, pady=20)
 
         self.ilow = tk.StringVar()
+        self.ilow.set("0")
         self.ilow_slider = CTk.CTkSlider(master=bottomframe, from_=0, to=1, command=self.ilow_slider_callback)
         self.ilow_slider.set(0)
-        self.ilow_slider.grid(row=0, column=0, padx=20, pady=0)
+        self.ilow_slider.grid(row=0, column=0, columnspan=2, padx=20, pady=0)
         self.transparency_slider = CTk.CTkSlider(master=bottomframe, from_=0, to=1, command=self.transparency_slider_callback)
         ToolTip.createToolTip(self.transparency_slider, " Adjust the transparency of the background image")
         self.transparency_slider.set(0)
-        self.transparency_slider.grid(row=0, column=1, padx=100, pady=0)
-        entry = CTk.CTkEntry(master=bottomframe, width=100, placeholder_text="0", textvariable=self.ilow, border_color=App.gray[1])
+        self.transparency_slider.grid(row=0, column=2, padx=200, pady=0)
+        CTk.CTkLabel(master=bottomframe, text="Ilow", anchor="e").grid(row=1, column=0)
+        entry = CTk.CTkEntry(master=bottomframe, width=100, textvariable=self.ilow, border_color=App.gray[1], justify=tk.LEFT)
         entry.bind("<Return>", command=self.ilow2slider_callback)
-        entry.grid(row=1, column=0, padx=20)
+        entry.grid(row=1, column=1, padx=(0, 20))
+        CTk.CTkLabel(master=bottomframe, text="Transparency").grid(row=1, column=2, padx=(10, 0))
 
 ## RIGHT FRAME: OPTIONS
         show_save = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
@@ -331,8 +339,8 @@ class App(CTk.CTk):
         self.button(banner, image=self.icons["GitHub"], command=lambda:self.openweb(App.url_github)).pack(side=tk.LEFT, padx=40)
         self.button(banner, image=self.icons["contact_support"], command=lambda:self.openweb(App.url_github + '/blob/master/README.md')).pack(side=tk.LEFT, padx=20)
         about_textbox = CTk.CTkTextbox(master=self.tabview.tab("About"), width=App.tab_width-30, height=500)
-        about_textbox.grid(row=1, column=0)
-        message = "Version: 2.1 (December 1, 2022) created with Python and CustomTkinter\n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n uses Material Design icons by Google"
+        about_textbox.grid(row=1, column=0, padx=30)
+        message = f"Version: {App.version} ({App.today}) created with Python and CustomTkinter\n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n uses Material Design icons by Google"
         about_textbox.insert("0.0", message)
         about_textbox.configure(state="disabled")
         self.tabview.set("Fluorescence")
@@ -699,13 +707,12 @@ class App(CTk.CTk):
         if self.method.get() == "1PF" and hasattr(self, "CD"):
             fig, axs = plt.subplots(1, 2)
             fig.canvas.manager.set_window_title("Disk Cone: " + self.CD.name)
-            fig.patch.set_facecolor(App.gray[0])
-            axs[0].imshow(self.CD.Rho, cmap="jet", interpolation="nearest")
+            fig.patch.set_facecolor("w")
+            axs[0].imshow(self.CD.RhoPsi[:, :, 0], cmap="jet", interpolation="nearest")
             axs[0].set_title("Rho Test")
-            axs[0].set_facecolor(App.gray[0])
-            axs[1].imshow(self.CD.Psi, cmap="jet", interpolation="nearest")
+            axs[1].imshow(self.CD.RhoPsi[:, :, 1], cmap="jet", interpolation="nearest")
             axs[1].set_title("Psi Test")
-            axs[1].set_facecolor(App.gray[0])
+            plt.subplots_adjust(wspace=0.4)
             plt.show()
 
     def variable_table_switch_callback(self):
@@ -754,10 +761,11 @@ class App(CTk.CTk):
                 canvas.draw()
                 
     def compute_angle(self):
-        self.tabview.set("Fluorescence")
-        hroi = ROI()
-        self.__cid1 = self.fluo_canvas.mpl_connect('motion_notify_event', lambda event: self.compute_angle_motion_notify_callback(event, hroi))
-        self.__cid2 = self.fluo_canvas.mpl_connect('button_press_event', lambda event: self.compute_angle_button_press_callback(event, hroi))
+        if hasattr(self, "stack"):
+            self.tabview.set("Fluorescence")
+            hroi = ROI()
+            self.__cid1 = self.fluo_canvas.mpl_connect('motion_notify_event', lambda event: self.compute_angle_motion_notify_callback(event, hroi))
+            self.__cid2 = self.fluo_canvas.mpl_connect('button_press_event', lambda event: self.compute_angle_button_press_callback(event, hroi))
 
     def compute_angle_motion_notify_callback(self, event, roi):
         if event.inaxes == self.fluo_axis:

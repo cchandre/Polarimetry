@@ -13,8 +13,10 @@ class NToolbar2Tk(NavigationToolbar2Tk):
         self._buttons = {}
         self.toolitems = (
         ('Home', 'Reset original view', 'home', 'home'),
+        (None, None, None, None),
         ('Back', 'Back to previous view', 'backward', 'back'),
         ('Forward', 'Forward to next view', 'forward', 'forward'),
+        (None, None, None, None),
         ('Pan', 'Left button pans, Right button zooms\n x/y fixes axis, CTRL fixes aspect', 'pan', 'pan'),
         ('Zoom', 'Zoom to rectangle\n x/y fixes axis', 'zoom', 'zoom'),
         (None, None, None, None),
@@ -28,11 +30,11 @@ class NToolbar2Tk(NavigationToolbar2Tk):
                 self._buttons[text] = button = self._Button(text=text, image_file=im, toggle=callback in ["zoom", "pan"], command=getattr(self, callback),)
                 if tooltip_text is not None:
                     ToolTip.createToolTip(button, tooltip_text)
-        self._label_font = CTk.CTkFont(size=10)
+        self._label_font = CTk.CTkFont(size=12)
         label = tk.Label(master=self, font=self._label_font, text='\N{NO-BREAK SPACE}\n\N{NO-BREAK SPACE}')
         label.pack(side=tk.RIGHT)
         self.message = tk.StringVar(master=self)
-        self._message_label = tk.Label(master=self, font=self._label_font, textvariable=self.message, justify=tk.RIGHT)
+        self._message_label = tk.Label(master=self, font=self._label_font, textvariable=self.message, justify=tk.RIGHT, fg="black")
         self._message_label.pack(side=tk.RIGHT)
 
     def _Button(self, text, image_file, toggle, command):
