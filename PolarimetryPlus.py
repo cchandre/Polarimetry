@@ -25,7 +25,6 @@ from skimage import exposure
 import cv2
 import openpyxl
 from apptools import NToolbar2Tk, ToolTip
-from time import sleep
 from datetime import date
 
 CTk.set_default_color_theme("polarimetry.json")
@@ -110,9 +109,9 @@ class App(CTk.CTk):
         logo.pack(padx=20, pady=(10, 40))
         self.method = tk.StringVar()
         self.dropdown(self.left_frame, values=["1PF", "CARS", "SRS", "SHG", "2PF", "4POLAR 2D", "4POLAR 3D"], image=self.icons["microscope"], command=self.method_dropdown_callback, variable=self.method)
-        self.dropdown(self.left_frame, values=["Open file", "Open folder"], image=self.icons["download_file"], command=self.open_file_callback)
+        dropdown, self.openfile_icon = self.dropdown(self.left_frame, values=["Open file", "Open folder"], image=self.icons["download_file"], command=self.open_file_callback, modify_button=True)
         self.option = tk.StringVar()
-        self.options_dropdown = self.dropdown(self.left_frame, values=["Thresholding (manual)", "Mask (manual)"], image=self.icons["build"], variable=self.option, state="disabled")
+        self.options_dropdown, self.options_icon = self.dropdown(self.left_frame, values=["Thresholding (manual)", "Mask (manual)"], image=self.icons["build"], variable=self.option, state="disabled", command=self.options_dropdown_callback, modify_button=True)
         ToolTip.createToolTip(self.options_dropdown, " Select the method of analysis: intensity thresholding or segmentation\n mask for single file analysis (manual) or batch processing (auto).\n The mask has to be binary and in PNG format and have the same\n file name as the respective polarimetry data file.")
         button = self.button(self.left_frame, text="Add ROI", image=self.icons["roi"], command=self.add_roi_callback)
         ToolTip.createToolTip(button, "Add a region of interest: polygon (left button), freehand (right button)")
@@ -411,7 +410,7 @@ class App(CTk.CTk):
             button = CTk.CTkButton(master=master, width=height, height=height, text=None, image=image, compound=tk.LEFT,command=command)
         return button
 
-    def dropdown(self, master, values=[], image=None, command=None, variable=None, state="normal"):
+    def dropdown(self, master, values=[], image=None, command=None, variable=None, state="normal", modify_button=False):
         menu = CTk.CTkFrame(master=master, fg_color=self.left_frame.cget("fg_color"))
         menu.pack(padx=20, pady=20)
         menu_icon = self.button(menu, image=image)
@@ -419,6 +418,8 @@ class App(CTk.CTk):
         menu_icon.pack(side=tk.LEFT)
         option_menu = CTk.CTkOptionMenu(master=menu, values=values, width=App.button_size[0]-App.button_size[1], height=App.button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state)
         option_menu.pack(side=tk.LEFT)
+        if modify_button:
+            return option_menu, menu_icon
         return option_menu
 
     def checkbox(self, master, text=None, command=None):
@@ -530,8 +531,16 @@ class App(CTk.CTk):
             fig.axes[0].axis(self.add_axes_checkbox.get())
             fig.canvas.draw()
 
+    def options_dropdown_callback(self, value):
+        if value.endswith("(auto)"):
+            self.options_icon.configure(image=self.icons["build_fill"])
+        else:
+            self.options_icon.configure(image=self.icons["build"])
+
     def open_file_callback(self, value):
         if value == "Open file":
+            self.openfile_icon.configure(image=self.icons["photo_fill"])
+            self.options_icon.configure(image=self.icons["build"])
             filetypes = [("Tiff files", "*.tiff"), ("Tiff files", "*.tif")]
             filename = fd.askopenfilename(title="Select a file", initialdir="/", filetypes=filetypes)
             self.filelist = []
@@ -539,6 +548,7 @@ class App(CTk.CTk):
                 self.open_file(filename)
                 self.options_dropdown.configure(state="normal", values=["Thresholding (manual)", "Mask (manual)"])
         elif value == "Open folder":
+            self.openfile_icon.configure(image=self.icons["folder_open"])
             folder = fd.askdirectory(title="Select a directory", initialdir="/")
             self.filelist = []
             for filename in os.listdir(folder):
@@ -1193,7 +1203,7 @@ class App(CTk.CTk):
         NCellHeight = int(np.floor(stack.height / SizeCell))
         NCellWidth = int(np.floor(stack.width / SizeCell))
         cropIm = stack.values[:SizeCell * NCellHeight, :SizeCell * NCellWidth, :]
-        ImCG = np.asarray(np.split(np.asarray(np.split(cropIm, NCellHeight, axis=0)), NCellWidth, axis=2))
+        ImCG = np.asarray(np.split(np.asarray(np.split(cropIm, NCellWidth, axis=1)), NCellHeight, axis=1))
         mImCG = np.zeros((NCellHeight, NCellWidth))
         for it in range(NCellHeight):
             for jt in range(NCellWidth):
