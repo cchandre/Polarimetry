@@ -848,22 +848,22 @@ class App(CTk.CTk):
     def perform_registration(self, window):
         window.withdraw()
         self.npix = 5
-        filename = fd.askopenfilename(title="Select a beads file", initialdir="/", filetypes=[("Tiff files", "*.tiff"), ("Tiff files", "*.tif")])
+        filename = fd.askopenfilename(title="Select a beads file", initialdir="/", filetypes=[("TIFF files", "*.tiff"), ("TIF files", "*.tif")])
         beadstack = self.define_data(filename, data=False)
         self.compute_dark(beadstack)
         dark = float(self.dark.get())
         itot = np.sum((beadstack.values - dark) * (beadstack.values >= dark), axis=2)
         whitelight = cv2.imread(beadstack.folder + "/" + "Whitelight.tif", cv2.IMREAD_GRAYSCALE)
-        ret, thresh = cv2.threshold(whitelight, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        whitelight = cv2.threshold(whitelight, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+        contours = cv2.findContours(whitelight, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
         filter = np.asarray([len(contour) >= 200 for contour in contours])
         contours = [contour.reshape((-1, 2)) for (contour, val) in zip(contours, filter) if val]
         centers = [None] * len(contours)
         radius = [None] * len(contours)
         for _, contour in enumerate(contours):
             centers[_], radius[_] = cv2.minEnclosingCircle(contour)
-        centers = np.asarray(centers, dtype=np.float64)
-        self.radius = max(radius)
+        centers = np.asarray(centers, dtype=np.int32)
+        self.radius = int(round(max(radius)))
         ind = np.arange(len(contours))
         Iul = np.argmin(np.abs(centers[:, 0] + 1j * centers[:, 1]))
         Ilr = np.argmax(np.abs(centers[:, 0] + 1j * centers[:, 1]))
@@ -873,48 +873,51 @@ class App(CTk.CTk):
         self.centers = centers[[Iul, ind[Iur], Ilr, ind[Ill]], :]
         ims = []
         for _ in range(4):
-            xi = int(self.centers[_, 0] - self.radius - self.npix)
-            yi = int(self.centers[_, 1] - self.radius - self.npix)
-            xf = int(self.centers[_, 0] + self.radius + self.npix)
-            yf = int(self.centers[_, 1] + self.radius + self.npix)
+            xi = self.centers[_, 0] - self.radius - self.npix
+            yi = self.centers[_, 1] - self.radius - self.npix
+            xf = self.centers[_, 0] + self.radius + self.npix
+            yf = self.centers[_, 1] + self.radius + self.npix
             im = itot[yi:yf, xi:xf]
-            im = (((im - np.amin(im)) / np.ptp(im)) * 65535).astype(np.uint16)
-            #ret, im = cv2.threshold(im, 0, 65535, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            im = (((im - np.amin(im)) / np.ptp(im)) * 255).astype(np.uint8)
+            im = cv2.threshold(im, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
             ims += [im]
-        ims_reg = ims
-        orb_detector = cv2.ORB_create(500)
-        matcher = cv2.DescriptorMatcher_create(cv2.DESCRIPTOR_MATCHER_BRUTEFORCE_HAMMING)
-        #matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-        kp0, d0 = orb_detector.detectAndCompute(ims[0], None)
-        self.tform = []
-        for _ in range(1, 4):
-            kp, d = orb_detector.detectAndCompute(ims[_], None)
-            matches = matcher.match(d0, d)
-            matches = sorted(matches, key=lambda x: x.distance)
-            matches = matches[:int(len(matches)*0.9)]
-            no_of_matches = len(matches)
-            p0 = np.zeros((no_of_matches, 2))
-            p = np.zeros((no_of_matches, 2))
-            for i in range(len(matches)):
-                p0[i, :] = kp0[matches[i].queryIdx].pt
-                p[i, :] = kp[matches[i].trainIdx].pt
-            tform, mask = cv2.findHomography(p0, p, cv2.RANSAC)
-            self.tform += [tform]
-            ims_reg[_] = cv2.warpPerspective(ims[0], tform, ims[_].shape)
+
+        tmp_ims = [cv2.merge([_, ims[0], _]) for _ in ims]
         fig, axs = plt.subplots(2, 2)
-        fig.canvas.manager.set_window_title("Quality of calibration")
+        for im, ax in zip(tmp_ims, axs.ravel()):
+            ax.imshow(im)
+        
+        height, width = ims[0].shape
+        max_matches = 5000
+        orb = cv2.ORB_create(nfeatures=5000, scaleFactor=1.001, )
+        matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        keypoints0, descriptors0 = orb.detectAndCompute(ims[0], None)
+        self.homography, ims_ = [], []
+        for im in ims:
+            keypoints, descriptors = orb.detectAndCompute(im, None)
+            matches = matcher.match(descriptors, descriptors0)
+            matches = sorted(matches, key=lambda x: x.distance)
+            matches = matches[:max_matches]
+            no_of_matches = len(matches)
+            points0 = np.zeros((no_of_matches, 2))
+            points = np.zeros((no_of_matches, 2))
+            for i, match in enumerate(matches):
+                points[i, :] = keypoints[match.queryIdx].pt
+                points0[i, :] = keypoints0[match.trainIdx].pt
+            homography = cv2.findHomography(points, points0, cv2.RANSAC)[0]
+            self.homography += [homography]
+            ims_ += [cv2.warpPerspective(im, homography, (width, height))]
+        reg_ims = [cv2.merge([_, ims[0], _]) for _ in ims_]
+        fig, axs = plt.subplots(2, 2)
+        fig.canvas.manager.set_window_title("Quality of calibration: " + beadstack.name)
         fig.patch.set_facecolor("w")
-        titles = ["UL", "UR", "LR", "LL"]
-        panel = [1, 2, 4, 3]
-        G0 = cv2.split(ims[0])[1]
-        for _, (title, ax) in enumerate(zip(titles, axs)):
-            [R, B] = cv2.split(ims_reg[_])[0:3:2]
-            im_ = cv2.merge([R, G0, B])
-            ax.imshow(im_)
-            plt.axis("off")
+        reg_ims[2:4] = reg_ims[3:1:-1]
+        titles = ["UL", "UR", "LL", "LR"]
+        for im, title, ax in zip(reg_ims, titles, axs.ravel()):
+            ax.imshow(im)
             ax.set_title(title)
-        axs[1].imshow(ims_reg[1], alpha=0.7, cmap="magenta", interpolation="nearest")
-        window, buttons = self.showinfo(message="Are you okay with this registration?", button_labels=["Yes", "Yes and Save", "No"], image=self.icons["blur_circular"])
+            ax.set_axis_off()
+        window, buttons = self.showinfo(message="  Are you okay with this registration?", button_labels=["Yes", "Yes and Save", "No"], image=self.icons["blur_circular"], geometry=(380, 150))
         buttons[0].configure(command=lambda:self.yes_registration_callback(window, fig))
         buttons[1].configure(command=lambda:self.yes_save_registration_callback(window, fig, filename))
         buttons[2].configure(command=lambda:self.no_registration_callback(window, fig))
@@ -1062,6 +1065,7 @@ class App(CTk.CTk):
 
     def analysis_callback(self):
         if hasattr(self, "stack"):
+            self.analysis_button.configure(image=self.icons["pause"])
             self.tabview.set("Fluorescence")
             if self.option.get().endswith("(manual)"):
                 self.analyze_stack(self.datastack)
@@ -1072,17 +1076,18 @@ class App(CTk.CTk):
                         self.initialize_noise()
                     else:
                         self.indxlist = 0
-                        self.open_file(self.filelist[self.indxlist])
-                        window, buttons = self.showinfo(message="End of analysis", image=self.icons["check_circle"], button_labels=["OK"])
+                        self.open_file(self.filelist[0])
+                        window, buttons = self.showinfo(message="End of list", image=self.icons["check_circle"], button_labels=["OK"])
                         buttons[0].configure(command=lambda:window.withdraw())
                         self.initialize()
+                    self.analysis_button.configure(image=self.icons["play"])
             elif self.option.get().endswith("(auto)"):
-                self.analysis_button.configure(image=self.icons["pause"])
                 for file in self.filelist:
                     self.open_file(file)
                     self.analyze_stack(self.datastack)
                 self.analysis_button.configure(image=self.icons["play"])
-                window, buttons = self.showinfo(message="End of analysis", image=self.icons["check_circle"], button_labels=["OK"])
+                self.open_file(self.filelist[0])
+                window, buttons = self.showinfo(message="End of list", image=self.icons["check_circle"], button_labels=["OK"])
                 buttons[0].configure(command=lambda:window.withdraw())
                 self.initialize()
 
