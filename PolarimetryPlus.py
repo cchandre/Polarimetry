@@ -5,11 +5,11 @@ from tkinter.messagebox import showerror
 import customtkinter as CTk
 import os
 import pathlib
-import scipy.io
-import h5py
+from scipy.io import savemat, loadmat
 import pickle
 import webbrowser
 import numpy as np
+from scipy.optimize import linear_sum_assignment
 from scipy.signal import convolve2d
 from scipy.interpolate import interpn
 from scipy.ndimage import rotate
@@ -26,6 +26,7 @@ import cv2
 import openpyxl
 from apptools import NToolbar2Tk, ToolTip
 from datetime import date
+from itertools import permutations
 
 CTk.set_default_color_theme("polarimetry.json")
 CTk.set_appearance_mode("dark")
@@ -38,7 +39,7 @@ plt.rcParams["image.origin"] = "upper"
 
 plt.ion()
 
-class App(CTk.CTk):
+class Polarimetry(CTk.CTk):
 
     version = "2.2beta"
     today = date.today().strftime("%B %d, %Y")
@@ -71,14 +72,14 @@ class App(CTk.CTk):
         delx = self.winfo_screenwidth() // 10
         dely = self.winfo_screenheight() // 10
         self.dpi = self.winfo_fpixels("1i")
-        self.figsize = (App.figsize[0] / self.dpi, App.figsize[1] / self.dpi)
+        self.figsize = (Polarimetry.figsize[0] / self.dpi, Polarimetry.figsize[1] / self.dpi)
         self.title("Polarimetry Analysis")
-        self.geometry(f"{App.width}x{App.height}+{delx}+{dely}")
+        self.geometry(f"{Polarimetry.width}x{Polarimetry.height}+{delx}+{dely}")
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.bind("<Command-q>", self.on_closing)
         self.bind("<Command-w>", self.on_closing)
         self.createcommand("tk::mac::Quit", self.on_closing)
-        self.configure(fg_color=App.gray[0])
+        self.configure(fg_color=Polarimetry.gray[0])
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
         image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Icons_Python")
@@ -88,16 +89,16 @@ class App(CTk.CTk):
                 self.icons.update({os.path.splitext(file)[0]: CTk.CTkImage(dark_image=Image.open(image_path + "/" + file), size=(30, 30))})
 
 ## DEFINE FRAMES
-        self.left_frame = CTk.CTkFrame(master=self, width=App.left_frame_width, corner_radius=0, fg_color=App.gray[0])
+        self.left_frame = CTk.CTkFrame(master=self, width=Polarimetry.left_frame_width, corner_radius=0, fg_color=Polarimetry.gray[0])
         self.left_frame.grid(row=0, column=0, sticky="nsew")
-        self.right_frame = CTk.CTkFrame(master=self, width=App.right_frame_width)
+        self.right_frame = CTk.CTkFrame(master=self, width=Polarimetry.right_frame_width)
         self.right_frame.grid_rowconfigure(0, weight=1)
         self.right_frame.grid_rowconfigure(1, weight=0)
         self.right_frame.grid_columnconfigure(0, weight=1)
         self.right_frame.grid(row=0, column=1, sticky="nsew")
 
 ## DEFINE TABS
-        self.tabview = CTk.CTkTabview(master=self.right_frame, width=App.tab_width, height=App.tab_height, segmented_button_selected_color=App.orange[0], segmented_button_unselected_color=App.gray[1], segmented_button_selected_hover_color=App.orange[1], text_color="black", segmented_button_fg_color=App.gray[0], fg_color=App.gray[1])
+        self.tabview = CTk.CTkTabview(master=self.right_frame, width=Polarimetry.tab_width, height=Polarimetry.tab_height, segmented_button_selected_color=Polarimetry.orange[0], segmented_button_unselected_color=Polarimetry.gray[1], segmented_button_selected_hover_color=Polarimetry.orange[1], text_color="black", segmented_button_fg_color=Polarimetry.gray[0], fg_color=Polarimetry.gray[1])
         self.tabview.pack(fill=tk.BOTH, expand=True)
         list_tabs = ["Fluorescence", "Thresholding/Mask", "Options", "Advanced", "About"]
         for tab in list_tabs:
@@ -118,30 +119,30 @@ class App(CTk.CTk):
         button.pack(padx=20, pady=20)
         self.analysis_button = self.button(self.left_frame, text="Analysis", command=self.analysis_callback, image=self.icons["play"])
         ToolTip.createToolTip(self.analysis_button, "Polarimetry analysis")
-        self.analysis_button.configure(fg_color=App.green[0], hover_color=App.green[1])
+        self.analysis_button.configure(fg_color=Polarimetry.green[0], hover_color=Polarimetry.green[1])
         self.analysis_button.pack(padx=20, pady=20)
         button = self.button(self.left_frame, text="Close figures", command=self.close_callback, image=self.icons["close"])
         ToolTip.createToolTip(button, "Close all open figures")
-        button.configure(fg_color=App.red[0], hover_color=App.red[1])
+        button.configure(fg_color=Polarimetry.red[0], hover_color=Polarimetry.red[1])
         button.pack(padx=20, pady=20)
 
 ## RIGHT FRAME: FLUO
-        bottomframe = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", height=40, width=App.axes_size[1])
+        bottomframe = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", height=40, width=Polarimetry.axes_size[1])
         bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=20)
-        canvasframe = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", height=App.axes_size[0], width=App.axes_size[1])
+        canvasframe = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", height=Polarimetry.axes_size[0], width=Polarimetry.axes_size[1])
         canvasframe.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        self.fluo_fig = Figure(figsize=(canvasframe.winfo_width() / self.dpi, canvasframe.winfo_height() / self.dpi), facecolor=App.gray[1])
+        self.fluo_fig = Figure(figsize=(canvasframe.winfo_width() / self.dpi, canvasframe.winfo_height() / self.dpi), facecolor=Polarimetry.gray[1])
         self.fluo_axis = self.fluo_fig.add_axes([0, 0, 1, 1])
         self.fluo_axis.set_axis_off()
         self.fluo_canvas = FigureCanvasTkAgg(self.fluo_fig, master=canvasframe)
         self.fluo_canvas.draw()
         self.fluo_toolbar = NToolbar2Tk(self.fluo_canvas, canvasframe, pack_toolbar=False)
-        self.fluo_toolbar.config(background=App.gray[1])
-        self.fluo_toolbar._message_label.config(background=App.gray[1])
+        self.fluo_toolbar.config(background=Polarimetry.gray[1])
+        self.fluo_toolbar._message_label.config(background=Polarimetry.gray[1])
         for button in self.fluo_toolbar.winfo_children():
-            button.config(background=App.gray[1])
+            button.config(background=Polarimetry.gray[1])
         self.fluo_toolbar.update()
-        banner = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", height=App.axes_size[0], width=40)
+        banner = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", height=Polarimetry.axes_size[0], width=40)
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         self.button(banner, image=self.icons["contrast"], command=self.contrast_fluo_button_callback).pack(side=tk.TOP, padx=20, pady=20)
         self.contrast_fluo_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_fluo_slider_callback)
@@ -154,7 +155,7 @@ class App(CTk.CTk):
         self.filename_label.pack(side=tk.LEFT)
         sliderframe = CTk.CTkFrame(master=bottomframe, fg_color="transparent")
         sliderframe.pack(side=tk.RIGHT, padx=100)
-        self.stack_slider = CTk.CTkSlider(master=sliderframe, from_=0, to=18, number_of_steps=18, command=self.stack_slider_callback)
+        self.stack_slider = CTk.CTkSlider(master=sliderframe, from_=0, to=18, number_of_steps=18, command=self.stack_slider_callback, state="disabled")
         self.stack_slider.set(0)
         self.stack_slider.grid(row=0, column=0, columnspan=2)
         self.stack_slider_label = CTk.CTkLabel(master=sliderframe, text="T")
@@ -163,11 +164,11 @@ class App(CTk.CTk):
         CTk.CTkLabel(master=sliderframe, fg_color="transparent", text="Stack").grid(row=1, column=1, sticky="e")
 
 ## RIGHT FRAME: THRSH
-        bottomframe = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=40, width=App.axes_size[1])
+        bottomframe = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=40, width=Polarimetry.axes_size[1])
         bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=20)
-        canvasframe = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=App.axes_size[0], width=App.axes_size[1])
+        canvasframe = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=Polarimetry.axes_size[0], width=Polarimetry.axes_size[1])
         canvasframe.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        self.thrsh_axis_facecolor = App.gray[1]
+        self.thrsh_axis_facecolor = Polarimetry.gray[1]
         self.thrsh_fig = Figure(figsize=(canvasframe.winfo_width() / self.dpi, canvasframe.winfo_height() / self.dpi), facecolor=self.thrsh_axis_facecolor)
         self.thrsh_axis = self.thrsh_fig.add_axes([0, 0, 1, 1])
         self.thrsh_axis.set_axis_off()
@@ -175,12 +176,12 @@ class App(CTk.CTk):
         self.thrsh_canvas = FigureCanvasTkAgg(self.thrsh_fig, master=canvasframe)
         self.thrsh_canvas.draw()
         self.thrsh_toolbar = NToolbar2Tk(self.thrsh_canvas, canvasframe, pack_toolbar=False)
-        self.thrsh_toolbar.config(background=App.gray[1])
-        self.thrsh_toolbar._message_label.config(background=App.gray[1])
+        self.thrsh_toolbar.config(background=Polarimetry.gray[1])
+        self.thrsh_toolbar._message_label.config(background=Polarimetry.gray[1])
         for button in self.thrsh_toolbar.winfo_children():
-            button.config(background=App.gray[1])
+            button.config(background=Polarimetry.gray[1])
         self.thrsh_toolbar.update()
-        banner = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=App.axes_size[0], width=40)
+        banner = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=Polarimetry.axes_size[0], width=40)
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         self.button(banner, image=self.icons["contrast"], command=self.contrast_thrsh_button_callback).pack(side=tk.TOP, padx=20, pady=20)
         self.contrast_thrsh_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_thrsh_slider_callback)
@@ -208,7 +209,7 @@ class App(CTk.CTk):
         self.transparency_slider.set(0)
         self.transparency_slider.grid(row=0, column=2, padx=200, pady=0)
         CTk.CTkLabel(master=bottomframe, text="Ilow", anchor="e").grid(row=1, column=0)
-        entry = CTk.CTkEntry(master=bottomframe, width=100, textvariable=self.ilow, border_color=App.gray[1], justify=tk.LEFT)
+        entry = CTk.CTkEntry(master=bottomframe, width=100, textvariable=self.ilow, border_color=Polarimetry.gray[1], justify=tk.LEFT)
         entry.bind("<Return>", command=self.ilow2slider_callback)
         entry.grid(row=1, column=1, padx=(0, 20))
         CTk.CTkLabel(master=bottomframe, text="Transparency").grid(row=1, column=2, padx=(10, 0))
@@ -242,7 +243,7 @@ class App(CTk.CTk):
         CTk.CTkLabel(master=plot_options, text="\n Number of pixels separating sticks\n").grid(row=3, column=0, columnspan=2, padx=20, pady=(20, 0))
         labels = ["horizontal", "vertical"]
         self.pixelsperstick = [tk.StringVar(), tk.StringVar()]
-        spinboxes = [ttk.Spinbox(master=plot_options, from_=0, to=10, textvariable=self.pixelsperstick[it], width=2, foreground=App.gray[1], background=App.gray[1]) for it in range(2)]
+        spinboxes = [ttk.Spinbox(master=plot_options, from_=0, to=10, textvariable=self.pixelsperstick[it], width=2, foreground=Polarimetry.gray[1], background=Polarimetry.gray[1]) for it in range(2)]
         for it in range(2):
             self.pixelsperstick[it].set(1)
             spinboxes[it].grid(row=it+4, column=0, padx=0, pady=(0, 20))
@@ -282,12 +283,12 @@ class App(CTk.CTk):
         self.offset_angle = tk.IntVar()
         self.offset_angle_entry = self.entry(adv["Offset angle"], text="\n" + "Offset angle (deg)" +"\n", textvariable=self.offset_angle, row=1)
         self.offset_angle_entry.configure(state="disabled")
-        self.calib_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=App.button_size[0], height=App.button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback)
+        self.calib_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=Polarimetry.button_size[0], height=Polarimetry.button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback)
         self.calib_dropdown.grid(row=1, column=0, pady=20)
         self.button(adv["Disk cone / Calibration data"], text="Display", image=self.icons["photo"], command=self.diskcone_display).grid(row=2, column=0, pady=20)
         self.calib_textbox = CTk.CTkTextbox(master=adv["Disk cone / Calibration data"], width=250, height=50, state="disabled")
         self.calib_textbox.grid(row=3, column=0, pady=20)
-        self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=App.button_size[0], height=App.button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled")
+        self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=Polarimetry.button_size[0], height=Polarimetry.button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled")
         self.polar_dropdown.grid(row=4, column=0, pady=20)
         labels = ["Bin width", "Bin height"]
         self.bin = [tk.IntVar(), tk.IntVar()]
@@ -315,13 +316,13 @@ class App(CTk.CTk):
 ## RIGHT FRAME: ABOUT
         banner = CTk.CTkFrame(master=self.tabview.tab("About"))
         banner.grid(row=0, column=0, pady=20)
-        self.button(banner, text="CHECK WEBSITE FOR UPDATES", image=self.icons["web"], command=lambda:self.openweb(App.url_fresnel)).pack(side=tk.LEFT, padx=40)
+        self.button(banner, text="CHECK WEBSITE FOR UPDATES", image=self.icons["web"], command=lambda:self.openweb(Polarimetry.url_fresnel)).pack(side=tk.LEFT, padx=40)
         self.button(banner, image=self.icons["mail"], command=self.send_email).pack(side=tk.LEFT)
-        self.button(banner, image=self.icons["GitHub"], command=lambda:self.openweb(App.url_github)).pack(side=tk.LEFT, padx=40)
-        self.button(banner, image=self.icons["contact_support"], command=lambda:self.openweb(App.url_github + '/blob/master/README.md')).pack(side=tk.LEFT, padx=20)
-        about_textbox = CTk.CTkTextbox(master=self.tabview.tab("About"), width=App.tab_width-30, height=500)
+        self.button(banner, image=self.icons["GitHub"], command=lambda:self.openweb(Polarimetry.url_github)).pack(side=tk.LEFT, padx=40)
+        self.button(banner, image=self.icons["contact_support"], command=lambda:self.openweb(Polarimetry.url_github + "/blob/master/README.md")).pack(side=tk.LEFT, padx=20)
+        about_textbox = CTk.CTkTextbox(master=self.tabview.tab("About"), width=Polarimetry.tab_width-30, height=500)
         about_textbox.grid(row=1, column=0, padx=30)
-        message = f"Version: {App.version} ({App.today}) created with Python and CustomTkinter\n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n uses Material Design icons by Google"
+        message = f"Version: {Polarimetry.version} ({Polarimetry.today}) created with Python and CustomTkinter\n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n uses Material Design icons by Google"
         about_textbox.insert("0.0", message)
         about_textbox.configure(state="disabled")
         self.tabview.set("Fluorescence")
@@ -330,16 +331,16 @@ class App(CTk.CTk):
     def startup(self):
         info = " (1) Select a polarimetry method\n\n (2) Download a file or a folder\n\n (3) Select a method of analysis\n\n (4) Select one or several regions of interest\n\n (5) Click on Analysis"
         self.info_window = CTk.CTkToplevel(self)
-        self.info_window.attributes('-topmost', 'true')
-        self.info_window.title('Polarimetry Analysis')
-        self.info_window.geometry(App.geometry_info(App.info_size[0]))
+        self.info_window.attributes("-topmost", "true")
+        self.info_window.title("Polarimetry Analysis")
+        self.info_window.geometry(Polarimetry.geometry_info(Polarimetry.info_size[0]))
         CTk.CTkLabel(self.info_window, text="  Welcome to Polarimetry Analysis", font=CTk.CTkFont(size=20), image=self.icons['blur_circular'], compound="left").grid(row=0, column=0, padx=30, pady=20)
-        textbox = CTk.CTkTextbox(self.info_window, width=320, height=150, fg_color=App.gray[1])
+        textbox = CTk.CTkTextbox(self.info_window, width=320, height=150, fg_color=Polarimetry.gray[1])
         textbox.grid(row=1, column=0)
         textbox.insert("0.0", info)
         link = CTk.CTkLabel(self.info_window, text="For more information, visit the GitHub page", text_color="blue", font=CTk.CTkFont(underline=True), cursor="hand2")
         link.grid(row=2, column=0, padx=50, pady=10, sticky="w")
-        link.bind("<Button-1>", lambda e:webbrowser.open_new_tab(App.url_github))
+        link.bind("<Button-1>", lambda e:webbrowser.open_new_tab(Polarimetry.url_github))
         self.button(master=self.info_window, text="OK", command=lambda:self.info_window.withdraw(), width=80).grid(row=7, column=0, padx=20, pady=0)
         self.method.set("1PF")
         self.option.set("Thresholding (manual)")
@@ -352,9 +353,14 @@ class App(CTk.CTk):
         self.calib_textbox.insert("0.0", self.CD.name)
         self.calib_textbox.configure(state="disabled")
         self.offset_angle.set(85)
-        self.dict_polar = {'UL0-UR45-LR90-LL135': [1, 2, 3, 4], 'UL0-UR45-LR135-LL90': [1, 2, 4, 3], 'UL0-UR90-LR45-LL135': [1, 3, 2, 4], 'UL0-UR90-LR135-LL45': [1, 3, 4, 2], 'UL0-UR135-LR45-LL90': [1, 4, 2, 3], 'UL0-UR135-LR90-LL45': [1, 4, 3, 2], 'UL45-UR0-LR90-LL135': [2, 1, 3, 4],  'UL45-UR0-LR135-LL90': [2, 1, 4, 3], 'UL45-UR90-LR0-LL135': [2, 3, 1, 4], 'UL45-UR90-LR135-LL0': [2, 3, 4, 1], 'UL45-UR135-LR0-LL90': [2, 4, 1, 3], 'UL45-UR135-LR90-LL0': [2, 4, 3, 1], 'UL90-UR0-LR45-LL135': [3, 1, 2, 4], 'UL90-UR0-LR135-LL45': [3, 1, 4, 2], 'UL90-UR45-LR0-LL135': [3, 2, 1, 4], 'UL90-UR45-LR135-LL0': [3, 2, 4, 1], 'UL90-UR135-LR0-LL45': [3, 4, 1, 2], 'UL90-UR135-LR45-LL0': [3, 4, 2, 1], 'UL135-UR0-LR45-LL90': [4, 1, 2, 3], 'UL135-UR0-LR90-LL45': [4, 1, 3, 2], 'UL135-UR45-LR0-LL90': [4, 2, 1, 3], 'UL135-UR45-LR90-LL0': [4, 2, 3, 1], 'UL135-UR90-LR0-LL45': [4, 3, 1, 2], 'UL135-UR90-LR45-LL0': [4, 3, 2, 1]}
+        angles = [0, 45, 90, 135]
+        self.dict_polar = {}
+        for p in list(permutations([0, 1, 2, 3])):
+            a = [angles[_] for _ in p]
+            self.dict_polar.update({f"UL{a[0]}-UR{a[1]}-LR{a[2]}-LL{a[3]}": p})
         self.polar_dropdown.configure(values=list(self.dict_polar.keys()))
-        self.polar_dropdown.set(list(self.dict_polar.keys())[0])
+        self.polar_dropdown.set("UL90-UR0-LR45-LL135")
+        self.order = self.dict_polar["UL90-UR0-LR45-LL135"]
         self.thrsh_colormap = "hot"
 
     def initialize_slider(self):
@@ -398,9 +404,9 @@ class App(CTk.CTk):
 
     def button(self, master, text=None, image=None, command=None, width=None, height=None):
         if width == None:
-            width = App.button_size[0]
+            width = Polarimetry.button_size[0]
         if height == None:
-            height = App.button_size[1]
+            height = Polarimetry.button_size[1]
         if text is not None:
             if image is not None:
                 button = CTk.CTkButton(master=master, width=width, height=height, text=text, anchor="w", image=image, compound=tk.LEFT, command=command)
@@ -416,7 +422,7 @@ class App(CTk.CTk):
         menu_icon = self.button(menu, image=image)
         menu_icon.configure(hover=False)
         menu_icon.pack(side=tk.LEFT)
-        option_menu = CTk.CTkOptionMenu(master=menu, values=values, width=App.button_size[0]-App.button_size[1], height=App.button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state)
+        option_menu = CTk.CTkOptionMenu(master=menu, values=values, width=Polarimetry.button_size[0]-Polarimetry.button_size[1], height=Polarimetry.button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state)
         option_menu.pack(side=tk.LEFT)
         if modify_button:
             return option_menu, menu_icon
@@ -445,9 +451,9 @@ class App(CTk.CTk):
 
     def showinfo(self, message="", image=None, button_labels=[], geometry=(300, 150)):
         info_window = CTk.CTkToplevel(self)
-        info_window.attributes('-topmost', 'true')
-        info_window.title('Polarimetry Analysis')
-        info_window.geometry(App.geometry_info(geometry))
+        info_window.attributes("-topmost", "true")
+        info_window.title("Polarimetry Analysis")
+        info_window.geometry(Polarimetry.geometry_info(geometry))
         CTk.CTkLabel(info_window, text=message, image=image, compound="left", width=250, justify=tk.LEFT).grid(row=0, column=0, padx=30, pady=20)
         buttons = []
         if button_labels:
@@ -476,7 +482,7 @@ class App(CTk.CTk):
         webbrowser.open(url)
 
     def send_email(self):
-        webbrowser.open('mailto:?to=' + App.email + '&subject=[Polarimetry Analysis] question', new=1)
+        webbrowser.open("mailto:?to=" + Polarimetry.email + "&subject=[Polarimetry Analysis] question", new=1)
 
     def on_click_tab(self):
         if self.tabview.get() != "About":
@@ -512,18 +518,18 @@ class App(CTk.CTk):
         if hasattr(self, "datastack"):
             if len(self.datastack.rois):
                 window = CTk.CTkToplevel(self)
-                window.attributes('-topmost', 'true')
-                window.title('Polarimetry Analysis')
-                window.geometry(App.geometry_info((350, 180)))
+                window.attributes("-topmost", "true")
+                window.title("Polarimetry Analysis")
+                window.geometry(Polarimetry.geometry_info((350, 180)))
                 CTk.CTkLabel(window, text="  Select ROIs to be removed ", font=CTk.CTkFont(size=20), image=self.icons["format_list"], compound="left").grid(row=0, column=0, padx=30, pady=10)
                 variable = tk.StringVar()
                 variable.set("all")
                 values = ["all"] + [str(_ + 1) for _ in range(len(self.datastack.rois))]
                 menu = CTk.CTkOptionMenu(master=window, values=values, variable=variable)
                 menu.grid(row=1, column=0, padx=20, pady=10)
-                ok_button = self.button(master=window, text="OK", command=lambda:self.remove_roi(window, variable.get()))
-                ok_button.configure(width=80, height=App.button_size[1])
-                ok_button.grid(row=2, column=0, padx=20, pady=20)
+                button = self.button(master=window, text="OK", command=lambda:self.remove_roi(window, variable.get()))
+                button.configure(width=80, height=Polarimetry.button_size[1])
+                button.grid(row=2, column=0, padx=20, pady=20)
 
     def add_axes_on_all_figures(self):
         figs = list(map(plt.figure, plt.get_fignums()))
@@ -552,7 +558,7 @@ class App(CTk.CTk):
             folder = fd.askdirectory(title="Select a directory", initialdir="/")
             self.filelist = []
             for filename in os.listdir(folder):
-                if filename.endswith(('.tif', '.tiff')):
+                if filename.endswith((".tif", ".tiff")):
                     self.filelist += [folder + "/" + filename]
             self.indxlist = 0
             if folder and any(self.filelist):
@@ -579,9 +585,9 @@ class App(CTk.CTk):
 
     def crop_figures_callback(self):
         info_window = CTk.CTkToplevel(self)
-        info_window.attributes('-topmost', 'true')
-        info_window.title('Polarimetry Analysis')
-        info_window.geometry(App.geometry_info(App.info_size[1]))
+        info_window.attributes("-topmost", "true")
+        info_window.title("Polarimetry Analysis")
+        info_window.geometry(Polarimetry.geometry_info(Polarimetry.info_size[1]))
         CTk.CTkLabel(info_window, text="Define xlim and ylim", image=self.icons["crop"], compound="left", width=250).grid(row=0, column=0, padx=30, pady=20)
         self.xlim = [tk.IntVar() for _ in range(2)]
         self.ylim = [tk.IntVar() for _ in range(2)]
@@ -592,9 +598,9 @@ class App(CTk.CTk):
             self.ylim[1].set(self.datastack.height)
         self.double_entry(info_window, text="xlim", variables=self.xlim, row=1, state="normal")
         self.double_entry(info_window, text="ylim", variables=self.ylim, row=2, state="normal")
-        ok_button = self.button(info_window, text="OK", command=lambda:self.crop_figures(info_window))
-        ok_button.configure(width=80, height=App.button_size[1])
-        ok_button.grid(row=3, column=0, pady=20)
+        button = self.button(info_window, text="OK", command=lambda:self.crop_figures(info_window))
+        button.configure(width=80, height=Polarimetry.button_size[1])
+        button.grid(row=3, column=0, pady=20)
 
     def crop_figures(self, window):
         figs = list(map(plt.figure, plt.get_fignums()))
@@ -658,7 +664,7 @@ class App(CTk.CTk):
 
     def no_background(self):
         if self.thrsh_fig.patch.get_facecolor() == mpl.colors.to_rgba("k", 1):
-            self.thrsh_fig.patch.set_facecolor(App.gray[1])
+            self.thrsh_fig.patch.set_facecolor(Polarimetry.gray[1])
             self.no_background_button.configure(image=self.icons["photo_fill"])
         else:
             self.thrsh_fig.patch.set_facecolor("k")
@@ -724,11 +730,11 @@ class App(CTk.CTk):
                 plt.Line2D(xlim, [(ylim[0] + ylim[1])/2, (ylim[0] + ylim[1])/2], lw=1, color="w")]
             ax.add_line(hlines[0])
             ax.add_line(hlines[1])
-            self.__cid1 = canvas.mpl_connect('motion_notify_event', lambda event: self.click_motion_notify_callback(event, hlines, ax, canvas))
+            self.__cid1 = canvas.mpl_connect("motion_notify_event", lambda event: self.click_motion_notify_callback(event, hlines, ax, canvas))
             if method == "click background":
-                self.__cid2 = canvas.mpl_connect('button_press_event', lambda event: self.click_background_button_press_callback(event, hlines, ax, canvas))
+                self.__cid2 = canvas.mpl_connect("button_press_event", lambda event: self.click_background_button_press_callback(event, hlines, ax, canvas))
             elif method == "individual fit":
-                self.__cid2 = canvas.mpl_connect('button_press_event', lambda event: self.individual_fit_button_press_callback(event, hlines, ax, canvas))
+                self.__cid2 = canvas.mpl_connect("button_press_event", lambda event: self.individual_fit_button_press_callback(event, hlines, ax, canvas))
 
     def click_motion_notify_callback(self, event, hlines, ax, canvas):
         if event.inaxes == ax:
@@ -743,10 +749,8 @@ class App(CTk.CTk):
         if event.inaxes == ax:
             x, y = event.xdata, event.ydata
             if event.button == 1:
-                x1 = round(x) - self.noise[1].get()//2
-                x2 = round(x) + self.noise[1].get()//2
-                y1 = round(y) - self.noise[2].get()//2
-                y2 = round(y) + self.noise[2].get()//2
+                x1, x2 = round(x) - self.noise[1].get()//2, round(x) + self.noise[1].get()//2
+                y1, y2 = round(y) - self.noise[2].get()//2, round(y) + self.noise[2].get()//2
                 self.noise[3].set(np.mean(self.datastack.itot[y1:y2, x1:x2]) / self.stack.nangle * self.noise[0].get())
                 canvas.mpl_disconnect(self.__cid1)
                 canvas.mpl_disconnect(self.__cid2)
@@ -758,8 +762,8 @@ class App(CTk.CTk):
         if hasattr(self, "stack"):
             self.tabview.set("Fluorescence")
             hroi = ROI()
-            self.__cid1 = self.fluo_canvas.mpl_connect('motion_notify_event', lambda event: self.compute_angle_motion_notify_callback(event, hroi))
-            self.__cid2 = self.fluo_canvas.mpl_connect('button_press_event', lambda event: self.compute_angle_button_press_callback(event, hroi))
+            self.__cid1 = self.fluo_canvas.mpl_connect("motion_notify_event", lambda event: self.compute_angle_motion_notify_callback(event, hroi))
+            self.__cid2 = self.fluo_canvas.mpl_connect("button_press_event", lambda event: self.compute_angle_button_press_callback(event, hroi))
 
     def compute_angle_motion_notify_callback(self, event, roi):
         if event.inaxes == self.fluo_axis:
@@ -799,7 +803,7 @@ class App(CTk.CTk):
         self.clear_frame(self.variable_table_frame)
         self.variable_table_frame.configure(fg_color=self.left_frame.cget("fg_color"))
         CTk.CTkLabel(master=self.variable_table_frame, text="      Min                   Max", text_color="black", font=CTk.CTkFont(weight="bold"), width=200).grid(row=0, column=0, padx=20, pady=10, sticky="e")
-        self.variable_table_switch = CTk.CTkSwitch(master=self.variable_table_frame, text="", progress_color=App.orange[0], command=self.variable_table_switch_callback, onvalue="on", offvalue="off", width=50)
+        self.variable_table_switch = CTk.CTkSwitch(master=self.variable_table_frame, text="", progress_color=Polarimetry.orange[0], command=self.variable_table_switch_callback, onvalue="on", offvalue="off", width=50)
         self.variable_table_switch.grid(row=0, column=0, padx=(10, 40), sticky="w")
         if method in ["1PF", "4POLAR 2D"]:
             variables = ["\u03C1 ", "\u03C8 "]
@@ -847,65 +851,48 @@ class App(CTk.CTk):
 
     def perform_registration(self, window):
         window.withdraw()
-        self.npix = 5
+        npix = 5
         filename = fd.askopenfilename(title="Select a beads file", initialdir="/", filetypes=[("TIFF files", "*.tiff"), ("TIF files", "*.tif")])
         beadstack = self.define_data(filename, data=False)
-        self.compute_dark(beadstack)
-        dark = float(self.dark.get())
+        self.filename_label.configure(text="")
+        dark = self.compute_dark(beadstack, display=False)
         itot = np.sum((beadstack.values - dark) * (beadstack.values >= dark), axis=2)
         whitelight = cv2.imread(beadstack.folder + "/" + "Whitelight.tif", cv2.IMREAD_GRAYSCALE)
         whitelight = cv2.threshold(whitelight, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
         contours = cv2.findContours(whitelight, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
         filter = np.asarray([len(contour) >= 200 for contour in contours])
         contours = [contour.reshape((-1, 2)) for (contour, val) in zip(contours, filter) if val]
-        centers = [None] * len(contours)
-        radius = [None] * len(contours)
+        centers, radius = [None] * len(contours), [None] * len(contours)
         for _, contour in enumerate(contours):
             centers[_], radius[_] = cv2.minEnclosingCircle(contour)
         centers = np.asarray(centers, dtype=np.int32)
-        self.radius = int(round(max(radius)))
+        radius = int(round(max(radius))) + npix
         ind = np.arange(len(contours))
         Iul = np.argmin(np.abs(centers[:, 0] + 1j * centers[:, 1]))
         Ilr = np.argmax(np.abs(centers[:, 0] + 1j * centers[:, 1]))
         ind = np.delete(ind, [Iul, Ilr])
         Iur = np.argmin(centers[ind, 1])
         Ill = np.argmax(centers[ind, 1])
-        self.centers = centers[[Iul, ind[Iur], Ilr, ind[Ill]], :]
+        centers = centers[[Iul, ind[Iur], Ilr, ind[Ill]], :]
         ims = []
         for _ in range(4):
-            xi = self.centers[_, 0] - self.radius - self.npix
-            yi = self.centers[_, 1] - self.radius - self.npix
-            xf = self.centers[_, 0] + self.radius + self.npix
-            yf = self.centers[_, 1] + self.radius + self.npix
+            xi, yi = centers[_, 0] - radius, centers[_, 1] - radius 
+            xf, yf = centers[_, 0] + radius, centers[_, 1] + radius
             im = itot[yi:yf, xi:xf]
-            im = (((im - np.amin(im)) / np.ptp(im)) * 255).astype(np.uint8)
-            im = cv2.threshold(im, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-            ims += [im]
-
-        tmp_ims = [cv2.merge([_, ims[0], _]) for _ in ims]
-        fig, axs = plt.subplots(2, 2)
-        for im, ax in zip(tmp_ims, axs.ravel()):
-            ax.imshow(im)
-        
+            im = (im / np.amax(im) * 255).astype(np.uint8)
+            thresh = cv2.threshold(im, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+            ims += [im * thresh]
         height, width = ims[0].shape
-        max_matches = 5000
-        orb = cv2.ORB_create(nfeatures=5000, scaleFactor=1.001, )
-        matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-        keypoints0, descriptors0 = orb.detectAndCompute(ims[0], None)
-        self.homography, ims_ = [], []
-        for im in ims:
-            keypoints, descriptors = orb.detectAndCompute(im, None)
-            matches = matcher.match(descriptors, descriptors0)
-            matches = sorted(matches, key=lambda x: x.distance)
-            matches = matches[:max_matches]
-            no_of_matches = len(matches)
-            points0 = np.zeros((no_of_matches, 2))
-            points = np.zeros((no_of_matches, 2))
-            for i, match in enumerate(matches):
-                points[i, :] = keypoints[match.queryIdx].pt
-                points0[i, :] = keypoints0[match.trainIdx].pt
-            homography = cv2.findHomography(points, points0, cv2.RANSAC)[0]
-            self.homography += [homography]
+        sift=cv2.SIFT_create(500)
+        keypoints0 = sift.detect(ims[0], None)
+        points0 = np.asarray([kp.pt for kp in keypoints0])
+        homographies, ims_ = [], [ims[0]]
+        for im in ims[1:]:
+            keypoints = sift.detect(im, None)
+            points = np.asarray([kp.pt for kp in keypoints])
+            p, p0 = self.find_matches(points, points0)
+            homography = cv2.findHomography(p, p0, cv2.RANSAC)[0]
+            homographies += [homography]
             ims_ += [cv2.warpPerspective(im, homography, (width, height))]
         reg_ims = [cv2.merge([_, ims[0], _]) for _ in ims_]
         fig, axs = plt.subplots(2, 2)
@@ -917,21 +904,26 @@ class App(CTk.CTk):
             ax.imshow(im)
             ax.set_title(title)
             ax.set_axis_off()
+        self.registration = {"name_beads": beadstack.name, "radius": radius, "centers": centers, "homographies": homographies}
         window, buttons = self.showinfo(message="  Are you okay with this registration?", button_labels=["Yes", "Yes and Save", "No"], image=self.icons["blur_circular"], geometry=(380, 150))
         buttons[0].configure(command=lambda:self.yes_registration_callback(window, fig))
         buttons[1].configure(command=lambda:self.yes_save_registration_callback(window, fig, filename))
         buttons[2].configure(command=lambda:self.no_registration_callback(window, fig))
+
+    def find_matches(self, a, b, tol=10):
+        a_, b_ = (a, b) if len(b) >= len(a) else (b, a)
+        cost = np.linalg.norm(a_[:, np.newaxis, :] - b_, axis=2)
+        indices = linear_sum_assignment(cost)[1]
+        a_, b_ = (a, b[indices]) if len(b) >= len(a) else (a[indices], b)
+        dist = np.linalg.norm(a_ - b_, axis=1)
+        return a_[dist <= tol], b_[dist <= tol]
 
     def yes_registration_callback(self, window, fig):
         plt.close(fig)
         window.withdraw()
 
     def yes_save_registration_callback(self, window, fig, filename):
-        with h5py.File(os.path.splitext(filename)[0] + "_reg.h5", "w") as file:
-            file.create_dataset("centers", data=self.centers)
-            file.create_dataset("radius", data=self.radius)
-            file.create_dataset("npix", data=self.npix)
-            file.create_dataset("tform", data=self.tform)
+        savemat(os.path.splitext(filename)[0] + "_reg.mat", self.registration)
         plt.close(fig)
         window.withdraw()
 
@@ -943,12 +935,14 @@ class App(CTk.CTk):
 
     def load_registration(self, window):
         window.withdraw()
-        filename = fd.askopenfilename(title="Select a registration file", initialdir="/", filetypes=[("HDF5-files", "*.h5")])
-        with h5py.File(filename, "r") as file:
-            self.tform = file.get("tform")
-            self.centers = file.get("centers")
-            self.radius = file.get("radius")
-            self.npix = file.get("npix")
+        filename = fd.askopenfilename(title="Select a registration file (*_reg.mat)", initialdir="/", filetypes=[("MAT-files", "*.mat")])
+        if filename.endswith("_reg.mat"):
+            self.registration = loadmat(filename)
+        else:
+            window, buttons = self.showinfo(message="Incorrect registration file", image=self.icons["blur_circular"], button_labels=["OK"], geometry=(340, 140))
+            buttons[0].configure(command=lambda:window.withdraw())
+            self.registration = {}
+            self.method.set("1PF")
 
     def define_data(self, filename, data=True):
         with Image.open(filename, mode="r") as dataset:
@@ -963,23 +957,25 @@ class App(CTk.CTk):
             for key in dict:
                 setattr(stack, key, dict[key])
             self.compute_dark(stack)
-            self.compute_itot(stack)
-            if stack.nangle >= 2:
-                self.stack_slider.configure(to=stack.nangle)
-            else:
-                self.stack_slider.configure(state="disabled")
-            self.filename_label.configure(text=stack.name)
-            self.tabview.set("Fluorescence")
             if data:
                 datastack = DataStack(stack)
                 datastack.method = self.method.get()
                 return stack, datastack
             return stack
 
-    def open_file(self, filename):
+    def open_file(self, filename):  
+        self.stack, self.datastack = self.define_data(filename)
         if self.method.get().startswith("4POLAR"):
             self.stack = self.slice4polar(self.stack)
-        self.stack, self.datastack = self.define_data(filename)
+        if self.stack.nangle >= 2:
+            self.stack_slider.configure(to=self.stack.nangle, number_of_steps=self.stack.nangle, state="normal")
+        else:
+            self.stack_slider.configure(state="disabled")
+        self.filename_label.configure(text=self.stack.name)
+        self.tabview.set("Fluorescence")
+        self.compute_itot(self.stack)
+        if hasattr(self, "datastack"):
+            self.datastack.itot = self.stack.itot
         self.represent_fluo(update=False)
         self.represent_thrsh(update=False)
 
@@ -987,8 +983,8 @@ class App(CTk.CTk):
         if hasattr(self, "stack"):
             self.tabview.set("Thresholding/Mask")
             hroi = ROI()
-            self.__cid1 = self.thrsh_canvas.mpl_connect('motion_notify_event', lambda event: self.add_roi_motion_notify_callback(event, hroi))
-            self.__cid2 = self.thrsh_canvas.mpl_connect('button_press_event', lambda event: self.add_roi_button_press_callback(event, hroi))
+            self.__cid1 = self.thrsh_canvas.mpl_connect("motion_notify_event", lambda event: self.add_roi_motion_notify_callback(event, hroi))
+            self.__cid2 = self.thrsh_canvas.mpl_connect("button_press_event", lambda event: self.add_roi_button_press_callback(event, hroi))
 
     def add_roi_motion_notify_callback(self, event, roi):
         if event.inaxes == self.thrsh_axis:
@@ -1080,7 +1076,7 @@ class App(CTk.CTk):
                         window, buttons = self.showinfo(message="End of list", image=self.icons["check_circle"], button_labels=["OK"])
                         buttons[0].configure(command=lambda:window.withdraw())
                         self.initialize()
-                    self.analysis_button.configure(image=self.icons["play"])
+                self.analysis_button.configure(image=self.icons["play"])
             elif self.option.get().endswith("(auto)"):
                 for file in self.filelist:
                     self.open_file(file)
@@ -1155,9 +1151,9 @@ class App(CTk.CTk):
                 self.fluo_axis.clear()
                 self.fluo_axis.set_axis_off()
                 self.fluo_im = self.fluo_axis.imshow(field_im, cmap=mpl.colormaps["gray"], interpolation="nearest")
+                plt.pause(0.001)
                 self.fluo_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
                 self.fluo_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
-                plt.pause(0.001)
             self.fluo_im.set_clim(vmin, vmax)
             self.clear_patches(self.fluo_axis, self.fluo_fig.canvas)
             if hasattr(self, "datastack"):
@@ -1185,9 +1181,9 @@ class App(CTk.CTk):
                 self.thrsh_axis.clear()
                 self.thrsh_axis.set_axis_off()
                 self.thrsh_im = self.thrsh_axis.imshow(field_im, cmap=self.thrsh_colormap, alpha=alphadata, interpolation="nearest")
+                plt.pause(0.001)
                 self.thrsh_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
                 self.thrsh_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
-                plt.pause(0.001)
             self.thrsh_im.set_clim(vmin, vmax)
             self.clear_patches(self.thrsh_axis, self.thrsh_fig.canvas)
             if hasattr(self, "datastack"):
@@ -1203,7 +1199,7 @@ class App(CTk.CTk):
         else:
             stack.itot = sumcor
 
-    def compute_dark(self, stack):
+    def compute_dark(self, stack, display=True):
         SizeCell = 20
         NCellHeight = int(np.floor(stack.height / SizeCell))
         NCellWidth = int(np.floor(stack.width / SizeCell))
@@ -1217,9 +1213,12 @@ class App(CTk.CTk):
         IndI, IndJ = np.where(mImCG == np.amin(mImCG))
         cell = ImCG[IndI, IndJ, :, :, :]
         dark = np.mean(cell[cell != 0])
-        self.calculated_dark_label.configure(text="Calculated dark value = " + stack.display.format(dark))
-        if self.dark_switch.get() == "off":
-            self.dark.set(stack.display.format(dark))
+        if display:
+            self.calculated_dark_label.configure(text="Calculated dark value = " + stack.display.format(dark))
+            if self.dark_switch.get() == "off":
+                self.dark.set(stack.display.format(dark))
+        else:
+            return dark
 
     def circularmean(self, rho):
         return np.mod(np.angle(np.mean(np.exp(2j * np.deg2rad(rho))), deg=True), 360) / 2
@@ -1431,7 +1430,7 @@ class App(CTk.CTk):
     def plot_data(self, datastack, roi_map=[]):
         self.plot_fluo(datastack)
         if len(roi_map) == 0:
-            roi_map, mask = self.compute_roi_map(datastack)
+            roi_map = self.compute_roi_map(datastack)[0]
         int_roi = np.amax(roi_map)
         for _, var in enumerate(datastack.vars):
             if var.name not in ["X", "Y", "Int"]:
@@ -1447,7 +1446,7 @@ class App(CTk.CTk):
 
     def save_data(self, datastack, roi_map=[]):
         if len(roi_map) == 0:
-            roi_map, mask = self.compute_roi_map(datastack)
+            roi_map = self.compute_roi_map(datastack)[0]
         int_roi = np.amax(roi_map)
         if int_roi >= 2:
             for roi in np.arange(1, int_roi + 1):
@@ -1461,7 +1460,7 @@ class App(CTk.CTk):
         if self.extension_table[4].get():
             filename = self.stack.filename + ".mp4"
             fps = 5
-            FFMpegWriter = manimation.writers['ffmpeg']
+            FFMpegWriter = manimation.writers["ffmpeg"]
             metadata = dict(title=self.stack.name, comment="polarimetry of the file " + self.stack.name)
             writer = FFMpegWriter(fps=fps, metadata=metadata)
             fig, ax = plt.subplots()
@@ -1536,7 +1535,7 @@ class App(CTk.CTk):
             for var in datastack.vars:
                 data = var.values(mask * np.isfinite(var.values))
                 dict_.update({var.name: data})
-            scipy.io.savemat(filename, dict_)
+            savemat(filename, dict_)
 
     def compute_roi_map(self, datastack):
         shape = (datastack.height, datastack.width)
@@ -1557,23 +1556,29 @@ class App(CTk.CTk):
         return roi_map, (mask != 0)
 
     def slice4polar(self, stack):
-        stack_ = Stack(stack.filename)
-        stack_.display = stack.display
-        stack_.nangle = 4
-        stack_.height = 2 * self.radius + 2 * self.npix
-        stack_.width = 2 * self.radius + 2 * self.npix
-        stack_.values = np.zeros((stack_.height, stack_.width, 4))
-        ims = []
-        for _ in range(4):
-            xi = int(self.centers[_, 0] - self.radius - self.npix)
-            yi = int(self.centers[_, 1] - self.radius - self.npix)
-            xf = int(self.centers[_, 0] + self.radius + self.npix)
-            yf = int(self.centers[_, 1] + self.radius + self.npix)
-            ims += [stack.values[yi:yf, xi:xf, 0].reshape((stack_.height, stack_.width))]
-        ims_reg = [cv2.warpPerspective(im, tform, im.shape) for im, tform in zip(ims, self.tform)]
-        for it in range(4):
-            stack_.values[:, :, self.order[it]] = ims_reg[it]
-        return stack_
+        if hasattr(self, "registration"):
+            radius = np.asarray(self.registration["radius"]).item()
+            centers = self.registration["centers"]
+            homographies = self.registration["homographies"]
+            stack_ = Stack(stack.filename)
+            stack_.display = stack.display
+            stack_.nangle = 4
+            stack_.height, stack_.width = 2 * radius, 2 * radius
+            stack_.values = np.zeros((stack_.height, stack_.width, 4))
+            ims = []
+            for _ in range(4):
+                xi, yi = centers[_, 0] - radius, centers[_, 1] - radius
+                xf, yf = centers[_, 0] + radius, centers[_, 1] + radius
+                ims += [stack.values[yi:yf, xi:xf, 0].reshape((stack_.height, stack_.width))]
+            ims_reg = [ims[0]]
+            ims_reg += [cv2.warpPerspective(im, homography, (stack_.width, stack_.height)) for im, homography in zip(ims[1:], homographies)]
+            for it in range(4):
+                stack_.values[:, :, self.order[it]] = ims_reg[it]
+            return stack_
+        else:
+            window, buttons = self.showinfo(message="No registration", image=self.icons["blur_circular"], button_labels=["OK"])
+            buttons[0].configure(command=lambda:window.withdraw())
+            self.method.set("1PF")
 
     def analyze_stack(self, datastack):
         chi2threshold = 500
@@ -1585,7 +1590,7 @@ class App(CTk.CTk):
         if self.method.get() == "1PF":
             field = np.sqrt(field)
         elif self.method.get().startswith("4POLAR"):
-            field[:, :, [2, 3]] = field[:, :, [3, 2]]
+            field[:, :, [1, 2]] = field[:, :, [2, 1]]
         bin_shape = [self.bin[_].get() for _ in range(2)]
         if sum(bin_shape) != 2:
             bin = np.ones(int(_) for _ in bin_shape)
@@ -1605,7 +1610,7 @@ class App(CTk.CTk):
                 a4 = np.divide(a4, a0, where=np.all((a0!=0, np.isfinite(a0)), axis=0))
             chi2 = np.mean(np.divide((field - field_fit)**2, field_fit, where=np.all((field_fit!=0, np.isfinite(field_fit)), axis=0)), axis=2)
         elif self.method.get() == "4POLAR 3D":
-            mat = np.einsum("ij,mnj->imn", app.invKmat_3D, field)
+            mat = np.einsum("ij,mnj->imn", self.invKmat_3D, field)
             s = mat[0, :, :] + mat[1, :, :] + mat[2, :, :]
             pxy = ((mat[0, :, :] - mat[1, :, :]) / s).reshape(shape)
             puv = (2 * mat[3, :, :] / s).reshape(shape)
@@ -1613,7 +1618,7 @@ class App(CTk.CTk):
             lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
             a0 = np.mean(field, axis=2) / 4
             a0[a0 == 0] = np.nan
-        elif self.method.get() == '4POLAR 2D':
+        elif self.method.get() == "4POLAR 2D":
             mat = np.einsum("ij,mnj->imn", self.invKmat_2D, field)
             s = mat[0, :, :] + mat[1, :, :] + mat[2, :, :]
             pxy = ((mat[0, :, :] - mat[1, :, :]) / s).reshape(shape)
@@ -1654,7 +1659,7 @@ class App(CTk.CTk):
             s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.value[mask])))
             s4_.colormap = "jet"
             datastack.vars = [rho_, s2_, s4_]
-        elif self.method.get() == 'SHG':
+        elif self.method.get() == "SHG":
             mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
             rho_.values[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
@@ -1774,7 +1779,7 @@ class Calibration():
                 file = pathlib.Path(fd.askopenfilename(title='Select file', initialdir='/', filetypes=[("MAT-files", "*.mat")]))
                 folder = str(file.parent)
                 vars = (str(file.stem), 0)
-            disk = scipy.io.loadmat(folder + "/" + vars[0] + ".mat")
+            disk = loadmat(folder + "/" + vars[0] + ".mat")
             if method == "1PF" and vars[0].startswith("Disk"):
                 self.RhoPsi = np.moveaxis(np.stack((np.array(disk["RoTest"], dtype=np.float64), np.array(disk["PsiTest"], dtype=np.float64))), 0, -1)
                 self.xy = 2 * (np.linspace(-1, 1, int(disk["NbMapValues"]), dtype=np.float64),)
@@ -1798,5 +1803,5 @@ class Calibration():
             return " "
 
 if __name__ == "__main__":
-    app = App()
+    app = Polarimetry()
     app.mainloop()
