@@ -25,15 +25,6 @@ if sys.platform == 'darwin':
         setup_requires=['py2app'],
         options=dict(py2app=dict(argv_emulation=True)),
         #iconfile = 'app.icns',
-        plist = {
-            'CFBundleName': APP_NAME,
-            'CFBundleDisplayName': APP_NAME,
-            'CFBundleGetInfoString': "Polarimetry Analysis",
-            'CFBundleIdentifier': "https://www.fresnel.fr/polarimetry",
-            'CFBundleVersion': VERSION,
-            'CFBundleShortVersionString': VERSION,
-            'NSHumanReadableCopyright': u"Copyright © 2021, Cristel Chandre, All Rights Reserved"
-        }
     )
 elif sys.platform == 'win32':
     extra_options = dict(
