@@ -1,7 +1,7 @@
 import tkinter as tk
-from tkinter import ttk
 from tkinter import filedialog as fd
 from tkinter.messagebox import showerror
+from _tkinter import TclError
 import customtkinter as CTk
 import os
 import pathlib
@@ -13,18 +13,17 @@ from scipy.signal import convolve2d
 from scipy.interpolate import interpn
 from scipy.ndimage import rotate
 from scipy.io import savemat, loadmat
-import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.patches import Polygon
 from matplotlib.collections import PolyCollection
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import matplotlib.animation as manimation
 from PIL import Image
 from skimage import exposure
 import cv2
 import openpyxl
-from apptools.apptools import NToolbar2Tk, ToolTip
 from datetime import date
 from itertools import permutations
 
@@ -41,7 +40,14 @@ plt.ion()
 
 class Polarimetry(CTk.CTk):
 
-    version = "2.2beta"
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "__init__.py")) as f:
+        info = {}
+        for line in f:
+            if line.startswith("version"):
+                exec(line, info)
+                break
+
+    version = info["version"]
     today = date.today().strftime("%B %d, %Y")
 
     left_frame_width = 180
@@ -69,6 +75,7 @@ class Polarimetry(CTk.CTk):
         super().__init__()
 
 ## MAIN
+        self.base_dir = os.path.dirname(os.path.realpath(__file__))
         delx = self.winfo_screenwidth() // 10
         dely = self.winfo_screenheight() // 10
         self.dpi = self.winfo_fpixels("1i")
@@ -82,11 +89,11 @@ class Polarimetry(CTk.CTk):
         self.configure(fg_color=Polarimetry.gray[0])
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
-        image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icons")
+        image_path = os.path.join(self.base_dir, "icons")
         self.icons = {}
         for file in os.listdir(image_path):
             if file.endswith(".png"):
-                self.icons.update({os.path.splitext(file)[0]: CTk.CTkImage(dark_image=Image.open(image_path + "/" + file), size=(30, 30))})
+                self.icons.update({os.path.splitext(file)[0]: CTk.CTkImage(dark_image=Image.open(os.path.join(image_path, file)), size=(30, 30))})
 
 ## DEFINE FRAMES
         self.left_frame = CTk.CTkFrame(master=self, width=Polarimetry.left_frame_width, corner_radius=0, fg_color=Polarimetry.gray[0])
@@ -243,7 +250,7 @@ class Polarimetry(CTk.CTk):
         CTk.CTkLabel(master=plot_options, text="\n Number of pixels separating sticks\n").grid(row=3, column=0, columnspan=2, padx=20, pady=(20, 0))
         labels = ["horizontal", "vertical"]
         self.pixelsperstick = [tk.StringVar(), tk.StringVar()]
-        spinboxes = [ttk.Spinbox(master=plot_options, from_=0, to=10, textvariable=self.pixelsperstick[it], width=2, foreground=Polarimetry.gray[1], background=Polarimetry.gray[1]) for it in range(2)]
+        spinboxes = [tk.ttk.Spinbox(master=plot_options, from_=0, to=10, textvariable=self.pixelsperstick[it], width=2, foreground=Polarimetry.gray[1], background=Polarimetry.gray[1]) for it in range(2)]
         for it in range(2):
             self.pixelsperstick[it].set(1)
             spinboxes[it].grid(row=it+4, column=0, padx=0, pady=(0, 20))
@@ -605,7 +612,8 @@ class Polarimetry(CTk.CTk):
     def crop_figures(self, window):
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
-            if fig.canvas.manager.get_window_title().endswith(("Sticks", "Composite", "Fluorescence")):
+            fs = fig.canvas.manager.get_window_title()
+            if ("Sticks" in fs) or ("Composite" in fs) or ("Fluorescence" in fs):
                 fig.axes[0].set_xlim((self.xlim[0].get(), self.xlim[1].get()))
                 fig.axes[0].set_ylim((self.ylim[1].get(), self.ylim[0].get()))
         window.withdraw()
@@ -1801,6 +1809,90 @@ class Calibration():
             return [key for key in Calibration.dict_4polar.keys()]
         else:
             return " "
+
+class NToolbar2Tk(NavigationToolbar2Tk):
+
+    folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icons")
+
+    def __init__(self, canvas, window, pack_toolbar):
+        super().__init__(canvas=canvas, window=window, pack_toolbar=pack_toolbar)
+        self._buttons = {}
+        self.toolitems = (
+        ('Home', 'Reset original view', 'home', 'home'),
+        (None, None, None, None),
+        ('Back', 'Back to previous view', 'backward', 'back'),
+        ('Forward', 'Forward to next view', 'forward', 'forward'),
+        (None, None, None, None),
+        ('Pan', 'Left button pans, Right button zooms\n x/y fixes axis, CTRL fixes aspect', 'pan', 'pan'),
+        ('Zoom', 'Zoom to rectangle\n x/y fixes axis', 'zoom', 'zoom'),
+        (None, None, None, None),
+        ('Save', 'Save the figure', 'save', 'save_figure'),)
+        tk.Frame.__init__(self, master=window)
+        for num, (text, tooltip_text, image_file, callback) in enumerate(self.toolitems):
+            if text is None:
+                self._Spacer()
+            else:
+                im = NToolbar2Tk.folder + "/" + image_file + ".png"
+                self._buttons[text] = button = self._Button(text=text, image_file=im, toggle=callback in ["zoom", "pan"], command=getattr(self, callback),)
+                if tooltip_text is not None:
+                    ToolTip.createToolTip(button, tooltip_text)
+        self._label_font = CTk.CTkFont(size=12)
+        label = tk.Label(master=self, font=self._label_font, text='\N{NO-BREAK SPACE}\n\N{NO-BREAK SPACE}')
+        label.pack(side=tk.RIGHT)
+        self.message = tk.StringVar(master=self)
+        self._message_label = tk.Label(master=self, font=self._label_font, textvariable=self.message, justify=tk.RIGHT, fg="black")
+        self._message_label.pack(side=tk.RIGHT)
+
+    def _Button(self, text, image_file, toggle, command):
+        b = super()._Button(text=text, image_file=image_file, toggle=toggle, command=command)
+        if image_file is not None:
+            NavigationToolbar2Tk._set_image_for_button(self, b)
+        else:
+            b.configure(font=self._label_font)
+        b.pack(side=tk.LEFT)
+        return b
+
+    def destroy(self, *args):
+        tk.Frame.destroy(self)
+
+class ToolTip:
+    @staticmethod
+    def createToolTip(widget, text):
+        tooltip = ToolTip(widget)
+        def enter(event):
+            tooltip.showtip(text)
+        def leave(event):
+            tooltip.hidetip()
+        widget.bind('<Enter>', enter)
+        widget.bind('<Leave>', leave)
+
+    def __init__(self, widget):
+        self.widget = widget
+        self.tipwindow = None
+
+    def showtip(self, text):
+        self.text = text
+        if self.tipwindow or not self.text:
+            return
+        x, y, _, _ = self.widget.bbox("insert")
+        x = x + self.widget.winfo_rootx() + self.widget.winfo_width()
+        y = y + self.widget.winfo_rooty()
+        self.tipwindow = tw = CTk.CTkToplevel(self.widget)
+        tw.wm_overrideredirect(1)
+        tw.wm_geometry("+%d+%d" % (x, y))
+        try:
+            tw.tk.call("::tk::unsupported::MacWindowStyle", "style", tw._w, "help", "noActivates")
+        except tk.TclError:
+            pass
+        label_font = CTk.CTkFont(size=12)
+        label = tk.Label(tw, text=self.text, font=label_font, justify=tk.LEFT, relief=tk.SOLID, borderwidth=1)
+        label.pack(ipadx=1)
+
+    def hidetip(self):
+        tw = self.tipwindow
+        self.tipwindow = None
+        if tw:
+            tw.destroy()
 
 if __name__ == "__main__":
     app = Polarimetry()
