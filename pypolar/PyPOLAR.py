@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog as fd
 from tkinter.messagebox import showerror
-from _tkinter import TclError
 import customtkinter as CTk
 import os
 import pathlib
@@ -40,14 +39,15 @@ plt.ion()
 
 class Polarimetry(CTk.CTk):
 
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "__init__.py")) as f:
-        info = {}
-        for line in f:
-            if line.startswith("version"):
-                exec(line, info)
-                break
+#    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "__init__.py")) as f:
+#        info = {}
+#        for line in f:
+#            if line.startswith("version"):
+#                exec(line, info)
+#                break
 
-    version = info["version"]
+#    version = info["version"]
+    version = "2.2"
     today = date.today().strftime("%B %d, %Y")
 
     left_frame_width = 180
