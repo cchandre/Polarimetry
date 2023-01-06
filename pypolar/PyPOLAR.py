@@ -5,7 +5,6 @@ from tkinter.messagebox import showerror
 import customtkinter as CTk
 import os
 import pathlib
-from scipy.io import savemat, loadmat
 import pickle
 import webbrowser
 import numpy as np
@@ -13,6 +12,7 @@ from scipy.optimize import linear_sum_assignment
 from scipy.signal import convolve2d
 from scipy.interpolate import interpn
 from scipy.ndimage import rotate
+from scipy.io import savemat, loadmat
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.figure import Figure
@@ -24,11 +24,11 @@ from PIL import Image
 from skimage import exposure
 import cv2
 import openpyxl
-from apptools import NToolbar2Tk, ToolTip
+from apptools.apptools import NToolbar2Tk, ToolTip
 from datetime import date
 from itertools import permutations
 
-CTk.set_default_color_theme("polarimetry.json")
+CTk.set_default_color_theme(os.path.join(os.path.dirname(os.path.realpath(__file__)), "polarimetry.json"))
 CTk.set_appearance_mode("dark")
 
 mpl.use("TkAgg")
@@ -82,7 +82,7 @@ class Polarimetry(CTk.CTk):
         self.configure(fg_color=Polarimetry.gray[0])
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
-        image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Icons_Python")
+        image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icons")
         self.icons = {}
         for file in os.listdir(image_path):
             if file.endswith(".png"):
@@ -105,8 +105,8 @@ class Polarimetry(CTk.CTk):
             self.tabview.add(tab)
 
 ## LEFT FRAME
-        logo = self.button(self.left_frame, text="POLARIMETRY\n          ANALYSIS", image=self.icons["blur_circular"], command=self.on_click_tab)
-        logo.configure(hover=False, fg_color="transparent")
+        logo = self.button(self.left_frame, text=" PyPOLAR", image=self.icons["blur_circular"], command=self.on_click_tab)
+        logo.configure(hover=False, fg_color="transparent", font=CTk.CTkFont(size=20))
         logo.pack(padx=20, pady=(10, 40))
         self.method = tk.StringVar()
         self.dropdown(self.left_frame, values=["1PF", "CARS", "SRS", "SHG", "2PF", "4POLAR 2D", "4POLAR 3D"], image=self.icons["microscope"], command=self.method_dropdown_callback, variable=self.method)
@@ -322,7 +322,7 @@ class Polarimetry(CTk.CTk):
         self.button(banner, image=self.icons["contact_support"], command=lambda:self.openweb(Polarimetry.url_github + "/blob/master/README.md")).pack(side=tk.LEFT, padx=20)
         about_textbox = CTk.CTkTextbox(master=self.tabview.tab("About"), width=Polarimetry.tab_width-30, height=500)
         about_textbox.grid(row=1, column=0, padx=30)
-        message = f"Version: {Polarimetry.version} ({Polarimetry.today}) created with Python and CustomTkinter\n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n uses Material Design icons by Google"
+        message = f"Version: {Polarimetry.version} ({Polarimetry.today}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV, Matplotlib, openpyxl \n\n\n  uses Material Design icons by Google"
         about_textbox.insert("0.0", message)
         about_textbox.configure(state="disabled")
         self.tabview.set("Fluorescence")
@@ -334,7 +334,7 @@ class Polarimetry(CTk.CTk):
         self.info_window.attributes("-topmost", "true")
         self.info_window.title("Polarimetry Analysis")
         self.info_window.geometry(Polarimetry.geometry_info(Polarimetry.info_size[0]))
-        CTk.CTkLabel(self.info_window, text="  Welcome to Polarimetry Analysis", font=CTk.CTkFont(size=20), image=self.icons['blur_circular'], compound="left").grid(row=0, column=0, padx=30, pady=20)
+        CTk.CTkLabel(self.info_window, text="  PyPOLAR", font=CTk.CTkFont(size=20), image=self.icons['blur_circular'], compound="left").grid(row=0, column=0, padx=30, pady=20)
         textbox = CTk.CTkTextbox(self.info_window, width=320, height=150, fg_color=Polarimetry.gray[1])
         textbox.grid(row=1, column=0)
         textbox.insert("0.0", info)
@@ -618,7 +618,7 @@ class Polarimetry(CTk.CTk):
             for txt in ax.texts:
                 txt.set_visible(False)
             fig.draw()
-    
+
     def remove_roi(self, window, variable):
         if variable == "all":
             self.datastack.rois = []
@@ -726,7 +726,7 @@ class Polarimetry(CTk.CTk):
         self.tabview.set("Fluorescence")
         if hasattr(self, "datastack"):
             xlim, ylim = ax.get_xlim(), ax.get_ylim()
-            hlines = [plt.Line2D([(xlim[0] + xlim[1])/2, (xlim[0] + xlim[1])/2], ylim, lw=1, color="w"), 
+            hlines = [plt.Line2D([(xlim[0] + xlim[1])/2, (xlim[0] + xlim[1])/2], ylim, lw=1, color="w"),
                 plt.Line2D(xlim, [(ylim[0] + ylim[1])/2, (ylim[0] + ylim[1])/2], lw=1, color="w")]
             ax.add_line(hlines[0])
             ax.add_line(hlines[1])
@@ -757,7 +757,7 @@ class Polarimetry(CTk.CTk):
                 for line in hlines:
                     line.remove()
                 canvas.draw()
-                
+
     def compute_angle(self):
         if hasattr(self, "stack"):
             self.tabview.set("Fluorescence")
@@ -876,7 +876,7 @@ class Polarimetry(CTk.CTk):
         centers = centers[[Iul, ind[Iur], Ilr, ind[Ill]], :]
         ims = []
         for _ in range(4):
-            xi, yi = centers[_, 0] - radius, centers[_, 1] - radius 
+            xi, yi = centers[_, 0] - radius, centers[_, 1] - radius
             xf, yf = centers[_, 0] + radius, centers[_, 1] + radius
             im = itot[yi:yf, xi:xf]
             im = (im / np.amax(im) * 255).astype(np.uint8)
@@ -963,7 +963,7 @@ class Polarimetry(CTk.CTk):
                 return stack, datastack
             return stack
 
-    def open_file(self, filename):  
+    def open_file(self, filename):
         self.stack, self.datastack = self.define_data(filename)
         if self.method.get().startswith("4POLAR"):
             self.stack = self.slice4polar(self.stack)
@@ -1288,8 +1288,8 @@ class Polarimetry(CTk.CTk):
         vmin, vmax = np.amin(itot), np.amax(itot)
         field = self.adjust(itot, self.contrast_fluo_slider.get(), vmin, vmax)
         if int(self.rotation[1].get()) != 0:
-            field_im = rotate(field_im, int(self.rotation[1].get()), reshape=False, mode="constant", cval=vmin)  
-        ax_im = ax.imshow(field, cmap=mpl.colormaps["gray"], interpolation="nearest") 
+            field_im = rotate(field_im, int(self.rotation[1].get()), reshape=False, mode="constant", cval=vmin)
+        ax_im = ax.imshow(field, cmap=mpl.colormaps["gray"], interpolation="nearest")
         ax_im.set_clim(vmin, vmax)
 
     def add_patches(self, datastack, ax, fig, rotation=True):
@@ -1320,15 +1320,15 @@ class Polarimetry(CTk.CTk):
                     im = np.mod(2 * (im + int(self.rotation[1].get())), 360) / 2
                 im = rotate(im, int(self.rotation[1].get()), reshape=False, mode="constant")
                 im[im == 0] = np.nan
-            h2 = ax.imshow(im, vmin=vmin, vmax=vmax, cmap=var.colormap, interpolation="nearest") 
+            h2 = ax.imshow(im, vmin=vmin, vmax=vmax, cmap=var.colormap, interpolation="nearest")
             plt.colorbar(h2)
             ax.set_title(datastack.name)
             plt.pause(0.001)
             suffix = "_" + var.name + "Composite"
             if self.save_table[0].get() and self.extension_table[1].get():
-                plt.savefig(datastack.filename + suffix + ".tif") 
+                plt.savefig(datastack.filename + suffix + ".tif")
             if not self.show_table[0].get():
-                plt.close(fig) 
+                plt.close(fig)
             if self.show_individual_fit_checkbox.get():
                self.click_callback(ax, fig.canvas, "individual fit")
 
@@ -1354,7 +1354,7 @@ class Polarimetry(CTk.CTk):
                     axs[0].plot(alpha, signal, "*", alpha, signal_fit, "r-", lw=2)
                     axs[1].plot(alpha, signal - signal_fit, "+", alpha, 2 * np.sqrt(signal_fit), "r-", alpha, -2 * np.sqrt(signal_fit), "r-", lw=2)
                     for title, ylabel, ax_ in zip(titles, ylabels, axs):
-                        ax_.set_xlabel(r"$\alpha$", usetex=True, fontsize=20) 
+                        ax_.set_xlabel(r"$\alpha$", usetex=True, fontsize=20)
                         ax_.set_ylabel(ylabel, fontsize=20)
                         ax_.set_title(title, usetex=True, fontsize=14)
                         ax_.set_xlim((0, 180 - 180/self.stack.nangle))
@@ -1398,7 +1398,7 @@ class Polarimetry(CTk.CTk):
             vertices = np.array([[X + l * cosd + w * sind, X - l * cosd + w * sind, X - l * cosd - w * sind, X + l * cosd - w * sind], [Y - l * sind + w * cosd, Y + l * sind + w * cosd, Y + l * sind - w * cosd, Y - l * sind - w * cosd]])
             if int(self.rotation[1].get()) != 0:
                 theta = np.deg2rad(int(self.rotation[1].get()))
-                x0, y0 = self.stack.width / 2, self.stack.height / 2 
+                x0, y0 = self.stack.width / 2, self.stack.height / 2
                 vertices = np.asarray([x0 + (vertices[0] - x0) * np.cos(theta) + (vertices[1] - y0) * np.sin(theta), y0 - (vertices[0] - x0) * np.sin(theta) + (vertices[1] - y0) * np.cos(theta)])
             vertices = np.swapaxes(vertices, 0, 2)
             p = PolyCollection(vertices, cmap=mpl.colormaps[var.colormap], lw=2, array=stick_colors)
@@ -1409,7 +1409,7 @@ class Polarimetry(CTk.CTk):
             ax.set_title(datastack.name)
             suffix = "_" + var.name + "Sticks"
             if self.save_table[1].get() and self.extension_table[1].get():
-                plt.savefig(datastack.filename + suffix + ".tif")  
+                plt.savefig(datastack.filename + suffix + ".tif")
             if not self.show_table[1].get():
                 plt.close(fig)
 
@@ -1423,7 +1423,7 @@ class Polarimetry(CTk.CTk):
             ax.set_title(datastack.name)
             suffix = "_Fluo"
             if self.save_table[3].get() and self.extension_table[1].get():
-                plt.savefig(datastack.filename + suffix + ".tif") 
+                plt.savefig(datastack.filename + suffix + ".tif")
             if not self.show_table[3].get():
                 plt.close(fig)
 
@@ -1500,7 +1500,7 @@ class Polarimetry(CTk.CTk):
             else:
                 worksheet.append(self.return_vecexcel(datastack, roi_map, roi=[])[0])
             workbook.save(filename)
-            
+
     def return_vecexcel(self, datastack, roi_map, roi=[]):
         mask = (roi_map == roi) if roi else (roi_map == 1)
         ilow = datastack.rois[roi-1]["ILow"] if roi else float(self.ilow.get())
@@ -1701,7 +1701,7 @@ class Polarimetry(CTk.CTk):
         X_, Y_, Int_ = Variable(datastack), Variable(datastack), Variable(datastack)
         X_.name, Y_.name, Int_.name = "X", "Y", "Int"
         X_.values, Y_.values, Int_.values = X, Y, a0
-        datastack.vars += [X_, Y_, Int_] 
+        datastack.vars += [X_, Y_, Int_]
         if self.method.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
             chi2[np.logical_not(mask)] = np.nan
         if self.show_individual_fit_checkbox.get():
@@ -1756,11 +1756,11 @@ class Calibration():
 
     dict_1pf = {"488 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 85), "561 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 30), "640 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 35), "488 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0", 100), "561 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0", 100), "640 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0", 100), "488 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0", 100), "561 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0", 100), "640 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0", 100), "488 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0", 100), "561 nm (before 13/12/2019)": ("Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0", 100), "640 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0", 100), "no distortions (before 12/04/2022)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 100), "other": (None, 0)}
 
-    folder_1pf = os.path.join(os.path.dirname(os.path.realpath(__file__)), "DiskCones")
+    folder_1pf = os.path.join(os.path.dirname(os.path.realpath(__file__)), "diskcones")
 
     dict_4polar = {"Calib_20221102": ("Calib_20221102", 0), "Calib_20221011": ("Calib_20221011", 0), "other": (None, 0)}
 
-    folder_4polar = os.path.join(os.path.dirname(os.path.realpath(__file__)), "CalibrationData")
+    folder_4polar = os.path.join(os.path.dirname(os.path.realpath(__file__)), "calibration")
 
     def __init__(self, method, label=None):
         if label is None:

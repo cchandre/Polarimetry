@@ -1,12 +1,11 @@
 import tkinter as tk
 import os
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 import customtkinter as CTk
 
 class NToolbar2Tk(NavigationToolbar2Tk):
 
-    folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Icons_Python/toolbar")
+    folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icons")
 
     def __init__(self, canvas, window, pack_toolbar):
         super().__init__(canvas=canvas, window=window, pack_toolbar=pack_toolbar)

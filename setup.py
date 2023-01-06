@@ -11,13 +11,13 @@
 import sys
 from setuptools import setup
 
-APP = ['PolarimetryPlus.py']
+APP = ['PyPOLAR.py']
 VERSION = "2.2"
-APP_NAME = "PolarimetryPlus"
+APP_NAME = "PyPOLAR"
 AUTHOR = "Cristel Chandre"
 AUTHOR_EMAIL = "cristel.chandre@cnrs.fr"
 URL = "https://www.fresnel.fr/polarimetry"
-DATA_FILES = ["polarimetry.json", "apptools.py", "Icons_Python", "Icons_Python", "CalibrationData/*"]
+DATA_FILES = [("icons", ["*.png"]), "polarimetry.json"]
 OPTIONS = {}
 
 if sys.platform == 'darwin':
@@ -41,6 +41,9 @@ setup(
     long_description = "**Detailed Information:" +  URL + "**",
     app = APP,
     data_files = DATA_FILES,
-    install_requires = ["customtkinter"],
+    install_requires = ["customtkinter", "openpyxl", "opencv"],
+    packages = ["pypolar"],
+    package_dir = {"pypolar": "pypolar"},
+    package_data = {"pypolar": ["calibration/*.mat", "diskcones/*.mat"]},
     **extra_options
 )
