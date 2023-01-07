@@ -2,7 +2,6 @@
 .DS_Store
 build/
 dist/
-*.spec
 *.pyc
 .DS_Store
 .DS_Store?
