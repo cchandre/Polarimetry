@@ -13,9 +13,9 @@ Recommendations:
 
 # -*- mode: python ; coding: utf-8 -*-
 
-import os
+import sys
 
-with open(os.path.join("__init__.py")) as f:
+with open("__init__.py") as f:
         info = {}
         for line in f:
             if line.startswith("version"):
@@ -70,11 +70,12 @@ coll = COLLECT(exe,
                upx_exclude=[],
                name='PyPOLAR')
 
-app = BUNDLE(coll,
-    name='PyPOLAR.app',
-    icon='main_icon.icns',
-    bundle_identifier=None,
-    version=VERSION,
-    info_plist={
-        'NSPrincipalClass': 'NSApplication',
-        'NSAppleScriptEnabled': False,},)
+if sys.platform == 'darwin':
+    app = BUNDLE(coll,
+        name='PyPOLAR.app',
+        icon='main_icon.icns',
+        bundle_identifier=None,
+        version=VERSION,
+        info_plist={
+            'NSPrincipalClass': 'NSApplication',
+            'NSAppleScriptEnabled': False,},)
