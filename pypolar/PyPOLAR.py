@@ -39,15 +39,14 @@ plt.ion()
 
 class Polarimetry(CTk.CTk):
 
-#    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "__init__.py")) as f:
-#        info = {}
-#        for line in f:
-#            if line.startswith("version"):
-#                exec(line, info)
-#                break
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "__init__.py")) as f:
+        info = {}
+        for line in f:
+            if line.startswith("version"):
+                exec(line, info)
+                break
 
-#    version = info["version"]
-    version = "2.2"
+    version = info["version"]
     today = date.today().strftime("%B %d, %Y")
 
     left_frame_width = 180
@@ -59,7 +58,7 @@ class Polarimetry(CTk.CTk):
     axes_size = (680, 680)
     figsize = (450, 450)
     button_size = (160, 40)
-    info_size = ((420, 320), (360, 240), (300, 150))
+    info_size = ((380, 320), (360, 240), (300, 150))
     geometry_info = lambda dim: f"{dim[0]}x{dim[1]}+400+300"
 
     orange = ("#FF7F4F", "#ffb295")
@@ -254,10 +253,14 @@ class Polarimetry(CTk.CTk):
         for it in range(2):
             self.pixelsperstick[it].set(1)
             spinboxes[it].grid(row=it+4, column=0, padx=0, pady=(0, 20))
-            CTk.CTkLabel(master=plot_options, text=labels[it], anchor="w").grid(row=it+4, column=1, padx=(0, 20), pady=(0, 20))
+            label = CTk.CTkLabel(master=plot_options, text=labels[it], anchor="w")
+            label.grid(row=it+4, column=1, padx=(0, 20), pady=(0, 20))
+            ToolTip.createToolTip(label, "Controls the density of sticks to be plotted")
         self.show_individual_fit_checkbox = self.checkbox(self.tabview.tab("Options"), text="Show individual fit", command=self.show_individual_fit_callback)
         self.show_individual_fit_checkbox.grid(row=3, column=0, pady=20)
-        self.button(self.tabview.tab("Options"), text="Download analysis", image=self.icons["download"], command=self.download_callback).grid(row=3, column=1, pady=20)
+        button = self.button(self.tabview.tab("Options"), text="Download analysis", image=self.icons["download"], command=self.download_callback)
+        button.grid(row=3, column=1, pady=20)
+        ToolTip.createToolTip(button, "Select the type of figures to be displayed\n then download .pickle file from previous analyses")
         self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab("Options"), width=300)
         self.variable_table_frame.grid(row=0, column=1, padx=(40, 20), pady=20, sticky="nw")
         save_ext = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
@@ -292,11 +295,15 @@ class Polarimetry(CTk.CTk):
         self.offset_angle_entry.configure(state="disabled")
         self.calib_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=Polarimetry.button_size[0], height=Polarimetry.button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback)
         self.calib_dropdown.grid(row=1, column=0, pady=20)
-        self.button(adv["Disk cone / Calibration data"], text="Display", image=self.icons["photo"], command=self.diskcone_display).grid(row=2, column=0, pady=20)
+        ToolTip.createToolTip(self.calib_dropdown, " 1PF: Select disk cone depending on wavelength and acquisition date\n 4POLAR: Select .mat file containing the calibration data")
+        button = self.button(adv["Disk cone / Calibration data"], text="Display", image=self.icons["photo"], command=self.diskcone_display)
+        button.grid(row=2, column=0, pady=20)
+        ToolTip.createToolTip(button, "Display the selected disk cone (for 1PF)")
         self.calib_textbox = CTk.CTkTextbox(master=adv["Disk cone / Calibration data"], width=250, height=50, state="disabled")
         self.calib_textbox.grid(row=3, column=0, pady=20)
         self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=Polarimetry.button_size[0], height=Polarimetry.button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled")
         self.polar_dropdown.grid(row=4, column=0, pady=20)
+        ToolTip.createToolTip(self.polar_dropdown, "4POLAR: Select repartition of polarizations (0,45,90,135) among quadrants clockwise\n Upper Left (UL), Upper Right (UR), Lower Right (LR), Lower Left (LL)")
         labels = ["Bin width", "Bin height"]
         self.bin = [tk.IntVar(), tk.IntVar()]
         self.bin[0].set(1)
@@ -310,6 +317,8 @@ class Polarimetry(CTk.CTk):
         self.rotation[1].set(0)
         entries = [self.entry(adv["Rotation"], text="\n" + label + "\n", text_box=0, textvariable=self.rotation[it], row=it+1, column=0) for it, label in enumerate(labels)]
         entries[1].bind("<Return>", command=self.rotation_callback)
+        for entry in entries:
+            ToolTip.createToolTip(entry, "positive value for counter-clockwise rotation / negative value for clockwise rotation")
         labels = ["Noise factor", "Noise width", "Noise height", "Noise removal level"]
         self.noise = [tk.DoubleVar(), tk.IntVar(), tk.IntVar(), tk.DoubleVar()]
         vals = [1, 3, 3, 0]
@@ -318,7 +327,9 @@ class Polarimetry(CTk.CTk):
         rows = [1, 2, 3, 5]
         entries = [self.entry(adv["Remove background"], text="\n" + label + "\n", textvariable=self.noise[it], row=rows[it], column=0) for it, label in enumerate(labels)]
         entries[3].configure(state="disabled")
-        self.button(adv["Remove background"], text="Click background", image=self.icons["exposure"], command=lambda:self.click_callback(self.fluo_axis, self.fluo_canvas, "click background")).grid(row=4, column=0)
+        button = self.button(adv["Remove background"], text="Click background", image=self.icons["exposure"], command=lambda:self.click_callback(self.fluo_axis, self.fluo_canvas, "click background"))
+        button.grid(row=4, column=0)
+        ToolTip.createToolTip(button, "Click and select a point on the fluorescence image")
 
 ## RIGHT FRAME: ABOUT
         banner = CTk.CTkFrame(master=self.tabview.tab("About"))
@@ -341,9 +352,9 @@ class Polarimetry(CTk.CTk):
         self.info_window.attributes("-topmost", "true")
         self.info_window.title("Polarimetry Analysis")
         self.info_window.geometry(Polarimetry.geometry_info(Polarimetry.info_size[0]))
-        CTk.CTkLabel(self.info_window, text="  PyPOLAR", font=CTk.CTkFont(size=20), image=self.icons['blur_circular'], compound="left").grid(row=0, column=0, padx=30, pady=20)
+        CTk.CTkLabel(self.info_window, text="  PyPOLAR", font=CTk.CTkFont(size=20), image=self.icons['blur_circular'], compound="left").grid(row=0, column=0, padx=0, pady=20)
         textbox = CTk.CTkTextbox(self.info_window, width=320, height=150, fg_color=Polarimetry.gray[1])
-        textbox.grid(row=1, column=0)
+        textbox.grid(row=1, column=0, padx=40)
         textbox.insert("0.0", info)
         link = CTk.CTkLabel(self.info_window, text="For more information, visit the GitHub page", text_color="blue", font=CTk.CTkFont(underline=True), cursor="hand2")
         link.grid(row=2, column=0, padx=50, pady=10, sticky="w")
@@ -549,6 +560,8 @@ class Polarimetry(CTk.CTk):
             self.options_icon.configure(image=self.icons["build_fill"])
         else:
             self.options_icon.configure(image=self.icons["build"])
+        if value.startswith("Mask"):
+            self.represent_thrsh()
 
     def open_file_callback(self, value):
         if value == "Open file":
