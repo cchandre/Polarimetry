@@ -5,6 +5,7 @@ Usage:
     pyinstaller pypolar.spec
 
 Recommendations:
+    - on MacOS: xcode-select --install
     - change CTK_PATH using pip3 show customtkinter
     - If you experience problems packaging your apps, your first step should always be to update your PyInstaller and hooks package the latest versions using:
         pip3 install --upgrade PyInstaller pyinstaller-hooks-contrib
@@ -26,10 +27,15 @@ block_cipher = None
 
 VERSION = info["version"]
 
-CTK_PATH = "/Users/c.chandre/opt/anaconda3/envs/polarimetry_env/lib/python3.8/site-packages/customtkinter/"
+CTK_PATH = "/Users/cchandre/opt/anaconda3/envs/polarimetry_env/lib/python3.8/site-packages/customtkinter/"
 
 DATA_FILES = [("icons/*.png", "icons/"), ("polarimetry.json", "."), (CTK_PATH, "customtkinter/")]
-BINARY_FILES = [("calibration/*.mat", "calibration/"), ("diskcones/*.mat", "diskcones/")]
+BINARY_FILES = [("calibration/*.mat", "calibration/"), ("diskcones/*.mat", "diskcones/"), ("__init__.py", ".")]
+
+if sys.platform == 'win32':
+    extra_options = dict(icon='main_icon.ico')
+else:
+    extra_options = {}
 
 a = Analysis(['PyPOLAR.py'],
     pathex=[],
@@ -59,7 +65,8 @@ exe = EXE(pyz,
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
-    entitlements_file=None)
+    entitlements_file=None,
+    **options)
 
 coll = COLLECT(exe,
                a.binaries,

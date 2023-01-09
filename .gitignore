@@ -6,5 +6,4 @@ dist/
 *.pyc
 .DS_Store
 .DS_Store?
-pypolar/main_icon.iconset/
 settings_dmg.py
