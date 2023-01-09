@@ -41,6 +41,7 @@ mpl.use("TkAgg")
 plt.rcParams["font.size"] = 16
 plt.rcParams["font.family"] = "Arial Rounded MT Bold"
 plt.rcParams["image.origin"] = "upper"
+plt.rcParams["figure.max_open_warning"] = 100
 
 plt.ion()
 
@@ -1008,6 +1009,8 @@ class Polarimetry(CTk.CTk):
         self.compute_itot(self.stack)
         if hasattr(self, "datastack"):
             self.datastack.itot = self.stack.itot
+        if self.option.get().startswith("Mask"):
+            self.mask = self.get_mask(self.datastack)
         self.represent_fluo(update=False)
         self.represent_thrsh(update=False)
 
