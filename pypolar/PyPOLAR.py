@@ -23,7 +23,7 @@ from PIL import Image
 from skimage import exposure
 import cv2
 import openpyxl
-from datetime import date
+
 from itertools import permutations
 
 try:
@@ -47,15 +47,7 @@ plt.ion()
 
 class Polarimetry(CTk.CTk):
 
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "__init__.py")) as f:
-        info = {}
-        for line in f:
-            if line.startswith("version"):
-                exec(line, info)
-                break
-
-    version = info["version"]
-    today = date.today().strftime("%B %d, %Y")
+    from __init__ import version, version_date
 
     left_frame_width = 180
     right_frame_width = 850
@@ -348,7 +340,7 @@ class Polarimetry(CTk.CTk):
         self.button(banner, image=self.icons["contact_support"], command=lambda:self.openweb(Polarimetry.url_github + "/blob/master/README.md")).pack(side=tk.LEFT, padx=20)
         about_textbox = CTk.CTkTextbox(master=self.tabview.tab("About"), width=Polarimetry.tab_width-30, height=500)
         about_textbox.grid(row=1, column=0, padx=30)
-        message = f"Version: {Polarimetry.version} ({Polarimetry.today}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV, Matplotlib, openpyxl \n\n\n  uses Material Design icons by Google"
+        message = f"Version: {Polarimetry.version} ({Polarimetry.version_date}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV, Matplotlib, openpyxl \n\n\n  uses Material Design icons by Google"
         about_textbox.insert("0.0", message)
         about_textbox.configure(state="disabled")
         self.tabview.set("Fluorescence")
