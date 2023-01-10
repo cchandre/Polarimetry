@@ -23,8 +23,15 @@ from PIL import Image
 from skimage import exposure
 import cv2
 import openpyxl
-from datetime import date
+
 from itertools import permutations
+
+try:
+    from ctypes import windll 
+    myappid = "cnrs.fresnel.pypolar"
+    windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+except ImportError:
+    pass
 
 CTk.set_default_color_theme(os.path.join(os.path.dirname(os.path.realpath(__file__)), "polarimetry.json"))
 CTk.set_appearance_mode("dark")
@@ -34,20 +41,13 @@ mpl.use("TkAgg")
 plt.rcParams["font.size"] = 16
 plt.rcParams["font.family"] = "Arial Rounded MT Bold"
 plt.rcParams["image.origin"] = "upper"
+plt.rcParams["figure.max_open_warning"] = 100
 
 plt.ion()
 
 class Polarimetry(CTk.CTk):
 
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "__init__.py")) as f:
-        info = {}
-        for line in f:
-            if line.startswith("version"):
-                exec(line, info)
-                break
-
-    version = info["version"]
-    today = date.today().strftime("%B %d, %Y")
+    from __init__ import __version__, __version_date__
 
     left_frame_width = 180
     right_frame_width = 850
@@ -340,7 +340,7 @@ class Polarimetry(CTk.CTk):
         self.button(banner, image=self.icons["contact_support"], command=lambda:self.openweb(Polarimetry.url_github + "/blob/master/README.md")).pack(side=tk.LEFT, padx=20)
         about_textbox = CTk.CTkTextbox(master=self.tabview.tab("About"), width=Polarimetry.tab_width-30, height=500)
         about_textbox.grid(row=1, column=0, padx=30)
-        message = f"Version: {Polarimetry.version} ({Polarimetry.today}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV, Matplotlib, openpyxl \n\n\n  uses Material Design icons by Google"
+        message = f"Version: {Polarimetry.__version__} ({Polarimetry.__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV, Matplotlib, openpyxl \n\n\n  uses Material Design icons by Google"
         about_textbox.insert("0.0", message)
         about_textbox.configure(state="disabled")
         self.tabview.set("Fluorescence")
@@ -561,7 +561,10 @@ class Polarimetry(CTk.CTk):
         else:
             self.options_icon.configure(image=self.icons["build"])
         if value.startswith("Mask"):
-            self.represent_thrsh()
+            self.maskfolder = fd.askdirectory(title="Select the directory containing masks", initialdir="/")
+            if hasattr(self, "datastack"):
+                self.mask = self.get_mask(self.datastack)
+                self.represent_thrsh()
 
     def open_file_callback(self, value):
         if value == "Open file":
@@ -579,7 +582,7 @@ class Polarimetry(CTk.CTk):
             self.filelist = []
             for filename in os.listdir(folder):
                 if filename.endswith((".tif", ".tiff")):
-                    self.filelist += [folder + "/" + filename]
+                    self.filelist += [os.path.join(folder, filename)]
             self.indxlist = 0
             if folder and any(self.filelist):
                 self.open_file(self.filelist[0])
@@ -702,10 +705,11 @@ class Polarimetry(CTk.CTk):
         if hasattr(self, "stack"):
             if self.dark_switch.get() == "on":
                 self.dark_entry.configure(state="normal")
-                self.dark.set(self.stack.display.format(self.stack.calculated_dark))
+                self.dark.set(self.stack.display.format(self.calculated_dark))
             else:
                 self.dark_entry.configure(state="disabled")
-                self.dark.set(self.stack.display.format(self.stack.calculated_dark))
+                self.dark.set(self.stack.display.format(self.calculated_dark))
+                self.itot_callback(event=1)
         else:
             self.dark.set("")
 
@@ -878,7 +882,7 @@ class Polarimetry(CTk.CTk):
         self.filename_label.configure(text="")
         dark = self.compute_dark(beadstack, display=False)
         itot = np.sum((beadstack.values - dark) * (beadstack.values >= dark), axis=2)
-        whitelight = cv2.imread(beadstack.folder + "/" + "Whitelight.tif", cv2.IMREAD_GRAYSCALE)
+        whitelight = cv2.imread(os.path.join(beadstack.folder, "Whitelight.tif"), cv2.IMREAD_GRAYSCALE)
         whitelight = cv2.threshold(whitelight, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
         contours = cv2.findContours(whitelight, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
         filter = np.asarray([len(contour) >= 200 for contour in contours])
@@ -997,6 +1001,8 @@ class Polarimetry(CTk.CTk):
         self.compute_itot(self.stack)
         if hasattr(self, "datastack"):
             self.datastack.itot = self.stack.itot
+        if self.option.get().startswith("Mask"):
+            self.mask = self.get_mask(self.datastack)
         self.represent_fluo(update=False)
         self.represent_thrsh(update=False)
 
@@ -1074,10 +1080,15 @@ class Polarimetry(CTk.CTk):
     def get_mask(self, datastack):
         mask = np.ones((datastack.height, datastack.width))
         if self.option.get().startswith("Mask"):
-            mask_name = datastack.filename + ".png"
+            mask_name = os.path.join(self.maskfolder, datastack.name + ".png")
             if os.path.isfile(mask_name):
                 im_binarized = np.asarray(plt.imread(mask_name), dtype=np.float64)
                 mask = im_binarized / np.amax(im_binarized)
+            else:
+                window, buttons = self.showinfo(message=f" The corresponding mask for {datastack.name} could not be found\n Continuing without mask...", image=self.icons["layers_clear"], buttons_labels=["OK"])
+                buttons.configure(command=lambda:window.withdraw())
+            if hasattr(self, "mask"):
+                self.mask = mask
         return mask
 
     def analysis_callback(self):
@@ -1183,13 +1194,9 @@ class Polarimetry(CTk.CTk):
 
     def represent_thrsh(self, update=True):
         if hasattr(self, "stack"):
-            field = self.stack.itot
+            field = self.stack.itot.copy()
             if self.option.get().startswith("Mask"):
-                mask_name = os.path.basename(self.stack.filename) + ".png"
-                if os.path.isfile(mask_name):
-                    im_binarized = cv2.imread(mask_name)
-                    mask = np.asarray(im_binarized, dtype=np.float64)
-                    field *= mask / np.amax(mask)
+                field *= self.mask
             vmin, vmax = np.amin(self.stack.itot), np.amax(self.stack.itot)
             field_im = self.adjust(self.stack.itot, self.contrast_thrsh_slider.get(), vmin, vmax)
             alphadata = np.ones(field.shape)
@@ -1235,6 +1242,7 @@ class Polarimetry(CTk.CTk):
         cell = ImCG[IndI, IndJ, :, :, :]
         dark = np.mean(cell[cell != 0])
         if display:
+            self.calculated_dark = dark
             self.calculated_dark_label.configure(text="Calculated dark value = " + stack.display.format(dark))
             if self.dark_switch.get() == "off":
                 self.dark.set(stack.display.format(dark))
@@ -1502,7 +1510,7 @@ class Polarimetry(CTk.CTk):
             plt.close(fig)
         if self.extension_table[3].get():
             if self.filelist:
-                filename = self.stack.folder + "/" + os.path.basename(self.stack.folder) + "_Stats.xlsx"
+                filename = os.path.join(self.stack.folder, os.path.basename(self.stack.folder) + "_Stats.xlsx")
                 title = os.path.basename(self.stack.folder)
             else:
                 filename = self.stack.filename + "_Stats.xlsx"
@@ -1800,7 +1808,7 @@ class Calibration():
                 file = pathlib.Path(fd.askopenfilename(title='Select file', initialdir='/', filetypes=[("MAT-files", "*.mat")]))
                 folder = str(file.parent)
                 vars = (str(file.stem), 0)
-            disk = loadmat(folder + "/" + vars[0] + ".mat")
+            disk = loadmat(os.path.join(folder, vars[0] + ".mat"))
             if method == "1PF" and vars[0].startswith("Disk"):
                 self.RhoPsi = np.moveaxis(np.stack((np.array(disk["RoTest"], dtype=np.float64), np.array(disk["PsiTest"], dtype=np.float64))), 0, -1)
                 self.xy = 2 * (np.linspace(-1, 1, int(disk["NbMapValues"]), dtype=np.float64),)
@@ -1845,7 +1853,7 @@ class NToolbar2Tk(NavigationToolbar2Tk):
             if text is None:
                 self._Spacer()
             else:
-                im = NToolbar2Tk.folder + "/" + image_file + ".png"
+                im = os.path.join(NToolbar2Tk.folder, image_file + ".png")
                 self._buttons[text] = button = self._Button(text=text, image_file=im, toggle=callback in ["zoom", "pan"], command=getattr(self, callback),)
                 if tooltip_text is not None:
                     ToolTip.createToolTip(button, tooltip_text)
