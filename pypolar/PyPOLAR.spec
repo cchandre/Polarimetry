@@ -82,9 +82,4 @@ if sys.platform == 'darwin':
         info_plist={
             'NSPrincipalClass': 'NSApplication',
             'NSAppleScriptEnabled': False,
-            'CFBundleDocumentTypes': [
-                {
-                    'CFBundleTypeIconFile': 'main_icon.icns',
-                    'LSHandlerRank': 'Owner'
-                    }
-                ]},)
+            'CFBundleDocumentTypes': [{'CFBundleTypeIconFile': 'main_icon.icns'}]},)
