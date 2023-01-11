@@ -4,7 +4,9 @@ from tkinter.messagebox import showerror
 import customtkinter as CTk
 import os
 import pathlib
-import pickle
+import bz2
+import _pickle as cPickle
+import copy
 import webbrowser
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -58,7 +60,7 @@ class Polarimetry(CTk.CTk):
     axes_size = (680, 680)
     figsize = (450, 450)
     button_size = (160, 40)
-    info_size = ((380, 320), (360, 240), (300, 150))
+    info_size = ((380, 350), (360, 240), (300, 150))
     geometry_info = lambda dim: f"{dim[0]}x{dim[1]}+400+300"
 
     orange = ("#FF7F4F", "#ffb295")
@@ -266,7 +268,7 @@ class Polarimetry(CTk.CTk):
         save_ext = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
         save_ext.grid(row=2, column=1, padx=(40, 20), pady=20, sticky="nw")
         CTk.CTkLabel(master=save_ext, text="\nSave output\n", font=CTk.CTkFont(size=16), width=260).grid(row=0, column=0, columnspan=2, padx=(0, 20), pady=(0, 0))
-        labels = ["figures (.pickle)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "stack (.mp4)"]
+        labels = ["data (.pbz2)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "stack (.mp4)"]
         self.extension_table = [self.checkbox(save_ext) for it in range(len(labels))]
         for it in range(len(labels)):
             CTk.CTkLabel(master=save_ext, text=labels[it], anchor="w", width=120).grid(row=it+1, column=0, padx=(20, 0))
@@ -350,13 +352,13 @@ class Polarimetry(CTk.CTk):
         self.startup()
 
     def startup(self):
-        info = " (1) Select a polarimetry method\n\n (2) Download a file or a folder\n\n (3) Select a method of analysis\n\n (4) Select one or several regions of interest\n\n (5) Click on Analysis"
+        info = " (1) Select a polarimetry method\n\n (2) Download a file or a folder\n        or a previous PyPOLAR analysis\n\n (3) Select a method of analysis\n\n (4) Select one or several regions of interest\n\n (5) Click on Analysis"
         self.info_window = CTk.CTkToplevel(self)
         self.info_window.attributes("-topmost", "true")
         self.info_window.title("Polarimetry Analysis")
         self.info_window.geometry(Polarimetry.geometry_info(Polarimetry.info_size[0]))
         CTk.CTkLabel(self.info_window, text="  PyPOLAR", font=CTk.CTkFont(size=20), image=self.icons['blur_circular'], compound="left").grid(row=0, column=0, padx=0, pady=20)
-        textbox = CTk.CTkTextbox(self.info_window, width=320, height=150, fg_color=Polarimetry.gray[1])
+        textbox = CTk.CTkTextbox(self.info_window, width=320, height=170, fg_color=Polarimetry.gray[1])
         textbox.grid(row=1, column=0, padx=40)
         textbox.insert("0.0", info)
         link = CTk.CTkLabel(self.info_window, text="For more information, visit the GitHub page", text_color="blue", font=CTk.CTkFont(underline=True), cursor="hand2")
@@ -590,10 +592,12 @@ class Polarimetry(CTk.CTk):
                 window, buttons = self.showinfo(message="The folder does not contain TIFF or TIF files", image=self.icons["download_folder"], button_labels=["OK"], geometry=(340, 140))
                 buttons[0].configure(command=lambda:window.withdraw())
         elif value == "Previous analysis":
-            filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir="/", filetypes=[("PICKLE files", "*.pickle")])
-            with open(filename, "rb") as f:
+            filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir="/", filetypes=[("cPICKLE files", "*.pbz2")])
+            with bz2.BZ2File(filename, "rb") as f:
+                if hasattr(self, "stack"):
+                    delattr(self, "stack")
                 self.openfile_icon.configure(image=self.icons["analytics"])
-                self.datastack = pickle.load(f)
+                self.datastack = cPickle.load(f)
                 self.method.set(self.datastack.method)
                 self.define_variable_table(self.datastack.method)
                 self.options_dropdown.configure(state="disabled")
@@ -1396,7 +1400,7 @@ class Polarimetry(CTk.CTk):
                     rho = np.mod(2 * (self.datastack.vars[0].values[y, x] + int(self.rotation[1].get())), 360) / 2
                     title = self.datastack.vars[0].latex + " = " + "{:.2f}".format(rho) + ", "
                     for var in self.datastack.vars:
-                        if var.name not in ["Rho", "X", "Y", "Int"]:
+                        if var.name != "Rho":
                             title += var.latex + " = " + "{:.2f}".format(var.values[y, x]) + ", "
                     titles = [title[:-2]]
                     titles += ["$\chi_2 =$"+ "{:.2f}".format(self.datastack.chi2[y, x]) + ",   $I = $ " + self.datastack.display.format(self.datastack.itot[y, x])]
@@ -1482,16 +1486,15 @@ class Polarimetry(CTk.CTk):
             roi_map = self.compute_roi_map(datastack)[0]
         int_roi = np.amax(roi_map)
         for _, var in enumerate(datastack.vars):
-            if var.name not in ["X", "Y", "Int"]:
-                display, min, max = self.get_variable(_)
-                if display:
-                    self.plot_composite(var, datastack, min, max)
-                    self.plot_sticks(var, datastack, min, max)
-                    if int_roi >= 2:
-                        for roi in np.arange(1, int_roi + 1):
-                            self.plot_histo(var, datastack, min, max, roi_map, roi=roi)
-                    else:
-                        self.plot_histo(var, datastack, min, max, roi_map, roi=[])
+            display, min, max = self.get_variable(_)
+            if display:
+                self.plot_composite(var, datastack, min, max)
+                self.plot_sticks(var, datastack, min, max)
+                if int_roi >= 2:
+                    for roi in np.arange(1, int_roi + 1):
+                        self.plot_histo(var, datastack, min, max, roi_map, roi=roi)
+                else:
+                    self.plot_histo(var, datastack, min, max, roi_map, roi=[])
 
     def save_data(self, datastack, roi_map=[]):
         if len(roi_map) == 0:
@@ -1503,9 +1506,11 @@ class Polarimetry(CTk.CTk):
         else:
             self.save_mat(datastack, roi_map, roi=[])
         if self.extension_table[0].get():
-            filename = self.stack.filename + ".pickle"
-            with open(filename, "wb") as f:
-                pickle.dump(datastack, f, pickle.HIGHEST_PROTOCOL)
+            filename = self.stack.filename + ".pbz2"
+            datastack_ = copy.copy(datastack)
+            delattr(datastack_, "added_vars")
+            with bz2.BZ2File(filename, "w") as f:
+                cPickle.dump(datastack_, f)
         if self.extension_table[4].get():
             filename = self.stack.filename + ".mp4"
             fps = 5
@@ -1566,10 +1571,9 @@ class Polarimetry(CTk.CTk):
                 meandata = np.mean(data_vals)
                 title += ["Mean" + var.name, "Std" + var.name]
                 results += [meandata, np.std(data_vals)]
-                if var.name == "Int":
-                    meandata *= self.stack.nangle
-                    title += ["TotalInt", "ILow", "N"]
-                    results += [meandata, ilow, n]
+        meandata = np.mean(datastack.added_vars[2].values) * self.stack.nangle
+        title += ["TotalInt", "ILow", "N"]
+        results += [meandata, ilow, n]
         if self.method.get() in ["1PF", "4POLAR 2D", "4POLAR 3D"]:
             title += ["Calibration"]
             results += [self.CD.name]
@@ -1582,7 +1586,10 @@ class Polarimetry(CTk.CTk):
             mask = (roi_map == roi) if roi else (roi_map == 1)
             dict_ = {"dark": datastack.dark}
             for var in datastack.vars:
-                data = var.values(mask * np.isfinite(var.values))
+                data = var.values[mask * np.isfinite(var.values)]
+                dict_.update({var.name: data})
+            for var in datastack.added_vars:
+                data = var.values[mask * np.isfinite(var.values)]
                 dict_.update({var.name: data})
             savemat(filename, dict_)
 
@@ -1750,7 +1757,9 @@ class Polarimetry(CTk.CTk):
         X_, Y_, Int_ = Variable(datastack), Variable(datastack), Variable(datastack)
         X_.name, Y_.name, Int_.name = "X", "Y", "Int"
         X_.values, Y_.values, Int_.values = X, Y, a0
-        datastack.vars += [X_, Y_, Int_]
+        datastack.added_vars = [X_, Y_, Int_]
+        field[np.logical_not(mask)] = np.nan
+        field_fit[np.logical_not(mask)] = np.nan
         if self.method.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
             chi2[np.logical_not(mask)] = np.nan
         if not self.method.get().startswith("4POLAR"):
@@ -1786,6 +1795,7 @@ class DataStack():
         self.chi2 = []
         self.rois = []
         self.vars = []
+        self.added_vars = []
 
 class Variable():
     def __init__(self, datastack):
