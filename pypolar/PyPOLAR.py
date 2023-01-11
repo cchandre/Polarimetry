@@ -116,7 +116,7 @@ class Polarimetry(CTk.CTk):
         logo.pack(padx=20, pady=(10, 40))
         self.method = tk.StringVar()
         self.dropdown(self.left_frame, values=["1PF", "CARS", "SRS", "SHG", "2PF", "4POLAR 2D", "4POLAR 3D"], image=self.icons["microscope"], command=self.method_dropdown_callback, variable=self.method)
-        dropdown, self.openfile_icon = self.dropdown(self.left_frame, values=["Open file", "Open folder"], image=self.icons["download_file"], command=self.open_file_callback, modify_button=True)
+        dropdown, self.openfile_icon = self.dropdown(self.left_frame, values=["Open file", "Open folder", "Previous analysis"], image=self.icons["download_file"], command=self.open_file_callback, modify_button=True)
         self.option = tk.StringVar()
         self.options_dropdown, self.options_icon = self.dropdown(self.left_frame, values=["Thresholding (manual)", "Mask (manual)"], image=self.icons["build"], variable=self.option, state="disabled", command=self.options_dropdown_callback, modify_button=True)
         ToolTip.createToolTip(self.options_dropdown, " Select the method of analysis: intensity thresholding or segmentation\n mask for single file analysis (manual) or batch processing (auto).\n The mask has to be binary and in PNG format and have the same\n file name as the respective polarimetry data file.")
@@ -223,15 +223,17 @@ class Polarimetry(CTk.CTk):
 ## RIGHT FRAME: OPTIONS
         show_save = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
         show_save.grid(row=0, column=0, padx=(20, 20), pady=20, sticky="nw")
-        CTk.CTkLabel(master=show_save, text="Show", anchor="w").grid(row=0, column=1)
-        CTk.CTkLabel(master=show_save, text="Save", anchor="w").grid(row=0, column=2)
+        CTk.CTkLabel(master=show_save, text="\nFigures\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=3, padx=20, pady=0)
+        CTk.CTkLabel(master=show_save, text="Show", anchor="w").grid(row=1, column=1, pady=(0, 10))
+        CTk.CTkLabel(master=show_save, text="Save", anchor="w").grid(row=1, column=2, pady=(0, 10))
         labels = ["Composite", "Sticks", "Histogram", "Fluorescence"]
         self.show_table = [self.checkbox(show_save) for it in range(len(labels))]
         self.save_table = [self.checkbox(show_save) for it in range(len(labels))]
         for it in range(len(labels)):
-            CTk.CTkLabel(master=show_save, text=labels[it], anchor="w", width=100).grid(row=it+1, column=0, padx=(20, 0))
-            self.show_table[it].grid(row=it+1, column=1, pady=0, padx=20, sticky="ew")
-            self.save_table[it].grid(row=it+1, column=2, pady=0, padx=(20, 20))
+            CTk.CTkLabel(master=show_save, text=labels[it], anchor="w", width=100).grid(row=it+2, column=0, padx=(20, 0))
+            self.show_table[it].grid(row=it+2, column=1, pady=0, padx=20, sticky="ew")
+            self.save_table[it].grid(row=it+2, column=2, pady=0, padx=(20, 20))
+        CTk.CTkLabel(master=show_save, text=" ").grid(row=len(labels)+2, column=0, padx=0, pady=0)
         banner = CTk.CTkFrame(master=self.tabview.tab("Options"))
         banner.grid(row=1, column=0)
         button = self.button(banner, image=self.icons["delete_forever"], command=self.initialize_tables)
@@ -240,37 +242,36 @@ class Polarimetry(CTk.CTk):
         self.per_roi = self.checkbox(banner, text="per ROI")
         ToolTip.createToolTip(self.per_roi, " Show and save data/figures separately for each region of interest")
         self.per_roi.grid(row=0, column=1, sticky="nw")
-        plot_options = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
-        plot_options.grid(row=2, column=0, padx=20, pady=20)
-        CTk.CTkLabel(master=plot_options, text="Plot options", font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=2, padx=20, pady=(0, 20))
-        self.add_axes_checkbox = self.checkbox(plot_options, text="\n Add axes on figures\n", command=self.add_axes_on_all_figures)
-        self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=20, pady=0)
-        self.button(plot_options, text="Crop figures", image=self.icons["crop"], command=self.crop_figures_callback).grid(row=2, column=0, columnspan=2, padx=20, pady=0)
-        CTk.CTkLabel(master=plot_options, text="\n Number of pixels separating sticks\n").grid(row=3, column=0, columnspan=2, padx=20, pady=(20, 0))
-        labels = ["horizontal", "vertical"]
+        postprocessing = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
+        postprocessing.grid(row=2, column=0, padx=20, pady=20)
+        CTk.CTkLabel(master=postprocessing, text="\nPost-processing\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=2, padx=20, pady=0)
+        self.add_axes_checkbox = self.checkbox(postprocessing, text="\n Add axes on figures\n", command=self.add_axes_on_all_figures)
+        self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=20, pady=(0, 20))
+        self.button(postprocessing, text="Crop figures", image=self.icons["crop"], command=self.crop_figures_callback).grid(row=2, column=0, columnspan=2, padx=20, pady=0)
+        self.button(postprocessing, text="Show individual fit", image=self.icons["query_stats"], command=self.show_individual_fit_callback).grid(row=3, column=0, columnspan=2, padx=20, pady=20)
+        pixels_per_sticks = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
+        pixels_per_sticks.grid(row=3, column=0, padx=20, pady=20)
+        CTk.CTkLabel(master=pixels_per_sticks, text="\n Pixels separating sticks\n", font=CTk.CTkFont(size=16), width=230).grid(row=4, column=0, columnspan=2, padx=20, pady=(0, 0))
+        labels = ["horizontally", "vertically"]
         self.pixelsperstick = [tk.StringVar(), tk.StringVar()]
-        spinboxes = [tk.ttk.Spinbox(master=plot_options, from_=0, to=10, textvariable=self.pixelsperstick[it], width=2, foreground=Polarimetry.gray[1], background=Polarimetry.gray[1]) for it in range(2)]
+        spinboxes = [tk.ttk.Spinbox(master=pixels_per_sticks, from_=0, to=10, textvariable=self.pixelsperstick[it], width=2, foreground=Polarimetry.gray[1], background=Polarimetry.gray[1]) for it in range(2)]
         for it in range(2):
             self.pixelsperstick[it].set(1)
-            spinboxes[it].grid(row=it+4, column=0, padx=0, pady=(0, 20))
-            label = CTk.CTkLabel(master=plot_options, text=labels[it], anchor="w")
-            label.grid(row=it+4, column=1, padx=(0, 20), pady=(0, 20))
+            spinboxes[it].grid(row=it+5, column=0, padx=0, pady=(0, 20))
+            label = CTk.CTkLabel(master=pixels_per_sticks, text=labels[it], anchor="w")
+            label.grid(row=it+5, column=1, padx=(0, 20), pady=(0, 20))
             ToolTip.createToolTip(label, "Controls the density of sticks to be plotted")
-        self.show_individual_fit_checkbox = self.checkbox(self.tabview.tab("Options"), text="Show individual fit", command=self.show_individual_fit_callback)
-        self.show_individual_fit_checkbox.grid(row=3, column=0, pady=20)
-        button = self.button(self.tabview.tab("Options"), text="Download analysis", image=self.icons["download"], command=self.download_callback)
-        button.grid(row=3, column=1, pady=20)
-        ToolTip.createToolTip(button, "Select the type of figures to be displayed\n then download .pickle file from previous analyses")
         self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab("Options"), width=300)
         self.variable_table_frame.grid(row=0, column=1, padx=(40, 20), pady=20, sticky="nw")
         save_ext = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
         save_ext.grid(row=2, column=1, padx=(40, 20), pady=20, sticky="nw")
-        CTk.CTkLabel(master=save_ext, text="Save extension", width=100).grid(row=0, column=1, padx=(0, 20))
+        CTk.CTkLabel(master=save_ext, text="\nSave output\n", font=CTk.CTkFont(size=16), width=260).grid(row=0, column=0, columnspan=2, padx=(0, 20), pady=(0, 0))
         labels = ["figures (.pickle)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "stack (.mp4)"]
         self.extension_table = [self.checkbox(save_ext) for it in range(len(labels))]
         for it in range(len(labels)):
             CTk.CTkLabel(master=save_ext, text=labels[it], anchor="w", width=120).grid(row=it+1, column=0, padx=(20, 0))
             self.extension_table[it].grid(row=it+1, column=1, pady=0, padx=(20,0))
+        CTk.CTkLabel(master=save_ext, text=" ").grid(row=len(labels)+1, column=0)
 
 ## RIGHT FRAME: ADV
         adv_elts = ["Dark", "Binning", "Offset angle", "Rotation", "Disk cone / Calibration data", "Remove background"]
@@ -288,11 +289,13 @@ class Polarimetry(CTk.CTk):
         self.dark_entry = self.entry(adv["Dark"], text="Used dark value", textvariable=self.dark, row=2, column=0)
         self.dark_entry.bind("<Return>", command=self.itot_callback)
         self.dark_entry.configure(state="disabled")
+        CTk.CTkLabel(master=adv["Dark"], text=" ").grid(row=3, column=0)
         self.offset_angle_switch = CTk.CTkSwitch(master=adv["Offset angle"], text="", command=self.offset_angle_switch_callback, onvalue="on", offvalue="off", width=50)
         self.offset_angle_switch.grid(row=0, column=0, padx=20, pady=10, sticky="ne")
         self.offset_angle = tk.IntVar()
         self.offset_angle_entry = self.entry(adv["Offset angle"], text="\n" + "Offset angle (deg)" +"\n", textvariable=self.offset_angle, row=1)
         self.offset_angle_entry.configure(state="disabled")
+        CTk.CTkLabel(master=adv["Offset angle"], text=" ").grid(row=2, column=0)
         self.calib_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=Polarimetry.button_size[0], height=Polarimetry.button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback)
         self.calib_dropdown.grid(row=1, column=0, pady=20)
         ToolTip.createToolTip(self.calib_dropdown, " 1PF: Select disk cone depending on wavelength and acquisition date\n 4POLAR: Select .mat file containing the calibration data")
@@ -413,12 +416,6 @@ class Polarimetry(CTk.CTk):
                 var.set(0)
         for ext in self.extension_table:
             ext.deselect()
-        if self.method.get().startswith("4POLAR"):
-            self.show_individual_fit_checkbox.deselect()
-            self.show_individual_fit_checkbox.configure(state=tk.DISABLED)
-        else:
-            self.show_individual_fit_checkbox.configure(state=tk.NORMAL)
-            self.show_individual_fit_checkbox.deselect()
 
     def button(self, master, text=None, image=None, command=None, width=None, height=None):
         if width == None:
@@ -576,6 +573,7 @@ class Polarimetry(CTk.CTk):
             if filename:
                 self.open_file(filename)
                 self.options_dropdown.configure(state="normal", values=["Thresholding (manual)", "Mask (manual)"])
+                self.option.set("Thresholding (manual)")
         elif value == "Open folder":
             self.openfile_icon.configure(image=self.icons["folder_open"])
             folder = fd.askdirectory(title="Select a directory", initialdir="/")
@@ -587,24 +585,30 @@ class Polarimetry(CTk.CTk):
             if folder and any(self.filelist):
                 self.open_file(self.filelist[0])
                 self.options_dropdown.configure(state="normal", values=["Thresholding (manual)", "Thresholding (auto)", "Mask (manual)", "Mask (auto)"])
+                self.option.set("Thresholding (manual)")
             else:
                 window, buttons = self.showinfo(message="The folder does not contain TIFF or TIF files", image=self.icons["download_folder"], button_labels=["OK"], geometry=(340, 140))
                 buttons[0].configure(command=lambda:window.withdraw())
+        elif value == "Previous analysis":
+            filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir="/", filetypes=[("PICKLE files", "*.pickle")])
+            with open(filename, "rb") as f:
+                self.openfile_icon.configure(image=self.icons["analytics"])
+                self.datastack = pickle.load(f)
+                self.method.set(self.datastack.method)
+                self.define_variable_table(self.datastack.method)
+                self.options_dropdown.configure(state="disabled")
+                self.option.set("Previous analysis")
+                self.fluo_axis.clear()
+                self.fluo_axis.set_axis_off()
+                self.fluo_canvas.draw()
+                self.thrsh_axis.clear()
+                self.thrsh_axis.set_axis_off()
+                self.thrsh_canvas.draw()
+                self.filename_label.configure(text=self.datastack.name)
         if hasattr(self, "stack"):
             self.ilow_slider.configure(from_=np.amin(self.stack.itot), to=np.amax(self.stack.itot))
             self.ilow_slider.set(np.amin(self.stack.itot))
             self.ilow.set(self.stack.display.format(np.amin(self.stack.itot)))
-
-    def download_callback(self):
-        self.fluo_axis.clear()
-        self.fluo_axis.set_axis_off()
-        self.thrsh_axis.clear()
-        self.thrsh_axis.set_axis_off()
-        filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir="/", filetypes=[("PICKLE files", "*.pickle")])
-        with open(filename, "rb") as f:
-            datastack = pickle.load(f)
-            self.method.set(datastack.method)
-            self.plot_data(datastack)
 
     def crop_figures_callback(self):
         info_window = CTk.CTkToplevel(self)
@@ -725,9 +729,22 @@ class Polarimetry(CTk.CTk):
         self.order = self.dict_polar.get(value)
 
     def show_individual_fit_callback(self):
-        if self.show_individual_fit_checkbox.get():
-            self.show_table[0].select()
-            self.variable_display[0].set(1)
+        figs = list(map(plt.figure, plt.get_fignums()))
+        fig_ = []
+        for fig in figs:
+            fs = fig.canvas.manager.get_window_title()
+            if ("Rho Composite" in fs) and (not self.method.get().endswith("4POLAR")):
+                fig_ = fig
+            break
+        if fig_:
+            plt.figure(fig_)
+            cfm = plt.get_current_fig_manager()
+            cfm.window.attributes("-topmost", True)
+            self.click_callback(fig.axes[0], fig.canvas, "individual fit")
+            cfm.window.attributes("-topmost", False)
+        else:
+            window, buttons = self.showinfo(message=" Provide a Rho Composite figure\n to plot individual fits", image=self.icons["query_stats"], button_labels=["OK"])
+            buttons[0].configure(command=lambda:window.withdraw())
 
     def diskcone_display(self):
         if self.method.get() == "1PF" and hasattr(self, "CD"):
@@ -827,9 +844,10 @@ class Polarimetry(CTk.CTk):
         self.initialize_tables()
         self.clear_frame(self.variable_table_frame)
         self.variable_table_frame.configure(fg_color=self.left_frame.cget("fg_color"))
-        CTk.CTkLabel(master=self.variable_table_frame, text="      Min                   Max", text_color="black", font=CTk.CTkFont(weight="bold"), width=200).grid(row=0, column=0, padx=20, pady=10, sticky="e")
+        CTk.CTkLabel(master=self.variable_table_frame, text="\nVariables\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, padx=0, pady=0)
+        CTk.CTkLabel(master=self.variable_table_frame, text="      Min                   Max", text_color="black", font=CTk.CTkFont(weight="bold"), width=200).grid(row=1, column=0, padx=20, pady=(0, 10), sticky="e")
         self.variable_table_switch = CTk.CTkSwitch(master=self.variable_table_frame, text="", progress_color=Polarimetry.orange[0], command=self.variable_table_switch_callback, onvalue="on", offvalue="off", width=50)
-        self.variable_table_switch.grid(row=0, column=0, padx=(10, 40), sticky="w")
+        self.variable_table_switch.grid(row=1, column=0, padx=(10, 40), sticky="w")
         if method in ["1PF", "4POLAR 2D"]:
             variables = ["\u03C1 ", "\u03C8 "]
             vals = [(0, 180), (40, 180)]
@@ -850,9 +868,10 @@ class Polarimetry(CTk.CTk):
             self.variable_min[it].set(str(val[0]))
             self.variable_max[it].set(str(val[1]))
             frame = CTk.CTkFrame(master=self.variable_table_frame, fg_color=self.left_frame.cget("fg_color"))
-            frame.grid(row=it+1, column=0)
+            frame.grid(row=it+2, column=0)
             CTk.CTkCheckBox(master=frame, text=None, variable=self.variable_display[it], width=30).grid(row=0, column=0, padx=(20, 0))
             self.variable_entries += self.double_entry(frame, text=var, variables=(self.variable_min[it], self.variable_max[it]), row=0, column=1)
+        CTk.CTkLabel(master=frame, text=" ").grid(row=len(variables)+2, column=0)
 
     def method_dropdown_callback(self, method):
         self.define_variable_table(method)
@@ -1092,7 +1111,11 @@ class Polarimetry(CTk.CTk):
         return mask
 
     def analysis_callback(self):
-        if hasattr(self, "stack"):
+        if self.option.get() == "Previous analysis":
+            self.analysis_button.configure(image=self.icons["pause"])
+            self.plot_data(self.datastack)
+            self.analysis_button.configure(image=self.icons["play"])
+        elif hasattr(self, "stack"):
             self.analysis_button.configure(image=self.icons["pause"])
             self.tabview.set("Fluorescence")
             if self.option.get().endswith("(manual)"):
@@ -1358,27 +1381,25 @@ class Polarimetry(CTk.CTk):
                 plt.savefig(datastack.filename + suffix + ".tif")
             if not self.show_table[0].get():
                 plt.close(fig)
-            if self.show_individual_fit_checkbox.get():
-               self.click_callback(ax, fig.canvas, "individual fit")
 
     def individual_fit_button_press_callback(self, event, hlines, ax, canvas):
-        if event.inaxes == ax and hasattr(self, "field_fit"):
+        if event.inaxes == ax:
             x, y = event.xdata, event.ydata
             if event.button == 1:
                 x, y = int(round(x)), int(round(y))
                 if np.isfinite(self.datastack.vars[0].values[y, x]):
                     fig_, axs = plt.subplots(2, 1, figsize=self.figsize)
                     fig_.canvas.manager.set_window_title("Individual Fit : " + self.datastack.name)
-                    signal = self.field[y, x, :]
-                    signal_fit = self.field_fit[y, x, :]
-                    alpha = np.linspace(0, 180, self.stack.nangle, endpoint=False)
+                    signal = self.datastack.field[y, x, :]
+                    signal_fit = self.datastack.field_fit[y, x, :]
+                    alpha = np.linspace(0, 180, self.datastack.nangle, endpoint=False)
                     rho = np.mod(2 * (self.datastack.vars[0].values[y, x] + int(self.rotation[1].get())), 360) / 2
                     title = self.datastack.vars[0].latex + " = " + "{:.2f}".format(rho) + ", "
                     for var in self.datastack.vars:
                         if var.name not in ["Rho", "X", "Y", "Int"]:
                             title += var.latex + " = " + "{:.2f}".format(var.values[y, x]) + ", "
                     titles = [title[:-2]]
-                    titles += ["$\chi_2 =$"+ "{:.2f}".format(self.chi2[y, x]) + ",   $I = $ " + self.stack.display.format(self.stack.itot[y, x])]
+                    titles += ["$\chi_2 =$"+ "{:.2f}".format(self.datastack.chi2[y, x]) + ",   $I = $ " + self.datastack.display.format(self.datastack.itot[y, x])]
                     ylabels = ["counts", "residuals"]
                     axs[0].plot(alpha, signal, "*", alpha, signal_fit, "r-", lw=2)
                     axs[1].plot(alpha, signal - signal_fit, "+", alpha, 2 * np.sqrt(signal_fit), "r-", alpha, -2 * np.sqrt(signal_fit), "r-", lw=2)
@@ -1386,15 +1407,14 @@ class Polarimetry(CTk.CTk):
                         ax_.set_xlabel(r"$\alpha$", usetex=True, fontsize=20)
                         ax_.set_ylabel(ylabel, fontsize=20)
                         ax_.set_title(title, usetex=True, fontsize=14)
-                        ax_.set_xlim((0, 180 - 180/self.stack.nangle))
+                        ax_.set_xlim((0, 180 - 180/self.datastack.nangle))
                     plt.subplots_adjust(hspace=0.6)
                     plt.rc("axes", unicode_minus=False)
-            elif event.button == 3:
-                canvas.mpl_disconnect(self.__cid1)
-                canvas.mpl_disconnect(self.__cid2)
-                for line in hlines:
-                    line.remove()
-                canvas.draw()
+            canvas.mpl_disconnect(self.__cid1)
+            canvas.mpl_disconnect(self.__cid2)
+            for line in hlines:
+                line.remove()
+            canvas.draw()
 
     def plot_sticks(self, var, datastack, min, max):
         L, W = 6, 0.2
@@ -1733,10 +1753,10 @@ class Polarimetry(CTk.CTk):
         datastack.vars += [X_, Y_, Int_]
         if self.method.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
             chi2[np.logical_not(mask)] = np.nan
-        if self.show_individual_fit_checkbox.get():
-            self.field = field
-            self.field_fit = field_fit
-            self.chi2 = chi2
+        if not self.method.get().startswith("4POLAR"):
+            datastack.field = field
+            datastack.field_fit = field_fit
+            datastack.chi2 = chi2
             self.datastack = datastack
         self.plot_data(datastack, roi_map=roi_map)
         self.save_data(datastack, roi_map=roi_map)
@@ -1757,9 +1777,13 @@ class DataStack():
         self.folder = stack.folder
         self.name = stack.name
         self.method = ""
-        self.height, self.width = stack.height, stack.width
+        self.height, self.width, self.nangle = stack.height, stack.width, stack.nangle
+        self.display = stack.display
         self.dark = 0
         self.itot = stack.itot
+        self.field = []
+        self.field_fit = []
+        self.chi2 = []
         self.rois = []
         self.vars = []
 
