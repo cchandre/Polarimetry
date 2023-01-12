@@ -6,4 +6,3 @@ dist/
 *.pyc
 .DS_Store
 .DS_Store?
-settings_dmg.py
