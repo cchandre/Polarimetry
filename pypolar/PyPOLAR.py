@@ -256,7 +256,7 @@ class Polarimetry(CTk.CTk):
         CTk.CTkLabel(master=pixels_per_sticks, text="\n Pixels separating sticks\n", font=CTk.CTkFont(size=16), width=230).grid(row=4, column=0, columnspan=2, padx=20, pady=(0, 0))
         labels = ["horizontally", "vertically"]
         self.pixelsperstick = [tk.StringVar(), tk.StringVar()]
-        spinboxes = [tk.ttk.Spinbox(master=pixels_per_sticks, from_=0, to=10, textvariable=self.pixelsperstick[it], width=2, foreground=Polarimetry.gray[1], background=Polarimetry.gray[1]) for it in range(2)]
+        spinboxes = [tk.ttk.Spinbox(master=pixels_per_sticks, from_=1, to=20, textvariable=self.pixelsperstick[it], width=2, foreground=Polarimetry.gray[1], background=Polarimetry.gray[1], command=self.pixelsperstick_spinbox) for it in range(2)]
         for it in range(2):
             self.pixelsperstick[it].set(1)
             spinboxes[it].grid(row=it+5, column=0, padx=0, pady=(0, 20))
@@ -615,23 +615,24 @@ class Polarimetry(CTk.CTk):
             self.ilow.set(self.stack.display.format(np.amin(self.stack.itot)))
 
     def crop_figures_callback(self):
-        info_window = CTk.CTkToplevel(self)
-        info_window.attributes("-topmost", "true")
-        info_window.title("Polarimetry Analysis")
-        info_window.geometry(Polarimetry.geometry_info(Polarimetry.info_size[1]))
-        CTk.CTkLabel(info_window, text="Define xlim and ylim", image=self.icons["crop"], compound="left", width=250).grid(row=0, column=0, padx=30, pady=20)
-        self.xlim = [tk.IntVar() for _ in range(2)]
-        self.ylim = [tk.IntVar() for _ in range(2)]
-        if not hasattr(self, "xlim") and hasattr(self, "datastack"):
-            self.xlim[0].set(1)
-            self.xlim[1].set(self.datastack.width)
-            self.ylim[0].set(1)
-            self.ylim[1].set(self.datastack.height)
-        self.double_entry(info_window, text="xlim", variables=self.xlim, row=1, state="normal")
-        self.double_entry(info_window, text="ylim", variables=self.ylim, row=2, state="normal")
-        button = self.button(info_window, text="OK", command=lambda:self.crop_figures(info_window))
-        button.configure(width=80, height=Polarimetry.button_size[1])
-        button.grid(row=3, column=0, pady=20)
+        if len(plt.get_fignums()):
+            info_window = CTk.CTkToplevel(self)
+            info_window.attributes("-topmost", "true")
+            info_window.title("Polarimetry Analysis")
+            info_window.geometry(Polarimetry.geometry_info(Polarimetry.info_size[1]))
+            CTk.CTkLabel(info_window, text="Define xlim and ylim", image=self.icons["crop"], compound="left", width=250).grid(row=0, column=0, padx=30, pady=20)
+            self.xlim = [tk.IntVar() for _ in range(2)]
+            self.ylim = [tk.IntVar() for _ in range(2)]
+            if not hasattr(self, "xlim") and hasattr(self, "datastack"):
+                self.xlim[0].set(1)
+                self.xlim[1].set(self.datastack.width)
+                self.ylim[0].set(1)
+                self.ylim[1].set(self.datastack.height)
+            self.double_entry(info_window, text="xlim", variables=self.xlim, row=1, state="normal")
+            self.double_entry(info_window, text="ylim", variables=self.ylim, row=2, state="normal")
+            button = self.button(info_window, text="OK", command=lambda:self.crop_figures(info_window))
+            button.configure(width=80, height=Polarimetry.button_size[1])
+            button.grid(row=3, column=0, pady=20)
 
     def crop_figures(self, window):
         figs = list(map(plt.figure, plt.get_fignums()))
@@ -896,6 +897,21 @@ class Polarimetry(CTk.CTk):
             buttons[2].configure(command=lambda:window.withdraw())
         else:
             self.polar_dropdown.configure(state="disabled")
+
+    def pixelsperstick_spinbox(self):
+        figs = list(map(plt.figure, plt.get_fignums()))
+        for fig in figs:
+            fs = fig.canvas.manager.get_window_title()
+            if ("Sticks" in fs):
+                ax = fig.axes[0]
+                for _, var in enumerate(self.datastack.vars):
+                    if var.name == fs.split()[0]:
+                        for collection in ax.collections:
+                            collection.remove()
+                        p = self.get_sticks(var, self.datastack)
+                        vmin, vmax = self.get_variable(_)[1:]
+                        p.set_clim([vmin, vmax])
+                        ax.add_collection(p)
 
     def perform_registration(self, window):
         window.withdraw()
@@ -1420,9 +1436,30 @@ class Polarimetry(CTk.CTk):
                 line.remove()
             canvas.draw()
 
-    def plot_sticks(self, var, datastack, min, max):
+    def get_sticks(self, var, datastack):
         L, W = 6, 0.2
         l, w = L / 2, W / 2
+        rho = datastack.vars[0]
+        rho_ = rho.values[::int(self.pixelsperstick[1].get()), ::int(self.pixelsperstick[0].get())]
+        data_ = var.values[::int(self.pixelsperstick[1].get()), ::int(self.pixelsperstick[0].get())]
+        Y, X = np.mgrid[:datastack.height+self.bin[1].get()-1:int(self.pixelsperstick[1].get()), :datastack.width+self.bin[0].get()-1:int(self.pixelsperstick[0].get())]
+        X, Y = X[np.isfinite(rho_)], Y[np.isfinite(rho_)]
+        data_, rho_ = data_[np.isfinite(rho_)], rho_[np.isfinite(rho_)]
+        if var.orientation:
+            stick_colors = np.mod(2 * (data_ + int(self.rotation[1].get())), 360) / 2
+        else:
+            stick_colors = data_
+        cosd = np.cos(np.deg2rad(rho_))
+        sind = np.sin(np.deg2rad(rho_))
+        vertices = np.array([[X + l * cosd + w * sind, X - l * cosd + w * sind, X - l * cosd - w * sind, X + l * cosd - w * sind], [Y - l * sind + w * cosd, Y + l * sind + w * cosd, Y + l * sind - w * cosd, Y - l * sind - w * cosd]])
+        if int(self.rotation[1].get()) != 0:
+            theta = np.deg2rad(int(self.rotation[1].get()))
+            x0, y0 = self.stack.width / 2, self.stack.height / 2
+            vertices = np.asarray([x0 + (vertices[0] - x0) * np.cos(theta) + (vertices[1] - y0) * np.sin(theta), y0 - (vertices[0] - x0) * np.sin(theta) + (vertices[1] - y0) * np.cos(theta)])
+        vertices = np.swapaxes(vertices, 0, 2)
+        return PolyCollection(vertices, cmap=mpl.colormaps[var.colormap], lw=2, array=stick_colors)
+
+    def plot_sticks(self, var, datastack, vmin, vmax):
         if self.show_table[1].get() or self.save_table[1].get():
             fig = plt.figure(figsize=self.figsize)
             fig.canvas.manager.set_window_title(var.name + " Sticks: " + datastack.name)
@@ -1436,26 +1473,8 @@ class Polarimetry(CTk.CTk):
                     im = np.mod(2 * (im + int(self.rotation[1].get())), 360) / 2
                 im = rotate(im, int(self.rotation[1].get()), reshape=False, mode="constant")
                 im[im == 0] = np.nan
-            rho = datastack.vars[0]
-            rho_ = rho.values[::int(self.pixelsperstick[1].get()), ::int(self.pixelsperstick[0].get())]
-            data_ = var.values[::int(self.pixelsperstick[1].get()), ::int(self.pixelsperstick[0].get())]
-            Y, X = np.mgrid[:datastack.height+self.bin[1].get()-1:int(self.pixelsperstick[1].get()), :datastack.width+self.bin[0].get()-1:int(self.pixelsperstick[0].get())]
-            X, Y = X[np.isfinite(rho_)], Y[np.isfinite(rho_)]
-            data_, rho_ = data_[np.isfinite(rho_)], rho_[np.isfinite(rho_)]
-            if var.orientation:
-                stick_colors = np.mod(2 * (data_ + int(self.rotation[1].get())), 360) / 2
-            else:
-                stick_colors = data_
-            cosd = np.cos(np.deg2rad(rho_))
-            sind = np.sin(np.deg2rad(rho_))
-            vertices = np.array([[X + l * cosd + w * sind, X - l * cosd + w * sind, X - l * cosd - w * sind, X + l * cosd - w * sind], [Y - l * sind + w * cosd, Y + l * sind + w * cosd, Y + l * sind - w * cosd, Y - l * sind - w * cosd]])
-            if int(self.rotation[1].get()) != 0:
-                theta = np.deg2rad(int(self.rotation[1].get()))
-                x0, y0 = self.stack.width / 2, self.stack.height / 2
-                vertices = np.asarray([x0 + (vertices[0] - x0) * np.cos(theta) + (vertices[1] - y0) * np.sin(theta), y0 - (vertices[0] - x0) * np.sin(theta) + (vertices[1] - y0) * np.cos(theta)])
-            vertices = np.swapaxes(vertices, 0, 2)
-            p = PolyCollection(vertices, cmap=mpl.colormaps[var.colormap], lw=2, array=stick_colors)
-            p.set_clim([min, max])
+            p = self.get_sticks(var, datastack)
+            p.set_clim([vmin, vmax])
             ax.add_collection(p)
             fig.colorbar(p, ax=ax)
             plt.pause(0.001)
@@ -1486,15 +1505,15 @@ class Polarimetry(CTk.CTk):
             roi_map = self.compute_roi_map(datastack)[0]
         int_roi = np.amax(roi_map)
         for _, var in enumerate(datastack.vars):
-            display, min, max = self.get_variable(_)
+            display, vmin, vmax = self.get_variable(_)
             if display:
-                self.plot_composite(var, datastack, min, max)
-                self.plot_sticks(var, datastack, min, max)
+                self.plot_composite(var, datastack, vmin, vmax)
+                self.plot_sticks(var, datastack, vmin, vmax)
                 if int_roi >= 2:
                     for roi in np.arange(1, int_roi + 1):
-                        self.plot_histo(var, datastack, min, max, roi_map, roi=roi)
+                        self.plot_histo(var, datastack, vmin, vmax, roi_map, roi=roi)
                 else:
-                    self.plot_histo(var, datastack, min, max, roi_map, roi=[])
+                    self.plot_histo(var, datastack, vmin, vmax, roi_map, roi=[])
 
     def save_data(self, datastack, roi_map=[]):
         if len(roi_map) == 0:
