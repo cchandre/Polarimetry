@@ -25,7 +25,6 @@ from PIL import Image
 from skimage import exposure
 import cv2
 import openpyxl
-
 from itertools import permutations
 
 try:
@@ -37,20 +36,15 @@ except ImportError:
 
 CTk.set_default_color_theme(os.path.join(os.path.dirname(os.path.realpath(__file__)), "polarimetry.json"))
 CTk.set_appearance_mode("dark")
-
 mpl.use("TkAgg")
-
 plt.rcParams["font.size"] = 16
 plt.rcParams["font.family"] = "Arial Rounded MT Bold"
 plt.rcParams["image.origin"] = "upper"
 plt.rcParams["figure.max_open_warning"] = 100
-
 plt.ion()
 
 class Polarimetry(CTk.CTk):
-
     from __init__ import __version__, __version_date__
-
     left_frame_width = 180
     right_frame_width = 850
     height = 850
@@ -137,14 +131,14 @@ class Polarimetry(CTk.CTk):
 ## RIGHT FRAME: FLUO
         bottomframe = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", height=40, width=Polarimetry.axes_size[1])
         bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=20)
-        canvasframe = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", height=Polarimetry.axes_size[0], width=Polarimetry.axes_size[1])
-        canvasframe.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        self.fluo_fig = Figure(figsize=(canvasframe.winfo_width() / self.dpi, canvasframe.winfo_height() / self.dpi), facecolor=Polarimetry.gray[1])
+        self.fluo_frame = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", height=Polarimetry.axes_size[0], width=Polarimetry.axes_size[1])
+        self.fluo_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.fluo_fig = Figure(figsize=(self.fluo_frame.winfo_width() / self.dpi, self.fluo_frame.winfo_height() / self.dpi), facecolor=Polarimetry.gray[1])
         self.fluo_axis = self.fluo_fig.add_axes([0, 0, 1, 1])
         self.fluo_axis.set_axis_off()
-        self.fluo_canvas = FigureCanvasTkAgg(self.fluo_fig, master=canvasframe)
+        self.fluo_canvas = FigureCanvasTkAgg(self.fluo_fig, master=self.fluo_frame)
         self.fluo_canvas.draw()
-        self.fluo_toolbar = NToolbar2Tk(self.fluo_canvas, canvasframe, pack_toolbar=False)
+        self.fluo_toolbar = NToolbar2Tk(self.fluo_canvas, self.fluo_frame, pack_toolbar=False)
         self.fluo_toolbar.config(background=Polarimetry.gray[1])
         self.fluo_toolbar._message_label.config(background=Polarimetry.gray[1])
         for button in self.fluo_toolbar.winfo_children():
@@ -174,16 +168,16 @@ class Polarimetry(CTk.CTk):
 ## RIGHT FRAME: THRSH
         bottomframe = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=40, width=Polarimetry.axes_size[1])
         bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=20)
-        canvasframe = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=Polarimetry.axes_size[0], width=Polarimetry.axes_size[1])
-        canvasframe.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.thrsh_frame = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=Polarimetry.axes_size[0], width=Polarimetry.axes_size[1])
+        self.thrsh_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.thrsh_axis_facecolor = Polarimetry.gray[1]
-        self.thrsh_fig = Figure(figsize=(canvasframe.winfo_width() / self.dpi, canvasframe.winfo_height() / self.dpi), facecolor=self.thrsh_axis_facecolor)
+        self.thrsh_fig = Figure(figsize=(self.thrsh_frame.winfo_width() / self.dpi, self.thrsh_frame.winfo_height() / self.dpi), facecolor=self.thrsh_axis_facecolor)
         self.thrsh_axis = self.thrsh_fig.add_axes([0, 0, 1, 1])
         self.thrsh_axis.set_axis_off()
         self.thrsh_axis.set_facecolor(self.thrsh_axis_facecolor)
-        self.thrsh_canvas = FigureCanvasTkAgg(self.thrsh_fig, master=canvasframe)
+        self.thrsh_canvas = FigureCanvasTkAgg(self.thrsh_fig, master=self.thrsh_frame)
         self.thrsh_canvas.draw()
-        self.thrsh_toolbar = NToolbar2Tk(self.thrsh_canvas, canvasframe, pack_toolbar=False)
+        self.thrsh_toolbar = NToolbar2Tk(self.thrsh_canvas, self.thrsh_frame, pack_toolbar=False)
         self.thrsh_toolbar.config(background=Polarimetry.gray[1])
         self.thrsh_toolbar._message_label.config(background=Polarimetry.gray[1])
         for button in self.thrsh_toolbar.winfo_children():
@@ -1229,7 +1223,7 @@ class Polarimetry(CTk.CTk):
                 self.fluo_axis.clear()
                 self.fluo_axis.set_axis_off()
                 self.fluo_im = self.fluo_axis.imshow(field_im, cmap=mpl.colormaps["gray"], interpolation="nearest")
-                plt.pause(0.001)
+                self.fluo_frame.update()
                 self.fluo_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
                 self.fluo_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
             self.fluo_im.set_clim(vmin, vmax)
@@ -1255,7 +1249,7 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_axis.clear()
                 self.thrsh_axis.set_axis_off()
                 self.thrsh_im = self.thrsh_axis.imshow(field_im, cmap=self.thrsh_colormap, alpha=alphadata, interpolation="nearest")
-                plt.pause(0.001)
+                self.thrsh_frame.update()
                 self.thrsh_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
                 self.thrsh_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
             self.thrsh_im.set_clim(vmin, vmax)
