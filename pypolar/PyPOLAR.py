@@ -484,7 +484,7 @@ class Polarimetry(CTk.CTk):
                 button = self.button(master, text=label, width=80)
                 buttons += [button]
                 button.grid(row=row_, column=it, padx=20, pady=20)
-            return info_window, buttons
+        return info_window, buttons
 
     def on_closing(self):
         plt.close("all")
@@ -589,10 +589,12 @@ class Polarimetry(CTk.CTk):
                 self.options_dropdown.configure(state="normal", values=["Thresholding (manual)", "Thresholding (auto)", "Mask (manual)", "Mask (auto)"])
                 self.option.set("Thresholding (manual)")
             else:
-                window, buttons = self.showinfo(message="The folder does not contain TIFF or TIF files", image=self.icons["download_folder"], button_labels=["OK"], geometry=(340, 140))
+                window, buttons = self.showinfo(message=" The folder does not contain TIFF or TIF files", image=self.icons["download_folder"], button_labels=["OK"], geometry=(340, 140))
                 buttons[0].configure(command=lambda:window.withdraw())
         elif value == "Previous analysis":
             filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir="/", filetypes=[("cPICKLE files", "*.pbz2")])
+            window = self.showinfo(message=" Downloading and decompressing data...", image=self.icons["download"], geometry=(300, 100))[0]
+            window.update()
             with bz2.BZ2File(filename, "rb") as f:
                 if hasattr(self, "stack"):
                     delattr(self, "stack")
@@ -609,6 +611,7 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_axis.set_axis_off()
                 self.thrsh_canvas.draw()
                 self.filename_label.configure(text=self.datastack.name)
+            window.withdraw()
         if hasattr(self, "stack"):
             self.ilow_slider.configure(from_=np.amin(self.stack.itot), to=np.amax(self.stack.itot))
             self.ilow_slider.set(np.amin(self.stack.itot))
@@ -839,7 +842,7 @@ class Polarimetry(CTk.CTk):
                     slope = 180 - np.rad2deg(np.arctan((roi.previous_point[1] - roi.start_point[1]) / (roi.previous_point[0] - roi.start_point[0])))
                     slope = np.mod(2 * slope, 360) / 2
                     dist = np.sqrt(((np.asarray(roi.previous_point) - np.asarray(roi.start_point))**2).sum())
-                    window, buttons = self.showinfo(message="The value of the angle is {:.2f} \u00b0 \n The value of the distance is {} px".format(slope, int(dist)), image=self.icons["square"], button_labels = ["OK"])
+                    window, buttons = self.showinfo(message=" The value of the angle is {:.2f} \u00b0 \n The value of the distance is {} px".format(slope, int(dist)), image=self.icons["square"], button_labels = ["OK"])
                     buttons[0].configure(command=lambda:window.withdraw())
                     for line in roi.lines:
                         line.remove()
@@ -969,7 +972,7 @@ class Polarimetry(CTk.CTk):
             ax.set_title(title)
             ax.set_axis_off()
         self.registration = {"name_beads": beadstack.name, "radius": radius, "centers": centers, "homographies": homographies}
-        window, buttons = self.showinfo(message="  Are you okay with this registration?", button_labels=["Yes", "Yes and Save", "No"], image=self.icons["blur_circular"], geometry=(380, 150))
+        window, buttons = self.showinfo(message=" Are you okay with this registration?", button_labels=["Yes", "Yes and Save", "No"], image=self.icons["blur_circular"], geometry=(380, 150))
         buttons[0].configure(command=lambda:self.yes_registration_callback(window, fig))
         buttons[1].configure(command=lambda:self.yes_save_registration_callback(window, fig, filename))
         buttons[2].configure(command=lambda:self.no_registration_callback(window, fig))
@@ -1003,7 +1006,7 @@ class Polarimetry(CTk.CTk):
         if filename.endswith("_reg.mat"):
             self.registration = loadmat(filename)
         else:
-            window, buttons = self.showinfo(message="Incorrect registration file", image=self.icons["blur_circular"], button_labels=["OK"], geometry=(340, 140))
+            window, buttons = self.showinfo(message=" Incorrect registration file", image=self.icons["blur_circular"], button_labels=["OK"], geometry=(340, 140))
             buttons[0].configure(command=lambda:window.withdraw())
             self.registration = {}
             self.method.set("1PF")
@@ -1090,7 +1093,7 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_canvas.mpl_disconnect(self.__cid1)
                 self.thrsh_canvas.mpl_disconnect(self.__cid2)
                 self.thrsh_canvas.draw()
-                window, buttons = self.showinfo(message="Add ROI?", image=self.icons["roi"], button_labels=["Yes", "No"])
+                window, buttons = self.showinfo(message=" Add ROI?", image=self.icons["roi"], button_labels=["Yes", "No"])
                 buttons[0].configure(command=lambda:self.yes_add_roi_callback(window, roi))
                 buttons[1].configure(command=lambda:self.no_add_roi_callback(window, roi))
 
@@ -1148,7 +1151,7 @@ class Polarimetry(CTk.CTk):
                     else:
                         self.indxlist = 0
                         self.open_file(self.filelist[0])
-                        window, buttons = self.showinfo(message="End of list", image=self.icons["check_circle"], button_labels=["OK"])
+                        window, buttons = self.showinfo(message=" End of list", image=self.icons["check_circle"], button_labels=["OK"])
                         buttons[0].configure(command=lambda:window.withdraw())
                         self.initialize()
                 self.analysis_button.configure(image=self.icons["play"])
@@ -1158,7 +1161,7 @@ class Polarimetry(CTk.CTk):
                     self.analyze_stack(self.datastack)
                 self.analysis_button.configure(image=self.icons["play"])
                 self.open_file(self.filelist[0])
-                window, buttons = self.showinfo(message="End of list", image=self.icons["check_circle"], button_labels=["OK"])
+                window, buttons = self.showinfo(message=" End of list", image=self.icons["check_circle"], button_labels=["OK"])
                 buttons[0].configure(command=lambda:window.withdraw())
                 self.initialize()
 
@@ -1528,8 +1531,11 @@ class Polarimetry(CTk.CTk):
             filename = self.stack.filename + ".pbz2"
             datastack_ = copy.copy(datastack)
             delattr(datastack_, "added_vars")
+            window = self.showinfo(message=" Compressing and saving data...", image=self.icons["save"], geometry=(300, 100))[0]
+            window.update()
             with bz2.BZ2File(filename, "w") as f:
                 cPickle.dump(datastack_, f)
+            window.withdraw()
         if self.extension_table[4].get():
             filename = self.stack.filename + ".mp4"
             fps = 5
@@ -1651,7 +1657,7 @@ class Polarimetry(CTk.CTk):
                 stack_.values[:, :, self.order[it]] = ims_reg[it]
             return stack_
         else:
-            window, buttons = self.showinfo(message="No registration", image=self.icons["blur_circular"], button_labels=["OK"])
+            window, buttons = self.showinfo(message=" No registration", image=self.icons["blur_circular"], button_labels=["OK"])
             buttons[0].configure(command=lambda:window.withdraw())
             self.method.set("1PF")
 
