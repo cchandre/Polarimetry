@@ -209,12 +209,14 @@ class Polarimetry(CTk.CTk):
         self.transparency_slider = CTk.CTkSlider(master=bottomframe, from_=0, to=1, command=self.transparency_slider_callback)
         ToolTip.createToolTip(self.transparency_slider, " Adjust the transparency of the background image")
         self.transparency_slider.set(0)
-        self.transparency_slider.grid(row=0, column=2, padx=200, pady=0)
+        self.transparency_slider.grid(row=0, column=2, padx=(100, 20), pady=0)
         CTk.CTkLabel(master=bottomframe, text="Ilow", anchor="e").grid(row=1, column=0)
         entry = CTk.CTkEntry(master=bottomframe, width=100, textvariable=self.ilow, border_color=Polarimetry.gray[1], justify=tk.LEFT)
         entry.bind("<Return>", command=self.ilow2slider_callback)
         entry.grid(row=1, column=1, padx=(0, 20))
         CTk.CTkLabel(master=bottomframe, text="Transparency").grid(row=1, column=2, padx=(10, 0))
+        self.edge_detection_switch = CTk.CTkSwitch(master=bottomframe, text="Edge detection", onvalue="on", offvalue="off", command=self.edge_detection_callback)
+        self.edge_detection_switch.grid(row=0, column=3, padx=(50, 0))
 
 ## RIGHT FRAME: OPTIONS
         show_save = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
@@ -500,6 +502,39 @@ class Polarimetry(CTk.CTk):
             self.tabview.set("About")
         else:
             self.tabview.set("Fluorescence")
+
+    def edge_detection_callback(self):
+        if self.edge_detection_switch.get() == "on":
+            window, buttons = self.showinfo(" Mask for edge detection", image=self.icons["multiline_chart"], button_labels=["Download", "Compute", "Cancel"])
+            buttons[0].configure(command=lambda:self.download_edge_mask(window))
+            buttons[1].configure(command=lambda:self.compute_edge_mask(window))
+            buttons[2].configure(command=lambda:window.withdraw())
+            self.tabview.insert(4, "Edge Detection")
+        else:
+            delattr(self, "edge_contours")
+            self.tabview.delete("Edge Detection")
+
+    def download_edge_mask(self, window):
+        window.withdraw()
+        filetypes = [("PNG files", "*.png")]
+        filename = fd.askopenfilename(title="Select a mask file", initialdir="/", filetypes=filetypes)
+        mask = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
+        contours = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
+        filter = np.asarray([len(contour) >= 200 for contour in contours])
+        self.edge_contours = [contour.reshape((-1, 2)) for (contour, val) in zip(contours, filter) if val]
+        self.represent_thrsh()
+
+    def compute_edge_mask(self, window):
+        window.withdraw()
+        if hasattr(self, "stack"):
+            field = (self.stack.itot / np.amax(self.stack.itot) * 255).astype(np.uint8)
+            field = cv2.threshold(field, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+            field = cv2.GaussianBlur(field, (5, 5), 1)
+            edges = cv2.Canny(image=field, threshold1=100, threshold2=200)
+            contours = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
+            filter = np.asarray([len(contour) >= 200 for contour in contours])
+            self.edge_contours = [contour.reshape((-1, 2)) for (contour, val) in zip(contours, filter) if val]
+            self.represent_thrsh()
 
     def contrast_thrsh_slider_callback(self, value):
         if value <= 0.001:
@@ -1256,6 +1291,9 @@ class Polarimetry(CTk.CTk):
             self.clear_patches(self.thrsh_axis, self.thrsh_fig.canvas)
             if hasattr(self, "datastack"):
                 self.add_patches(self.datastack, self.thrsh_axis, self.thrsh_fig.canvas, rotation=False)
+            if hasattr(self, "edge_contours"):
+                for contour in self.edge_contours:
+                    self.thrsh_axis.plot(contour[:, 0], contour[:, 1], 'b-', lw=1)
             self.thrsh_canvas.draw()
 
     def compute_itot(self, stack):
