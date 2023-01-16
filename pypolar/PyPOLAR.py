@@ -1365,10 +1365,12 @@ class Polarimetry(CTk.CTk):
                     patch.set_facecolor(color)
                     patch.set_edgecolor("k")
                 ax.set_xlim((min, max))
-                ax.set_xlabel(var.latex, usetex=True, fontsize=20)
+                ax.set_xlabel(var.latex, fontsize=20)
+                #ax.set_xlabel(var.latex, usetex=True, fontsize=20)
                 ax.set_title(datastack.name, fontsize=14)
                 text = var.latex + " = " + "{:.2f}".format(np.mean(data_vals)) + " $\pm$ " "{:.2f}".format(np.std(data_vals))
-                ax.annotate(text, xy=(0.2, 0.91), xycoords="axes fraction", fontsize=20, usetex=True)
+                #ax.annotate(text, xy=(0.2, 0.91), xycoords="axes fraction", fontsize=20, usetex=True)
+                ax.annotate(text, xy=(0.2, 0.91), xycoords="axes fraction", fontsize=20)
             elif var.type_histo.startswith("polar"):
                 ax = plt.subplot(projection="polar")
                 if var.type_histo == "polar1":
@@ -1391,7 +1393,8 @@ class Polarimetry(CTk.CTk):
                 ax.set_thetamax(max)
                 ax.set_title(datastack.name, fontsize=14)
                 text = var.latex + " = " + "{:.2f}".format(meandata) + " $\pm$ " "{:.2f}".format(std)
-                ax.annotate(text, xy=(0.2, 0.91), xycoords="axes fraction", fontsize=20, usetex=True)
+                ax.annotate(text, xy=(0.2, 0.91), xycoords="axes fraction", fontsize=20)
+                #ax.annotate(text, xy=(0.2, 0.91), xycoords="axes fraction", fontsize=20, usetex=True)
             suffix = "_perROI_" + str(roi) if roi else ""
             filename = datastack.filename + "_Histo" + var.name + suffix
             if self.save_table[2].get() and self.extension_table[1].get():
@@ -1460,14 +1463,16 @@ class Polarimetry(CTk.CTk):
                         if var.name != "Rho":
                             title += var.latex + " = " + "{:.2f}".format(var.values[y, x]) + ", "
                     titles = [title[:-2]]
-                    titles += ["$\chi_2 =$"+ "{:.2f}".format(self.datastack.chi2[y, x]) + ",   $I = $ " + self.datastack.display.format(self.datastack.itot[y, x])]
+                    titles += ["$\chi_2$ = " + "{:.2f}".format(self.datastack.chi2[y, x]) + ",   $I$ =  " + self.datastack.display.format(self.datastack.itot[y, x])]
                     ylabels = ["counts", "residuals"]
                     axs[0].plot(alpha, signal, "*", alpha, signal_fit, "r-", lw=2)
                     axs[1].plot(alpha, signal - signal_fit, "+", alpha, 2 * np.sqrt(signal_fit), "r-", alpha, -2 * np.sqrt(signal_fit), "r-", lw=2)
                     for title, ylabel, ax_ in zip(titles, ylabels, axs):
-                        ax_.set_xlabel(r"$\alpha$", usetex=True, fontsize=20)
+                        ax_.set_xlabel(r"$\alpha$", fontsize=20)
+                        #ax_.set_xlabel(r"$\alpha$", usetex=True, fontsize=20)
                         ax_.set_ylabel(ylabel, fontsize=20)
-                        ax_.set_title(title, usetex=True, fontsize=14)
+                        ax_.set_title(title, fontsize=14)
+                        #ax_.set_title(title, usetex=True, fontsize=14)
                         ax_.set_xlim((0, 180 - 180/self.datastack.nangle))
                     plt.subplots_adjust(hspace=0.6)
                     plt.rc("axes", unicode_minus=False)
