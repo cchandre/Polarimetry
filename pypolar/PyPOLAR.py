@@ -248,7 +248,9 @@ class Polarimetry(CTk.CTk):
         self.add_axes_checkbox = self.checkbox(postprocessing, text="\n Add axes on figures\n", command=self.add_axes_on_all_figures)
         self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=20, pady=(0, 20))
         self.button(postprocessing, text="Crop figures", image=self.icons["crop"], command=self.crop_figures_callback).grid(row=2, column=0, columnspan=2, padx=20, pady=0)
-        self.button(postprocessing, text="Show individual fit", image=self.icons["query_stats"], command=self.show_individual_fit_callback).grid(row=3, column=0, columnspan=2, padx=20, pady=20)
+        button = self.button(postprocessing, text="Show individual fit", image=self.icons["query_stats"], command=self.show_individual_fit_callback)
+        ToolTip.createToolTip(button, "Zoom into the region of region of interest\nthen click using the crosshair")
+        button.grid(row=3, column=0, columnspan=2, padx=20, pady=20)
         pixels_per_sticks = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
         pixels_per_sticks.grid(row=3, column=0, padx=20, pady=20)
         CTk.CTkLabel(master=pixels_per_sticks, text="\n Pixels separating sticks\n", font=CTk.CTkFont(size=16), width=230).grid(row=4, column=0, columnspan=2, padx=20, pady=(0, 0))
@@ -780,6 +782,7 @@ class Polarimetry(CTk.CTk):
             plt.figure(fig_)
             cfm = plt.get_current_fig_manager()
             cfm.window.attributes("-topmost", True)
+            cfm.window.tkraise()
             self.click_callback(fig.axes[0], fig.canvas, "individual fit")
             cfm.window.attributes("-topmost", False)
         else:
