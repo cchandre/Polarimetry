@@ -1351,7 +1351,6 @@ class Polarimetry(CTk.CTk):
             suffix = "for ROI " + str(roi) if roi else ""
             fig = plt.figure(figsize=self.figsize)
             fig.canvas.manager.set_window_title(var.name + " Histogram" + suffix + ": " + self.datastack.name)
-            fig.patch.set_facecolor("w")
             mask = (roi_map == roi) if roi else (roi_map == 1)
             data_vals = var.values[mask * np.isfinite(var.values)]
             norm = mpl.colors.Normalize(min, max)
@@ -1393,7 +1392,6 @@ class Polarimetry(CTk.CTk):
                 ax.set_title(datastack.name, fontsize=14)
                 text = var.latex + " = " + "{:.2f}".format(meandata) + " $\pm$ " "{:.2f}".format(std)
                 ax.annotate(text, xy=(0.2, 0.91), xycoords="axes fraction", fontsize=20, usetex=True)
-            plt.pause(0.001)
             suffix = "_perROI_" + str(roi) if roi else ""
             filename = datastack.filename + "_Histo" + var.name + suffix
             if self.save_table[2].get() and self.extension_table[1].get():
@@ -1520,7 +1518,6 @@ class Polarimetry(CTk.CTk):
             p.set_clim([vmin, vmax])
             ax.add_collection(p)
             fig.colorbar(p, ax=ax)
-            plt.pause(0.001)
             ax.set_title(datastack.name)
             suffix = "_" + var.name + "Sticks"
             if self.save_table[1].get() and self.extension_table[1].get():
