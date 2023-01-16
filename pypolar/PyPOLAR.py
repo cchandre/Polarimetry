@@ -148,6 +148,7 @@ class Polarimetry(CTk.CTk):
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         self.button(banner, image=self.icons["contrast"], command=self.contrast_fluo_button_callback).pack(side=tk.TOP, padx=20, pady=20)
         self.contrast_fluo_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_fluo_slider_callback)
+        self.contrast_fluo_slider.set(1)
         ToolTip.createToolTip(self.contrast_fluo_slider, " Adjust contrast\n The chosen contrast will be the one used\n for the fluorescence images in figures")
         self.contrast_fluo_slider.pack(padx=20, pady=20)
         button = self.button(banner, image=self.icons["square"], command=self.compute_angle)
@@ -187,6 +188,7 @@ class Polarimetry(CTk.CTk):
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         self.button(banner, image=self.icons["contrast"], command=self.contrast_thrsh_button_callback).pack(side=tk.TOP, padx=20, pady=20)
         self.contrast_thrsh_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_thrsh_slider_callback)
+        self.contrast_thrsh_slider.set(1)
         ToolTip.createToolTip(self.contrast_thrsh_slider, " Adjust contrast\n The chosen contrast does not affect the analysis")
         self.contrast_thrsh_slider.pack(padx=20, pady=20)
         button = self.button(banner, image=self.icons["open_in_new"], command=self.export_mask)
@@ -387,8 +389,8 @@ class Polarimetry(CTk.CTk):
             self.stack_slider.configure(to=self.stack.nangle, number_of_steps=self.stack.nangle)
             self.ilow.set(self.stack.display.format(np.amin(self.datastack.itot)))
             self.ilow_slider.set(float(self.ilow.get()))
-            self.contrast_fluo_slider.set(0.5)
-            self.contrast_thrsh_slider.set(0.5)
+            self.contrast_fluo_slider.set(1)
+            self.contrast_thrsh_slider.set(1)
             self.stack_slider.set(0)
             self.stack_slider_label.configure(text="T")
 
@@ -645,6 +647,7 @@ class Polarimetry(CTk.CTk):
             self.ilow_slider.configure(from_=np.amin(self.stack.itot), to=np.amax(self.stack.itot))
             self.ilow_slider.set(np.amin(self.stack.itot))
             self.ilow.set(self.stack.display.format(np.amin(self.stack.itot)))
+            self.represent_thrsh(update=False)
 
     def crop_figures_callback(self):
         if len(plt.get_fignums()):
@@ -788,10 +791,12 @@ class Polarimetry(CTk.CTk):
             fig, axs = plt.subplots(1, 2)
             fig.canvas.manager.set_window_title("Disk Cone: " + self.CD.name)
             fig.patch.set_facecolor("w")
-            axs[0].imshow(self.CD.RhoPsi[:, :, 0], cmap="jet", interpolation="nearest")
+            h = axs[0].imshow(self.CD.RhoPsi[:, :, 0], cmap=mpl.colormaps["hsv"], interpolation="nearest")
             axs[0].set_title("Rho Test")
-            axs[1].imshow(self.CD.RhoPsi[:, :, 1], cmap="jet", interpolation="nearest")
+            plt.colorbar(h)
+            h = axs[1].imshow(self.CD.RhoPsi[:, :, 1], cmap=mpl.colormaps["jet"], interpolation="nearest")
             axs[1].set_title("Psi Test")
+            plt.colorbar(h)
             plt.subplots_adjust(wspace=0.4)
 
     def variable_table_switch_callback(self):
@@ -1427,7 +1432,7 @@ class Polarimetry(CTk.CTk):
                     im = np.mod(2 * (im + int(self.rotation[1].get())), 360) / 2
                 im = rotate(im, int(self.rotation[1].get()), reshape=False, mode="constant")
                 im[im == 0] = np.nan
-            h2 = ax.imshow(im, vmin=vmin, vmax=vmax, cmap=var.colormap, interpolation="nearest")
+            h2 = ax.imshow(im, vmin=vmin, vmax=vmax, cmap=mpl.colormaps[var.colormap], interpolation="nearest")
             plt.colorbar(h2)
             ax.set_title(datastack.name)
             plt.pause(0.001)
@@ -1622,15 +1627,16 @@ class Polarimetry(CTk.CTk):
         deltarho = self.wrapto180(2 * (data_vals - meandata)) / 2
         title = ["File", "ROI", "MeanRho", "StdRho", "MeanDeltaRho"]
         results = [self.stack.name, roi if roi else 1, meandata, np.std(deltarho), np.mean(deltarho)]
-        for var in datastack.vars:
-            if var.name not in ["Rho", "X", "Y"]:
-                data_vals = var.values[mask * np.isfinite(rho)]
-                meandata = np.mean(data_vals)
-                title += ["Mean" + var.name, "Std" + var.name]
-                results += [meandata, np.std(data_vals)]
-        meandata = np.mean(datastack.added_vars[2].values) * self.stack.nangle
-        title += ["TotalInt", "ILow", "N"]
-        results += [meandata, ilow, n]
+        for var in datastack.vars[1:]:
+            data_vals = var.values[mask * np.isfinite(rho)]
+            meandata = np.mean(data_vals)
+            title += ["Mean" + var.name, "Std" + var.name]
+            results += [meandata, np.std(data_vals)]
+        data_vals = datastack.added_vars[2].values[mask * np.isfinite(rho)]
+        meandata = np.mean(data_vals) 
+        stddata = np.std(data_vals)
+        title += ["MeanInt", "StdInt", "TotalInt", "ILow", "N"]
+        results += [meandata, stddata, meandata * self.stack.nangle, ilow, n]
         if self.method.get() in ["1PF", "4POLAR 2D", "4POLAR 3D"]:
             title += ["Calibration"]
             results += [self.CD.name]
@@ -1700,7 +1706,7 @@ class Polarimetry(CTk.CTk):
         datastack.dark = float(self.dark.get())
         field = self.stack.values - datastack.dark - float(self.noise[3].get())
         field = field * (field >= 0)
-        if self.method.get() == "1PF":
+        if self.method.get() == "CARS":
             field = np.sqrt(field)
         elif self.method.get().startswith("4POLAR"):
             field[:, :, [1, 2]] = field[:, :, [2, 1]]
@@ -1748,9 +1754,9 @@ class Polarimetry(CTk.CTk):
             mask *= (np.abs(a2) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             a2_vals = np.moveaxis(np.asarray([a2.real[mask].flatten(), a2.imag[mask].flatten()]), 0, -1)
             rho, psi = np.moveaxis(interpn(self.CD.xy, self.CD.RhoPsi, a2_vals), 0, 1)
-            ixgrid = np.where(mask)
+            ixgrid = mask.nonzero()
             rho_.values[ixgrid] = rho
-            rho_.values[np.isfinite(rho_.values)] = np.mod(2 * (180 - rho_.values[np.isfinite(rho_.values)] + float(self.rotation[0].get())), 360) / 2 + 90
+            rho_.values[np.isfinite(rho_.values)] = np.mod(2 * (180 - rho_.values[np.isfinite(rho_.values)] + float(self.rotation[0].get() + 90)), 360) / 2 
             psi_ = Variable(datastack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.values = np.nan * np.ones(a0.shape)
@@ -1874,7 +1880,7 @@ class ROI:
 
 class Calibration():
 
-    dict_1pf = {"488 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 85), "561 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 30), "640 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 35), "488 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0", 100), "561 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0", 100), "640 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0", 100), "488 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0", 100), "561 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0", 100), "640 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0", 100), "488 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0", 100), "561 nm (before 13/12/2019)": ("Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0", 100), "640 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0", 100), "no distortions (before 12/04/2022)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 100), "other": (None, 0)}
+    dict_1pf = {"488 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 85), "561 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 30), "640 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 35), "488 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0", 80), "561 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0", 80), "640 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0", 80), "488 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0", 80), "561 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0", 80), "640 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0", 80), "488 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0", 80), "561 nm (before 13/12/2019)": ("Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0", 80), "640 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0", 80), "no distortions (before 12/04/2022)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 80), "other": (None, 0)}
 
     folder_1pf = os.path.join(os.path.dirname(os.path.realpath(__file__)), "diskcones")
 
