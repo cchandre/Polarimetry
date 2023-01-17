@@ -253,7 +253,7 @@ class Polarimetry(CTk.CTk):
         self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=20, pady=(0, 20))
         self.button(postprocessing, text="Crop figures", image=self.icons["crop"], command=self.crop_figures_callback).grid(row=2, column=0, columnspan=2, padx=20, pady=0)
         button = self.button(postprocessing, text="Show individual fit", image=self.icons["query_stats"], command=self.show_individual_fit_callback)
-        ToolTip.createToolTip(button, "Zoom into the region of region of interest\nthen click using the crosshair")
+        ToolTip.createToolTip(button, "Zoom into the region of interest\nthen click using the crosshair")
         button.grid(row=3, column=0, columnspan=2, padx=20, pady=20)
         pixels_per_sticks = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
         pixels_per_sticks.grid(row=3, column=0, padx=20, pady=20)
@@ -293,6 +293,7 @@ class Polarimetry(CTk.CTk):
         self.calculated_dark_label.grid(row=1, column=0)
         self.dark = tk.StringVar()
         self.dark_entry = self.entry(adv["Dark"], text="Used dark value", textvariable=self.dark, row=2, column=0)
+        ToolTip.createToolTip(self.dark_entry, "For 1PF, use a dark value greater than 480")
         self.dark_entry.bind("<Return>", command=self.itot_callback)
         self.dark_entry.configure(state="disabled")
         CTk.CTkLabel(master=adv["Dark"], text=" ").grid(row=3, column=0)
@@ -608,6 +609,7 @@ class Polarimetry(CTk.CTk):
             if hasattr(self, "datastack"):
                 self.mask = self.get_mask(self.datastack)
                 self.represent_thrsh()
+                self.thrsh_frame.update()
 
     def open_file_callback(self, value):
         if value == "Open file":
@@ -620,6 +622,8 @@ class Polarimetry(CTk.CTk):
                 self.open_file(filename)
                 self.options_dropdown.configure(state="normal", values=["Thresholding (manual)", "Mask (manual)"])
                 self.option.set("Thresholding (manual)")
+                if hasattr(self, "mask"):
+                    delattr(self, "mask")
         elif value == "Open folder":
             self.openfile_icon.configure(image=self.icons["folder_open"])
             folder = fd.askdirectory(title="Select a directory", initialdir="/")
@@ -727,13 +731,14 @@ class Polarimetry(CTk.CTk):
         roi_map, mask = self.compute_roi_map(self.datastack)
         array = []
         if event == 0:
-            array = np.uint8(roi_map != 0)
+            array = (255 * (roi_map != 0)).astype(np.uint8)
         elif event == 1:
-            array = np.uint8(self.datastack.itot >= float(self.ilow.get()))
+            array = (255 * (self.datastack.itot >= float(self.ilow.get()))).astype(np.uint8)
         elif event == 2:
-            array = mask.astype(np.uint8)
+            array = (255 * mask).astype(np.uint8)
         if np.any(array):
-            plt.imsave(self.datastack.filename + ".png", array, cmap="gray")
+            data = Image.fromarray(array)
+            data.save(self.datastack.filename + ".png")
         window.withdraw()
 
     def change_colormap(self):
@@ -821,7 +826,8 @@ class Polarimetry(CTk.CTk):
         self.variable_entries[1].configure(state="disabled")
 
     def click_callback(self, ax, canvas, method):
-        self.tabview.set("Fluorescence")
+        if method == "click background":
+            self.tabview.set("Fluorescence")
         if hasattr(self, "datastack"):
             xlim, ylim = ax.get_xlim(), ax.get_ylim()
             hlines = [plt.Line2D([(xlim[0] + xlim[1])/2, (xlim[0] + xlim[1])/2], ylim, lw=1, color="w"),
@@ -1095,6 +1101,8 @@ class Polarimetry(CTk.CTk):
             self.mask = self.get_mask(self.datastack)
         self.represent_fluo(update=False)
         self.represent_thrsh(update=False)
+        self.fluo_frame.update()
+        self.thrsh_frame.update()
 
     def add_roi_callback(self):
         if hasattr(self, "stack"):
@@ -1172,7 +1180,7 @@ class Polarimetry(CTk.CTk):
         if self.option.get().startswith("Mask"):
             mask_name = os.path.join(self.maskfolder, datastack.name + ".png")
             if os.path.isfile(mask_name):
-                im_binarized = np.asarray(plt.imread(mask_name), dtype=np.float64)
+                im_binarized = np.asarray(Image.open(mask_name), dtype=np.float64)
                 mask = im_binarized / np.amax(im_binarized)
             else:
                 window, buttons = self.showinfo(message=f" The corresponding mask for {datastack.name} could not be found\n Continuing without mask...", image=self.icons["layers_clear"], buttons_labels=["OK"])
@@ -1237,6 +1245,8 @@ class Polarimetry(CTk.CTk):
 
     def itot_callback(self, event):
         if event and hasattr(self, "stack"):
+            if (self.method.get() == "1PF") and (float(self.dark.get()) <= 480):
+                self.dark.set(self.stack.display.format(self.calculated_dark))
             self.compute_itot(self.stack)
             if hasattr(self, "datastack"):
                 self.datastack.itot = self.stack.itot
@@ -1379,7 +1389,7 @@ class Polarimetry(CTk.CTk):
                 ax.set_xlabel(var.latex, fontsize=20)
                 ax.set_title(datastack.name, fontsize=14)
                 text = var.latex + " = " + "{:.2f}".format(np.mean(data_vals)) + " $\pm$ " "{:.2f}".format(np.std(data_vals))
-                ax.annotate(text, xy=(0.2, 0.91), xycoords="axes fraction", fontsize=20)
+                ax.annotate(text, xy=(0.05, 0.95), xycoords="axes fraction", fontsize=14)
             elif var.type_histo.startswith("polar"):
                 ax = plt.subplot(projection="polar")
                 if var.type_histo == "polar1":
@@ -1402,7 +1412,7 @@ class Polarimetry(CTk.CTk):
                 ax.set_thetamax(max)
                 ax.set_title(datastack.name, fontsize=14)
                 text = var.latex + " = " + "{:.2f}".format(meandata) + " $\pm$ " "{:.2f}".format(std)
-                ax.annotate(text, xy=(0.2, 0.91), xycoords="axes fraction", fontsize=20)
+                ax.annotate(text, xy=(0.3, 0.91), xycoords="axes fraction", fontsize=14)
             suffix = "_perROI_" + str(roi) if roi else ""
             filename = datastack.filename + "_Histo" + var.name + suffix
             if self.save_table[2].get() and self.extension_table[1].get():
@@ -1584,6 +1594,27 @@ class Polarimetry(CTk.CTk):
             with bz2.BZ2File(filename, "w") as f:
                 cPickle.dump(datastack_, f)
             window.withdraw()
+        if self.extension_table[3].get():
+            if self.filelist:
+                filename = os.path.join(self.stack.folder, os.path.basename(self.stack.folder) + "_Stats.xlsx")
+                title = os.path.basename(self.stack.folder)
+            else:
+                filename = self.stack.filename + "_Stats.xlsx"
+                title = self.stack.name
+            if os.path.exists(filename):
+                workbook = openpyxl.load_workbook(filename = filename)
+            else:
+                workbook = openpyxl.Workbook()
+            worksheet = workbook.active
+            worksheet.title = title
+            if not os.path.exists(filename):
+                worksheet.append(self.return_vecexcel(datastack, roi_map)[1])
+            if int_roi >= 2:
+                for roi in np.arange(1, int_roi + 1):
+                    worksheet.append(self.return_vecexcel(datastack, roi_map, roi=roi)[0])
+            else:
+                worksheet.append(self.return_vecexcel(datastack, roi_map, roi=[])[0])
+            workbook.save(filename)
         if self.extension_table[4].get():
             filename = self.stack.filename + ".mp4"
             fps = 5
@@ -1606,27 +1637,6 @@ class Polarimetry(CTk.CTk):
                     plt.imshow(im, cmap=mpl.colormaps["gray"], interpolation="nearest")
                     writer.grab_frame()
             plt.close(fig)
-        if self.extension_table[3].get():
-            if self.filelist:
-                filename = os.path.join(self.stack.folder, os.path.basename(self.stack.folder) + "_Stats.xlsx")
-                title = os.path.basename(self.stack.folder)
-            else:
-                filename = self.stack.filename + "_Stats.xlsx"
-                title = self.stack.name
-            if os.path.exists(filename):
-                workbook = openpyxl.load_workbook(filename = filename)
-            else:
-                workbook = openpyxl.Workbook()
-            worksheet = workbook.active
-            worksheet.title = title
-            if not os.path.exists(filename):
-                worksheet.append(self.return_vecexcel(datastack, roi_map)[1])
-            if int_roi >= 2:
-                for roi in np.arange(1, int_roi + 1):
-                    worksheet.append(self.return_vecexcel(datastack, roi_map, roi=roi)[0])
-            else:
-                worksheet.append(self.return_vecexcel(datastack, roi_map, roi=[])[0])
-            workbook.save(filename)
 
     def return_vecexcel(self, datastack, roi_map, roi=[]):
         mask = (roi_map == roi) if roi else (roi_map == 1)
@@ -1676,7 +1686,7 @@ class Polarimetry(CTk.CTk):
             roi_ilow_map = np.zeros(shape, dtype=np.float64)
             for roi in datastack.rois:
                 patch= Polygon(roi["vertices"].T)
-                roi_map[patch.contains_points(points).reshape(shape)] = roi["indx"] if self.per_roi.get() == "on" else 1
+                roi_map[patch.contains_points(points).reshape(shape)] = roi["indx"] if self.per_roi.get() else 1
                 roi_ilow_map[patch.contains_points(points).reshape(shape)] = roi["ILow"]
         else:
             roi_map = np.ones(shape, dtype=np.int32)
