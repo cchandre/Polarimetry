@@ -1095,6 +1095,9 @@ class Polarimetry(CTk.CTk):
         self.filename_label.configure(text=self.stack.name)
         self.tabview.set("Fluorescence")
         self.compute_itot(self.stack)
+        self.ilow_slider.configure(from_=np.amin(self.stack.itot), to=np.amax(self.stack.itot))
+        self.ilow_slider.set(np.amin(self.stack.itot))
+        self.ilow.set(self.stack.display.format(np.amin(self.stack.itot)))
         if hasattr(self, "datastack"):
             self.datastack.itot = self.stack.itot
         if self.option.get().startswith("Mask"):
@@ -1731,10 +1734,12 @@ class Polarimetry(CTk.CTk):
             field = np.sqrt(field)
         elif self.method.get().startswith("4POLAR"):
             field[:, :, [1, 2]] = field[:, :, [2, 1]]
-        bin_shape = [self.bin[_].get() for _ in range(2)]
+        bin_shape = np.asarray([self.bin[_].get() for _ in range(2)], dtype=np.uint8)
         if sum(bin_shape) != 2:
-            bin = np.ones(int(_) for _ in bin_shape)
-            field = convolve2d(field, bin, mode="same") / (bin_shape[0] * bin_shape[1])
+            bin = np.ones(bin_shape)
+            for _ in range(self.stack.nangle):
+                field[:, :, _] = convolve2d(field[:, :, _], bin, mode="same") / (bin_shape[0] * bin_shape[1])
+            print(field.shape)
         if self.method.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
             angle3d = (np.linspace(0, 180, self.stack.nangle, endpoint=False) + 180 - self.offset_angle.get()).reshape(1, 1, -1)
             e2 = np.exp(2j * np.deg2rad(angle3d))
