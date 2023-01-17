@@ -509,7 +509,7 @@ class Polarimetry(CTk.CTk):
 
     def edge_detection_callback(self):
         if self.edge_detection_switch.get() == "on":
-            window, buttons = self.showinfo(" Mask for edge detection", image=self.icons["multiline_chart"], button_labels=["Download", "Compute", "Cancel"])
+            window, buttons = self.showinfo(" Mask for edge detection", image=self.icons["multiline_chart"], button_labels=["Download", "Compute", "Cancel"], geometry=(370, 140))
             buttons[0].configure(command=lambda:self.download_edge_mask(window))
             buttons[1].configure(command=lambda:self.compute_edge_mask(window))
             buttons[2].configure(command=lambda:window.withdraw())
@@ -1366,10 +1366,8 @@ class Polarimetry(CTk.CTk):
                     patch.set_edgecolor("k")
                 ax.set_xlim((min, max))
                 ax.set_xlabel(var.latex, fontsize=20)
-                #ax.set_xlabel(var.latex, usetex=True, fontsize=20)
                 ax.set_title(datastack.name, fontsize=14)
                 text = var.latex + " = " + "{:.2f}".format(np.mean(data_vals)) + " $\pm$ " "{:.2f}".format(np.std(data_vals))
-                #ax.annotate(text, xy=(0.2, 0.91), xycoords="axes fraction", fontsize=20, usetex=True)
                 ax.annotate(text, xy=(0.2, 0.91), xycoords="axes fraction", fontsize=20)
             elif var.type_histo.startswith("polar"):
                 ax = plt.subplot(projection="polar")
@@ -1394,7 +1392,6 @@ class Polarimetry(CTk.CTk):
                 ax.set_title(datastack.name, fontsize=14)
                 text = var.latex + " = " + "{:.2f}".format(meandata) + " $\pm$ " "{:.2f}".format(std)
                 ax.annotate(text, xy=(0.2, 0.91), xycoords="axes fraction", fontsize=20)
-                #ax.annotate(text, xy=(0.2, 0.91), xycoords="axes fraction", fontsize=20, usetex=True)
             suffix = "_perROI_" + str(roi) if roi else ""
             filename = datastack.filename + "_Histo" + var.name + suffix
             if self.save_table[2].get() and self.extension_table[1].get():
@@ -1469,10 +1466,8 @@ class Polarimetry(CTk.CTk):
                     axs[1].plot(alpha, signal - signal_fit, "+", alpha, 2 * np.sqrt(signal_fit), "r-", alpha, -2 * np.sqrt(signal_fit), "r-", lw=2)
                     for title, ylabel, ax_ in zip(titles, ylabels, axs):
                         ax_.set_xlabel(r"$\alpha$", fontsize=20)
-                        #ax_.set_xlabel(r"$\alpha$", usetex=True, fontsize=20)
                         ax_.set_ylabel(ylabel, fontsize=20)
                         ax_.set_title(title, fontsize=14)
-                        #ax_.set_title(title, usetex=True, fontsize=14)
                         ax_.set_xlim((0, 180 - 180/self.datastack.nangle))
                     plt.subplots_adjust(hspace=0.6)
                     plt.rc("axes", unicode_minus=False)
