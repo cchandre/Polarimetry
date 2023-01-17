@@ -550,8 +550,6 @@ class Polarimetry(CTk.CTk):
             filter = np.asarray([len(contour) >= 200 for contour in contours])
             self.edge_contours = [contour.reshape((-1, 2)) for (contour, val) in zip(contours, filter) if val]
             self.represent_thrsh()
-        else:
-            
 
     def contrast_thrsh_slider_callback(self, value):
         if value <= 0.001:
