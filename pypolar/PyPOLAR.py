@@ -3,6 +3,7 @@ from tkinter import filedialog as fd
 from tkinter.messagebox import showerror
 import customtkinter as CTk
 import os
+import sys
 import pathlib
 import bz2
 import _pickle as cPickle
@@ -38,7 +39,10 @@ CTk.set_default_color_theme(os.path.join(os.path.dirname(os.path.realpath(__file
 CTk.set_appearance_mode("dark")
 mpl.use("TkAgg")
 plt.rcParams["font.size"] = 16
-plt.rcParams["font.family"] = "Arial Rounded MT Bold"
+if sys.platform == "darwin":
+    plt.rcParams["font.family"] = "Arial Rounded MT Bold"
+elif sys.platform == "win32":
+    plt.rcParams["font.family"] = "Segoe UI Variable"
 plt.rcParams["image.origin"] = "upper"
 plt.rcParams["figure.max_open_warning"] = 100
 plt.ion()
@@ -512,16 +516,22 @@ class Polarimetry(CTk.CTk):
             window, buttons = self.showinfo(" Mask for edge detection", image=self.icons["multiline_chart"], button_labels=["Download", "Compute", "Cancel"], geometry=(370, 140))
             buttons[0].configure(command=lambda:self.download_edge_mask(window))
             buttons[1].configure(command=lambda:self.compute_edge_mask(window))
-            buttons[2].configure(command=lambda:window.withdraw())
-            self.tabview.insert(4, "Edge Detection")
+            buttons[2].configure(command=lambda:self.delete_edge_mask(window))
         else:
-            delattr(self, "edge_contours")
+            if hasattr(self, "edge_contours"):
+                delattr(self, "edge_contours")
             self.tabview.delete("Edge Detection")
+
+    def delete_edge_mask(self, window):
+        window.withdraw()
+        if hasattr(self, "edge_contours"):
+            delattr(self, "edge_contours")
 
     def download_edge_mask(self, window):
         window.withdraw()
         filetypes = [("PNG files", "*.png")]
         filename = fd.askopenfilename(title="Select a mask file", initialdir="/", filetypes=filetypes)
+        self.tabview.insert(4, "Edge Detection")
         mask = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
         contours = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
         filter = np.asarray([len(contour) >= 200 for contour in contours])
@@ -531,6 +541,7 @@ class Polarimetry(CTk.CTk):
     def compute_edge_mask(self, window):
         window.withdraw()
         if hasattr(self, "stack"):
+            self.tabview.insert(4, "Edge Detection")
             field = (self.stack.itot / np.amax(self.stack.itot) * 255).astype(np.uint8)
             field = cv2.threshold(field, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
             field = cv2.GaussianBlur(field, (5, 5), 1)
@@ -539,6 +550,8 @@ class Polarimetry(CTk.CTk):
             filter = np.asarray([len(contour) >= 200 for contour in contours])
             self.edge_contours = [contour.reshape((-1, 2)) for (contour, val) in zip(contours, filter) if val]
             self.represent_thrsh()
+        else:
+            
 
     def contrast_thrsh_slider_callback(self, value):
         if value <= 0.001:
