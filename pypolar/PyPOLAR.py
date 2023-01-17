@@ -21,7 +21,6 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Polygon
 from matplotlib.collections import PolyCollection
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-import matplotlib.animation as manimation
 from PIL import Image
 from skimage import exposure
 import cv2
@@ -272,7 +271,7 @@ class Polarimetry(CTk.CTk):
         save_ext = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
         save_ext.grid(row=2, column=1, padx=(40, 20), pady=20, sticky="nw")
         CTk.CTkLabel(master=save_ext, text="\nSave output\n", font=CTk.CTkFont(size=16), width=260).grid(row=0, column=0, columnspan=2, padx=(0, 20), pady=(0, 0))
-        labels = ["data (.pbz2)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "stack (.mp4)"]
+        labels = ["data (.pbz2)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "movie (.gif)"]
         self.extension_table = [self.checkbox(save_ext) for it in range(len(labels))]
         for it in range(len(labels)):
             CTk.CTkLabel(master=save_ext, text=labels[it], anchor="w", width=120).grid(row=it+1, column=0, padx=(20, 0))
@@ -1425,7 +1424,7 @@ class Polarimetry(CTk.CTk):
         vmin, vmax = np.amin(itot), np.amax(itot)
         field = self.adjust(itot, self.contrast_fluo_slider.get(), vmin, vmax)
         if int(self.rotation[1].get()) != 0:
-            field_im = rotate(field_im, int(self.rotation[1].get()), reshape=False, mode="constant", cval=vmin)
+            field = rotate(field, int(self.rotation[1].get()), reshape=False, mode="constant", cval=vmin)
         ax_im = ax.imshow(field, cmap=mpl.colormaps["gray"], interpolation="nearest")
         ax_im.set_clim(vmin, vmax)
 
@@ -1507,7 +1506,7 @@ class Polarimetry(CTk.CTk):
         rho = datastack.vars[0]
         rho_ = rho.values[::int(self.pixelsperstick[1].get()), ::int(self.pixelsperstick[0].get())]
         data_ = var.values[::int(self.pixelsperstick[1].get()), ::int(self.pixelsperstick[0].get())]
-        Y, X = np.mgrid[:datastack.height+self.bin[1].get()-1:int(self.pixelsperstick[1].get()), :datastack.width+self.bin[0].get()-1:int(self.pixelsperstick[0].get())]
+        Y, X = np.mgrid[:datastack.height, :datastack.width]
         X, Y = X[np.isfinite(rho_)], Y[np.isfinite(rho_)]
         data_, rho_ = data_[np.isfinite(rho_)], rho_[np.isfinite(rho_)]
         if var.orientation:
@@ -1619,27 +1618,19 @@ class Polarimetry(CTk.CTk):
                 worksheet.append(self.return_vecexcel(datastack, roi_map, roi=[])[0])
             workbook.save(filename)
         if self.extension_table[4].get():
-            filename = self.stack.filename + ".mp4"
-            fps = 5
-            FFMpegWriter = manimation.writers["ffmpeg"]
-            metadata = dict(title=self.stack.name, comment="polarimetry of the file " + self.stack.name)
-            writer = FFMpegWriter(fps=fps, metadata=metadata)
-            fig, ax = plt.subplots()
-            ax.axis(self.add_axes_checkbox.get())
-            ax.set_title(self.stack.name, fontsize=14)
+            filename = self.stack.filename + ".gif"
+            images = []
             vmin, vmax = np.amin(self.stack.values), np.amax(self.stack.values)
-            with writer.saving(fig, filename, 300):
-                for _ in range(self.stack.nangle):
-                    field = self.stack.values[:, :, _]
-                    im = self.adjust(field, self.contrast_fluo_slider.get(), vmin, vmax)
-                    if int(self.rotation[1].get()) != 0:
-                        im = rotate(im, int(self.rotation[1].get()), reshape=False, mode="constant", cval=vmin)
-                    if hasattr(self, "xlim"):
-                        ax.set_xlim((self.xlim[0].get(), self.xlim[1].get()))
-                        ax.set_ylim((self.ylim[1].get(), self.ylim[0].get()))
-                    plt.imshow(im, cmap=mpl.colormaps["gray"], interpolation="nearest")
-                    writer.grab_frame()
-            plt.close(fig)
+            for _ in range(self.stack.nangle):
+                field = self.stack.values[:, :, _]
+                im = self.adjust(field, self.contrast_fluo_slider.get(), vmin, vmax)
+                if int(self.rotation[1].get()) != 0:
+                    im = rotate(im, int(self.rotation[1].get()), reshape=False, mode="constant", cval=vmin)
+                if hasattr(self, "xlim"):
+                    im = im[self.ylim[0].get():self.ylim[1].get(), self.xlim[0].get():self.xlim[1].get()]
+                im = (255 * im / vmax).astype(np.uint8)
+                images.append(Image.fromarray(im, mode='P'))
+            images[0].save(filename, save_all=True, append_images=images[1:], optimize=False, duration=200, loop=0)
 
     def return_vecexcel(self, datastack, roi_map, roi=[]):
         mask = (roi_map == roi) if roi else (roi_map == 1)
@@ -1739,7 +1730,6 @@ class Polarimetry(CTk.CTk):
             bin = np.ones(bin_shape)
             for _ in range(self.stack.nangle):
                 field[:, :, _] = convolve2d(field[:, :, _], bin, mode="same") / (bin_shape[0] * bin_shape[1])
-            print(field.shape)
         if self.method.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
             angle3d = (np.linspace(0, 180, self.stack.nangle, endpoint=False) + 180 - self.offset_angle.get()).reshape(1, 1, -1)
             e2 = np.exp(2j * np.deg2rad(angle3d))
