@@ -119,9 +119,9 @@ class Polarimetry(CTk.CTk):
         self.option = tk.StringVar()
         self.options_dropdown, self.options_icon = self.dropdown(self.left_frame, values=["Thresholding (manual)", "Mask (manual)"], image=self.icons["build"], variable=self.option, state="disabled", command=self.options_dropdown_callback, modify_button=True)
         ToolTip.createToolTip(self.options_dropdown, " Select the method of analysis: intensity thresholding or segmentation\n mask for single file analysis (manual) or batch processing (auto).\n The mask has to be binary and in PNG format and have the same\n file name as the respective polarimetry data file.")
-        button = self.button(self.left_frame, text="Add ROI", image=self.icons["roi"], command=self.add_roi_callback)
-        ToolTip.createToolTip(button, "Add a region of interest: polygon (left button), freehand (right button)")
-        button.pack(padx=20, pady=20)
+        self.add_roi_button = self.button(self.left_frame, text="Add ROI", image=self.icons["roi"], command=self.add_roi_callback)
+        ToolTip.createToolTip(self.add_roi_button, "Add a region of interest: polygon (left button), freehand (right button)")
+        self.add_roi_button.pack(padx=20, pady=20)
         self.analysis_button = self.button(self.left_frame, text="Analysis", command=self.analysis_callback, image=self.icons["play"])
         ToolTip.createToolTip(self.analysis_button, "Polarimetry analysis")
         self.analysis_button.configure(fg_color=Polarimetry.green[0], hover_color=Polarimetry.green[1])
@@ -618,11 +618,11 @@ class Polarimetry(CTk.CTk):
             filename = fd.askopenfilename(title="Select a file", initialdir="/", filetypes=filetypes)
             self.filelist = []
             if filename:
-                self.open_file(filename)
                 self.options_dropdown.configure(state="normal", values=["Thresholding (manual)", "Mask (manual)"])
                 self.option.set("Thresholding (manual)")
                 if hasattr(self, "mask"):
                     delattr(self, "mask")
+                self.open_file(filename)
         elif value == "Open folder":
             self.openfile_icon.configure(image=self.icons["folder_open"])
             folder = fd.askdirectory(title="Select a directory", initialdir="/")
@@ -658,6 +658,7 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_axis.set_axis_off()
                 self.thrsh_canvas.draw()
                 self.filename_label.configure(text=self.datastack.name)
+                self.represent_fluo(update=False)
             window.withdraw()
         if hasattr(self, "stack"):
             self.ilow_slider.configure(from_=np.amin(self.stack.itot), to=np.amax(self.stack.itot))
@@ -958,7 +959,7 @@ class Polarimetry(CTk.CTk):
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
-            if ("Sticks" in fs):
+            if ("Sticks" in fs) and (self.datastack.name in fs):
                 ax = fig.axes[0]
                 for _, var in enumerate(self.datastack.vars):
                     if var.name == fs.split()[0]:
@@ -1109,6 +1110,7 @@ class Polarimetry(CTk.CTk):
     def add_roi_callback(self):
         if hasattr(self, "stack"):
             self.tabview.set("Thresholding/Mask")
+            self.add_roi_button.configure(fg_color=Polarimetry.orange[1])
             hroi = ROI()
             self.__cid1 = self.thrsh_canvas.mpl_connect("motion_notify_event", lambda event: self.add_roi_motion_notify_callback(event, hroi))
             self.__cid2 = self.thrsh_canvas.mpl_connect("button_press_event", lambda event: self.add_roi_button_press_callback(event, hroi))
@@ -1154,6 +1156,7 @@ class Polarimetry(CTk.CTk):
                 window, buttons = self.showinfo(message=" Add ROI?", image=self.icons["roi"], button_labels=["Yes", "No"])
                 buttons[0].configure(command=lambda:self.yes_add_roi_callback(window, roi))
                 buttons[1].configure(command=lambda:self.no_add_roi_callback(window, roi))
+                self.add_roi_button.configure(fg_color=Polarimetry.orange[0])
 
     def yes_add_roi_callback(self, window, roi):
         vertices = np.asarray([roi.x, roi.y])
@@ -1247,7 +1250,7 @@ class Polarimetry(CTk.CTk):
 
     def itot_callback(self, event):
         if event and hasattr(self, "stack"):
-            if (self.method.get() == "1PF") and (float(self.dark.get()) <= 480):
+            if (self.method.get() == "1PF") and (float(self.dark.get()) < 480):
                 self.dark.set(self.stack.display.format(self.calculated_dark))
             self.compute_itot(self.stack)
             if hasattr(self, "datastack"):
@@ -1273,11 +1276,12 @@ class Polarimetry(CTk.CTk):
         return sharpened
 
     def represent_fluo(self, update=True):
-        if hasattr(self, "stack"):
+        itot = self.stack.itot if hasattr(self, "stack") else self.datastack.itot if hasattr(self, "datastack") else []
+        if itot.any():
             if self.stack_slider.get() == 0:
-                field = self.stack.itot
-                vmin, vmax = np.amin(self.stack.itot), np.amax(self.stack.itot)
-            elif self.stack_slider.get() <= self.stack.nangle:
+                field = itot
+                vmin, vmax = np.amin(itot), np.amax(itot)
+            elif hasattr(self, "stack") and (self.stack_slider.get() <= self.stack.nangle):
                 field = self.stack.values[:, :, int(self.stack_slider.get())-1]
                 vmin, vmax = np.amin(self.stack.values), np.amax(self.stack.values)
             field_im = self.adjust(field, self.contrast_fluo_slider.get(), vmin, vmax)
@@ -1506,7 +1510,7 @@ class Polarimetry(CTk.CTk):
         rho = datastack.vars[0]
         rho_ = rho.values[::int(self.pixelsperstick[1].get()), ::int(self.pixelsperstick[0].get())]
         data_ = var.values[::int(self.pixelsperstick[1].get()), ::int(self.pixelsperstick[0].get())]
-        Y, X = np.mgrid[:datastack.height, :datastack.width]
+        Y, X = np.mgrid[:datastack.height:int(self.pixelsperstick[1].get()), :datastack.width:int(self.pixelsperstick[0].get())]
         X, Y = X[np.isfinite(rho_)], Y[np.isfinite(rho_)]
         data_, rho_ = data_[np.isfinite(rho_)], rho_[np.isfinite(rho_)]
         if var.orientation:
