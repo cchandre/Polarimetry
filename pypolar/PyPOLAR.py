@@ -11,7 +11,7 @@ import copy
 import webbrowser
 import numpy as np
 from scipy.optimize import linear_sum_assignment
-from scipy.signal import convolve2d
+from scipy.signal import convolve2d, savgol_filter
 from scipy.interpolate import interpn
 from scipy.ndimage import rotate
 from scipy.io import savemat, loadmat
@@ -44,6 +44,7 @@ elif sys.platform == "win32":
     plt.rcParams["font.family"] = "Segoe UI Variable"
 plt.rcParams["image.origin"] = "upper"
 plt.rcParams["figure.max_open_warning"] = 100
+plt.rcParams["axes.unicode_minus"] = False
 plt.ion()
 
 class Polarimetry(CTk.CTk):
@@ -279,7 +280,7 @@ class Polarimetry(CTk.CTk):
         CTk.CTkLabel(master=save_ext, text=" ").grid(row=len(labels)+1, column=0)
 
 ## RIGHT FRAME: ADV
-        adv_elts = ["Dark", "Binning", "Offset angle", "Rotation", "Disk cone / Calibration data", "Remove background"]
+        adv_elts = ["Dark", "Binning", "Polarization setup", "Rotation", "Disk cone / Calibration data", "Remove background"]
         adv_loc = [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]
         adv = {}
         for loc, elt in zip(adv_loc, adv_elts):
@@ -296,12 +297,15 @@ class Polarimetry(CTk.CTk):
         self.dark_entry.bind("<Return>", command=self.itot_callback)
         self.dark_entry.configure(state="disabled")
         CTk.CTkLabel(master=adv["Dark"], text=" ").grid(row=3, column=0)
-        self.offset_angle_switch = CTk.CTkSwitch(master=adv["Offset angle"], text="", command=self.offset_angle_switch_callback, onvalue="on", offvalue="off", width=50)
+        self.offset_angle_switch = CTk.CTkSwitch(master=adv["Polarization setup"], text="", command=self.offset_angle_switch_callback, onvalue="on", offvalue="off", width=50)
         self.offset_angle_switch.grid(row=0, column=0, padx=20, pady=10, sticky="ne")
         self.offset_angle = tk.IntVar()
-        self.offset_angle_entry = self.entry(adv["Offset angle"], text="\n" + "Offset angle (deg)" +"\n", textvariable=self.offset_angle, row=1)
+        self.offset_angle_entry = self.entry(adv["Polarization setup"], text="\nOffset angle (deg)\n", textvariable=self.offset_angle, row=1)
         self.offset_angle_entry.configure(state="disabled")
-        CTk.CTkLabel(master=adv["Offset angle"], text=" ").grid(row=2, column=0)
+        CTk.CTkLabel(master=adv["Polarization setup"], text=" ").grid(row=2, column=0)
+        self.polar_dir = tk.StringVar()
+        self.polar_dir.set("clockwise")
+        CTk.CTkOptionMenu(master=adv["Polarization setup"], values=["clockwise", "counterclockwise"], width=Polarimetry.button_size[0], height=Polarimetry.button_size[1], dynamic_resizing=False, variable=self.polar_dir).grid(row=3, column=0, pady=(0, 20))
         self.calib_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=Polarimetry.button_size[0], height=Polarimetry.button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback)
         self.calib_dropdown.grid(row=1, column=0, pady=20)
         ToolTip.createToolTip(self.calib_dropdown, " 1PF: Select disk cone depending on wavelength and acquisition date\n 4POLAR: Select .mat file containing the calibration data")
@@ -379,7 +383,7 @@ class Polarimetry(CTk.CTk):
         self.calib_textbox.delete("0.0", "end")
         self.calib_textbox.insert("0.0", self.CD.name)
         self.calib_textbox.configure(state="disabled")
-        self.offset_angle.set(85)
+        self.offset_angle.set(0)
         angles = [0, 45, 90, 135]
         self.dict_polar = {}
         for p in list(permutations([0, 1, 2, 3])):
@@ -535,7 +539,7 @@ class Polarimetry(CTk.CTk):
         mask = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
         contours = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
         filter = np.asarray([len(contour) >= 200 for contour in contours])
-        self.edge_contours = [contour.reshape((-1, 2)) for (contour, val) in zip(contours, filter) if val]
+        self.edge_contours = [self.smooth_edge(contour.reshape((-1, 2))) for (contour, val) in zip(contours, filter) if val]
         self.represent_thrsh()
 
     def compute_edge_mask(self, window):
@@ -548,8 +552,17 @@ class Polarimetry(CTk.CTk):
             edges = cv2.Canny(image=field, threshold1=100, threshold2=200)
             contours = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
             filter = np.asarray([len(contour) >= 200 for contour in contours])
-            self.edge_contours = [contour.reshape((-1, 2)) for (contour, val) in zip(contours, filter) if val]
+            self.edge_contours = [self.smooth_edge(contour.reshape((-1, 2))) for (contour, val) in zip(contours, filter) if val]
             self.represent_thrsh()
+
+    def smooth_edge(self, edge):
+        window_length = 23
+        polyorder = 3
+        return savgol_filter(edge, window_length=window_length, polyorder=polyorder, axis=0)
+    
+    def angle_edge(self, edge):
+        tangent = np.diff(edge, axis=0, append=edge[-1, :])
+        angle = np.arctan2(tangent[:, 0], tangent[:, 1])
 
     def contrast_thrsh_slider_callback(self, value):
         if value <= 0.001:
@@ -807,16 +820,19 @@ class Polarimetry(CTk.CTk):
 
     def diskcone_display(self):
         if self.method.get() == "1PF" and hasattr(self, "CD"):
-            fig, axs = plt.subplots(1, 2)
+            fig, axs = plt.subplots(1, 2, figsize=(13, 8))
             fig.canvas.manager.set_window_title("Disk Cone: " + self.CD.name)
             fig.patch.set_facecolor("w")
-            h = axs[0].imshow(self.CD.RhoPsi[:, :, 0], cmap=mpl.colormaps["hsv"], interpolation="nearest")
+            h = axs[0].imshow(self.CD.RhoPsi[:, :, 0], cmap=mpl.colormaps["hsv"], interpolation="nearest", extent=[-1, 1, -1, 1])
             axs[0].set_title("Rho Test")
             plt.colorbar(h)
-            h = axs[1].imshow(self.CD.RhoPsi[:, :, 1], cmap=mpl.colormaps["jet"], interpolation="nearest")
+            h = axs[1].imshow(self.CD.RhoPsi[:, :, 1], cmap=mpl.colormaps["jet"], interpolation="nearest", extent=[-1, 1, -1, 1])
             axs[1].set_title("Psi Test")
             plt.colorbar(h)
             plt.subplots_adjust(wspace=0.4)
+            for ax in axs:
+                ax.set_xlabel("$B_2$")
+                ax.set_ylabel("$A_2$")
 
     def variable_table_switch_callback(self):
         state = "normal" if self.variable_table_switch.get() == "on" else "disabled"
@@ -1476,11 +1492,10 @@ class Polarimetry(CTk.CTk):
             if event.button == 1:
                 x, y = int(round(x)), int(round(y))
                 if np.isfinite(self.datastack.vars[0].values[y, x]):
-                    fig_, axs = plt.subplots(2, 1, figsize=self.figsize)
+                    fig_, axs = plt.subplots(2, 1, figsize=(12, 8))
                     fig_.canvas.manager.set_window_title("Individual Fit : " + self.datastack.name)
                     signal = self.datastack.field[y, x, :]
                     signal_fit = self.datastack.field_fit[y, x, :]
-                    #alpha = np.linspace(0, 180, self.datastack.nangle, endpoint=False)
                     indx = np.arange(1, self.stack.nangle + 1)
                     rho = np.mod(2 * (self.datastack.vars[0].values[y, x] + int(self.rotation[1].get())), 360) / 2
                     title = self.datastack.vars[0].latex + " = " + "{:.2f}".format(rho) + ", "
@@ -1492,15 +1507,20 @@ class Polarimetry(CTk.CTk):
                     ylabels = ["counts", "residuals"]
                     axs[0].plot(indx, signal, "*", indx, signal_fit, "r-", lw=2)
                     axs[1].plot(indx, signal - signal_fit, "+", indx, 2 * np.sqrt(signal_fit), "r-", indx, -2 * np.sqrt(signal_fit), "r-", lw=2)
+                    polardir = -1 if self.polar_dir.get() == "clockwise" else 1 
+                    def indx2alpha(k):
+                        return polardir * 180 / self.stack.nangle * (k - 1) + self.offset_angle.get()
+                    def alpha2indx(a):
+                        return polardir * self.stack.nangle / 180 * (a - self.offset_angle.get()) + 1
                     for title, ylabel, ax_ in zip(titles, ylabels, axs):
-                        ax_.set_xlabel("Slice", fontsize=20)
-                        ax_.set_ylabel(ylabel, fontsize=20)
+                        ax_.set_xlabel("slice", fontsize=14)
+                        ax_.set_ylabel(ylabel, fontsize=14)
                         ax_.set_title(title, fontsize=14)
                         ax_.set_xlim((1, self.datastack.nangle))
                         ax_.set_xticks(indx[::2], minor=True)
-                        #ax_.set_xlim((0, 180 - 180/self.datastack.nangle))
-                    plt.subplots_adjust(hspace=0.6)
-                    plt.rc("axes", unicode_minus=False)
+                        secax = ax_.secondary_xaxis("top", functions=(indx2alpha, alpha2indx))
+                        secax.set_xlabel(r"$\alpha$")
+                    plt.subplots_adjust(hspace=0.9)
             canvas.mpl_disconnect(self.__cid1)
             canvas.mpl_disconnect(self.__cid2)
             for line in hlines:
@@ -1738,7 +1758,8 @@ class Polarimetry(CTk.CTk):
             for _ in range(self.stack.nangle):
                 field[:, :, _] = convolve2d(field[:, :, _], bin, mode="same") / (bin_shape[0] * bin_shape[1])
         if self.method.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
-            alpha = (np.linspace(0, 180, self.stack.nangle, endpoint=False) + 180 - self.offset_angle.get()).reshape(1, 1, -1)
+            polardir = -1 if self.polar_dir.get() == "clockwise" else 1
+            alpha = polardir * np.linspace(0, 180, self.stack.nangle, endpoint=False).reshape(1, 1, -1) + self.offset_angle.get()
             e2 = np.exp(2j * np.deg2rad(alpha))
             a0 = np.mean(field, axis=2)
             a0[a0 == 0] = np.nan
@@ -1779,7 +1800,7 @@ class Polarimetry(CTk.CTk):
             rho, psi = np.moveaxis(interpn(self.CD.xy, self.CD.RhoPsi, a2_vals), 0, 1)
             ixgrid = mask.nonzero()
             rho_.values[ixgrid] = rho
-            rho_.values[np.isfinite(rho_.values)] = np.mod(2 * (180 - rho_.values[np.isfinite(rho_.values)] + float(self.rotation[0].get() + 90)), 360) / 2 
+            rho_.values[np.isfinite(rho_.values)] = np.mod(2 * (rho_.values[np.isfinite(rho_.values)] + float(self.rotation[0].get())), 360) / 2 
             psi_ = Variable(datastack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.values = np.nan * np.ones(a0.shape)
@@ -1790,7 +1811,7 @@ class Polarimetry(CTk.CTk):
         elif self.method.get() in ["CARS", "SRS", "2PF"]:
             mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
-            rho_.values[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
+            rho_.values[mask] = np.mod(2 * (rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
             s2_ = Variable(datastack)
             s2_.name, s2_.latex = "S2", "$S_2$"
             s2_.values[mask] = 1.5 * np.abs(a2[mask])
@@ -1804,7 +1825,7 @@ class Polarimetry(CTk.CTk):
         elif self.method.get() == "SHG":
             mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
-            rho_.values[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
+            rho_.values[mask] = np.mod(2 * (rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
             s_shg_ = Variable(datastack)
             s_shg_.name, s_shg_.latex = "S_SHG", "$S_\mathrm{SHG}$"
             s_shg_.values[mask] = -0.5 * (np.abs(a4[mask]) - np.abs(a2[mask])) / (np.abs(a4[mask]) + np.abs(a2[mask])) - 0.65
@@ -1813,7 +1834,7 @@ class Polarimetry(CTk.CTk):
         elif self.method.get() == "4POLAR 3D":
             mask *= (lam < 1/3) * (lam > 0) * (pzz > lam)
             rho_.values[mask] = 0.5 * np.rad2deg(np.atan2(puv[mask], pxy[mask]))
-            rho_.values[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
+            rho_.values[mask] = np.mod(2 * (rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
             psi_ = Variable(datastack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.values[mask] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
@@ -1828,7 +1849,7 @@ class Polarimetry(CTk.CTk):
         elif self.method.get() == "4POLAR 2D":
             mask *= (lam < 1/3) * (lam > 0)
             rho_.values[mask] = 0.5 * np.rad2deg(np.atan2(puv[mask], pxy[mask]))
-            rho_.values[mask] = np.mod(2 * (180 - rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
+            rho_.values[mask] = np.mod(2 * (rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
             psi_ = Variable(datastack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.values[mask] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
@@ -1836,8 +1857,7 @@ class Polarimetry(CTk.CTk):
             datastack.vars = [rho_, psi_]
         a0[np.logical_not(mask)] = np.nan
         X, Y = np.meshgrid(np.arange(datastack.width), np.arange(datastack.height))
-        X = X.astype(np.float64)
-        Y = Y.astype(np.float64)
+        X, Y = X.astype(np.float64), Y.astype(np.float64)
         X[np.logical_not(mask)] = np.nan
         Y[np.logical_not(mask)] = np.nan
         X_, Y_, Int_ = Variable(datastack), Variable(datastack), Variable(datastack)
@@ -1903,7 +1923,7 @@ class ROI:
 
 class Calibration():
 
-    dict_1pf = {"488 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 85), "561 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 30), "640 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 35), "488 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0", 80), "561 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0", 80), "640 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0", 80), "488 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0", 80), "561 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0", 80), "640 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0", 80), "488 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0", 80), "561 nm (before 13/12/2019)": ("Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0", 80), "640 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0", 80), "no distortions (before 12/04/2022)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 80), "other": (None, 0)}
+    dict_1pf = {"no distortions": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 0), "488 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 85), "561 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 30), "640 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 35), "488 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0", 80), "561 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0", 80), "640 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0", 80), "488 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0", 80), "561 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0", 80), "640 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0", 80), "488 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0", 80), "561 nm (before 13/12/2019)": ("Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0", 80), "640 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0", 80), "other": (None, 0)}
 
     folder_1pf = os.path.join(os.path.dirname(os.path.realpath(__file__)), "diskcones")
 
@@ -1914,7 +1934,7 @@ class Calibration():
     def __init__(self, method, label=None):
         if label is None:
             if method == "1PF":
-                label = "488 nm (no distortions)"
+                label = "no distortions"
             elif method.startswith("4POLAR"):
                 label = "Calib_20221102"
         if method == "1PF":
