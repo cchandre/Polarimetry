@@ -1480,7 +1480,8 @@ class Polarimetry(CTk.CTk):
                     fig_.canvas.manager.set_window_title("Individual Fit : " + self.datastack.name)
                     signal = self.datastack.field[y, x, :]
                     signal_fit = self.datastack.field_fit[y, x, :]
-                    alpha = np.linspace(0, 180, self.datastack.nangle, endpoint=False)
+                    #alpha = np.linspace(0, 180, self.datastack.nangle, endpoint=False)
+                    indx = np.arange(1, self.stack.nangle + 1)
                     rho = np.mod(2 * (self.datastack.vars[0].values[y, x] + int(self.rotation[1].get())), 360) / 2
                     title = self.datastack.vars[0].latex + " = " + "{:.2f}".format(rho) + ", "
                     for var in self.datastack.vars:
@@ -1489,13 +1490,15 @@ class Polarimetry(CTk.CTk):
                     titles = [title[:-2]]
                     titles += ["$\chi_2$ = " + "{:.2f}".format(self.datastack.chi2[y, x]) + ",   $I$ =  " + self.datastack.display.format(self.datastack.itot[y, x])]
                     ylabels = ["counts", "residuals"]
-                    axs[0].plot(alpha, signal, "*", alpha, signal_fit, "r-", lw=2)
-                    axs[1].plot(alpha, signal - signal_fit, "+", alpha, 2 * np.sqrt(signal_fit), "r-", alpha, -2 * np.sqrt(signal_fit), "r-", lw=2)
+                    axs[0].plot(indx, signal, "*", indx, signal_fit, "r-", lw=2)
+                    axs[1].plot(indx, signal - signal_fit, "+", indx, 2 * np.sqrt(signal_fit), "r-", indx, -2 * np.sqrt(signal_fit), "r-", lw=2)
                     for title, ylabel, ax_ in zip(titles, ylabels, axs):
-                        ax_.set_xlabel(r"$\alpha$", fontsize=20)
+                        ax_.set_xlabel("Slice", fontsize=20)
                         ax_.set_ylabel(ylabel, fontsize=20)
                         ax_.set_title(title, fontsize=14)
-                        ax_.set_xlim((0, 180 - 180/self.datastack.nangle))
+                        ax_.set_xlim((1, self.datastack.nangle))
+                        ax_.set_xticks(indx[::2], minor=True)
+                        #ax_.set_xlim((0, 180 - 180/self.datastack.nangle))
                     plt.subplots_adjust(hspace=0.6)
                     plt.rc("axes", unicode_minus=False)
             canvas.mpl_disconnect(self.__cid1)
@@ -1735,8 +1738,8 @@ class Polarimetry(CTk.CTk):
             for _ in range(self.stack.nangle):
                 field[:, :, _] = convolve2d(field[:, :, _], bin, mode="same") / (bin_shape[0] * bin_shape[1])
         if self.method.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
-            angle3d = (np.linspace(0, 180, self.stack.nangle, endpoint=False) + 180 - self.offset_angle.get()).reshape(1, 1, -1)
-            e2 = np.exp(2j * np.deg2rad(angle3d))
+            alpha = (np.linspace(0, 180, self.stack.nangle, endpoint=False) + 180 - self.offset_angle.get()).reshape(1, 1, -1)
+            e2 = np.exp(2j * np.deg2rad(alpha))
             a0 = np.mean(field, axis=2)
             a0[a0 == 0] = np.nan
             a2 = 2 * np.mean(field * e2, axis=2)
