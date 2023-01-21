@@ -132,7 +132,7 @@ class Polarimetry(CTk.CTk):
         button.configure(fg_color=Polarimetry.red[0], hover_color=Polarimetry.red[1])
         button.pack(padx=20, pady=20)
 
-## RIGHT FRAME: FLUO
+## RIGHT FRAME: INTENSITY
         bottomframe = CTk.CTkFrame(master=self.tabview.tab("Intensity"), fg_color="transparent", height=40, width=Polarimetry.axes_size[1])
         bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=20)
         self.fluo_frame = CTk.CTkFrame(master=self.tabview.tab("Intensity"), fg_color="transparent", height=Polarimetry.axes_size[0], width=Polarimetry.axes_size[1])
@@ -158,7 +158,8 @@ class Polarimetry(CTk.CTk):
         button = self.button(banner, image=self.icons["square"], command=self.compute_angle)
         #ToolTip.createToolTip(button, " Left click and hold to trace a line\n segment and determine its angle")
         button.pack(padx=20, pady=20)
-        self.filename_label = CTk.CTkLabel(master=bottomframe, text=None, width=400)
+        self.filename_label = CTk.CTkTextbox(master=bottomframe, width=400, height=50)
+        self.filename_label.configure(state="disabled")
         self.filename_label.pack(side=tk.LEFT)
         sliderframe = CTk.CTkFrame(master=bottomframe, fg_color="transparent")
         sliderframe.pack(side=tk.RIGHT, padx=100)
@@ -226,7 +227,7 @@ class Polarimetry(CTk.CTk):
 
 ## RIGHT FRAME: OPTIONS
         show_save = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
-        show_save.grid(row=0, column=0, padx=(20, 20), pady=20, sticky="nw")
+        show_save.grid(row=0, column=0, padx=(20, 20), pady=10, sticky="nw")
         CTk.CTkLabel(master=show_save, text="\nFigures\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=3, padx=20, pady=0)
         CTk.CTkLabel(master=show_save, text="Show", anchor="w").grid(row=1, column=1, pady=(0, 10))
         CTk.CTkLabel(master=show_save, text="Save", anchor="w").grid(row=1, column=2, pady=(0, 10))
@@ -240,15 +241,15 @@ class Polarimetry(CTk.CTk):
             self.save_table[it].grid(row=it+2, column=2, pady=0, padx=(20, 20))
         CTk.CTkLabel(master=show_save, text=" ").grid(row=len(labels)+2, column=0, padx=0, pady=0)
         banner = CTk.CTkFrame(master=self.tabview.tab("Options"))
-        banner.grid(row=1, column=0)
+        banner.grid(row=3, column=1, pady=0)
         button = self.button(banner, image=self.icons["delete_forever"], command=self.initialize_tables)
         #ToolTip.createToolTip(button, "Reinitialize the tables Show/Save and Variable")
-        button.grid(row=0, column=0, padx=(0, 100), sticky="nw")
+        button.grid(row=0, column=0, padx=(0, 100), pady=0, sticky="nw")
         self.per_roi = self.checkbox(banner, text="per ROI")
         ToolTip.createToolTip(self.per_roi, " Show and save data/figures separately for each region of interest")
         self.per_roi.grid(row=0, column=1, sticky="nw")
         postprocessing = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
-        postprocessing.grid(row=2, column=0, padx=20, pady=20)
+        postprocessing.grid(row=2, column=0, padx=20, pady=10)
         CTk.CTkLabel(master=postprocessing, text="\nPost-processing\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=2, padx=20, pady=0)
         self.add_axes_checkbox = self.checkbox(postprocessing, text="\n Add axes on figures\n", command=self.add_axes_on_all_figures)
         self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=20, pady=(0, 20))
@@ -257,7 +258,7 @@ class Polarimetry(CTk.CTk):
         ToolTip.createToolTip(button, "Zoom into the region of interest\nthen click using the crosshair")
         button.grid(row=3, column=0, columnspan=2, padx=20, pady=20)
         pixels_per_sticks = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
-        pixels_per_sticks.grid(row=3, column=0, padx=20, pady=20)
+        pixels_per_sticks.grid(row=3, column=0, padx=20, pady=10)
         CTk.CTkLabel(master=pixels_per_sticks, text="\n Pixels separating sticks\n", font=CTk.CTkFont(size=16), width=230).grid(row=4, column=0, columnspan=2, padx=20, pady=(0, 0))
         labels = ["horizontally", "vertically"]
         self.pixelsperstick = [tk.StringVar(), tk.StringVar()]
@@ -269,9 +270,9 @@ class Polarimetry(CTk.CTk):
             label.grid(row=it+5, column=1, padx=(0, 20), pady=(0, 20))
             ToolTip.createToolTip(label, "Controls the density of sticks to be plotted")
         self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab("Options"), width=300)
-        self.variable_table_frame.grid(row=0, column=1, padx=(40, 20), pady=20, sticky="nw")
+        self.variable_table_frame.grid(row=0, column=1, padx=(40, 20), pady=10, sticky="nw")
         save_ext = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
-        save_ext.grid(row=2, column=1, padx=(40, 20), pady=20, sticky="nw")
+        save_ext.grid(row=2, column=1, padx=(40, 20), pady=10, sticky="nw")
         CTk.CTkLabel(master=save_ext, text="\nSave output\n", font=CTk.CTkFont(size=16), width=260).grid(row=0, column=0, columnspan=2, padx=(0, 20), pady=(0, 0))
         labels = ["data (.pbz2)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "movie (.gif)"]
         self.extension_table = [self.checkbox(save_ext) for it in range(len(labels))]
@@ -282,13 +283,14 @@ class Polarimetry(CTk.CTk):
         CTk.CTkLabel(master=save_ext, text=" ").grid(row=len(labels)+1, column=0)
 
 ## RIGHT FRAME: ADV
-        adv_elts = ["Dark", "Binning", "Polarization setup", "Rotation", "Disk cone / Calibration data", "Remove background"]
+        adv_elts = ["Dark", "Binning", "Polarization", "Rotation", "Disk cone / Calibration data", "Remove background"]
         adv_loc = [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]
         adv = {}
         for loc, elt in zip(adv_loc, adv_elts):
-            adv.update({elt: CTk.CTkFrame(master=self.tabview.tab("Advanced"), fg_color=self.left_frame.cget("fg_color"))})
-            adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=(20, 10), sticky="nw")
-            CTk.CTkLabel(master=adv[elt], text=elt + "\n", width=250, font=CTk.CTkFont(size=16)).grid(row=0, column=0, padx=20, pady=(10,0))
+            adv.update({elt: CTk.CTkFrame(
+            master=self.tabview.tab("Advanced"), fg_color=self.left_frame.cget("fg_color"))})
+            adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=(10, 10), sticky="nw")
+            CTk.CTkLabel(master=adv[elt], text=elt + "\n", width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, padx=20, pady=(10,0))
         self.dark_switch = CTk.CTkSwitch(master=adv["Dark"], text="", command=self.dark_switch_callback, onvalue="on", offvalue="off", width=50)
         self.dark_switch.grid(row=0, column=0, padx=20, pady=10, sticky="ne")
         self.calculated_dark_label = CTk.CTkLabel(master=adv["Dark"], text="Calculated dark value = 0")
@@ -299,25 +301,25 @@ class Polarimetry(CTk.CTk):
         self.dark_entry.bind("<Return>", command=self.itot_callback)
         self.dark_entry.configure(state="disabled")
         CTk.CTkLabel(master=adv["Dark"], text=" ").grid(row=3, column=0)
-        self.offset_angle_switch = CTk.CTkSwitch(master=adv["Polarization setup"], text="", command=self.offset_angle_switch_callback, onvalue="on", offvalue="off", width=50)
+        self.offset_angle_switch = CTk.CTkSwitch(master=adv["Polarization"], text="", command=self.offset_angle_switch_callback, onvalue="on", offvalue="off", width=50)
         self.offset_angle_switch.grid(row=0, column=0, padx=20, pady=10, sticky="ne")
         self.offset_angle = tk.IntVar()
-        self.offset_angle_entry = self.entry(adv["Polarization setup"], text="\nOffset angle (deg)\n", textvariable=self.offset_angle, row=1)
+        self.offset_angle_entry = self.entry(adv["Polarization"], text="\nOffset angle (deg)\n", textvariable=self.offset_angle, row=1)
         self.offset_angle_entry.configure(state="disabled")
-        CTk.CTkLabel(master=adv["Polarization setup"], text=" ").grid(row=2, column=0)
+        CTk.CTkLabel(master=adv["Polarization"], text=" ").grid(row=2, column=0)
         self.polar_dir = tk.StringVar()
         self.polar_dir.set("clockwise")
-        CTk.CTkOptionMenu(master=adv["Polarization setup"], values=["clockwise", "counterclockwise"], width=Polarimetry.button_size[0], height=Polarimetry.button_size[1], dynamic_resizing=False, variable=self.polar_dir).grid(row=3, column=0, pady=(0, 20))
+        CTk.CTkOptionMenu(master=adv["Polarization"], values=["clockwise", "counterclockwise"], width=Polarimetry.button_size[0], height=Polarimetry.button_size[1], dynamic_resizing=False, variable=self.polar_dir).grid(row=3, column=0, pady=(0, 10))
         self.calib_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=Polarimetry.button_size[0], height=Polarimetry.button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback)
-        self.calib_dropdown.grid(row=1, column=0, pady=20)
+        self.calib_dropdown.grid(row=1, column=0, pady=10)
         ToolTip.createToolTip(self.calib_dropdown, " 1PF: Select disk cone depending on wavelength and acquisition date\n 4POLAR: Select .mat file containing the calibration data")
         button = self.button(adv["Disk cone / Calibration data"], text="Display", image=self.icons["photo"], command=self.diskcone_display)
-        button.grid(row=2, column=0, pady=20)
+        button.grid(row=2, column=0, pady=10)
         ToolTip.createToolTip(button, "Display the selected disk cone (for 1PF)")
         self.calib_textbox = CTk.CTkTextbox(master=adv["Disk cone / Calibration data"], width=250, height=50, state="disabled")
-        self.calib_textbox.grid(row=3, column=0, pady=20)
+        self.calib_textbox.grid(row=3, column=0, pady=10)
         self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=Polarimetry.button_size[0], height=Polarimetry.button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled")
-        self.polar_dropdown.grid(row=4, column=0, pady=20)
+        self.polar_dropdown.grid(row=4, column=0, pady=10)
         ToolTip.createToolTip(self.polar_dropdown, "4POLAR: Select repartition of polarizations (0,45,90,135) among quadrants clockwise\n Upper Left (UL), Upper Right (UR), Lower Right (LR), Lower Left (LL)")
         labels = ["Bin width", "Bin height"]
         self.bin = [tk.IntVar(), tk.IntVar()]
@@ -470,7 +472,7 @@ class Polarimetry(CTk.CTk):
         banner.grid(row=row, column=column, sticky="e")
         CTk.CTkLabel(master=banner, text=text).grid(row=0, column=0, padx=(20, 10))
         entry = CTk.CTkEntry(master=banner, placeholder_text=text_box, textvariable=textvariable, width=50)
-        entry.grid(row=0, column=1, padx=(10, 20), pady=5)
+        entry.grid(row=0, column=1, padx=(10, 30), pady=5)
         return entry
 
     def double_entry(self, master, text=None, variables=(None, None), row=0, column=0, state="disabled"):
@@ -679,7 +681,10 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_axis.clear()
                 self.thrsh_axis.set_axis_off()
                 self.thrsh_canvas.draw()
-                self.filename_label.configure(text=self.datastack.name)
+                self.filename_label.configure(state="normal")
+                self.filename_label.delete("0.0", "end")
+                self.filename_label.insert("0.0", self.datastack.name)
+                self.filename_label.configure(state="disabled")
                 self.represent_fluo(update=False)
             window.withdraw()
         if hasattr(self, "stack"):
@@ -1000,7 +1005,10 @@ class Polarimetry(CTk.CTk):
         npix = 5
         filename = fd.askopenfilename(title="Select a beads file", initialdir="/", filetypes=[("TIFF files", "*.tiff"), ("TIF files", "*.tif")])
         beadstack = self.define_stack(filename)
-        self.filename_label.configure(text="")
+        self.filename_label.configure(state="normal")
+        self.filename_label.delete("0.0", "end")
+        self.filename_label.insert("0.0", "")
+        self.filename_label.configure(state="disabled")
         dark = self.compute_dark(beadstack, display=False)
         itot = np.sum((beadstack.values - dark) * (beadstack.values >= dark), axis=0)
         whitelight = cv2.imread(os.path.join(beadstack.folder, "Whitelight.tif"), cv2.IMREAD_GRAYSCALE)
@@ -1118,7 +1126,10 @@ class Polarimetry(CTk.CTk):
             self.stack_slider.configure(to=self.stack.nangle, number_of_steps=self.stack.nangle, state="normal")
         else:
             self.stack_slider.configure(state="disabled")
-        self.filename_label.configure(text=self.stack.name)
+        self.filename_label.configure(state="normal")
+        self.filename_label.delete("0.0", "end")
+        self.filename_label.insert("0.0", self.stack.name)
+        self.filename_label.configure(state="disabled")
         self.tabview.set("Intensity")
         self.compute_itot(self.stack)
         self.ilow_slider.configure(from_=np.amin(self.stack.itot), to=np.amax(self.stack.itot))
@@ -2065,6 +2076,15 @@ class ToolTip:
         self.tipwindow = None
         if tw:
             tw.destroy()
+
+class ROIManager:
+    def __init__(self, master, rois, labels):
+        for it, label in enumerate(labels):
+            tk.Label(master, text=label, fg="black", width=20, font=("Arial", 16, "bold")).grid(row=0, column=it)
+        for it, roi in enumerate(rois):
+            for jt, label in enumerate(labels):
+                self.entry = tk.Entry(master, text=roi[label], width=20, fg="blue", font=("Arial", 16))
+                self.grid(row=it+1, column=jt)
 
 if __name__ == "__main__":
     app = Polarimetry()
