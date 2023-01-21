@@ -106,7 +106,7 @@ class Polarimetry(CTk.CTk):
 ## DEFINE TABS
         self.tabview = CTk.CTkTabview(master=self.right_frame, width=Polarimetry.tab_width, height=Polarimetry.tab_height, segmented_button_selected_color=Polarimetry.orange[0], segmented_button_unselected_color=Polarimetry.gray[1], segmented_button_selected_hover_color=Polarimetry.orange[1], text_color="black", segmented_button_fg_color=Polarimetry.gray[0], fg_color=Polarimetry.gray[1])
         self.tabview.pack(fill=tk.BOTH, expand=True)
-        list_tabs = ["Fluorescence", "Thresholding/Mask", "Options", "Advanced", "About"]
+        list_tabs = ["Intensity", "Thresholding/Mask", "Options", "Advanced", "About"]
         for tab in list_tabs:
             self.tabview.add(tab)
 
@@ -133,9 +133,9 @@ class Polarimetry(CTk.CTk):
         button.pack(padx=20, pady=20)
 
 ## RIGHT FRAME: FLUO
-        bottomframe = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", height=40, width=Polarimetry.axes_size[1])
+        bottomframe = CTk.CTkFrame(master=self.tabview.tab("Intensity"), fg_color="transparent", height=40, width=Polarimetry.axes_size[1])
         bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=20)
-        self.fluo_frame = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", height=Polarimetry.axes_size[0], width=Polarimetry.axes_size[1])
+        self.fluo_frame = CTk.CTkFrame(master=self.tabview.tab("Intensity"), fg_color="transparent", height=Polarimetry.axes_size[0], width=Polarimetry.axes_size[1])
         self.fluo_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.fluo_fig = Figure(figsize=(self.fluo_frame.winfo_width() / self.dpi, self.fluo_frame.winfo_height() / self.dpi), facecolor=Polarimetry.gray[1])
         self.fluo_axis = self.fluo_fig.add_axes([0, 0, 1, 1])
@@ -148,17 +148,17 @@ class Polarimetry(CTk.CTk):
         for button in self.fluo_toolbar.winfo_children():
             button.config(background=Polarimetry.gray[1])
         self.fluo_toolbar.update()
-        banner = CTk.CTkFrame(master=self.tabview.tab("Fluorescence"), fg_color="transparent", height=Polarimetry.axes_size[0], width=40)
+        banner = CTk.CTkFrame(master=self.tabview.tab("Intensity"), fg_color="transparent", height=Polarimetry.axes_size[0], width=40)
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         self.button(banner, image=self.icons["contrast"], command=self.contrast_fluo_button_callback).pack(side=tk.TOP, padx=20, pady=20)
         self.contrast_fluo_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_fluo_slider_callback)
         self.contrast_fluo_slider.set(1)
-        ToolTip.createToolTip(self.contrast_fluo_slider, " Adjust contrast\n The chosen contrast will be the one used\n for the fluorescence images in figures")
+        ToolTip.createToolTip(self.contrast_fluo_slider, " Adjust contrast\n The chosen contrast will be the one used\n for the intensity images in figures")
         self.contrast_fluo_slider.pack(padx=20, pady=20)
         button = self.button(banner, image=self.icons["square"], command=self.compute_angle)
         #ToolTip.createToolTip(button, " Left click and hold to trace a line\n segment and determine its angle")
         button.pack(padx=20, pady=20)
-        self.filename_label = CTk.CTkLabel(master=bottomframe, text=None)
+        self.filename_label = CTk.CTkLabel(master=bottomframe, text=None, width=400)
         self.filename_label.pack(side=tk.LEFT)
         sliderframe = CTk.CTkFrame(master=bottomframe, fg_color="transparent")
         sliderframe.pack(side=tk.RIGHT, padx=100)
@@ -166,7 +166,7 @@ class Polarimetry(CTk.CTk):
         self.stack_slider.set(0)
         self.stack_slider.grid(row=0, column=0, columnspan=2)
         self.stack_slider_label = CTk.CTkLabel(master=sliderframe, text="T")
-        ToolTip.createToolTip(self.stack_slider, "Slider at T for the total intensity fluorescence, otherwise scroll through the images of the stack")
+        ToolTip.createToolTip(self.stack_slider, "Slider at T for the total intensity, otherwise scroll through the images of the stack")
         self.stack_slider_label.grid(row=1, column=0, sticky="w")
         CTk.CTkLabel(master=sliderframe, fg_color="transparent", text="Stack").grid(row=1, column=1, sticky="e")
 
@@ -230,11 +230,12 @@ class Polarimetry(CTk.CTk):
         CTk.CTkLabel(master=show_save, text="\nFigures\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=3, padx=20, pady=0)
         CTk.CTkLabel(master=show_save, text="Show", anchor="w").grid(row=1, column=1, pady=(0, 10))
         CTk.CTkLabel(master=show_save, text="Save", anchor="w").grid(row=1, column=2, pady=(0, 10))
-        labels = ["Composite", "Sticks", "Histogram", "Fluorescence"]
+        labels = ["Composite", "Sticks", "Histogram", "Intensity"]
         self.show_table = [self.checkbox(show_save) for it in range(len(labels))]
         self.save_table = [self.checkbox(show_save) for it in range(len(labels))]
         for it in range(len(labels)):
             CTk.CTkLabel(master=show_save, text=labels[it], anchor="w", width=100).grid(row=it+2, column=0, padx=(20, 0))
+            self.save_table[it].configure(command=self.click_save_output)
             self.show_table[it].grid(row=it+2, column=1, pady=0, padx=20, sticky="ew")
             self.save_table[it].grid(row=it+2, column=2, pady=0, padx=(20, 20))
         CTk.CTkLabel(master=show_save, text=" ").grid(row=len(labels)+2, column=0, padx=0, pady=0)
@@ -274,6 +275,7 @@ class Polarimetry(CTk.CTk):
         CTk.CTkLabel(master=save_ext, text="\nSave output\n", font=CTk.CTkFont(size=16), width=260).grid(row=0, column=0, columnspan=2, padx=(0, 20), pady=(0, 0))
         labels = ["data (.pbz2)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "movie (.gif)"]
         self.extension_table = [self.checkbox(save_ext) for it in range(len(labels))]
+        self.extension_table[1].configure(state="disabled")
         for it in range(len(labels)):
             CTk.CTkLabel(master=save_ext, text=labels[it], anchor="w", width=120).grid(row=it+1, column=0, padx=(20, 0))
             self.extension_table[it].grid(row=it+1, column=1, pady=0, padx=(20,0))
@@ -293,7 +295,7 @@ class Polarimetry(CTk.CTk):
         self.calculated_dark_label.grid(row=1, column=0)
         self.dark = tk.StringVar()
         self.dark_entry = self.entry(adv["Dark"], text="Used dark value", textvariable=self.dark, row=2, column=0)
-        ToolTip.createToolTip(self.dark_entry, "For 1PF, use a dark value greater than 480")
+        ToolTip.createToolTip(self.dark_entry, "For 1PF, use a dark value greater than 480\nRaw images correspond to a dark value 0")
         self.dark_entry.bind("<Return>", command=self.itot_callback)
         self.dark_entry.configure(state="disabled")
         CTk.CTkLabel(master=adv["Dark"], text=" ").grid(row=3, column=0)
@@ -342,7 +344,7 @@ class Polarimetry(CTk.CTk):
         entries[3].configure(state="disabled")
         button = self.button(adv["Remove background"], text="Click background", image=self.icons["exposure"], command=lambda:self.click_callback(self.fluo_axis, self.fluo_canvas, "click background"))
         button.grid(row=4, column=0)
-        ToolTip.createToolTip(button, "Click and select a point on the fluorescence image")
+        ToolTip.createToolTip(button, "Click and select a point on the intensity image")
 
 ## RIGHT FRAME: ABOUT
         banner = CTk.CTkFrame(master=self.tabview.tab("About"))
@@ -356,7 +358,7 @@ class Polarimetry(CTk.CTk):
         message = f"Version: {Polarimetry.__version__} ({Polarimetry.__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV, Matplotlib, openpyxl \n\n\n  uses Material Design icons by Google"
         about_textbox.insert("0.0", message)
         about_textbox.configure(state="disabled")
-        self.tabview.set("Fluorescence")
+        self.tabview.set("Intensity")
         self.startup()
 
     def startup(self):
@@ -426,6 +428,13 @@ class Polarimetry(CTk.CTk):
                 var.set(0)
         for ext in self.extension_table:
             ext.deselect()
+
+    def click_save_output(self):
+        vec = [val.get() for val in self.save_table]
+        if any(vec) == 1:
+            self.extension_table[1].select()
+        else:
+            self.extension_table[1].deselect()
 
     def button(self, master, text=None, image=None, command=None, width=None, height=None):
         if width == None:
@@ -513,7 +522,7 @@ class Polarimetry(CTk.CTk):
         if self.tabview.get() != "About":
             self.tabview.set("About")
         else:
-            self.tabview.set("Fluorescence")
+            self.tabview.set("Intensity")
 
     def edge_detection_callback(self):
         if self.edge_detection_switch.get() == "on":
@@ -703,7 +712,7 @@ class Polarimetry(CTk.CTk):
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
-            if ("Sticks" in fs) or ("Composite" in fs) or ("Fluorescence" in fs):
+            if ("Sticks" in fs) or ("Composite" in fs) or ("Intensity" in fs):
                 fig.axes[0].set_xlim((self.xlim[0].get(), self.xlim[1].get()))
                 fig.axes[0].set_ylim((self.ylim[1].get(), self.ylim[0].get()))
         window.withdraw()
@@ -843,7 +852,7 @@ class Polarimetry(CTk.CTk):
 
     def click_callback(self, ax, canvas, method):
         if method == "click background":
-            self.tabview.set("Fluorescence")
+            self.tabview.set("Intensity")
         if hasattr(self, "datastack"):
             xlim, ylim = ax.get_xlim(), ax.get_ylim()
             hlines = [plt.Line2D([(xlim[0] + xlim[1])/2, (xlim[0] + xlim[1])/2], ylim, lw=1, color="w"),
@@ -880,7 +889,7 @@ class Polarimetry(CTk.CTk):
 
     def compute_angle(self):
         if hasattr(self, "stack"):
-            self.tabview.set("Fluorescence")
+            self.tabview.set("Intensity")
             hroi = ROI()
             self.__cid1 = self.fluo_canvas.mpl_connect("motion_notify_event", lambda event: self.compute_angle_motion_notify_callback(event, hroi))
             self.__cid2 = self.fluo_canvas.mpl_connect("button_press_event", lambda event: self.compute_angle_button_press_callback(event, hroi))
@@ -1082,23 +1091,23 @@ class Polarimetry(CTk.CTk):
             self.method.set("1PF")
 
     def define_data(self, filename, data=True):
-        with Image.open(filename, mode="r") as dataset:
-            h, w = np.shape(dataset)
-            data_type = np.uint32 if dataset.mode == "I" else np.uint16
-            stack_vals = np.zeros((h, w, dataset.n_frames), dtype=data_type)
-            for _ in range(dataset.n_frames):
-                dataset.seek(_)
-                stack_vals[:, :, _] = np.array(dataset)
-            dict = {"values": stack_vals, "height": h, "width": w, "nangle": dataset.n_frames, "display": "{:.2f}" if dataset.mode == "I" else "{:.0f}"}
-            stack = Stack(filename)
-            for key in dict:
-                setattr(stack, key, dict[key])
-            self.compute_dark(stack)
-            if data:
-                datastack = DataStack(stack)
-                datastack.method = self.method.get()
-                return stack, datastack
-            return stack
+        stack_vals = cv2.imreadmulti(filename, [], cv2.IMREAD_ANYDEPTH)[1]
+        nangle, h, w = np.asarray(stack_vals).shape
+        a = np.moveaxis(np.asarray(stack_vals), 0, -1)
+        if not np.issubdtype(a.dtype, np.integer):
+            stack_vals = (65535 * (a - np.amin(a)) / np.ptp(a)).astype(np.uint16)
+        else:
+            stack_vals = a
+        dict = {"values": stack_vals, "height": h, "width": w, "nangle": nangle, "display": "{:.0f}"}
+        stack = Stack(filename)
+        for key in dict:
+            setattr(stack, key, dict[key])
+        self.compute_dark(stack)
+        if data:
+            datastack = DataStack(stack)
+            datastack.method = self.method.get()
+            return stack, datastack
+        return stack
 
     def open_file(self, filename):
         self.stack, self.datastack = self.define_data(filename)
@@ -1109,7 +1118,7 @@ class Polarimetry(CTk.CTk):
         else:
             self.stack_slider.configure(state="disabled")
         self.filename_label.configure(text=self.stack.name)
-        self.tabview.set("Fluorescence")
+        self.tabview.set("Intensity")
         self.compute_itot(self.stack)
         self.ilow_slider.configure(from_=np.amin(self.stack.itot), to=np.amax(self.stack.itot))
         self.ilow_slider.set(np.amin(self.stack.itot))
@@ -1217,7 +1226,7 @@ class Polarimetry(CTk.CTk):
             self.analysis_button.configure(image=self.icons["play"])
         elif hasattr(self, "stack"):
             self.analysis_button.configure(image=self.icons["pause"])
-            self.tabview.set("Fluorescence")
+            self.tabview.set("Intensity")
             if self.option.get().endswith("(manual)"):
                 self.analyze_stack(self.datastack)
                 if self.filelist:
@@ -1398,7 +1407,7 @@ class Polarimetry(CTk.CTk):
             data_vals = var.values[mask * np.isfinite(var.values)]
             norm = mpl.colors.Normalize(min, max)
             cmap = mpl.colormaps[var.colormap]
-            bins = np.arange(min, max, 3)
+            bins = np.linspace(min, max, 60)
             if var.type_histo == "normal":
                 ax = plt.gca()
                 n, bins, patches = ax.hist(data_vals, bins=bins, linewidth=0.5)
@@ -1578,7 +1587,7 @@ class Polarimetry(CTk.CTk):
     def plot_fluo(self, datastack):
         if self.show_table[3].get() or self.save_table[3].get():
             fig, ax = plt.subplots(figsize=self.figsize)
-            fig.canvas.manager.set_window_title("Fluorescence: " + datastack.name)
+            fig.canvas.manager.set_window_title("Intensity: " + datastack.name)
             ax.axis(self.add_axes_checkbox.get())
             self.add_fluo(datastack.itot, ax)
             self.add_patches(datastack, ax, fig.canvas)
@@ -1682,6 +1691,8 @@ class Polarimetry(CTk.CTk):
         if self.method.get() in ["1PF", "4POLAR 2D", "4POLAR 3D"]:
             title += ["Calibration"]
             results += [self.CD.name]
+        title += ["dark", "offset", "polarization", "bin width", "bin height"]
+        results += [float(self.dark.get()), self.offset_angle.get(), self.polar_dir.get(), self.bin[0].get(), self.bin[1].get()]
         return results, title
 
     def save_mat(self, datastack, roi_map, roi=[]):
@@ -1769,7 +1780,7 @@ class Polarimetry(CTk.CTk):
             if self.method.get() in ["CARS", "SRS", "SHG", "2PF"]:
                 e4 = e2**2
                 a4 = 2 * np.mean(field * e4, axis=2)
-                field_fit += (a4 * e4.conj()).real
+                field_fit += (a4.reshape(a0.shape + (1,)) * e4.conj()).real
                 a4 = np.divide(a4, a0, where=np.all((a0!=0, np.isfinite(a0)), axis=0))
             chi2 = np.mean(np.divide((field - field_fit)**2, field_fit, where=np.all((field_fit!=0, np.isfinite(field_fit)), axis=0)), axis=2)
         elif self.method.get() == "4POLAR 3D":
@@ -1811,21 +1822,21 @@ class Polarimetry(CTk.CTk):
         elif self.method.get() in ["CARS", "SRS", "2PF"]:
             mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
-            rho_.values[mask] = np.mod(2 * (rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
+            rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
             s2_ = Variable(datastack)
             s2_.name, s2_.latex = "S2", "$S_2$"
             s2_.values[mask] = 1.5 * np.abs(a2[mask])
             s2_.display, s2_.min, s2_.max = self.get_variable(1)
             s2_.colormap = "jet"
-            s4_ = Variable(shape)
+            s4_ = Variable(datastack)
             s4_.name, s4_.latex = "S4", "$S_4$"
-            s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.value[mask])))
+            s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.values[mask])))
             s4_.colormap = "jet"
             datastack.vars = [rho_, s2_, s4_]
         elif self.method.get() == "SHG":
             mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
-            rho_.values[mask] = np.mod(2 * (rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
+            rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
             s_shg_ = Variable(datastack)
             s_shg_.name, s_shg_.latex = "S_SHG", "$S_\mathrm{SHG}$"
             s_shg_.values[mask] = -0.5 * (np.abs(a4[mask]) - np.abs(a2[mask])) / (np.abs(a4[mask]) + np.abs(a2[mask])) - 0.65
@@ -1834,13 +1845,13 @@ class Polarimetry(CTk.CTk):
         elif self.method.get() == "4POLAR 3D":
             mask *= (lam < 1/3) * (lam > 0) * (pzz > lam)
             rho_.values[mask] = 0.5 * np.rad2deg(np.atan2(puv[mask], pxy[mask]))
-            rho_.values[mask] = np.mod(2 * (rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
+            rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
             psi_ = Variable(datastack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.values[mask] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
             psi_.display, psi_.min, psi_.max = self.get_variable(1)
             psi_.colormap = "jet"
-            eta_ = Variable(shape)
+            eta_ = Variable(datastack)
             eta_.name, eta_.latex = "Eta", "$\eta$"
             eta_.values[mask] = np.rad2deg(np.acos(np.sqrt((pzz[mask] - lam[mask]) / (1 - 3 * lam[mask]))))
             eta_.type_histo = "polar2"
@@ -1849,7 +1860,7 @@ class Polarimetry(CTk.CTk):
         elif self.method.get() == "4POLAR 2D":
             mask *= (lam < 1/3) * (lam > 0)
             rho_.values[mask] = 0.5 * np.rad2deg(np.atan2(puv[mask], pxy[mask]))
-            rho_.values[mask] = np.mod(2 * (rho_.value[mask] + float(self.rotation[0].get())), 360) / 2
+            rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
             psi_ = Variable(datastack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.values[mask] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
