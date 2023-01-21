@@ -999,10 +999,10 @@ class Polarimetry(CTk.CTk):
         window.withdraw()
         npix = 5
         filename = fd.askopenfilename(title="Select a beads file", initialdir="/", filetypes=[("TIFF files", "*.tiff"), ("TIF files", "*.tif")])
-        beadstack = self.define_data(filename, data=False)
+        beadstack = self.define_stack(filename)
         self.filename_label.configure(text="")
         dark = self.compute_dark(beadstack, display=False)
-        itot = np.sum((beadstack.values - dark) * (beadstack.values >= dark), axis=2)
+        itot = np.sum((beadstack.values - dark) * (beadstack.values >= dark), axis=0)
         whitelight = cv2.imread(os.path.join(beadstack.folder, "Whitelight.tif"), cv2.IMREAD_GRAYSCALE)
         whitelight = cv2.threshold(whitelight, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
         contours = cv2.findContours(whitelight, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
@@ -1090,10 +1090,10 @@ class Polarimetry(CTk.CTk):
             self.registration = {}
             self.method.set("1PF")
 
-    def define_data(self, filename, data=True):
+    def define_stack(self, filename, data=True):
         stack_vals = cv2.imreadmulti(filename, [], cv2.IMREAD_ANYDEPTH)[1]
         nangle, h, w = np.asarray(stack_vals).shape
-        a = np.moveaxis(np.asarray(stack_vals), 0, -1)
+        a = np.asarray(stack_vals)
         if not np.issubdtype(a.dtype, np.integer):
             stack_vals = (65535 * (a - np.amin(a)) / np.ptp(a)).astype(np.uint16)
         else:
@@ -1103,14 +1103,15 @@ class Polarimetry(CTk.CTk):
         for key in dict:
             setattr(stack, key, dict[key])
         self.compute_dark(stack)
-        if data:
-            datastack = DataStack(stack)
-            datastack.method = self.method.get()
-            return stack, datastack
         return stack
 
+    def define_datastack(self, stack):
+        datastack = DataStack(stack)
+        datastack.method = self.method.get()
+        return datastack
+
     def open_file(self, filename):
-        self.stack, self.datastack = self.define_data(filename)
+        self.stack = self.define_stack(filename)
         if self.method.get().startswith("4POLAR"):
             self.stack = self.slice4polar(self.stack)
         if self.stack.nangle >= 2:
@@ -1123,8 +1124,8 @@ class Polarimetry(CTk.CTk):
         self.ilow_slider.configure(from_=np.amin(self.stack.itot), to=np.amax(self.stack.itot))
         self.ilow_slider.set(np.amin(self.stack.itot))
         self.ilow.set(self.stack.display.format(np.amin(self.stack.itot)))
-        if hasattr(self, "datastack"):
-            self.datastack.itot = self.stack.itot
+        self.datastack = self.define_datastack(self.stack)
+        self.datastack.itot = self.stack.itot
         if self.option.get().startswith("Mask"):
             self.mask = self.get_mask(self.datastack)
         self.represent_fluo(update=False)
@@ -1307,7 +1308,7 @@ class Polarimetry(CTk.CTk):
                 field = itot
                 vmin, vmax = np.amin(itot), np.amax(itot)
             elif hasattr(self, "stack") and (self.stack_slider.get() <= self.stack.nangle):
-                field = self.stack.values[:, :, int(self.stack_slider.get())-1]
+                field = self.stack.values[int(self.stack_slider.get())-1]
                 vmin, vmax = np.amin(self.stack.values), np.amax(self.stack.values)
             field_im = self.adjust(field, self.contrast_fluo_slider.get(), vmin, vmax)
             if int(self.rotation[1].get()) != 0:
@@ -1358,7 +1359,7 @@ class Polarimetry(CTk.CTk):
 
     def compute_itot(self, stack):
         dark = float(self.dark.get())
-        sumcor = np.sum((stack.values - dark) * (stack.values >= dark), axis=2)
+        sumcor = np.sum((stack.values - dark) * (stack.values >= dark), axis=0)
         bin_shape = [self.bin[_].get() for _ in range(2)]
         if sum(bin_shape) != 2:
             stack.itot = convolve2d(sumcor, np.ones(bin_shape), mode="same") / (bin_shape[0] * bin_shape[1])
@@ -1369,7 +1370,8 @@ class Polarimetry(CTk.CTk):
         SizeCell = 20
         NCellHeight = int(np.floor(stack.height / SizeCell))
         NCellWidth = int(np.floor(stack.width / SizeCell))
-        cropIm = stack.values[:SizeCell * NCellHeight, :SizeCell * NCellWidth, :]
+        cropIm = stack.values[:, :SizeCell * NCellHeight, :SizeCell * NCellWidth]
+        cropIm = np.moveaxis(cropIm, 0, -1)
         ImCG = np.asarray(np.split(np.asarray(np.split(cropIm, NCellWidth, axis=1)), NCellHeight, axis=1))
         mImCG = np.zeros((NCellHeight, NCellWidth))
         for it in range(NCellHeight):
@@ -1443,7 +1445,7 @@ class Polarimetry(CTk.CTk):
                 ax.set_thetamax(max)
                 ax.set_title(datastack.name, fontsize=14)
                 text = var.latex + " = " + "{:.2f}".format(meandata) + " $\pm$ " "{:.2f}".format(std)
-                ax.annotate(text, xy=(0.3, 0.91), xycoords="axes fraction", fontsize=14)
+                ax.annotate(text, xy=(0.65, 0.95), xycoords="axes fraction", fontsize=14)
             suffix = "_perROI_" + str(roi) if roi else ""
             filename = datastack.filename + "_Histo" + var.name + suffix
             if self.save_table[2].get() and self.extension_table[1].get():
@@ -1658,7 +1660,7 @@ class Polarimetry(CTk.CTk):
             images = []
             vmin, vmax = np.amin(self.stack.values), np.amax(self.stack.values)
             for _ in range(self.stack.nangle):
-                field = self.stack.values[:, :, _]
+                field = self.stack.values[_]
                 im = self.adjust(field, self.contrast_fluo_slider.get(), vmin, vmax)
                 if int(self.rotation[1].get()) != 0:
                     im = rotate(im, int(self.rotation[1].get()), reshape=False, mode="constant", cval=vmin)
@@ -1734,18 +1736,17 @@ class Polarimetry(CTk.CTk):
             homographies = self.registration["homographies"]
             stack_ = Stack(stack.filename)
             stack_.display = stack.display
-            stack_.nangle = 4
-            stack_.height, stack_.width = 2 * radius, 2 * radius
-            stack_.values = np.zeros((stack_.height, stack_.width, 4))
+            stack_.nangle, stack_.height, stack_.width = 4, 2 * radius, 2 * radius
+            stack_.values = np.zeros((stack_.nangle, stack_.height, stack_.width))
             ims = []
-            for _ in range(4):
+            for _ in range(stack_.nangle):
                 xi, yi = centers[_, 0] - radius, centers[_, 1] - radius
                 xf, yf = centers[_, 0] + radius, centers[_, 1] + radius
-                ims += [stack.values[yi:yf, xi:xf, 0].reshape((stack_.height, stack_.width))]
+                ims += [stack.values[0, yi:yf, xi:xf].reshape((stack_.height, stack_.width))]
             ims_reg = [ims[0]]
             ims_reg += [cv2.warpPerspective(im, homography, (stack_.width, stack_.height)) for im, homography in zip(ims[1:], homographies)]
-            for it in range(4):
-                stack_.values[:, :, self.order[it]] = ims_reg[it]
+            for it in range(stack_.nangle):
+                stack_.values[self.order[it]] = ims_reg[it]
             return stack_
         else:
             window, buttons = self.showinfo(message=" No registration", image=self.icons["blur_circular"], button_labels=["OK"])
@@ -1762,43 +1763,43 @@ class Polarimetry(CTk.CTk):
         if self.method.get() == "CARS":
             field = np.sqrt(field)
         elif self.method.get().startswith("4POLAR"):
-            field[:, :, [1, 2]] = field[:, :, [2, 1]]
+            field[[1, 2]] = field[[2, 1]]
         bin_shape = np.asarray([self.bin[_].get() for _ in range(2)], dtype=np.uint8)
         if sum(bin_shape) != 2:
             bin = np.ones(bin_shape)
             for _ in range(self.stack.nangle):
-                field[:, :, _] = convolve2d(field[:, :, _], bin, mode="same") / (bin_shape[0] * bin_shape[1])
+                field[_] = convolve2d(field[_], bin, mode="same") / (bin_shape[0] * bin_shape[1])
         if self.method.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
             polardir = -1 if self.polar_dir.get() == "clockwise" else 1
-            alpha = polardir * np.linspace(0, 180, self.stack.nangle, endpoint=False).reshape(1, 1, -1) + self.offset_angle.get()
+            alpha = polardir * np.linspace(0, 180, self.stack.nangle, endpoint=False).reshape(-1, 1, 1) + self.offset_angle.get()
             e2 = np.exp(2j * np.deg2rad(alpha))
-            a0 = np.mean(field, axis=2)
+            a0 = np.mean(field, axis=0)
             a0[a0 == 0] = np.nan
-            a2 = 2 * np.mean(field * e2, axis=2)
-            field_fit = a0.reshape(a0.shape + (1,)) + (a2.reshape(a0.shape + (1,)) * e2.conj()).real
+            a2 = 2 * np.mean(field * e2, axis=0)
+            field_fit = a0[np.newaxis, :, :] + (a2[np.newaxis, :, :] * e2.conj()).real
             a2 = np.divide(a2, a0, where=np.all((a0!=0, np.isfinite(a0)), axis=0))
             if self.method.get() in ["CARS", "SRS", "SHG", "2PF"]:
                 e4 = e2**2
-                a4 = 2 * np.mean(field * e4, axis=2)
-                field_fit += (a4.reshape(a0.shape + (1,)) * e4.conj()).real
+                a4 = 2 * np.mean(field * e4, axis=0)
+                field_fit += (a4[np.newaxis, :, :] * e4.conj()).real
                 a4 = np.divide(a4, a0, where=np.all((a0!=0, np.isfinite(a0)), axis=0))
-            chi2 = np.mean(np.divide((field - field_fit)**2, field_fit, where=np.all((field_fit!=0, np.isfinite(field_fit)), axis=0)), axis=2)
+            chi2 = np.mean(np.divide((field - field_fit)**2, field_fit, where=np.all((field_fit!=0, np.isfinite(field_fit)), axis=0)), axis=0)
         elif self.method.get() == "4POLAR 3D":
-            mat = np.einsum("ij,mnj->imn", self.invKmat_3D, field)
-            s = mat[0, :, :] + mat[1, :, :] + mat[2, :, :]
-            pxy = ((mat[0, :, :] - mat[1, :, :]) / s).reshape(shape)
-            puv = (2 * mat[3, :, :] / s).reshape(shape)
-            pzz = (mat[2, :, :] / s).reshape(shape)
+            mat = np.einsum("ij,jmn->imn", self.CD.invKmat_3D, field)
+            s = mat[0] + mat[1] + mat[2]
+            pxy = np.divide(mat[0] - mat[1], s, where=np.all((s!=0, np.isfinite(s)), axis=0)).reshape(shape)
+            puv = np.divide(2 * mat[3], s, where=np.all((s!=0, np.isfinite(s)), axis=0)).reshape(shape)
+            pzz = np.divide(mat[2], s, where=np.all((s!=0, np.isfinite(s)), axis=0)).reshape(shape)
             lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
-            a0 = np.mean(field, axis=2) / 4
+            a0 = np.mean(field, axis=0) / 4
             a0[a0 == 0] = np.nan
         elif self.method.get() == "4POLAR 2D":
-            mat = np.einsum("ij,mnj->imn", self.invKmat_2D, field)
-            s = mat[0, :, :] + mat[1, :, :] + mat[2, :, :]
-            pxy = ((mat[0, :, :] - mat[1, :, :]) / s).reshape(shape)
-            puv = (2 * mat[3, :, :] / s).reshape(shape)
+            mat = np.einsum("ij,jmn->imn", self.CD.invKmat_2D, field)
+            s = mat[0] + mat[1] + mat[2]
+            pxy = np.divide(mat[0] - mat[1], s, where=np.all((s!=0, np.isfinite(s)), axis=0)).reshape(shape)
+            puv = np.divide(2 * mat[3], s, where=np.all((s!=0, np.isfinite(s)), axis=0)).reshape(shape)
             lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
-            a0 = np.mean(field, axis=2) / 4
+            a0 = np.mean(field, axis=0) / 4
             a0[a0 == 0] = np.nan
         rho_ = Variable(datastack)
         rho_.name, rho_.latex = "Rho", r"$\rho$"
@@ -1844,26 +1845,26 @@ class Polarimetry(CTk.CTk):
             datastack.vars = [rho_, s_shg_]
         elif self.method.get() == "4POLAR 3D":
             mask *= (lam < 1/3) * (lam > 0) * (pzz > lam)
-            rho_.values[mask] = 0.5 * np.rad2deg(np.atan2(puv[mask], pxy[mask]))
+            rho_.values[mask] = 0.5 * np.rad2deg(np.arctan2(puv[mask], pxy[mask]))
             rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
             psi_ = Variable(datastack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
-            psi_.values[mask] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
+            psi_.values[mask] = 2 * np.rad2deg(np.arccos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
             psi_.display, psi_.min, psi_.max = self.get_variable(1)
             psi_.colormap = "jet"
             eta_ = Variable(datastack)
             eta_.name, eta_.latex = "Eta", "$\eta$"
-            eta_.values[mask] = np.rad2deg(np.acos(np.sqrt((pzz[mask] - lam[mask]) / (1 - 3 * lam[mask]))))
+            eta_.values[mask] = np.rad2deg(np.arccos(np.sqrt((pzz[mask] - lam[mask]) / (1 - 3 * lam[mask]))))
             eta_.type_histo = "polar2"
-            eta_.colormap = "parula"
+            eta_.colormap = "plasma"
             datastack.vars = [rho_, psi_, eta_]
         elif self.method.get() == "4POLAR 2D":
             mask *= (lam < 1/3) * (lam > 0)
-            rho_.values[mask] = 0.5 * np.rad2deg(np.atan2(puv[mask], pxy[mask]))
+            rho_.values[mask] = 0.5 * np.rad2deg(np.arctan2(puv[mask], pxy[mask]))
             rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
             psi_ = Variable(datastack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
-            psi_.values[mask] = 2 * np.rad2deg(np.acos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
+            psi_.values[mask] = 2 * np.rad2deg(np.arccos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
             psi_.colormap = "jet"
             datastack.vars = [rho_, psi_]
         a0[np.logical_not(mask)] = np.nan
@@ -1875,15 +1876,14 @@ class Polarimetry(CTk.CTk):
         X_.name, Y_.name, Int_.name = "X", "Y", "Int"
         X_.values, Y_.values, Int_.values = X, Y, a0
         datastack.added_vars = [X_, Y_, Int_]
-        field[np.logical_not(mask)] = np.nan
-        field_fit[np.logical_not(mask)] = np.nan
-        if self.method.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
-            chi2[np.logical_not(mask)] = np.nan
         if not self.method.get().startswith("4POLAR"):
+            field[:, np.logical_not(mask)] = np.nan
+            field_fit[:, np.logical_not(mask)] = np.nan
+            chi2[np.logical_not(mask)] = np.nan
             datastack.field = field
             datastack.field_fit = field_fit
             datastack.chi2 = chi2
-            self.datastack = datastack
+        self.datastack = datastack
         self.plot_data(datastack, roi_map=roi_map)
         self.save_data(datastack, roi_map=roi_map)
 
