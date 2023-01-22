@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 from tkinter import filedialog as fd
 from tkinter.messagebox import showerror
 import customtkinter as CTk
@@ -602,6 +603,7 @@ class Polarimetry(CTk.CTk):
     def change_list_button_callback(self):
         if hasattr(self, "datastack"):
             if len(self.datastack.rois):
+                labels = ["indx", "name", "ctype"]
                 window = CTk.CTkToplevel(self)
                 window.attributes("-topmost", "true")
                 window.title("Polarimetry Analysis")
@@ -1169,7 +1171,7 @@ class Polarimetry(CTk.CTk):
     def add_roi_button_press_callback(self, event, roi):
         if event.inaxes == self.thrsh_axis:
             x, y = event.xdata, event.ydata
-            if event.button == 1 and not event.dblclick:
+            if (event.button == 1 or event.button == 3) and not event.dblclick:
                 if not roi.lines:
                     roi.lines = [plt.Line2D([x, x], [y, y], marker='o', color="w")]
                     roi.start_point = [x, y]
@@ -1184,7 +1186,7 @@ class Polarimetry(CTk.CTk):
                     roi.y.append(y)
                     self.thrsh_axis.add_line(roi.lines[-1])
                     self.thrsh_canvas.draw()
-            elif (event.button == 1 and event.dblclick) and roi.lines:
+            elif ((event.button == 1 or event.button == 3) and event.dblclick) and roi.lines:
                 roi.lines += [plt.Line2D([roi.previous_point[0], roi.start_point[0]], [roi.previous_point[1], roi.start_point[1]], marker='o', color="w")]
                 self.thrsh_axis.add_line(roi.lines[-1])
                 self.thrsh_canvas.mpl_disconnect(self.__cid1)
@@ -1201,7 +1203,7 @@ class Polarimetry(CTk.CTk):
             indx = self.datastack.rois[-1]["indx"] + 1
         else:
             indx = 1
-        self.datastack.rois += [{"indx": indx, "label": (roi.x[0], roi.y[0]), "vertices": vertices, "ILow": self.ilow.get()}]
+        self.datastack.rois += [{"indx": indx, "label": (roi.x[0], roi.y[0]), "vertices": vertices, "ILow": self.ilow.get(), "name": "", "ctype": ""}]
         window.withdraw()
         for line in roi.lines:
             line.remove()
@@ -2079,12 +2081,19 @@ class ToolTip:
 
 class ROIManager:
     def __init__(self, master, rois, labels):
+        letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        class_values = [letter for letter in letters[:len(rois)]]
         for it, label in enumerate(labels):
             tk.Label(master, text=label, fg="black", width=20, font=("Arial", 16, "bold")).grid(row=0, column=it)
+        tk.Label(master, text="class", fg="black", width=20, font=("Arial", 16, "bold")).grid(row=0, column=len(labels)+1)
+        self.entry = [[0] * (len(labels) + 1)] * len(rois)
         for it, roi in enumerate(rois):
             for jt, label in enumerate(labels):
-                self.entry = tk.Entry(master, text=roi[label], width=20, fg="blue", font=("Arial", 16))
-                self.grid(row=it+1, column=jt)
+                self.entry[it][jt] = tk.Entry(master, text=roi[label], width=20, fg="blue", font=("Arial", 16, "normal"))
+                self.entry[it][jt].grid(row=it+1, column=jt)
+            self.entry[it][-1] = ttk.Combobox(master, width=20, values=class_values)
+            self.entry[it][-1].grid(row=it+1, column=len(labels)+1)
+            self.entry[it][-1].current() 
 
 if __name__ == "__main__":
     app = Polarimetry()
