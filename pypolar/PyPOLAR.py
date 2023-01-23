@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+import tksheet
 from tkinter import filedialog as fd
 from tkinter.messagebox import showerror
 import customtkinter as CTk
@@ -7,6 +7,7 @@ import os
 import sys
 import pathlib
 import bz2
+import pickle
 import _pickle as cPickle
 import copy
 import webbrowser
@@ -206,7 +207,7 @@ class Polarimetry(CTk.CTk):
         self.no_background_button = self.button(banner, image=self.icons["photo_fill"], command=self.no_background)
         #ToolTip.createToolTip(button, " Change background to enhance visibility")
         self.no_background_button.pack(padx=20, pady=20)
-        button = self.button(banner, image=self.icons["format_list"], command=self.change_list_button_callback)
+        button = self.button(banner, image=self.icons["format_list"], command=self.roimanager_button_callback)
         #ToolTip.createToolTip(button, "Erase selected ROIs and reload image")
         button.pack(padx=20, pady=20)
         self.ilow = tk.StringVar()
@@ -600,23 +601,51 @@ class Polarimetry(CTk.CTk):
             self.contrast_thrsh_slider.set(1)
         self.represent_thrsh(update=True)
 
-    def change_list_button_callback(self):
-        if hasattr(self, "datastack"):
-            if len(self.datastack.rois):
-                labels = ["indx", "name", "ctype"]
-                window = CTk.CTkToplevel(self)
-                window.attributes("-topmost", "true")
-                window.title("Polarimetry Analysis")
-                window.geometry(Polarimetry.geometry_info((350, 180)))
-                CTk.CTkLabel(window, text="  Select ROIs to be removed ", font=CTk.CTkFont(size=20), image=self.icons["format_list"], compound="left").grid(row=0, column=0, padx=30, pady=10)
-                variable = tk.StringVar()
-                variable.set("all")
-                values = ["all"] + [str(_ + 1) for _ in range(len(self.datastack.rois))]
-                menu = CTk.CTkOptionMenu(master=window, values=values, variable=variable)
-                menu.grid(row=1, column=0, padx=20, pady=10)
-                button = self.button(master=window, text="OK", command=lambda:self.remove_roi(window, variable.get()))
-                button.configure(width=80, height=Polarimetry.button_size[1])
-                button.grid(row=2, column=0, padx=20, pady=20)
+    def roimanager_button_callback(self):
+        labels = ["indx", "name", "class"]
+        widths = [40, 200, 70]
+        button_labels = ["Apply", "Update", "Save", "Load", "Cancel"]
+        if hasattr(self, "stack"):
+            window = CTk.CTkToplevel(self)
+            window.attributes("-topmost", "true")
+            window.title("ROI Manager")
+            if hasattr(self, "datastack"):
+                height = 200 + 20 * len(self.datastack.rois)
+                rois = self.datastack.rois
+            else: 
+                height = 150
+                rois = []
+            window.geometry(Polarimetry.geometry_info((550, height)))
+            CTk.CTkLabel(window, text="  ROI Manager ", font=CTk.CTkFont(size=20), image=self.icons["format_list"], compound="left").grid(row=0, column=0, columnspan=len(button_labels), padx=30, pady=10)
+            manager = ROIManager(window, rois, labels, widths)
+            manager.sheet.grid(row=1, column=0, columnspan=len(button_labels), sticky="nswe", padx=20)
+            buttons = []
+            for it, label in enumerate(button_labels):
+                button = self.button(window, text=label, width=80)
+                buttons += [button]
+                button.grid(row=2, column=it, padx=10, pady=10, sticky="w")
+            buttons[0].configure(command=lambda:self.roimanager_apply(self.datastack.rois, manager, window))
+            buttons[-1].configure(command=lambda:window.withdraw())
+
+    def roimanager_apply(self, rois, manager, window):
+        self.datastack.rois = manager.sheet2rois()
+
+        #if hasattr(self, "datastack"):
+        #    if len(self.datastack.rois):
+        #        labels = ["indx", "name", "class"]
+        #        window = CTk.CTkToplevel(self)
+        #        window.attributes("-topmost", "true")
+        #        window.title("Polarimetry Analysis")
+        #        window.geometry(Polarimetry.geometry_info((350, 180)))
+        #        CTk.CTkLabel(window, text="  Select ROIs to be removed ", font=CTk.CTkFont(size=20), image=self.icons["format_list"], compound="left").grid(row=0, column=0, padx=30, pady=10)
+        #        variable = tk.StringVar()
+        #        variable.set("all")
+        #        values = ["all"] + [str(_ + 1) for _ in range(len(self.datastack.rois))]
+        #        menu = CTk.CTkOptionMenu(master=window, values=values, variable=variable)
+        #        menu.grid(row=1, column=0, padx=20, pady=10)
+        #        button = self.button(master=window, text="OK", command=lambda:self.remove_roi(window, variable.get()))
+        #        button.configure(width=80, height=Polarimetry.button_size[1])
+        #        button.grid(row=2, column=0, padx=20, pady=20)
 
     def add_axes_on_all_figures(self):
         figs = list(map(plt.figure, plt.get_fignums()))
@@ -1203,7 +1232,7 @@ class Polarimetry(CTk.CTk):
             indx = self.datastack.rois[-1]["indx"] + 1
         else:
             indx = 1
-        self.datastack.rois += [{"indx": indx, "label": (roi.x[0], roi.y[0]), "vertices": vertices, "ILow": self.ilow.get(), "name": "", "ctype": ""}]
+        self.datastack.rois += [{"indx": indx, "label": (roi.x[0], roi.y[0]), "vertices": vertices, "ILow": self.ilow.get(), "name": "", "class": ""}]
         window.withdraw()
         for line in roi.lines:
             line.remove()
@@ -2080,20 +2109,73 @@ class ToolTip:
             tw.destroy()
 
 class ROIManager:
-    def __init__(self, master, rois, labels):
+    def __init__(self, master, rois, labels, widths=[]):
         letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         class_values = [letter for letter in letters[:len(rois)]]
-        for it, label in enumerate(labels):
-            tk.Label(master, text=label, fg="black", width=20, font=("Arial", 16, "bold")).grid(row=0, column=it)
-        tk.Label(master, text="class", fg="black", width=20, font=("Arial", 16, "bold")).grid(row=0, column=len(labels)+1)
-        self.entry = [[0] * (len(labels) + 1)] * len(rois)
+        self.labels = labels
+        cmax = len(labels)
+        if sys.platform == "darwin":
+            font = ("Arial Rounded MT Bold", 16, "normal")
+            header_font = ("Arial Rounded MT Bold", 16, "bold")
+        elif sys.platform == "win32":
+            font = ("Segoe UI Variable", 16, "normal")
+            header_font = ("Segoe UI Variable", 16, "bold")
+        height = 50 + 20 * len(rois)
+        labels_ = labels + ["analyze", "delete"]
+        labels_[0] = "ROI"
+        data = [[roi[label] for label in self.labels] for roi in rois]
+        self.sheet = tksheet.Sheet(master, data=data, headers=labels_, font=font, header_font=header_font, align="w", show_row_index=False, width=300, height=height, frame_bg="#A6A6A6", table_bg="#A6A6A6", top_left_bg="#A6A6A6", header_hidden_columns_expander_bg="#A6A6A6", show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, total_columns=cmax+2)
+        self.sheet.align_columns(columns=[0, cmax-1], align="center")
+        self.sheet.create_dropdown(r="all", c=cmax-1, values=class_values)
+        self.sheet.create_checkbox(r="all", c=cmax, checked=True, state="normal", redraw=False, check_function=None, text="")
+        self.sheet.create_checkbox(r="all", c=cmax+1, checked=False, state="normal", redraw=False, check_function=None, text="")
+        self.sheet.enable_bindings()
+        self.sheet.disable_bindings(["rc_insert_column", "rc_delete_column", "rc_insert_row", "rc_delete_row", "hide_columns", "row_height_resize", "edit_header"])
+        if not widths:
+            widths = [120] * cmax
+        widths += [70, 70]
+        for _, width in enumerate(widths):
+            self.sheet.column_width(column=_, width=width)
+
+    def sheet2rois(self, rois):
+        data = self.sheet.get_sheet_data()
         for it, roi in enumerate(rois):
-            for jt, label in enumerate(labels):
-                self.entry[it][jt] = tk.Entry(master, text=roi[label], width=20, fg="blue", font=("Arial", 16, "normal"))
-                self.entry[it][jt].grid(row=it+1, column=jt)
-            self.entry[it][-1] = ttk.Combobox(master, width=20, values=class_values)
-            self.entry[it][-1].grid(row=it+1, column=len(labels)+1)
-            self.entry[it][-1].current() 
+            for jt, label in enumerate(self.labels):
+                roi[label] = data[it][jt]
+
+    def rois2sheet(self, rois):
+        data = []
+        for roi in rois:
+            row = []
+            for label in self.labels:
+                row += [roi[label]]
+            data += [row]
+        self.sheet.set_sheet_data(data=data)
+        
+    def delete(self, rois):
+        data = self.sheet.get_sheet_data()
+        self.assign(rois, self.labels)
+        rois_ = [roi for it, roi in enumerate(rois) if not data[it][-1]]
+        for _ in range(len(rois_)):
+            rois[_]["indx"] = _
+        return rois_
+    
+    def get_selected(self, rois):
+        data = self.sheet.get_sheet_data()
+        self.sheet2rois(rois)
+        return [roi for it, roi in enumerate(rois) if data[it][-2]]
+    
+    def save(self, rois, filename):
+        rois_ = self.delete(rois, self.labels)
+        with open(filename + ".pyroi", "wb") as h:
+            pickle.dump(rois_, h, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def load(self):
+        filetypes = [("PyROI files", "*.pyroi")]
+        filename = fd.askopenfilename(title="Select a PyROI file", initialdir="/", filetypes=filetypes)
+        with open(filename, 'rb') as h:
+            rois = pickle.load(h)
+        self.rois2sheet(rois)
 
 if __name__ == "__main__":
     app = Polarimetry()
