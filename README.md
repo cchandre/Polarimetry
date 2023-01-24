@@ -1,4 +1,4 @@
-# PyPOLAR [<img src="https://github.com/cchandre/Polarimetry/blob/master/main_icon.png" alt=" " width="50"/>](https://www.fresnel.fr/polarimetry)
+# PyPOLAR [<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/main_icon.png" alt=" " width="50"/>](https://www.fresnel.fr/polarimetry)
 
 Source files for the Python App PyPOLAR
 For installing the app on your computer, check the [latest releases](https://github.com/cchandre/Polarimetry/releases) on this page, download `PyPOLAR_installer.exe` for Windows or `PyPOLAR.dmg` for MacOS.
