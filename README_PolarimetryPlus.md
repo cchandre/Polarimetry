@@ -1,7 +1,7 @@
-# PyPOLAR [<img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/polar.jpg" alt=" " width="50"/>](https://www.fresnel.fr/polarimetry)
+# Polarimetry [<img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/polar.jpg" alt=" " width="50"/>](https://www.fresnel.fr/polarimetry)
 
-Source files for the Python App PyPOLAR
-For installing the app on your computer, check the [latest releases](https://github.com/cchandre/Polarimetry/releases) on this page, download PyPOLAR_*your_OS*.zip, unzip it and put the file PyPOLAR in your Applications.
+Source files for the Python App PyPOLAR and for the Matlab App Designer app Polarimetry (notably the `.mlapp` file). Additional files for post-processing polarimetry data are provided in the folder AdditionalFiles.
+For installing the app on your computer, check the [latest releases](https://github.com/cchandre/Polarimetry/releases) on this page, download PolarPlusInstaller_*your_OS* and install the app.
 
 Website: [www.fresnel.fr/polarimetry](https://www.fresnel.fr/polarimetry)
 
