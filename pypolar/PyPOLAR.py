@@ -28,6 +28,7 @@ from skimage import exposure
 import cv2
 import openpyxl
 from itertools import permutations
+from copy import deepcopy
 
 try:
     from ctypes import windll 
@@ -602,50 +603,96 @@ class Polarimetry(CTk.CTk):
         self.represent_thrsh(update=True)
 
     def roimanager_button_callback(self):
-        labels = ["indx", "name", "class"]
-        widths = [40, 200, 70]
-        button_labels = ["Apply", "Update", "Save", "Load", "Cancel"]
-        if hasattr(self, "stack"):
+        labels = ["indx", "name", "group"]
+        widths = [40, 250, 90]
+        button_labels = ["Commit", "Save", "Load", "Delete", "Delete All"]
+        fsize = lambda w, h: f"{w+40}x{h+84}"
+        rois = []
+
+        def on_closing(window):
+            self.datastack.rois = deepcopy(rois)
+            self.represent_fluo()
+            self.represent_thrsh()
+            window.destroy()
+        
+        def commit(manager):
+            if any(self.datastack.rois):
+                data = manager.sheet.get_sheet_data()
+                self.datastack.rois = []
+                for _, roi in enumerate(rois):
+                    if data[_][-2]:
+                        self.datastack.rois += [roi]
+                self.represent_fluo()
+                self.represent_thrsh()
+
+        def save(manager):
+            if any(rois):
+                data = manager.sheet.get_sheet_data()
+                for _, roi in enumerate(rois):
+                    roi["name"] = data[_][1]
+                    roi["group"] = data[_][2]  
+                with open(self.datastack.filename + ".pyroi", "wb") as f:
+                    pickle.dump(rois, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+        def load(manager, window):
+            nonlocal rois
+            delete_all(manager, window)
+            filetypes = [("PyROI files", "*.pyroi")]
+            filename = fd.askopenfilename(title="Select a PyROI file", initialdir="/", filetypes=filetypes)
+            with open(filename, "rb") as f:
+                self.datastack.rois = pickle.load(f)
+            rois = deepcopy(self.datastack.rois)
+            manager.sheet.set_options(height=manager.height(20, self.datastack.rois))
+            window.geometry(fsize(manager.width, manager.height(20, self.datastack.rois)))
+            manager.sheet.insert_rows(rows=len(self.datastack.rois))
+            manager.add_elements(len(labels))
+            manager.rois2sheet(self.datastack.rois)
+            self.represent_fluo()
+            self.represent_thrsh()
+
+        def delete(manager, window):
+            nonlocal rois
+            if any(self.datastack.rois):
+                manager.delete(self.datastack.rois)
+                rois = deepcopy(self.datastack.rois)
+                manager.sheet.set_options(height=manager.height(20, self.datastack.rois))
+                window.geometry(fsize(manager.width, manager.height(20, self.datastack.rois)))
+                self.represent_fluo()
+                self.represent_thrsh()
+        
+        def delete_all(manager, window):
+            nonlocal rois
+            if any(self.datastack.rois):
+                self.datastack.rois, rois = [], []
+                manager.delete_all()
+                manager.sheet.set_options(height=manager.height(20, []))
+                window.geometry(fsize(manager.width, manager.height(20, [])))
+                self.represent_fluo()
+                self.represent_thrsh()
+
+        if hasattr(self, "datastack"):
             window = CTk.CTkToplevel(self)
             window.attributes("-topmost", "true")
             window.title("ROI Manager")
-            if hasattr(self, "datastack"):
-                height = 200 + 20 * len(self.datastack.rois)
-                rois = self.datastack.rois
-            else: 
-                height = 150
-                rois = []
-            window.geometry(Polarimetry.geometry_info((550, height)))
-            CTk.CTkLabel(window, text="  ROI Manager ", font=CTk.CTkFont(size=20), image=self.icons["format_list"], compound="left").grid(row=0, column=0, columnspan=len(button_labels), padx=30, pady=10)
-            manager = ROIManager(window, rois, labels, widths)
-            manager.sheet.grid(row=1, column=0, columnspan=len(button_labels), sticky="nswe", padx=20)
+            window.grid_columnconfigure(1, weight = 1)
+            window.grid_rowconfigure(0, weight = 1)
+            window.protocol("WM_DELETE_WINDOW", lambda:on_closing(window))
+            window.bind("<Command-q>", lambda:on_closing(window))
+            window.bind("<Command-w>", lambda:on_closing(window))
+            rois = deepcopy(self.datastack.rois)
+            manager = ROIManager(window, self.datastack.rois, labels, widths)
+            manager.sheet.grid(row=0, column=0, columnspan=len(button_labels), sticky="nswe", padx=20, pady=20)
             buttons = []
             for it, label in enumerate(button_labels):
                 button = self.button(window, text=label, width=80)
                 buttons += [button]
-                button.grid(row=2, column=it, padx=10, pady=10, sticky="w")
-            buttons[0].configure(command=lambda:self.roimanager_apply(self.datastack.rois, manager, window))
-            buttons[-1].configure(command=lambda:window.withdraw())
-
-    def roimanager_apply(self, rois, manager, window):
-        self.datastack.rois = manager.sheet2rois()
-
-        #if hasattr(self, "datastack"):
-        #    if len(self.datastack.rois):
-        #        labels = ["indx", "name", "class"]
-        #        window = CTk.CTkToplevel(self)
-        #        window.attributes("-topmost", "true")
-        #        window.title("Polarimetry Analysis")
-        #        window.geometry(Polarimetry.geometry_info((350, 180)))
-        #        CTk.CTkLabel(window, text="  Select ROIs to be removed ", font=CTk.CTkFont(size=20), image=self.icons["format_list"], compound="left").grid(row=0, column=0, padx=30, pady=10)
-        #        variable = tk.StringVar()
-        #        variable.set("all")
-        #        values = ["all"] + [str(_ + 1) for _ in range(len(self.datastack.rois))]
-        #        menu = CTk.CTkOptionMenu(master=window, values=values, variable=variable)
-        #        menu.grid(row=1, column=0, padx=20, pady=10)
-        #        button = self.button(master=window, text="OK", command=lambda:self.remove_roi(window, variable.get()))
-        #        button.configure(width=80, height=Polarimetry.button_size[1])
-        #        button.grid(row=2, column=0, padx=20, pady=20)
+                button.grid(row=2, column=it, padx=10, pady=10, sticky="nswe")
+            buttons[0].configure(width=80, fg_color=Polarimetry.green[0], hover_color=Polarimetry.green[1], command=lambda:commit(manager))
+            buttons[1].configure(command=lambda:save(manager))
+            buttons[2].configure(command=lambda:load(manager, window))
+            buttons[-1].configure(fg_color=Polarimetry.red[0], hover_color=Polarimetry.red[1], command=lambda:delete_all(manager, window))
+            buttons[-2].configure(fg_color=Polarimetry.red[0], hover_color=Polarimetry.red[1], command=lambda:delete(manager, window))
+            window.geometry(fsize(manager.width, manager.height(20, self.datastack.rois)))
 
     def add_axes_on_all_figures(self):
         figs = list(map(plt.figure, plt.get_fignums()))
@@ -1232,7 +1279,7 @@ class Polarimetry(CTk.CTk):
             indx = self.datastack.rois[-1]["indx"] + 1
         else:
             indx = 1
-        self.datastack.rois += [{"indx": indx, "label": (roi.x[0], roi.y[0]), "vertices": vertices, "ILow": self.ilow.get(), "name": "", "class": ""}]
+        self.datastack.rois += [{"indx": indx, "label": (roi.x[0], roi.y[0]), "vertices": vertices, "ILow": self.ilow.get(), "name": "", "group": ""}]
         window.withdraw()
         for line in roi.lines:
             line.remove()
@@ -1692,7 +1739,7 @@ class Polarimetry(CTk.CTk):
             if not os.path.exists(filename):
                 worksheet.append(self.return_vecexcel(datastack, roi_map)[1])
             if int_roi >= 2:
-                for roi in np.arange(1, int_roi + 1):
+                for roi in datastack.rois:
                     worksheet.append(self.return_vecexcel(datastack, roi_map, roi=roi)[0])
             else:
                 worksheet.append(self.return_vecexcel(datastack, roi_map, roi=[])[0])
@@ -1713,15 +1760,19 @@ class Polarimetry(CTk.CTk):
             images[0].save(filename, save_all=True, append_images=images[1:], optimize=False, duration=200, loop=0)
 
     def return_vecexcel(self, datastack, roi_map, roi=[]):
-        mask = (roi_map == roi) if roi else (roi_map == 1)
-        ilow = datastack.rois[roi-1]["ILow"] if roi else float(self.ilow.get())
+        mask = (roi_map == roi["indx"]) if roi else (roi_map == 1)
+        ilow = roi["ILow"] if roi else float(self.ilow.get())
         rho = datastack.vars[0].values
         data_vals = np.mod(2 * (rho[mask * np.isfinite(rho)] + float(self.rotation[1].get())), 360) / 2
         n = data_vals.size
         meandata = self.circularmean(data_vals)
         deltarho = self.wrapto180(2 * (data_vals - meandata)) / 2
-        title = ["File", "ROI", "MeanRho", "StdRho", "MeanDeltaRho"]
-        results = [self.stack.name, roi if roi else 1, meandata, np.std(deltarho), np.mean(deltarho)]
+        if roi:
+            title = ["File", "ROI", "name", "group", "MeanRho", "StdRho", "MeanDeltaRho"]
+            results = [self.stack.name, roi["indx"], roi["name"], roi["group"], meandata, np.std(deltarho), np.mean(deltarho)]
+        else:
+            title = ["File", "MeanRho", "StdRho", "MeanDeltaRho"]
+            results = [self.stack.name, meandata, np.std(deltarho), np.mean(deltarho)]
         for var in datastack.vars[1:]:
             data_vals = var.values[mask * np.isfinite(rho)]
             meandata = np.mean(data_vals)
@@ -1976,7 +2027,7 @@ class ROI:
 
 class Calibration():
 
-    dict_1pf = {"no distortions": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 0), "488 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 85), "561 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 30), "640 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 35), "488 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0", 80), "561 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0", 80), "640 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0", 80), "488 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0", 80), "561 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0", 80), "640 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0", 80), "488 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0", 80), "561 nm (before 13/12/2019)": ("Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0", 80), "640 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0", 80), "other": (None, 0)}
+    dict_1pf = {"no distortions": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 0), "488 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 175), "561 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 120), "640 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 125), "488 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0", 80), "561 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0", 80), "640 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0", 80), "488 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0", 80), "561 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0", 80), "640 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0", 80), "488 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0", 80), "561 nm (before 13/12/2019)": ("Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0", 80), "640 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0", 80), "other": (None, 0)}
 
     folder_1pf = os.path.join(os.path.dirname(os.path.realpath(__file__)), "diskcones")
 
@@ -2110,8 +2161,6 @@ class ToolTip:
 
 class ROIManager:
     def __init__(self, master, rois, labels, widths=[]):
-        letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        class_values = [letter for letter in letters[:len(rois)]]
         self.labels = labels
         cmax = len(labels)
         if sys.platform == "darwin":
@@ -2120,22 +2169,27 @@ class ROIManager:
         elif sys.platform == "win32":
             font = ("Segoe UI Variable", 16, "normal")
             header_font = ("Segoe UI Variable", 16, "bold")
-        height = 50 + 20 * len(rois)
-        labels_ = labels + ["analyze", "delete"]
+
+        cell_height = 20
+        self.height = lambda cell_h, rois_: 20 + (cell_h + 3) * (len(rois_) + 1)
+        widths += [70, 70]
+        self.width = sum(widths) + 2
+
+        labels_ = labels + ["select", "delete"]
         labels_[0] = "ROI"
         data = [[roi[label] for label in self.labels] for roi in rois]
-        self.sheet = tksheet.Sheet(master, data=data, headers=labels_, font=font, header_font=header_font, align="w", show_row_index=False, width=300, height=height, frame_bg="#A6A6A6", table_bg="#A6A6A6", top_left_bg="#A6A6A6", header_hidden_columns_expander_bg="#A6A6A6", show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, total_columns=cmax+2)
-        self.sheet.align_columns(columns=[0, cmax-1], align="center")
-        self.sheet.create_dropdown(r="all", c=cmax-1, values=class_values)
-        self.sheet.create_checkbox(r="all", c=cmax, checked=True, state="normal", redraw=False, check_function=None, text="")
-        self.sheet.create_checkbox(r="all", c=cmax+1, checked=False, state="normal", redraw=False, check_function=None, text="")
+        self.sheet = tksheet.Sheet(master, data=data, headers=labels_, font=font, header_font=header_font, align="w", show_row_index=False, width=self.width, height=self.height(cell_height, rois), frame_bg="#A6A6A6", table_bg="#A6A6A6", top_left_bg="#A6A6A6", header_hidden_columns_expander_bg="#A6A6A6", show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, enable_edit_cell_auto_resize=False, auto_resize_default_row_index=False, show_default_header_for_empty=False, empty_horizontal=0, empty_vertical=0, total_columns=cmax+2)
+        self.add_elements(cmax)
         self.sheet.enable_bindings()
-        self.sheet.disable_bindings(["rc_insert_column", "rc_delete_column", "rc_insert_row", "rc_delete_row", "hide_columns", "row_height_resize", "edit_header"])
-        if not widths:
-            widths = [120] * cmax
-        widths += [70, 70]
+        self.sheet.disable_bindings(["rc_insert_column", "rc_delete_column", "rc_insert_row", "rc_delete_row", "hide_columns",  "row_height_resize","row_width_resize", "column_height_resize", "column_width_resize", "edit_header", "arrowkeys"])
+        self.sheet.default_row_height(cell_height)
         for _, width in enumerate(widths):
             self.sheet.column_width(column=_, width=width)
+
+    def add_elements(self, cmax):
+        self.sheet.align_columns(columns=[0, cmax-1], align="center")
+        self.sheet.create_checkbox(r="all", c=cmax, checked=True, state="normal", redraw=False, check_function=None, text="")
+        self.sheet.create_checkbox(r="all", c=cmax+1, checked=False, state="normal", redraw=False, check_function=None, text="")
 
     def sheet2rois(self, rois):
         data = self.sheet.get_sheet_data()
@@ -2144,21 +2198,23 @@ class ROIManager:
                 roi[label] = data[it][jt]
 
     def rois2sheet(self, rois):
-        data = []
-        for roi in rois:
-            row = []
-            for label in self.labels:
-                row += [roi[label]]
-            data += [row]
-        self.sheet.set_sheet_data(data=data)
+        for it, roi in enumerate(rois):
+            for jt, label in enumerate(self.labels):
+                self.sheet.set_cell_data(it, jt, value=roi[label])
         
     def delete(self, rois):
-        data = self.sheet.get_sheet_data()
-        self.assign(rois, self.labels)
-        rois_ = [roi for it, roi in enumerate(rois) if not data[it][-1]]
-        for _ in range(len(rois_)):
-            rois[_]["indx"] = _
-        return rois_
+        vec = [_ for _, x in enumerate(self.sheet.get_column_data(c=-1)) if x == "True"]
+        while len(vec) >= 1:
+            self.sheet.delete_row(idx=vec[0])
+            del rois[vec[0]]
+            for _, roi in enumerate(rois):
+                roi["indx"] = _ + 1
+            self.sheet.set_column_data(0, values=tuple(roi["indx"] for roi in rois), add_rows=False)
+            vec = [_ for _, x in enumerate(self.sheet.get_column_data(c=-1)) if x == "True"]
+    
+    def delete_all(self):
+        for _ in range(self.sheet.get_total_rows()):
+            self.sheet.delete_row()
     
     def get_selected(self, rois):
         data = self.sheet.get_sheet_data()
