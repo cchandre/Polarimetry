@@ -1,7 +1,7 @@
 from datetime import date
 
-__version__ = "2.2"
-status = ""
+__version__ = "2.3"
+status = "beta"
 
 dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023"}
 

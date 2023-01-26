@@ -606,7 +606,7 @@ class Polarimetry(CTk.CTk):
         labels = ["indx", "name", "group"]
         widths = [40, 250, 90]
         button_labels = ["Commit", "Save", "Load", "Delete", "Delete All"]
-        fsize = lambda w, h: f"{w+40}x{h+84}"
+        fsize = lambda w, h: f"{w+40}x{h+84}+1200+200"
         rois = []
 
         def on_closing(window):
