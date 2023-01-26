@@ -208,7 +208,7 @@ class Polarimetry(CTk.CTk):
         self.no_background_button = self.button(banner, image=self.icons["photo_fill"], command=self.no_background)
         #ToolTip.createToolTip(button, " Change background to enhance visibility")
         self.no_background_button.pack(padx=20, pady=20)
-        button = self.button(banner, image=self.icons["format_list"], command=self.roimanager_button_callback)
+        button = self.button(banner, image=self.icons["format_list"], command=lambda:self.roimanager())
         #ToolTip.createToolTip(button, "Erase selected ROIs and reload image")
         button.pack(padx=20, pady=20)
         self.ilow = tk.StringVar()
@@ -602,11 +602,11 @@ class Polarimetry(CTk.CTk):
             self.contrast_thrsh_slider.set(1)
         self.represent_thrsh(update=True)
 
-    def roimanager_button_callback(self):
+    def roimanager(self, update=False):
         labels = ["indx", "name", "group"]
         widths = [40, 250, 90]
         button_labels = ["Commit", "Save", "Load", "Delete", "Delete All"]
-        fsize = lambda w, h: f"{w+40}x{h+84}+1200+200"
+        fsize = lambda w, h: f"{w+40}x{h+84}"
         rois = []
 
         def on_closing(window):
@@ -616,10 +616,13 @@ class Polarimetry(CTk.CTk):
             window.destroy()
         
         def commit(manager):
+            nonlocal rois
             if any(self.datastack.rois):
                 data = manager.sheet.get_sheet_data()
                 self.datastack.rois = []
                 for _, roi in enumerate(rois):
+                    roi["name"] = data[_][1]
+                    roi["group"] = data[_][2]
                     if data[_][-2]:
                         self.datastack.rois += [roi]
                 self.represent_fluo()
@@ -643,7 +646,8 @@ class Polarimetry(CTk.CTk):
                 self.datastack.rois = pickle.load(f)
             rois = deepcopy(self.datastack.rois)
             manager.sheet.set_options(height=manager.height(20, self.datastack.rois))
-            window.geometry(fsize(manager.width, manager.height(20, self.datastack.rois)))
+            x, y = window.winfo_x(), window.winfo_y()
+            window.geometry(fsize(manager.width, manager.height(20, self.datastack.rois)) + f"+{x}+{y}")
             manager.sheet.insert_rows(rows=len(self.datastack.rois))
             manager.add_elements(len(labels))
             manager.rois2sheet(self.datastack.rois)
@@ -656,7 +660,8 @@ class Polarimetry(CTk.CTk):
                 manager.delete(self.datastack.rois)
                 rois = deepcopy(self.datastack.rois)
                 manager.sheet.set_options(height=manager.height(20, self.datastack.rois))
-                window.geometry(fsize(manager.width, manager.height(20, self.datastack.rois)))
+                x, y = window.winfo_x(), window.winfo_y()
+                window.geometry(fsize(manager.width, manager.height(20, self.datastack.rois)) + f"+{x}+{y}")
                 self.represent_fluo()
                 self.represent_thrsh()
         
@@ -666,33 +671,45 @@ class Polarimetry(CTk.CTk):
                 self.datastack.rois, rois = [], []
                 manager.delete_all()
                 manager.sheet.set_options(height=manager.height(20, []))
-                window.geometry(fsize(manager.width, manager.height(20, [])))
+                x, y = window.winfo_x(), window.winfo_y()
+                window.geometry(fsize(manager.width, manager.height(20, [])) + f"+{x}+{y}")
                 self.represent_fluo()
                 self.represent_thrsh()
 
-        if hasattr(self, "datastack"):
-            window = CTk.CTkToplevel(self)
-            window.attributes("-topmost", "true")
-            window.title("ROI Manager")
-            window.grid_columnconfigure(1, weight = 1)
-            window.grid_rowconfigure(0, weight = 1)
-            window.protocol("WM_DELETE_WINDOW", lambda:on_closing(window))
-            window.bind("<Command-q>", lambda:on_closing(window))
-            window.bind("<Command-w>", lambda:on_closing(window))
-            rois = deepcopy(self.datastack.rois)
-            manager = ROIManager(window, self.datastack.rois, labels, widths)
-            manager.sheet.grid(row=0, column=0, columnspan=len(button_labels), sticky="nswe", padx=20, pady=20)
+        if not update:
+            self.manager_window = CTk.CTkToplevel(self)
+            self.manager_window.attributes("-topmost", "true")
+            self.manager_window.title("ROI Manager")
+            self.manager_window.grid_columnconfigure(1, weight = 1)
+            self.manager_window.grid_rowconfigure(0, weight = 1)
+            self.manager_window.protocol("WM_DELETE_WINDOW", lambda:on_closing(self.manager_window))
+            self.manager_window.bind("<Command-q>", lambda:on_closing(self.manager_window))
+            self.manager_window.bind("<Command-w>", lambda:on_closing(self.manager_window))
+            if hasattr(self, "datastack"):
+                rois = deepcopy(self.datastack.rois)
+            self.manager = ROIManager(self.manager_window, rois, labels, widths)
+            self.manager.sheet.grid(row=0, column=0, columnspan=len(button_labels), sticky="nswe", padx=20, pady=20)
             buttons = []
             for it, label in enumerate(button_labels):
-                button = self.button(window, text=label, width=80)
+                button = self.button(self.manager_window, text=label, width=80)
                 buttons += [button]
                 button.grid(row=2, column=it, padx=10, pady=10, sticky="nswe")
-            buttons[0].configure(width=80, fg_color=Polarimetry.green[0], hover_color=Polarimetry.green[1], command=lambda:commit(manager))
-            buttons[1].configure(command=lambda:save(manager))
-            buttons[2].configure(command=lambda:load(manager, window))
-            buttons[-1].configure(fg_color=Polarimetry.red[0], hover_color=Polarimetry.red[1], command=lambda:delete_all(manager, window))
-            buttons[-2].configure(fg_color=Polarimetry.red[0], hover_color=Polarimetry.red[1], command=lambda:delete(manager, window))
-            window.geometry(fsize(manager.width, manager.height(20, self.datastack.rois)))
+            buttons[0].configure(width=80, fg_color=Polarimetry.green[0], hover_color=Polarimetry.green[1], command=lambda:commit(self.manager))
+            buttons[1].configure(command=lambda:save(self.manager))
+            buttons[2].configure(command=lambda:load(self.manager, self.manager_window))
+            buttons[-1].configure(fg_color=Polarimetry.red[0], hover_color=Polarimetry.red[1], command=lambda:delete_all(self.manager, self.manager_window))
+            buttons[-2].configure(fg_color=Polarimetry.red[0], hover_color=Polarimetry.red[1], command=lambda:delete(self.manager, self.manager_window))
+            self.manager_window.geometry(fsize(self.manager.width, self.manager.height(20, rois)) + "+1200+200")
+        elif hasattr(self, "datastack") and update:
+            self.manager.sheet.set_options(height=self.manager.height(20, self.datastack.rois))
+            x, y = self.manager_window.winfo_x(), self.manager_window.winfo_y()
+            self.manager_window.geometry(fsize(self.manager.width, self.manager.height(20, self.datastack.rois)) + f"+{x}+{y}")
+            roi = self.datastack.rois[-1]
+            cmax = len(labels)
+            self.manager.sheet.insert_row([roi[label] for label in labels])
+            self.manager.sheet.create_checkbox(c=cmax, r=len(self.datastack.rois)-1, checked = True)
+            self.manager.sheet.create_checkbox(c=cmax+1, r=len(self.datastack.rois)-1, checked = False)
+
 
     def add_axes_on_all_figures(self):
         figs = list(map(plt.figure, plt.get_fignums()))
@@ -1287,6 +1304,8 @@ class Polarimetry(CTk.CTk):
         self.thrsh_canvas.draw()
         self.represent_fluo()
         self.represent_thrsh()
+        if hasattr(self, "manager_window"):
+            self.roimanager(update=True)
 
     def no_add_roi_callback(self, window, roi):
         window.withdraw()
@@ -1737,7 +1756,8 @@ class Polarimetry(CTk.CTk):
             worksheet = workbook.active
             worksheet.title = title
             if not os.path.exists(filename):
-                worksheet.append(self.return_vecexcel(datastack, roi_map)[1])
+                title = ["File", "ROI", "name", "group", "MeanRho", "StdRho", "MeanDeltaRho"]
+                worksheet.append(title + self.return_vecexcel(datastack, roi_map)[1])
             if int_roi >= 2:
                 for roi in datastack.rois:
                     worksheet.append(self.return_vecexcel(datastack, roi_map, roi=roi)[0])
@@ -1761,18 +1781,17 @@ class Polarimetry(CTk.CTk):
 
     def return_vecexcel(self, datastack, roi_map, roi=[]):
         mask = (roi_map == roi["indx"]) if roi else (roi_map == 1)
-        ilow = roi["ILow"] if roi else float(self.ilow.get())
+        ilow = float(roi["ILow"]) if roi else float(self.ilow.get())
         rho = datastack.vars[0].values
         data_vals = np.mod(2 * (rho[mask * np.isfinite(rho)] + float(self.rotation[1].get())), 360) / 2
         n = data_vals.size
         meandata = self.circularmean(data_vals)
         deltarho = self.wrapto180(2 * (data_vals - meandata)) / 2
+        title = []
         if roi:
-            title = ["File", "ROI", "name", "group", "MeanRho", "StdRho", "MeanDeltaRho"]
             results = [self.stack.name, roi["indx"], roi["name"], roi["group"], meandata, np.std(deltarho), np.mean(deltarho)]
         else:
-            title = ["File", "MeanRho", "StdRho", "MeanDeltaRho"]
-            results = [self.stack.name, meandata, np.std(deltarho), np.mean(deltarho)]
+            results = [self.stack.name, "all", "", "", meandata, np.std(deltarho), np.mean(deltarho)]
         for var in datastack.vars[1:]:
             data_vals = var.values[mask * np.isfinite(rho)]
             meandata = np.mean(data_vals)
