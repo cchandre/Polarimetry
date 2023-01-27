@@ -208,18 +208,18 @@ class Polarimetry(CTk.CTk):
         self.contrast_thrsh_slider.set(1)
         ToolTip.createToolTip(self.contrast_thrsh_slider, " Adjust contrast\n The chosen contrast does not affect the analysis")
         self.contrast_thrsh_slider.pack(padx=20, pady=20)
-        button = self.button(banner, image=self.icons["open_in_new"], command=self.export_mask)
-        #ToolTip.createToolTip(button, " Export mask as .png")
-        button.pack(padx=20, pady=20)
         button = self.button(banner, image=self.icons["palette"], command=self.change_colormap)
         #ToolTip.createToolTip(button, " Change the colormap used for thresholding ('hot' or 'gray')")
-        button.pack(padx=20, pady=20)
+        button.pack(padx=20, pady=10)
         self.no_background_button = self.button(banner, image=self.icons["photo_fill"], command=self.no_background)
         #ToolTip.createToolTip(button, " Change background to enhance visibility")
-        self.no_background_button.pack(padx=20, pady=20)
+        self.no_background_button.pack(padx=20, pady=10)
+        button = self.button(banner, image=self.icons["open_in_new"], command=self.export_mask)
+        #ToolTip.createToolTip(button, " Export mask as .png")
+        button.pack(padx=20, pady=10)
         button = self.button(banner, image=self.icons["format_list"], command=lambda:self.roimanager())
         #ToolTip.createToolTip(button, "Erase selected ROIs and reload image")
-        button.pack(padx=20, pady=20)
+        button.pack(padx=20, pady=10)
         self.ilow = tk.StringVar()
         self.ilow.set("0")
         self.ilow_slider = CTk.CTkSlider(master=bottomframe, from_=0, to=1, command=self.ilow_slider_callback)
@@ -743,6 +743,8 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_frame.update()
 
     def open_file_callback(self, value):
+        if hasattr(self, "manager_window"):
+            self.manager_window.destroy()
         if value == "Open file":
             self.openfile_icon.configure(image=self.icons["photo_fill"])
             self.options_icon.configure(image=self.icons["build"])
@@ -771,8 +773,6 @@ class Polarimetry(CTk.CTk):
                 window, buttons = self.showinfo(message=" The folder does not contain TIFF or TIF files", image=self.icons["download_folder"], button_labels=["OK"], geometry=(340, 140))
                 buttons[0].configure(command=lambda:window.withdraw())
         elif value == "Previous analysis":
-            if hasattr(self, "manager_window"):
-                self.manager_window.destroy()
             filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir="/", filetypes=[("cPICKLE files", "*.pbz2")])
             if filename:
                 window = self.showinfo(message=" Downloading and decompressing data...", image=self.icons["download"], geometry=(350, 80))[0]
