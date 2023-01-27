@@ -1760,7 +1760,9 @@ class Polarimetry(CTk.CTk):
             filename = self.stack.filename + ".pbz2"
             datastack_ = copy.copy(datastack)
             delattr(datastack_, "added_vars")
-            window = self.showinfo(message=" Compressing and saving data...", image=self.icons["save"], geometry=(300, 100))[0]
+            for roi in datastack_.rois:
+                roi["select"] = True
+            window = self.showinfo(message=" Compressing and saving data...", image=self.icons["save"], geometry=(350, 80))[0]
             window.update()
             with bz2.BZ2File(filename, "w") as f:
                 cPickle.dump(datastack_, f)
