@@ -28,7 +28,6 @@ from skimage import exposure
 import cv2
 import openpyxl
 from itertools import permutations
-from copy import deepcopy
 from datetime import date
 
 try:
@@ -772,7 +771,7 @@ class Polarimetry(CTk.CTk):
                 buttons[0].configure(command=lambda:window.withdraw())
         elif value == "Previous analysis":
             filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir="/", filetypes=[("cPICKLE files", "*.pbz2")])
-            window = self.showinfo(message=" Downloading and decompressing data...", image=self.icons["download"], geometry=(300, 100))[0]
+            window = self.showinfo(message=" Downloading and decompressing data...", image=self.icons["download"], geometry=(350, 80))[0]
             window.update()
             with bz2.BZ2File(filename, "rb") as f:
                 if hasattr(self, "stack"):
@@ -1728,6 +1727,7 @@ class Polarimetry(CTk.CTk):
             roi_map, mask = self.compute_roi_map(datastack)
             for var in datastack.vars:
                 var.values *= mask
+                var.values[var.values==0] = np.nan
         int_roi = np.amax(roi_map)
         for _, var in enumerate(datastack.vars):
             display, vmin, vmax = self.get_variable(_)
@@ -2217,7 +2217,7 @@ class ROIManager:
         labels_ = labels + ["select", "delete"]
         labels_[0] = "ROI"
         data = [[roi[label] for label in self.labels] for roi in rois]
-        self.sheet = tksheet.Sheet(master, data=data, headers=labels_, font=font, header_font=header_font, align="w", show_row_index=False, width=self.width, height=self.height(cell_height, rois), frame_bg="black", table_bg="#A6A6A6", top_left_bg="#A6A6A6", header_hidden_columns_expander_bg="#A6A6A6", header_fg="black", header_bg="#FF7F4F", header_grid_fg="#A6A6A6", table_grid_fg="black", show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, enable_edit_cell_auto_resize=False, auto_resize_default_row_index=False, show_default_header_for_empty=False, empty_horizontal=0, empty_vertical=0, total_columns=cmax+2)
+        self.sheet = tksheet.Sheet(master, data=data, headers=labels_, font=font, header_font=header_font, align="w", show_row_index=False, width=self.width, height=self.height(cell_height, rois), frame_bg="black", table_bg="#A6A6A6", top_left_bg="#A6A6A6", header_hidden_columns_expander_bg="#A6A6A6", header_fg="black", header_bg="#FF7F4F", header_grid_fg="#A6A6A6", table_grid_fg="black", header_selected_cells_bg="#ffb295", table_selected_cells_border_fg="#FF7F4F", show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, enable_edit_cell_auto_resize=False, auto_resize_default_row_index=False, show_default_header_for_empty=False, empty_horizontal=0, empty_vertical=0, total_columns=cmax+2)
         self.add_elements(cmax)
         self.sheet.enable_bindings()
         self.sheet.disable_bindings(["rc_insert_column", "rc_delete_column", "rc_insert_row", "rc_delete_row", "hide_columns",  "row_height_resize","row_width_resize", "column_height_resize", "column_width_resize", "edit_header", "arrowkeys"])
@@ -2229,12 +2229,6 @@ class ROIManager:
         self.sheet.align_columns(columns=[0, cmax-1], align="center")
         self.sheet.create_checkbox(r="all", c=cmax, checked=True, state="normal", redraw=False, check_function=None, text="")
         self.sheet.create_checkbox(r="all", c=cmax+1, checked=False, state="normal", redraw=False, check_function=None, text="")
-
-    def sheet2rois(self, rois):
-        data = self.sheet.get_sheet_data()
-        for it, roi in enumerate(rois):
-            for jt, label in enumerate(self.labels):
-                roi[label] = data[it][jt]
 
     def rois2sheet(self, rois):
         for it, roi in enumerate(rois):
@@ -2254,23 +2248,6 @@ class ROIManager:
     def delete_all(self):
         for _ in range(self.sheet.get_total_rows()):
             self.sheet.delete_row()
-    
-    def get_selected(self, rois):
-        data = self.sheet.get_sheet_data()
-        self.sheet2rois(rois)
-        return [roi for it, roi in enumerate(rois) if data[it][-2]]
-    
-    def save(self, rois, filename):
-        rois_ = self.delete(rois, self.labels)
-        with open(filename + ".pyroi", "wb") as h:
-            pickle.dump(rois_, h, protocol=pickle.HIGHEST_PROTOCOL)
-
-    def load(self):
-        filetypes = [("PyROI files", "*.pyroi")]
-        filename = fd.askopenfilename(title="Select a PyROI file", initialdir="/", filetypes=filetypes)
-        with open(filename, 'rb') as h:
-            rois = pickle.load(h)
-        self.rois2sheet(rois)
 
 if __name__ == "__main__":
     app = Polarimetry()
