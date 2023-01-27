@@ -29,6 +29,7 @@ import cv2
 import openpyxl
 from itertools import permutations
 from datetime import date
+import copy
 
 try:
     from ctypes import windll 
@@ -770,9 +771,12 @@ class Polarimetry(CTk.CTk):
                 window, buttons = self.showinfo(message=" The folder does not contain TIFF or TIF files", image=self.icons["download_folder"], button_labels=["OK"], geometry=(340, 140))
                 buttons[0].configure(command=lambda:window.withdraw())
         elif value == "Previous analysis":
+            if hasattr(self, "manager_window"):
+                self.manager_window.destroy()
             filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir="/", filetypes=[("cPICKLE files", "*.pbz2")])
-            window = self.showinfo(message=" Downloading and decompressing data...", image=self.icons["download"], geometry=(350, 80))[0]
-            window.update()
+            if filename:
+                window = self.showinfo(message=" Downloading and decompressing data...", image=self.icons["download"], geometry=(350, 80))[0]
+                window.update()
             with bz2.BZ2File(filename, "rb") as f:
                 if hasattr(self, "stack"):
                     delattr(self, "stack")
@@ -1666,8 +1670,8 @@ class Polarimetry(CTk.CTk):
         rho_ = rho.values[::int(self.pixelsperstick[1].get()), ::int(self.pixelsperstick[0].get())]
         data_ = var.values[::int(self.pixelsperstick[1].get()), ::int(self.pixelsperstick[0].get())]
         Y, X = np.mgrid[:datastack.height:int(self.pixelsperstick[1].get()), :datastack.width:int(self.pixelsperstick[0].get())]
-        X, Y = X[np.isfinite(rho_)], Y[np.isfinite(rho_)]
-        data_, rho_ = data_[np.isfinite(rho_)], rho_[np.isfinite(rho_)]
+        X, Y = X[np.isfinite(data_)], Y[np.isfinite(data_)]
+        data_, rho_ = data_[np.isfinite(data_)], rho_[np.isfinite(data_)]
         if var.orientation:
             stick_colors = np.mod(2 * (data_ + int(self.rotation[1].get())), 360) / 2
         else:
@@ -1723,13 +1727,14 @@ class Polarimetry(CTk.CTk):
 
     def plot_data(self, datastack, roi_map=[]):
         self.plot_fluo(datastack)
+        vars = copy.deepcopy(datastack.vars)
         if len(roi_map) == 0:
             roi_map, mask = self.compute_roi_map(datastack)
-            for var in datastack.vars:
+            for var in vars:
                 var.values *= mask
                 var.values[var.values==0] = np.nan
         int_roi = np.amax(roi_map)
-        for _, var in enumerate(datastack.vars):
+        for _, var in enumerate(vars):
             display, vmin, vmax = self.get_variable(_)
             if display:
                 self.plot_composite(var, datastack, vmin, vmax)
