@@ -29,6 +29,7 @@ import cv2
 import openpyxl
 from itertools import permutations
 from copy import deepcopy
+from datetime import date
 
 try:
     from ctypes import windll 
@@ -51,7 +52,15 @@ plt.rcParams["axes.unicode_minus"] = False
 plt.ion()
 
 class Polarimetry(CTk.CTk):
-    from __init__ import __version__, __version_date__
+    __version__ = "2.3"
+    status = "beta"
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 27, 2023"}
+
+    if status == "beta":
+        __version_date__ = date.today().strftime("%B %d, %Y")
+    else:
+        __version_date__ = dict_versions[__version__]
+
     left_frame_width = 180
     right_frame_width = 850
     height = 850
@@ -609,31 +618,34 @@ class Polarimetry(CTk.CTk):
         fsize = lambda w, h: f"{w+40}x{h+84}"
 
         def on_closing(window):
-            for roi in self.datastack.rois:
-                roi["select"] = True
-            self.represent_fluo()
-            self.represent_thrsh()
+            if hasattr(self, "datastack"):
+                for roi in self.datastack.rois:
+                    roi["select"] = True
+                self.represent_fluo()
+                self.represent_thrsh()
             window.destroy()
         
         def commit(manager):
-            if any(self.datastack.rois):
-                data = manager.sheet.get_sheet_data()
-                for _, roi in enumerate(self.datastack.rois):
-                    roi["name"] = data[_][1]
-                    roi["group"] = data[_][2]
-                    roi["select"] = data[_][-2]
-                self.represent_fluo()
-                self.represent_thrsh()
+            if hasattr(self, "datastack"):
+                if any(self.datastack.rois):
+                    data = manager.sheet.get_sheet_data()
+                    for _, roi in enumerate(self.datastack.rois):
+                        roi["name"] = data[_][1]
+                        roi["group"] = data[_][2]
+                        roi["select"] = data[_][-2]
+                    self.represent_fluo()
+                    self.represent_thrsh()
 
         def save(manager):
-            if any(self.datastack.rois):
-                data = manager.sheet.get_sheet_data()
-                for _, roi in enumerate(self.datastack.rois):
-                    roi["name"] = data[_][1]
-                    roi["group"] = data[_][2]  
-                    roi["select"] = data[_][-2]
-                with open(self.datastack.filename + ".pyroi", "wb") as f:
-                    pickle.dump(self.datastack.rois, f, protocol=pickle.HIGHEST_PROTOCOL)
+            if hasattr(self, "datastack"):
+                if any(self.datastack.rois):
+                    data = manager.sheet.get_sheet_data()
+                    for _, roi in enumerate(self.datastack.rois):
+                        roi["name"] = data[_][1]
+                        roi["group"] = data[_][2]  
+                        roi["select"] = data[_][-2]
+                    with open(self.datastack.filename + ".pyroi", "wb") as f:
+                        pickle.dump(self.datastack.rois, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         def load(manager, window):
             if hasattr(self, "datastack"):
@@ -652,23 +664,25 @@ class Polarimetry(CTk.CTk):
                 self.represent_thrsh()
 
         def delete(manager, window):
-            if any(self.datastack.rois):
-                manager.delete(self.datastack.rois)
-                manager.sheet.set_options(height=manager.height(20, self.datastack.rois))
-                x, y = window.winfo_x(), window.winfo_y()
-                window.geometry(fsize(manager.width, manager.height(20, self.datastack.rois)) + f"+{x}+{y}")
-                self.represent_fluo()
-                self.represent_thrsh()
+            if hasattr(self, "datastack"):
+                if any(self.datastack.rois):
+                    manager.delete(self.datastack.rois)
+                    manager.sheet.set_options(height=manager.height(20, self.datastack.rois))
+                    x, y = window.winfo_x(), window.winfo_y()
+                    window.geometry(fsize(manager.width, manager.height(20, self.datastack.rois)) + f"+{x}+{y}")
+                    self.represent_fluo()
+                    self.represent_thrsh()
         
         def delete_all(manager, window):
-            if any(self.datastack.rois):
-                self.datastack.rois = []
-                manager.delete_all()
-                manager.sheet.set_options(height=manager.height(20, []))
-                x, y = window.winfo_x(), window.winfo_y()
-                window.geometry(fsize(manager.width, manager.height(20, [])) + f"+{x}+{y}")
-                self.represent_fluo()
-                self.represent_thrsh()
+            if hasattr(self, "datastack"):
+                if any(self.datastack.rois):
+                    self.datastack.rois = []
+                    manager.delete_all()
+                    manager.sheet.set_options(height=manager.height(20, []))
+                    x, y = window.winfo_x(), window.winfo_y()
+                    window.geometry(fsize(manager.width, manager.height(20, [])) + f"+{x}+{y}")
+                    self.represent_fluo()
+                    self.represent_thrsh()
 
         if not update:
             self.manager_window = CTk.CTkToplevel(self)
@@ -1509,10 +1523,10 @@ class Polarimetry(CTk.CTk):
 
     def plot_histo(self, var, datastack, min, max, roi_map, roi=[]):
         if self.show_table[2].get() or self.save_table[2].get():
-            suffix = "for ROI " + str(roi) if roi else ""
+            suffix = "for ROI " + str(roi["indx"]) if roi else ""
             fig = plt.figure(figsize=self.figsize)
             fig.canvas.manager.set_window_title(var.name + " Histogram" + suffix + ": " + self.datastack.name)
-            mask = (roi_map == roi) if roi else (roi_map == 1)
+            mask = (roi_map == roi["indx"]) if roi else (roi_map == 1)
             data_vals = var.values[mask * np.isfinite(var.values)]
             norm = mpl.colors.Normalize(min, max)
             cmap = mpl.colormaps[var.colormap]
@@ -1553,7 +1567,7 @@ class Polarimetry(CTk.CTk):
                 ax.set_title(datastack.name, fontsize=14)
                 text = var.latex + " = " + "{:.2f}".format(meandata) + " $\pm$ " "{:.2f}".format(std)
                 ax.annotate(text, xy=(0.65, 0.95), xycoords="axes fraction", fontsize=14)
-            suffix = "_perROI_" + str(roi) if roi else ""
+            suffix = "_perROI_" + str(roi["indx"]) if roi else ""
             filename = datastack.filename + "_Histo" + var.name + suffix
             if self.save_table[2].get() and self.extension_table[1].get():
                 plt.savefig(filename + ".tif")
@@ -1711,7 +1725,9 @@ class Polarimetry(CTk.CTk):
     def plot_data(self, datastack, roi_map=[]):
         self.plot_fluo(datastack)
         if len(roi_map) == 0:
-            roi_map = self.compute_roi_map(datastack)[0]
+            roi_map, mask = self.compute_roi_map(datastack)
+            for var in datastack.vars:
+                var.values *= mask
         int_roi = np.amax(roi_map)
         for _, var in enumerate(datastack.vars):
             display, vmin, vmax = self.get_variable(_)
@@ -1719,8 +1735,9 @@ class Polarimetry(CTk.CTk):
                 self.plot_composite(var, datastack, vmin, vmax)
                 self.plot_sticks(var, datastack, vmin, vmax)
                 if int_roi >= 2:
-                    for roi in np.arange(1, int_roi + 1):
-                        self.plot_histo(var, datastack, vmin, vmax, roi_map, roi=roi)
+                    for roi in datastack.rois:
+                        if roi["select"]:
+                            self.plot_histo(var, datastack, vmin, vmax, roi_map, roi=roi)
                 else:
                     self.plot_histo(var, datastack, vmin, vmax, roi_map, roi=[])
 
@@ -1729,8 +1746,9 @@ class Polarimetry(CTk.CTk):
             roi_map = self.compute_roi_map(datastack)[0]
         int_roi = np.amax(roi_map)
         if int_roi >= 2:
-            for roi in np.arange(1, int_roi + 1):
-                self.save_mat(datastack, roi_map, roi=roi)
+            for roi in datastack.rois:
+                if roi["select"]:
+                    self.save_mat(datastack, roi_map, roi=roi)
         else:
             self.save_mat(datastack, roi_map, roi=[])
         if self.extension_table[0].get():
@@ -1760,7 +1778,8 @@ class Polarimetry(CTk.CTk):
                 worksheet.append(title + self.return_vecexcel(datastack, roi_map)[1])
             if int_roi >= 2:
                 for roi in datastack.rois:
-                    worksheet.append(self.return_vecexcel(datastack, roi_map, roi=roi)[0])
+                    if roi["select"]:
+                        worksheet.append(self.return_vecexcel(datastack, roi_map, roi=roi)[0])
             else:
                 worksheet.append(self.return_vecexcel(datastack, roi_map, roi=[])[0])
             workbook.save(filename)
@@ -1811,9 +1830,9 @@ class Polarimetry(CTk.CTk):
 
     def save_mat(self, datastack, roi_map, roi=[]):
         if self.extension_table[2].get():
-            suffix = "_ROI" + str(roi) if roi else ""
+            suffix = "_ROI" + str(roi["indx"]) if roi else ""
             filename = datastack.filename + suffix + ".mat"
-            mask = (roi_map == roi) if roi else (roi_map == 1)
+            mask = (roi_map == roi["indx"]) if roi else (roi_map == 1)
             dict_ = {"dark": datastack.dark}
             for var in datastack.vars:
                 data = var.values[mask * np.isfinite(var.values)]
@@ -1833,8 +1852,8 @@ class Polarimetry(CTk.CTk):
             for roi in datastack.rois:
                 if roi["select"]:
                     patch= Polygon(roi["vertices"].T)
-                    roi_map[patch.contains_points(points).reshape(shape)] = roi["indx"] if self.per_roi.get() else 1
-                    roi_ilow_map[patch.contains_points(points).reshape(shape)] = roi["ILow"]
+                    roi_map[patch.contains_points(points).reshape(shape)] = int(roi["indx"]) if self.per_roi.get() else 1
+                    roi_ilow_map[patch.contains_points(points).reshape(shape)] = float(roi["ILow"])
         else:
             roi_map = np.ones(shape, dtype=np.int32)
             roi_ilow_map = np.ones(shape, dtype=np.float64) * np.float64(self.ilow.get())
@@ -1884,8 +1903,8 @@ class Polarimetry(CTk.CTk):
                 field[_] = convolve2d(field[_], bin, mode="same") / (bin_shape[0] * bin_shape[1])
         if self.method.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
             polardir = -1 if self.polar_dir.get() == "clockwise" else 1
-            alpha = polardir * np.linspace(0, 180, self.stack.nangle, endpoint=False).reshape(-1, 1, 1) + self.offset_angle.get()
-            e2 = np.exp(2j * np.deg2rad(alpha))
+            alpha = polardir * np.linspace(0, 180, self.stack.nangle, endpoint=False) + self.offset_angle.get()
+            e2 = np.exp(2j * np.deg2rad(alpha[:, np.newaxis, np.newaxis]))
             a0 = np.mean(field, axis=0)
             a0[a0 == 0] = np.nan
             a2 = 2 * np.mean(field * e2, axis=0)
@@ -2198,7 +2217,7 @@ class ROIManager:
         labels_ = labels + ["select", "delete"]
         labels_[0] = "ROI"
         data = [[roi[label] for label in self.labels] for roi in rois]
-        self.sheet = tksheet.Sheet(master, data=data, headers=labels_, font=font, header_font=header_font, align="w", show_row_index=False, width=self.width, height=self.height(cell_height, rois), frame_bg="#A6A6A6", table_bg="#A6A6A6", top_left_bg="#A6A6A6", header_hidden_columns_expander_bg="#A6A6A6", show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, enable_edit_cell_auto_resize=False, auto_resize_default_row_index=False, show_default_header_for_empty=False, empty_horizontal=0, empty_vertical=0, total_columns=cmax+2)
+        self.sheet = tksheet.Sheet(master, data=data, headers=labels_, font=font, header_font=header_font, align="w", show_row_index=False, width=self.width, height=self.height(cell_height, rois), frame_bg="black", table_bg="#A6A6A6", top_left_bg="#A6A6A6", header_hidden_columns_expander_bg="#A6A6A6", header_fg="black", header_bg="#FF7F4F", header_grid_fg="#A6A6A6", table_grid_fg="black", show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, enable_edit_cell_auto_resize=False, auto_resize_default_row_index=False, show_default_header_for_empty=False, empty_horizontal=0, empty_vertical=0, total_columns=cmax+2)
         self.add_elements(cmax)
         self.sheet.enable_bindings()
         self.sheet.disable_bindings(["rc_insert_column", "rc_delete_column", "rc_insert_row", "rc_delete_row", "hide_columns",  "row_height_resize","row_width_resize", "column_height_resize", "column_width_resize", "edit_header", "arrowkeys"])
