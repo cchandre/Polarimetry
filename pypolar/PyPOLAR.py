@@ -360,7 +360,7 @@ class Polarimetry(CTk.CTk):
         self.button(banner, image=self.icons["contact_support"], command=lambda:self.openweb(Polarimetry.url_github + "/blob/master/README.md")).pack(side=tk.LEFT, padx=20)
         about_textbox = CTk.CTkTextbox(master=self.tabview.tab("About"), width=Polarimetry.tab_width-30, height=500)
         about_textbox.grid(row=1, column=0, padx=30)
-        message = f"Version: {Polarimetry.__version__} ({Polarimetry.__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV, Matplotlib, openpyxl \n\n\n  uses Material Design icons by Google"
+        message = f"Version: {Polarimetry.__version__} ({Polarimetry.__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV, Matplotlib, openpyxl, tksheet \n\n\n  uses Material Design icons by Google"
         about_textbox.insert("0.0", message)
         about_textbox.configure(state="disabled")
         self.tabview.set("Intensity")
@@ -607,58 +607,53 @@ class Polarimetry(CTk.CTk):
         widths = [40, 250, 90]
         button_labels = ["Commit", "Save", "Load", "Delete", "Delete All"]
         fsize = lambda w, h: f"{w+40}x{h+84}"
-        rois = []
 
         def on_closing(window):
-            self.datastack.rois = deepcopy(rois)
+            for roi in self.datastack.rois:
+                roi["select"] = True
             self.represent_fluo()
             self.represent_thrsh()
             window.destroy()
         
         def commit(manager):
-            nonlocal rois
             if any(self.datastack.rois):
                 data = manager.sheet.get_sheet_data()
-                self.datastack.rois = []
-                for _, roi in enumerate(rois):
+                for _, roi in enumerate(self.datastack.rois):
                     roi["name"] = data[_][1]
                     roi["group"] = data[_][2]
-                    if data[_][-2]:
-                        self.datastack.rois += [roi]
+                    roi["select"] = data[_][-2]
                 self.represent_fluo()
                 self.represent_thrsh()
 
         def save(manager):
-            if any(rois):
+            if any(self.datastack.rois):
                 data = manager.sheet.get_sheet_data()
-                for _, roi in enumerate(rois):
+                for _, roi in enumerate(self.datastack.rois):
                     roi["name"] = data[_][1]
                     roi["group"] = data[_][2]  
+                    roi["select"] = data[_][-2]
                 with open(self.datastack.filename + ".pyroi", "wb") as f:
-                    pickle.dump(rois, f, protocol=pickle.HIGHEST_PROTOCOL)
+                    pickle.dump(self.datastack.rois, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         def load(manager, window):
-            nonlocal rois
-            delete_all(manager, window)
-            filetypes = [("PyROI files", "*.pyroi")]
-            filename = fd.askopenfilename(title="Select a PyROI file", initialdir="/", filetypes=filetypes)
-            with open(filename, "rb") as f:
-                self.datastack.rois = pickle.load(f)
-            rois = deepcopy(self.datastack.rois)
-            manager.sheet.set_options(height=manager.height(20, self.datastack.rois))
-            x, y = window.winfo_x(), window.winfo_y()
-            window.geometry(fsize(manager.width, manager.height(20, self.datastack.rois)) + f"+{x}+{y}")
-            manager.sheet.insert_rows(rows=len(self.datastack.rois))
-            manager.add_elements(len(labels))
-            manager.rois2sheet(self.datastack.rois)
-            self.represent_fluo()
-            self.represent_thrsh()
+            if hasattr(self, "datastack"):
+                delete_all(manager, window)
+                filetypes = [("PyROI files", "*.pyroi")]
+                filename = fd.askopenfilename(title="Select a PyROI file", initialdir="/", filetypes=filetypes)
+                with open(filename, "rb") as f:
+                    self.datastack.rois = pickle.load(f)
+                manager.sheet.set_options(height=manager.height(20, self.datastack.rois))
+                x, y = window.winfo_x(), window.winfo_y()
+                window.geometry(fsize(manager.width, manager.height(20, self.datastack.rois)) + f"+{x}+{y}")
+                manager.sheet.insert_rows(rows=len(self.datastack.rois))
+                manager.add_elements(len(labels))
+                manager.rois2sheet(self.datastack.rois)
+                self.represent_fluo()
+                self.represent_thrsh()
 
         def delete(manager, window):
-            nonlocal rois
             if any(self.datastack.rois):
                 manager.delete(self.datastack.rois)
-                rois = deepcopy(self.datastack.rois)
                 manager.sheet.set_options(height=manager.height(20, self.datastack.rois))
                 x, y = window.winfo_x(), window.winfo_y()
                 window.geometry(fsize(manager.width, manager.height(20, self.datastack.rois)) + f"+{x}+{y}")
@@ -666,9 +661,8 @@ class Polarimetry(CTk.CTk):
                 self.represent_thrsh()
         
         def delete_all(manager, window):
-            nonlocal rois
             if any(self.datastack.rois):
-                self.datastack.rois, rois = [], []
+                self.datastack.rois = []
                 manager.delete_all()
                 manager.sheet.set_options(height=manager.height(20, []))
                 x, y = window.winfo_x(), window.winfo_y()
@@ -686,20 +680,26 @@ class Polarimetry(CTk.CTk):
             self.manager_window.bind("<Command-q>", lambda:on_closing(self.manager_window))
             self.manager_window.bind("<Command-w>", lambda:on_closing(self.manager_window))
             if hasattr(self, "datastack"):
-                rois = deepcopy(self.datastack.rois)
-            self.manager = ROIManager(self.manager_window, rois, labels, widths)
-            self.manager.sheet.grid(row=0, column=0, columnspan=len(button_labels), sticky="nswe", padx=20, pady=20)
+                self.manager = ROIManager(self.manager_window, self.datastack.rois, labels, widths)
+            else:
+                self.manager = ROIManager(self.manager_window, [], labels, widths)
+            self.manager.sheet.grid(row=0, column=0, sticky="nswe", padx=20, pady=(20, 0))
+            bottom_frame = CTk.CTkFrame(self.manager_window)
+            bottom_frame.grid(row=1, column=0, sticky="nswe", padx=20, pady=(0, 20))
             buttons = []
             for it, label in enumerate(button_labels):
-                button = self.button(self.manager_window, text=label, width=80)
+                button = self.button(bottom_frame, text=label, width=80)
                 buttons += [button]
-                button.grid(row=2, column=it, padx=10, pady=10, sticky="nswe")
+                button.grid(row=0, column=it, padx=10, pady=10, sticky="nswe")
             buttons[0].configure(width=80, fg_color=Polarimetry.green[0], hover_color=Polarimetry.green[1], command=lambda:commit(self.manager))
             buttons[1].configure(command=lambda:save(self.manager))
             buttons[2].configure(command=lambda:load(self.manager, self.manager_window))
             buttons[-1].configure(fg_color=Polarimetry.red[0], hover_color=Polarimetry.red[1], command=lambda:delete_all(self.manager, self.manager_window))
             buttons[-2].configure(fg_color=Polarimetry.red[0], hover_color=Polarimetry.red[1], command=lambda:delete(self.manager, self.manager_window))
-            self.manager_window.geometry(fsize(self.manager.width, self.manager.height(20, rois)) + "+1200+200")
+            if hasattr(self, "datastack"):
+                self.manager_window.geometry(fsize(self.manager.width, self.manager.height(20, self.datastack.rois)) + "+1200+200")
+            else:
+                self.manager_window.geometry(fsize(self.manager.width, self.manager.height(20, [])) + "+1200+200")
         elif hasattr(self, "datastack") and update:
             self.manager.sheet.set_options(height=self.manager.height(20, self.datastack.rois))
             x, y = self.manager_window.winfo_x(), self.manager_window.winfo_y()
@@ -709,7 +709,6 @@ class Polarimetry(CTk.CTk):
             self.manager.sheet.insert_row([roi[label] for label in labels])
             self.manager.sheet.create_checkbox(c=cmax, r=len(self.datastack.rois)-1, checked = True)
             self.manager.sheet.create_checkbox(c=cmax+1, r=len(self.datastack.rois)-1, checked = False)
-
 
     def add_axes_on_all_figures(self):
         figs = list(map(plt.figure, plt.get_fignums()))
@@ -1296,7 +1295,7 @@ class Polarimetry(CTk.CTk):
             indx = self.datastack.rois[-1]["indx"] + 1
         else:
             indx = 1
-        self.datastack.rois += [{"indx": indx, "label": (roi.x[0], roi.y[0]), "vertices": vertices, "ILow": self.ilow.get(), "name": "", "group": ""}]
+        self.datastack.rois += [{"indx": indx, "label": (roi.x[0], roi.y[0]), "vertices": vertices, "ILow": self.ilow.get(), "name": "", "group": "", "select": True}]
         window.withdraw()
         for line in roi.lines:
             line.remove()
@@ -1570,15 +1569,16 @@ class Polarimetry(CTk.CTk):
     def add_patches(self, datastack, ax, fig, rotation=True):
         if len(datastack.rois):
             for roi in datastack.rois:
-                vertices = roi["vertices"]
-                coord = roi["label"][0], roi["label"][1]
-                if (int(self.rotation[1].get()) != 0) and rotation:
-                    theta = np.deg2rad(int(self.rotation[1].get()))
-                    x0, y0 = datastack.width / 2, datastack.height / 2
-                    coord = x0 + (coord[0] - x0) * np.cos(theta) + (coord[1] - y0) * np.sin(theta), y0 - (coord[0] - x0) * np.sin(theta) + (coord[1] - y0) * np.cos(theta)
-                    vertices = np.asarray([x0 + (vertices[0] - x0) * np.cos(theta) + (vertices[1] - y0) * np.sin(theta), y0 - (vertices[0] - x0) * np.sin(theta) + (vertices[1] - y0) * np.cos(theta)])
-                ax.add_patch(Polygon(vertices.T, facecolor="none", edgecolor="white"))
-                ax.text(coord[0], coord[1], str(roi["indx"]), color="w")
+                if roi["select"]:
+                    vertices = roi["vertices"]
+                    coord = roi["label"][0], roi["label"][1]
+                    if (int(self.rotation[1].get()) != 0) and rotation:
+                        theta = np.deg2rad(int(self.rotation[1].get()))
+                        x0, y0 = datastack.width / 2, datastack.height / 2
+                        coord = x0 + (coord[0] - x0) * np.cos(theta) + (coord[1] - y0) * np.sin(theta), y0 - (coord[0] - x0) * np.sin(theta) + (coord[1] - y0) * np.cos(theta)
+                        vertices = np.asarray([x0 + (vertices[0] - x0) * np.cos(theta) + (vertices[1] - y0) * np.sin(theta), y0 - (vertices[0] - x0) * np.sin(theta) + (vertices[1] - y0) * np.cos(theta)])
+                    ax.add_patch(Polygon(vertices.T, facecolor="none", edgecolor="white"))
+                    ax.text(coord[0], coord[1], str(roi["indx"]), color="w")
             fig.draw()
 
     def plot_composite(self, var, datastack, vmin, vmax):
@@ -1831,9 +1831,10 @@ class Polarimetry(CTk.CTk):
             roi_map = np.zeros(shape, dtype=np.int32)
             roi_ilow_map = np.zeros(shape, dtype=np.float64)
             for roi in datastack.rois:
-                patch= Polygon(roi["vertices"].T)
-                roi_map[patch.contains_points(points).reshape(shape)] = roi["indx"] if self.per_roi.get() else 1
-                roi_ilow_map[patch.contains_points(points).reshape(shape)] = roi["ILow"]
+                if roi["select"]:
+                    patch= Polygon(roi["vertices"].T)
+                    roi_map[patch.contains_points(points).reshape(shape)] = roi["indx"] if self.per_roi.get() else 1
+                    roi_ilow_map[patch.contains_points(points).reshape(shape)] = roi["ILow"]
         else:
             roi_map = np.ones(shape, dtype=np.int32)
             roi_ilow_map = np.ones(shape, dtype=np.float64) * np.float64(self.ilow.get())
@@ -2046,7 +2047,7 @@ class ROI:
 
 class Calibration():
 
-    dict_1pf = {"no distortions": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 0), "488 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 175), "561 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 120), "640 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 125), "488 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0", 80), "561 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0", 80), "640 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0", 80), "488 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0", 80), "561 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0", 80), "640 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0", 80), "488 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0", 80), "561 nm (before 13/12/2019)": ("Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0", 80), "640 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0", 80), "other": (None, 0)}
+    dict_1pf = {"no distortions": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 0), "488 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 175), "561 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 120), "640 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 125), "488 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0", 0), "561 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0", 0), "640 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0", 0), "488 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0", 0), "561 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0", 0), "640 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0", 0), "488 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0", 0), "561 nm (before 13/12/2019)": ("Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0", 0), "640 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0", 0), "other": (None, 0)}
 
     folder_1pf = os.path.join(os.path.dirname(os.path.realpath(__file__)), "diskcones")
 
