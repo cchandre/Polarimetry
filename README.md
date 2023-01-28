@@ -65,10 +65,23 @@ ___
 
 * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/format_list.png" alt=" " width="30"/> opens the ROI Manager. 
 
+     - `ROI`: displays the index of the ROI (as displayed in the intensity and thresholing/mask images
+     - `name`: to be entered by the user as a tag of the specicif ROI; it will be saved in the MS excel 
+     - `group `: to be entered by the user as a tag of the specicif group the ROI belongs to; it will be saved in the MS excel 
+     - `select`: select the ROIs to be considered in the analysis
+     - `delete`: select the ROIs to be permanently deleted (then click on the button `Delete` to actually delete them and update the tables and images)
+     - Button `Commit`: click on this button to commit the changes made to the labels of the ROIs (names, groups and selection)
+     - Button `Save`: save the information on all the ROIs as a binary `.pyroi` file
+     - Button `Load`: load the ROIs from a binary `.pyroi` file
+     - Button `Delete`: permanently deletes all the ROIs selected in `select`
+     - Button `Delete All`: permamently deletes all the ROIs in the list
+
 [&uarr;](#manual)
 
 ___
 ### Options tab
+
+#### Figures
 
  The `Show/Save` table lists all possible outputs (`Composite`, `Sticks`, `Histogram`, `Intensity`):
   * `Composite` image of the variable *C* displays the values of *C* as color-coded pixels on top of the intensity image using the colors in the colormap.
@@ -78,19 +91,31 @@ ___
 
 Check the boxes in the Show column for the figure types to be displayed, and in the Save column for the figures to be saved (as `.tif` files).
 
+#### Variables
+
   The `Variable` table lists all the possible variables *C*. Check the boxes for the variables *C* to be displayed and/or saved in the analysis. For `1PF`, `4POLAR 2D`: (&rho;, &psi;). For `CARS`, `SRS`, `2PF`: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For `SHG`: (&rho;, S<sub>SHG</sub>). For `4POLAR 3D`: (&rho;, &psi;, &eta;). The second and third column display the minimum and maximum values of the variables (for the colorbars of histograms and composite and stick maps). These elements are editable (except for *&rho;*) if the toggle switch is selected.
+  
+
+#### Save output
 
   The `Save extension` table lists the saving options: `data (.pbz2)` for saving data as a compressed pickle file (to be download as `previous analysis` in the file selection), `figures (.tif)` for exporting the figures in a `.tif` format, `data (.mat)` for saving the values of the variables for each pixel used in the analysis as a MATLAB `.mat` file, `mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and an animated gif file `stack (.gif)`
 
-  * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/delete_forever.png" alt=" " width="30"/> reinitializes the `Show/Save` and `Variable` tables.
-  * Checkbox `perROI`: if selected, the results are displayed and saved separately for each ROI; otherwise, the results are displayed and saved by grouping all ROIs.  
 
-#### Plot options
+#### Post-processing
   * Checkbox `Add axes on figure`: if selected, the pixel numbers on the axes of each open figure is displayed (also visible on the `.tif` images if selected).
+
+* Button `Crop figures`<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/crop.png" alt=" " width="30"/>: enter the x-range and y-range for cropping the figures; the values are also the ones used in the save animated gif. 
+
+* Button `Show individual fit`<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/query_stats.png" alt=" " width="30"/>: Click on this button to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the Composite figure of &rho;. 
+
+
+#### Pixels separating sticks
+
   * Spinners for the number of pixels separating sticks on stick maps: `vertical` = number of pixels separating sticks vertically, `horizontal` = number of pixels separating sticks horizontally (i.e., 1 means every pixel, 2 means every other pixel, etc...); the spinners apply directly to open stick figures.
 
 
-Button `Show individual fit`: Click on this button to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the Composite figure of &rho;. 
+ * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/delete_forever.png" alt=" " width="30"/> reinitializes the `Show/Save` and `Variable` tables.
+  * Checkbox `perROI`: if selected, the results are displayed and saved separately for each ROI; otherwise, the results are displayed and saved by grouping all ROIs.  
 
 
 *Convention for the origin of the angles*: The orientation angles &rho; (for sticks and histograms) are computed with the following convention, related to the field of view. Please also note the numbering of the pixels in the horizontal and vertical axes.
@@ -108,18 +133,18 @@ The `Used dark value` indicated in the entry box is the value used in the analys
 
 *Method to compute the* `Calculated dark value`: The stack is paved with non-overlapping cells of 20x20 pixels. The mean value of the first element of the stack (first angle) is computed for each cell. The average over all angles of the cell with the smallest mean value is the `Calculated dark value`.
 
-#### Offset angle
+#### Polarization
 
-The value of the offset angle used in the analysis is indicated. This angle is in degrees measured according to the convention mentioned in the [Options](#options-tab) tab. In order to manually change this value, the switch should be set to 'On'.
+* The value of the offset angle used in the analysis is indicated. This angle is in degrees measured according to the convention mentioned in the [Options](#options-tab) tab. In order to manually change this value, the switch should be set to 'On'.
 
-#### Disk Cone (for 1PF)
+* Select the polarization direction as clockwise or counter-clockwise.
 
-The drop down menu lists all the disk cones included in the app. If the disk cone to be used is not in the list, select `other`and download the appropriate disk cone. The choice of disk cone also sets the value for the offset angle.
+#### Disk cone / Calibration data (for 1PF and 4POLAR)
+
+For 1PF: The drop down menu lists all the disk cones included in the app. If the disk cone to be used is not in the list, select `other`and download the appropriate disk cone. The choice of disk cone also sets the value for the offset angle.
 Click on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo.png" alt=" " width="30"/> `Display` to visualize the disk cone used in the `1PF` analysis. The name of the disk cone used in the analysis is displayed on the lower part of the panel.
 
-#### Calibration Data (for 4POLAR)
-
-The first drop down menu lists all the calibration data included in the app. If the calibration data to be used is not in the list, select `other`and download the appropriate calibration data. The calibration data is a `.mat` file with a name of the type `Calib*.mat` containing a 4x4 matrix *K*. The name of the calibration data used in the analysis is displayed on the lower part of the panel.
+For 4POLAR: The first drop down menu lists all the calibration data included in the app. If the calibration data to be used is not in the list, select `other`and download the appropriate calibration data. The calibration data is a `.mat` file with a name of the type `Calib*.mat` containing a 4x4 matrix *K*. The name of the calibration data used in the analysis is displayed on the lower part of the panel.
 Select the distribution of the polarization angles (0&deg;, 45&deg;, 90&deg;, 135&deg;) using the second drop down menu: UL (upper left), UR (upper right), LR (lower right) and LL (lower left).
 
 #### Binning
@@ -131,7 +156,7 @@ This option is used to improve the quality of the stack if the signal is too wea
 * `Stick (deg)`: (editable) value of the angle (in degrees) to arbitrarily rotate the sticks (following the above-mentioned convention: positive=counter-clockwise, negative=clockwise)
 * `Figure (deg)`: (editable) value of the angle (in degrees) to arbitrarily rotate the entire figure (following the above-mentioned convention: positive=counter-clockwise, negative=clockwise)
 
-#### Remove Background
+#### Remove background
 
 This option is used to remove background from the stack (noise substraction). First, choose the value `Noise factor` (between 0 and 1) for the fraction of the mean intensity of the patch to be removed from the stack. Second, define the size in pixels (`Noise width` and `Noise height`) of the patch in the noisy part of the intensity image. Third, select a point (center of the patch of size `Noise width` x `Noise height`) in the intensity image by clicking on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/exposure.png" alt=" " width="30"/> `Click background`. The mean value over the selected patch weighted by the Noise factor is removed from the entire stack. The noise removal level which is substracted from the stack is indicated in the lower panel of the panel.
 
