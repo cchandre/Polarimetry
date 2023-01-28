@@ -51,7 +51,7 @@ ___
 
   The thresholding/mask tab displays the total intensity (total = sum over the angles) image of the stack to be analyzed with a threshold specified in `ILow`. The selected dark value has been removed from the intensity (see [Advanced](#advanced-tab) tab for more information on the dark).
 
-  The value of `ILow` can be modified with the `ILow` slider. The entry box displays the selected `ILow` which can also be entered manually.
+  The value of `ILow` can be modified with the `ILow` slider. The entry box displays the selected `ILow` which can also be entered manually. The value of `ILow` used for the analysis is saved in the MS Excel file (see `Save output` in [Options](#options-tab) tab).
 
   * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/contrast.png" alt=" " width="30"/> For improved visualization, the contrast can be adjusted with the slider on the right hand side of the tab. The selected contrast does not affect the analysis. 
 
@@ -98,7 +98,7 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
 
 #### Save output
 
-  The `Save output` table lists the saving options: `data (.pbz2)` for saving data as a compressed pickle file (to download as `Previous analysis` in the download selection), `figures (.tif)` for exporting the figures as TIFF files, `data (.mat)` for saving the values of the variables for each pixel used in the analysis as a MATLAB `.mat` file, `mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and `stack (.gif)` for an animated gif file of the stack.
+  The `Save output` table lists the saving options: `data (.pbz2)` for saving data as a compressed pickle file (to download as `Previous analysis` in the download selection), `figures (.tif)` for exporting the figures as TIFF files, `data (.mat)` for saving the values of the variables for each pixel used in the analysis as a MATLAB `.mat` file, `mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and `movie (.gif)` for an animated gif file of the stack.
 
 
 #### Post-processing
