@@ -131,9 +131,9 @@ ___
 
 #### Dark
 
-The `Used dark value` indicated in the entry box is the value used in the analysis to remove the small residual intensity of the stack. The default is the `calculated dark value` indicated above the entry box. To change it, select the toggle and enter the chosen value in the entry box. For `1PF`, the minimum possible value is 480.
+The `Used dark value` indicated in the entry box is the value used in the analysis to remove the small residual intensity of the stack. The default is the `Calculated dark value` indicated above the entry box. To change it, select the toggle and enter the chosen value in the entry box. For `1PF`, the minimum possible value is 480.
 
-*Method to compute the* `Calculated dark value`: The stack is paved with non-overlapping cells of 20x20 pixels. The mean value of the first element of the stack (first angle) is computed for each cell. The average over all angles of the cell with the smallest mean value is the `Calculated dark value`.
+*Method to compute the* `Calculated dark value`: Each image of the stack is paved with non-overlapping cells of 20x20 pixels. The mean value of each cell is computed for the first image of the stack (first angle). The average over all angles of the cell with the smallest mean value is the `Calculated dark value`.
 
 #### Polarization
 
