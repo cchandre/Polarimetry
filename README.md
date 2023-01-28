@@ -73,7 +73,7 @@ ___
      - Button `Commit`: click this button to commit the changes made to the labels of the ROIs (names, groups and selection)
      - Button `Save`: save the information on all the ROIs as a binary `.pyroi` file
      - Button `Load`: load the ROIs from a binary `.pyroi` file
-     - Button `Delete`: permanently deletes all the ROIs selected in `delete`; ROIs are renumbered
+     - Button `Delete`: permanently deletes all the ROIs selected in `delete`; ROIs are renumbered in the ROI Manager and in the intensity and thresholding/mask images
      - Button `Delete All`: permamently deletes all the ROIs in the list
 
 [&uarr;](#manual)
