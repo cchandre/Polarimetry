@@ -122,7 +122,7 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
 
 <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/convention.png" alt=" " width="300"/>
 
-For 4polar methods, the angle &eta; are computed such that 0 correpsonds to being perpendicular to the image plane and 90 to being parallel to the image plane. 
+For 4polar methods, the orientation angles &eta; (for sticks and histograms) are computed such that 0&deg; corresponds to being perpendicular to the image plane and 90&deg; to being parallel to the image plane. 
 
 [&uarr;](#manual)
 
