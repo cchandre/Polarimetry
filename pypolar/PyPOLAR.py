@@ -332,7 +332,7 @@ class Polarimetry(CTk.CTk):
         self.calib_textbox.grid(row=3, column=0, pady=10)
         self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=Polarimetry.button_size[0], height=Polarimetry.button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled")
         self.polar_dropdown.grid(row=4, column=0, pady=10)
-        ToolTip.createToolTip(self.polar_dropdown, "4POLAR: Select repartition of polarizations (0,45,90,135) among quadrants clockwise\n Upper Left (UL), Upper Right (UR), Lower Right (LR), Lower Left (LL)")
+        ToolTip.createToolTip(self.polar_dropdown, "4POLAR: Select the distribution of polarizations (0,45,90,135) among quadrants clockwise\n Upper Left (UL), Upper Right (UR), Lower Right (LR), Lower Left (LL)")
         labels = ["Bin width", "Bin height"]
         self.bin = [tk.IntVar(), tk.IntVar()]
         self.bin[0].set(1)
@@ -1825,6 +1825,9 @@ class Polarimetry(CTk.CTk):
         if self.method.get() in ["1PF", "4POLAR 2D", "4POLAR 3D"]:
             title += ["Calibration"]
             results += [self.CD.name]
+        if self.method.get().startswith("4POLAR"):
+            title += ["4POLAR angles"]
+            results += [self.polar_dropdown.get()]
         title += ["dark", "offset", "polarization", "bin width", "bin height"]
         results += [float(self.dark.get()), self.offset_angle.get(), self.polar_dir.get(), self.bin[0].get(), self.bin[1].get()]
         return results, title
