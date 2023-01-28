@@ -1188,7 +1188,8 @@ class Polarimetry(CTk.CTk):
         window.withdraw()
 
     def yes_save_registration_callback(self, window, fig, filename):
-        savemat(os.path.splitext(filename)[0] + "_reg.mat", self.registration)
+        with open(os.path.splitext(filename)[0] + ".pyreg") as f:
+            pickle.dump(self.registration, f, protocol=pickle.HIGHEST_PROTOCOL)
         plt.close(fig)
         window.withdraw()
 
@@ -1200,14 +1201,9 @@ class Polarimetry(CTk.CTk):
 
     def load_registration(self, window):
         window.withdraw()
-        filename = fd.askopenfilename(title="Select a registration file (*_reg.mat)", initialdir="/", filetypes=[("MAT-files", "*.mat")])
-        if filename.endswith("_reg.mat"):
-            self.registration = loadmat(filename)
-        else:
-            window, buttons = self.showinfo(message=" Incorrect registration file", image=self.icons["blur_circular"], button_labels=["OK"], geometry=(340, 140))
-            buttons[0].configure(command=lambda:window.withdraw())
-            self.registration = {}
-            self.method.set("1PF")
+        filename = fd.askopenfilename(title="Select a registration file (*.pyreg)", initialdir="/", filetypes=[("PYREG-files", "*.pyreg")])
+        with open(filename, "rb") as f:
+            self.registration = pickle.load(f)
 
     def define_stack(self, filename, data=True):
         stack_vals = cv2.imreadmulti(filename, [], cv2.IMREAD_ANYDEPTH)[1]
