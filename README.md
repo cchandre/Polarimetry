@@ -120,7 +120,7 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
 
 *Convention for the origin of the angles*: The orientation angles &rho; (for sticks and histograms) are computed with the following convention, related to the field of view. Please also note the numbering of the pixels in the horizontal and vertical axes.
 
-<img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/convention.png" alt=" " width="300"/>
+<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/convention.png" alt=" " width="300"/>
 
 [&uarr;](#manual)
 
