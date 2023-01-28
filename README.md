@@ -39,7 +39,7 @@ ___
 
   * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/contrast.png" alt=" " width="30"/> The contrast can be adjusted with the contrast slider on the right hand side of the tab. This value of the contrast will be used in the intensity images in the figures.
 
-  * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/square.png" alt=" " width="30"/> displays the angle (in deg) and the length (in number of pixels) of the segment selected on the intensity image. The angle is defined with a counter-clockwise orientation in the field of view as specified in the [Options](#options-tab) tab). Click the left mouse button to select this segment.
+  * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/square.png" alt=" " width="30"/> displays the angle (in deg) and the length (in number of pixels) of the segment selected on the intensity image. The angle is defined counter-clockwise in the field of view (see [Options](#options-tab) tab). Click the left mouse button to select this segment.
 
 
   The lower part of the tab indicates the name of the stack to be analyzed.
@@ -104,7 +104,7 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
 #### Post-processing
   * Checkbox `Add axes on figure`: if selected, the pixel numbers on the axes of each open figure is displayed (also visible on the `.tif` images if selected).
 
-* Button `Crop figures`<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/crop.png" alt=" " width="30"/>: enter the x-range and y-range for cropping the figures; the values are also the ones used in the save animated gif. 
+* Button `Crop figures`<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/crop.png" alt=" " width="30"/>: enter the x-range and y-range for cropping the figures; the values are also the ones used in the saved animated gif (see `Save output`). 
 
 * Button `Show individual fit`<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/query_stats.png" alt=" " width="30"/>: Click this button to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the Composite figure of &rho;. 
 
@@ -115,10 +115,10 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
 
 
  * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/delete_forever.png" alt=" " width="30"/> reinitializes the `Show/Save` and `Variable` tables.
-  * Checkbox `perROI`: if selected, the results are displayed and saved separately for each ROI; otherwise, the results are displayed and saved by grouping all ROIs.  
+  * Checkbox `per ROI`: if selected, the results are displayed and saved separately for each ROI; otherwise, the results are displayed and saved by grouping all ROIs. 
 
 
-*Convention for the origin of the angles*: The orientation angles &rho; (for sticks and histograms) are computed with the following convention, related to the field of view. Please also note the numbering of the pixels in the horizontal and vertical axes.
+*Convention for the origin of the angles*: The orientation angles &rho; (for sticks and histograms) are computed counter-clockwise with the convention specified in the following image, related to the field of view. Please also note the numbering of the pixels in the horizontal and vertical axes. For 4polar methods, the angle &eta; 
 
 <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/convention.png" alt=" " width="300"/>
 
