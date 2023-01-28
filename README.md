@@ -28,7 +28,7 @@ ___
 
   * <ins>Add ROI: </ins>  <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/roi.png" alt=" " width="30"/>   select a region of interest (ROI) on the [Thresholding/Mask](#thresholdingmask-tab) tab to be analyzed; each ROI once confirmed is numbered and displayed on the intensity image ([Intensity](#intensity-tab) tab) and on the thresholded image ([Thresholding/Mask](#thresholdingmask-tab) tab). For each ROI, thresholding needs to be done *before* the drawing of the ROI. For polygonal ROIs, click successively on the left mouse button, for freehand ROIs, click continuously on the right mouse button. Double click to close the ROI. 
 
-  * <ins>Registration (4POLAR): </ins>   When the selected method of analysis is `4POLAR 2D` or `4POLAR 3D`, a registration file is needed. Two options: The registration has already been performed, so load the registration file (`*_reg.mat` file containing the geometric transformation). Otherwise, the registration is performed with a beads file (named `fbeads*.tif`) and a whitelight file (named `Whitelight.tif`). The two files need to be in the same folder. The registration proceeds as follows: First, it determines the contours of the four fields of view (the image is binarized using [`imbinarize`](https://mathworks.com/help/images/ref/imbinarize.html) with a threshold given by [`graythresh`](https://mathworks.com/help/images/ref/graythresh.html) and the contours are determined using [`bwboundaries`](https://mathworks.com/help/images/ref/bwboundaries.html)); Second, the beads image is split in four equal-sized images corresponding to these four fields of view; All these images are scaled and a background is removed using [`graythresh`](https://mathworks.com/help/images/ref/graythresh.html); Third, the registration with a fixed image (top left field of view) is done sequentially with the three other fields of view (moving images) using the MATLAB registration function [`imregtform`](https://mathworks.com/help/images/ref/imregtform.html) (with modality 'multimodal' and parameters MaximumIterations=1000, InitialRadius=1e-3, Epsilon=1.5e-6, GrowthFactor=1.0001). This function provides the geometric transformations which will be applied to all the images selected in the analysis. A MATLAB figure displays the resulting three registrations: If this registration is satisfactory, click on 'OK'. If it is satisfactory and you want to save it (to skip this registration in future analysis), click on 'OK and Save'. If it is not satisfactory, click on 'Cancel'.
+  * <ins>Registration (4POLAR): </ins>   When the selected method of analysis is `4POLAR 2D` or `4POLAR 3D`, a registration file is needed. Two options: The registration has already been performed, so load the registration file (`*.pyreg` file containing the geometric transformation). Otherwise, the registration is performed with a beads file (named `fbeads*.tif`) and a whitelight file (named `Whitelight.tif`). The two files need to be in the same folder. The registration proceeds as follows: First, it determines the contours of the four fields of view -- the image is thresholded using `cv2.threshold` with `cv2.THRESH_BINARY + cv2.THRESH_OTSU` and the contours are determined using `cv2.findContours` (see [OpenCV](https://docs.opencv.org/) documentation for more details) -- Second, the beads image is split in four equal-sized images corresponding to these four fields of view; All these fields of views are scaled and thresholded using `cv2.threshold`; Third, the registration with a fixed field of view (top left) is done sequentially with the three other fields of view (moving images) using the scale-invariant feature transform (SIFT) algorithm `cv2.SIFT_create` to detect local features in the images. Using a matching algorithm between the location of the beads in the images,  we determine all the perspective transformations using `cv2.findHomography`; These geometric transformations which will be applied to all the images selected in the analysis. A figure displays the resulting three registrations: If this registration is satisfactory, click on 'OK'. If it is satisfactory and you want to save it (to skip this registration in future analysis), click on 'OK and Save'. If it is not satisfactory, click on 'Cancel'.
 
 [&uarr;](#manual)
 
@@ -37,14 +37,12 @@ ___
 
   The intensity tab displays the total intensity (total = sum over the angles) of the stack to be analyzed (if `Stack` slider is set to 'T'), or the image *n* of the stack if the value of the `Stack` slider is set to *n*. The selected dark component has been removed from the total intensity (see [Advanced](#advanced-tab) tab for more information on the computation of the dark value).  
 
-  * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_brightness_6_black_48dp.png" alt=" " width="30"/> The contrast can be adjusted with the contrast slider on the right hand side of the tab.
+  * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/contrast.png" alt=" " width="30"/> The contrast can be adjusted with the contrast slider on the right hand side of the tab. This value of the contrast will be used in the display of intensity background in the figures.
 
-  * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_square_foot_black_48dp.png" alt=" " width="30"/> displays the angle (in deg) of the segment selected on the intensity image (with a counter-clockwise orientation in the field of view as specified in the [Options](#options-tab) tab).
+  * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/square.png" alt=" " width="30"/> displays the angle (in deg) and the distance (in px) of the segment selected on the intensity image (with a counter-clockwise orientation in the field of view as specified in the [Options](#options-tab) tab). Click on the right mouse button to select this segment.
 
 
-  * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/baseline_restart_alt_black_48dp.png" alt=" " width="30"/> erases the selected ROIs
-
-  For information, the lower part of the tab indicates the maximum total intensity and the name of the stack to be analyzed.
+  For information, the lower part of the tab indicates the name of the stack to be analyzed.
 
 [&uarr;](#manual)
 
@@ -53,16 +51,19 @@ ___
 
   The thresholding/mask tab displays the total intensity (total = sum over the angles) of the stack to be analyzed with a threshold specified in `ILow`. The selected Dark component has been removed from the intensity (see [Advanced](#advanced-tab) tab for more information on the Dark).
 
-  The value of `ILow` can be modified with the slider `ILow/Maximum` (ratio of the selected `ILow` and the maximum total intensity indicated in the [Intensity](#intensity-tab) tab).
+  The value of `ILow` can be modified with the slider `ILow`. The entry box displays the selected `ILow` which can also be entered manually.
 
-  * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_brightness_6_black_48dp.png" alt=" " width="30"/> For improved visualization, the contrast can be adjusted with the slider on the right hand side of the tab.
+  * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/contrast.png" alt=" " width="30"/> For improved visualization, the contrast can be adjusted with the slider on the right hand side of the tab. The selected contrast does not affect the analysis. 
 
   The component of the image below threshold can be visualized in transparency using the slider `Transparency`.
 
-  * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_open_in_new_black_48dp.png" alt=" " width="30"/> exports the binary mask in a `.png` format. Three options to create the masks: using selected ROIs only, using all the image above threshold, or a combination of both (component of the image above threshold and inside selected ROIs). The file name of the exported mask includes the suffix `_mask` to avoid overwriting an existing mask for the same file. To use it for further analysis, remove this suffix.
-  * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/outline_palette_black_48dp.png" alt=" " width="30"/>: click on this button to change the colormaps used in the thresholding image ('hot' or 'gray').
+  * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/palette.png" alt=" " width="30"/>: click on this button to change the colormaps used in the thresholding image ('hot' or 'gray').
 
- * For improved visualization, a dark <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_image_black_48dp.png" alt=" " width="30"/> or light <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/outline_insert_photo_black_48dp.png" alt=" " width="30"/> mode can be selected for the background.
+ * For improved visualization, a dark <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo_fill.png" alt=" " width="30"/> or light <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo.png" alt=" " width="30"/> mode can be selected for the background.
+
+* <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/open_in_new.png" alt=" " width="30"/> exports the binary mask in a `.png` format. Three options to create the masks: using selected ROIs only, using all the image above threshold, or a combination of both (component of the image above threshold and inside selected ROIs). The file name of the exported mask includes the suffix `_mask` to avoid overwriting an existing mask for the same file. To use it for further analysis, remove this suffix.
+
+* <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/format_list.png" alt=" " width="30"/> opens the ROI Manager. 
 
 [&uarr;](#manual)
 
@@ -72,24 +73,24 @@ ___
  The `Show/Save` table lists all possible outputs (`Composite`, `Sticks`, `Histogram`, `Intensity`):
   * `Composite` image of the variable *C* displays the values of *C* as color-coded pixels on top of the intensity image using the colors in the colormap.
   * `Sticks` image of the variable *C* displays the values of *C* as color-coded sticks (centered around pixels) on top of the intensity image with a color given by the value of *C* and an orientation given by the value of *&rho;*.
-  * `Histogram` displays the histograms of the selected variables *C*. NB: the histogram of the variables *&rho;* (for all methods) and *&eta;* (for `4POLAR 3D`) is displayed as a polar histogram.
+  * `Histogram` displays the histograms of the selected variables *C*. NB: the histograms for the variables *&rho;* (for all methods) and *&eta;* (for `4POLAR 3D`) are displayed as polar histograms.
   * `Intensity` image displays the intensity image of the [Intensity](#intensity-tab) tab with the applied contrast and the selected numbered ROIs.
 
-Check the boxes in the Show column for the figure types to be displayed, and in the Save column for the figures to be saved (in MATLAB `.fig` format or as `.tif`).
+Check the boxes in the Show column for the figure types to be displayed, and in the Save column for the figures to be saved (as `.tif` files).
 
-  The `Variable` table lists all the possible variables *C*. Check the boxes for the variables *C* to be displayed and/or saved in the analysis. For `1PF`, `4POLAR 2D`: (&rho;, &psi;). For `CARS`, `SRS`, `2PF`: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For `SHG`: (&rho;, S<sub>SHG</sub>). For `4POLAR 3D`: (&rho;, &psi;, &eta;). The second and third column display the minimum and maximum values of the variables (for the colorbars of histograms and composite and stick maps). These elements are editable (except for *&rho;*) if the right-hand-side switch is set to 'On'.
+  The `Variable` table lists all the possible variables *C*. Check the boxes for the variables *C* to be displayed and/or saved in the analysis. For `1PF`, `4POLAR 2D`: (&rho;, &psi;). For `CARS`, `SRS`, `2PF`: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For `SHG`: (&rho;, S<sub>SHG</sub>). For `4POLAR 3D`: (&rho;, &psi;, &eta;). The second and third column display the minimum and maximum values of the variables (for the colorbars of histograms and composite and stick maps). These elements are editable (except for *&rho;*) if the toggle switch is selected.
 
-  The `Save extension` table lists the saving options: `figures (.fig)` for saving the MATLAB `.fig` files, `figures (.tif)` for exporting the figures in a `.tif` format, `data (.mat)` for saving the values of the variables for each pixel used in the analysis, `mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and `stack (.mp4)`
+  The `Save extension` table lists the saving options: `data (.pbz2)` for saving data as a compressed pickle file (to be download as `previous analysis` in the file selection), `figures (.tif)` for exporting the figures in a `.tif` format, `data (.mat)` for saving the values of the variables for each pixel used in the analysis as a MATLAB `.mat` file, `mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and an animated gif file `stack (.gif)`
 
-  * <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_delete_forever_black_48dp.png" alt=" " width="30"/> reinitializes the `Show/Save` and `Variable` tables.
-  * Switch `perROI`: `on` if the results are displayed and saved separately for each ROI; `off` if the results are displayed and saved by grouping all ROIs.  
+  * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/delete_forever.png" alt=" " width="30"/> reinitializes the `Show/Save` and `Variable` tables.
+  * Checkbox `perROI`: if selected, the results are displayed and saved separately for each ROI; otherwise, the results are displayed and saved by grouping all ROIs.  
 
 #### Plot options
-  * Tick box `Add axes on figure`: Check this box for adding the pixel numbers on the axes of MATLAB `.fig` figures and `.tif` figures.
-  * Spinners for the number of pixels separating sticks on stick maps: `vertical` = number of pixels separating sticks vertically, `horizontal` = number of pixels separating sticks horizontally (i.e., 1 means every pixel, 2 means every other pixel, etc...)
+  * Checkbox `Add axes on figure`: if selected, the pixel numbers on the axes of each open figure is displayed (also visible on the `.tif` images if selected).
+  * Spinners for the number of pixels separating sticks on stick maps: `vertical` = number of pixels separating sticks vertically, `horizontal` = number of pixels separating sticks horizontally (i.e., 1 means every pixel, 2 means every other pixel, etc...); the spinners apply directly to open stick figures.
 
 
-Tick box `Show individual fit`: Check this box to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the Composite figure of &rho; (checked automatically if the `Show individual fit` box is ticked)
+Button `Show individual fit`: Click on this button to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the Composite figure of &rho;. 
 
 
 *Convention for the origin of the angles*: The orientation angles &rho; (for sticks and histograms) are computed with the following convention, related to the field of view. Please also note the numbering of the pixels in the horizontal and vertical axes.
@@ -114,11 +115,11 @@ The value of the offset angle used in the analysis is indicated. This angle is i
 #### Disk Cone (for 1PF)
 
 The drop down menu lists all the disk cones included in the app. If the disk cone to be used is not in the list, select `other`and download the appropriate disk cone. The choice of disk cone also sets the value for the offset angle.
-Click on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_image_black_48dp.png" alt=" " width="30"/> `Display` to visualize the disk cone used in the `1PF` analysis. The name of the disk cone used in the analysis is displayed on the lower part of the panel.
+Click on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo.png" alt=" " width="30"/> `Display` to visualize the disk cone used in the `1PF` analysis. The name of the disk cone used in the analysis is displayed on the lower part of the panel.
 
 #### Calibration Data (for 4POLAR)
 
-The first drop down menu lists all the calibration data included in the app. If the calibration data to be used is not in the list, select `other`and download the appropriate calibration data. The calibration data is a `.mat` file with a name of the type `Calib*.mat` (`Calib*_2D.mat` for `4POLAR 2D` or `Calib*_3D.mat` for `4POLAR 3D`) containing a 4x4 matrix *K*. The name of the calibration data used in the analysis is displayed on the lower part of the panel.
+The first drop down menu lists all the calibration data included in the app. If the calibration data to be used is not in the list, select `other`and download the appropriate calibration data. The calibration data is a `.mat` file with a name of the type `Calib*.mat` containing a 4x4 matrix *K*. The name of the calibration data used in the analysis is displayed on the lower part of the panel.
 Select the distribution of the polarization angles (0&deg;, 45&deg;, 90&deg;, 135&deg;) using the second drop down menu: UL (upper left), UR (upper right), LR (lower right) and LL (lower left).
 
 #### Binning
@@ -132,7 +133,7 @@ This option is used to improve the quality of the stack if the signal is too wea
 
 #### Remove Background
 
-This option is used to remove background from the stack (noise substraction). First, choose the value `Noise factor` (between 0 and 1) for the fraction of the mean intensity of the patch to be removed from the stack. Second, define the size in pixels (`Noise width` and `Noise height`) of the patch in the noisy part of the intensity image. Third, select a point (center of the patch of size `Noise width` x `Noise height`) in the intensity image by clicking on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/Icons/round_exposure_black_48dp.png" alt=" " width="30"/> `Click background`. The mean value over the selected patch weighted by the Noise factor is removed from the entire stack. The noise removal level which is substracted from the stack is indicated in the lower panel of the panel.
+This option is used to remove background from the stack (noise substraction). First, choose the value `Noise factor` (between 0 and 1) for the fraction of the mean intensity of the patch to be removed from the stack. Second, define the size in pixels (`Noise width` and `Noise height`) of the patch in the noisy part of the intensity image. Third, select a point (center of the patch of size `Noise width` x `Noise height`) in the intensity image by clicking on the button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/exposure.png" alt=" " width="30"/> `Click background`. The mean value over the selected patch weighted by the Noise factor is removed from the entire stack. The noise removal level which is substracted from the stack is indicated in the lower panel of the panel.
 
 [&uarr;](#manual)
 
