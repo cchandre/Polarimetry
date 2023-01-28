@@ -146,7 +146,7 @@ The offset angle and the polarization direction are saved in the MS Excel file (
 #### Disk cone / Calibration data (for 1PF and 4POLAR)
 
 For 1PF: The drop down menu lists all the disk cones included in the app. If the disk cone to be used is not in the list, select `other`and download the appropriate disk cone. The choice of disk cone also sets the value for the offset angle.
-Click the button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo.png" alt=" " width="30"/> `Display` to visualize the disk cone used in the `1PF` analysis. The name of the disk cone used in the analysis is displayed on the lower part of the panel.
+Click the button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo.png" alt=" " width="30"/> `Display` to visualize the disk cone used in the `1PF` analysis. The name of the disk cone used in the analysis is displayed on the lower part of the panel. The name of the disk cone is saved in the MS Excel file (see `Save output` in the [Options](#options-tab) tab). 
 
 For 4POLAR: The first drop down menu lists all the calibration data included in the app. If the calibration data to be used is not in the list, select `other`and download the appropriate calibration data. The calibration data is a `.mat` file with a name of the type `Calib*.mat` containing a 4x4 matrix *K*. The name of the calibration data used in the analysis is displayed on the lower part of the panel.
 Select the distribution of the polarization angles (0&deg;, 45&deg;, 90&deg;, 135&deg;) using the second drop down menu: UL (upper left), UR (upper right), LR (lower right) and LL (lower left).
