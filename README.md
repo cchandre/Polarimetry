@@ -139,6 +139,8 @@ The `Used dark value` indicated in the entry box is the value used in the analys
 
 * Select the polarization direction as clockwise or counter-clockwise.
 
+The offset angle and the polarization direction are saved in the MS Excel file (see `Save output` in the [Options](#options-tab) tab).
+
 #### Disk cone / Calibration data (for 1PF and 4POLAR)
 
 For 1PF: The drop down menu lists all the disk cones included in the app. If the disk cone to be used is not in the list, select `other`and download the appropriate disk cone. The choice of disk cone also sets the value for the offset angle.
@@ -150,6 +152,8 @@ Select the distribution of the polarization angles (0&deg;, 45&deg;, 90&deg;, 13
 #### Binning
 
 This option is used to improve the quality of the stack if the signal is too weak. It performs a convolution of the stack with a kernel of 1's of size `Bin width` x `Bin height`. A side effect is a blurring of the stack.
+
+The binning values are saved in the MS Excel file (see `Save output` in the [Options](#options-tab) tab).
 
 #### Rotation
 
