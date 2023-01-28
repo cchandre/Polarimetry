@@ -20,7 +20,7 @@ ___
 ___
 ### Left panel
 
-  * <ins>Choice of polarimetry method:</ins> <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/microscope.png" alt=" " width="30"/> `1PF` (one-photon fluorescence), `CARS` (coherent anti-Stokes Raman scattering), `SRS` (stimulated Raman scattering), `SHG` (second-harmonic generation), `2PF` (two-photon fluorescence), `4POLAR 2D` (2D 4polar fluorescence), `4POLAR 3D` (3D 4polar fluorescence).
+  * <ins>Choice of polarimetry method:</ins> <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/microscope.png" alt=" " width="30"/> `1PF` (one-photon fluorescence), `CARS` (coherent anti-Stokes Raman scattering), `SRS` (stimulated Raman scattering), `SHG` (second-harmonic generation), `2PF` (two-photon fluorescence), `4POLAR 2D` (2D 4POLAR fluorescence), `4POLAR 3D` (3D 4POLAR fluorescence).
 
   * <ins> Download data to be analyzed: </ins> <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/download_file.png" alt=" " width="30"/>: `Open file` (`.tiff` or `.tif` stack file) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo_fill.png" alt=" " width="30"/>, `Open folder` (containing `.tiff` or `.tif` stack files) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/folder_open.png" alt=" " width="30"/> or `Previous analysis` (a compressed `.pbz2` pickle file saved from a previous PyPOLAR analysis) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/analytics.png" alt=" " width="30"/>. The analysis is done with 16-bit images. In case of 32-bit images, they are converted to 16-bit images before analysis.   
 
@@ -93,7 +93,7 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
 
 #### Variables
 
-  The `Variables` table lists all the possible variables *C*. Check the boxes for the variables *C* to be displayed and/or saved in the analysis. For `1PF`, `4POLAR 2D`: (&rho;, &psi;). For `CARS`, `SRS`, `2PF`: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For `SHG`: (&rho;, S<sub>SHG</sub>). For `4POLAR 3D`: (&rho;, &psi;, &eta;). The second and third columns display the minimum and maximum values of the variables used for the colorbars of histograms and composite and stick maps. These elements are editable (except for *&rho;*) if the toggle switch is selected.
+  The `Variables` table lists all the possible variables *C*. Check the boxes for the variables *C* to be displayed and/or saved in the analysis. For `1PF`, `4POLAR 2D`: (&rho;, &psi;). For `CARS`, `SRS`, `2PF`: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For `SHG`: (&rho;, S<sub>SHG</sub>). For `4POLAR 3D`: (&rho;, &psi;, &eta;). The second and third columns display the minimum and maximum values of the variables used for the colorbars of histograms and composite and stick maps. These elements are editable (except for *&rho;*) if the switch is selected.
   
 
 #### Save output
@@ -122,7 +122,7 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
 
 <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/convention.png" alt=" " width="300"/>
 
-For 4polar methods, the orientation angles &eta; (for sticks and histograms) are computed such that 0&deg; corresponds to being perpendicular to the image plane and 90&deg; to being parallel to the image plane. 
+For 4POLAR methods, the orientation angles &eta; (for sticks and histograms) are computed such that 0&deg; corresponds to being perpendicular to the image plane and 90&deg; to being parallel to the image plane. 
 
 [&uarr;](#manual)
 
@@ -131,13 +131,13 @@ ___
 
 #### Dark
 
-The `Used dark value` indicated in the entry box is the value used in the analysis to remove the small residual intensity of the stack. The default is the `Calculated dark value` indicated above the entry box. To change it, select the toggle and enter the chosen value in the entry box. For `1PF`, the minimum possible value is 480.
+The `Used dark value` indicated in the entry box is the value used in the analysis to remove the small residual intensity of the stack. The default is the `Calculated dark value` indicated above the entry box. To change it, select the switch and enter the chosen value in the entry box. For `1PF`, the minimum possible value is 480.
 
 *Method to compute the* `Calculated dark value`: Each image of the stack is paved with non-overlapping cells of 20x20 pixels. The mean value of each cell is computed for the first image of the stack (first angle). The average over all angles of the cell with the smallest mean value is the `Calculated dark value`.
 
 #### Polarization
 
-* The value of the offset angle used in the analysis is indicated. This angle is in degrees measured according to the convention mentioned in the [Options](#options-tab) tab. In order to manually change this value, the switch should be set to 'On'.
+* The value of the offset angle used in the analysis is indicated. This angle (in degrees) is measured according to the convention mentioned in the [Options](#options-tab) tab. In order to manually change this value, the switch should be set to 'On'.
 
 * Select the polarization direction as clockwise or counter-clockwise.
 
