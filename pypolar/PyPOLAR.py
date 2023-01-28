@@ -1733,13 +1733,12 @@ class Polarimetry(CTk.CTk):
             for var in vars:
                 var.values *= mask
                 var.values[var.values==0] = np.nan
-        int_roi = np.amax(roi_map)
         for _, var in enumerate(vars):
             display, vmin, vmax = self.get_variable(_)
             if display:
                 self.plot_composite(var, datastack, vmin, vmax)
                 self.plot_sticks(var, datastack, vmin, vmax)
-                if int_roi >= 2:
+                if self.per_roi.get():
                     for roi in datastack.rois:
                         if roi["select"]:
                             self.plot_histo(var, datastack, vmin, vmax, roi_map, roi=roi)
@@ -1749,8 +1748,7 @@ class Polarimetry(CTk.CTk):
     def save_data(self, datastack, roi_map=[]):
         if len(roi_map) == 0:
             roi_map = self.compute_roi_map(datastack)[0]
-        int_roi = np.amax(roi_map)
-        if int_roi >= 2:
+        if self.per_roi.get():
             for roi in datastack.rois:
                 if roi["select"]:
                     self.save_mat(datastack, roi_map, roi=roi)
@@ -1783,7 +1781,7 @@ class Polarimetry(CTk.CTk):
             if not os.path.exists(filename):
                 title = ["File", "ROI", "name", "group", "MeanRho", "StdRho", "MeanDeltaRho"]
                 worksheet.append(title + self.return_vecexcel(datastack, roi_map)[1])
-            if int_roi >= 2:
+            if self.per_roi.get():
                 for roi in datastack.rois:
                     if roi["select"]:
                         worksheet.append(self.return_vecexcel(datastack, roi_map, roi=roi)[0])
