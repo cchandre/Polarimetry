@@ -118,7 +118,7 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
   * Checkbox `per ROI`: if selected, the results are displayed and saved separately for each ROI; otherwise, the results are displayed and saved by grouping all ROIs. 
 
 
-*Convention for the origin of the angles*: The orientation angles &rho; (for sticks and histograms) are computed counter-clockwise with the convention specified in the following image, related to the field of view. Please also note the numbering of the pixels in the horizontal and vertical axes. For 4polar methods, the angle &eta; 
+*Convention for the origin of the angles*: The orientation angles &rho; (for sticks and histograms) are computed counter-clockwise in the field of view as specified in the following image, related to the field of view. Please also note the numbering of the pixels in the horizontal and vertical axes. For 4polar methods, the angle &eta; 
 
 <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/convention.png" alt=" " width="300"/>
 
