@@ -61,19 +61,19 @@ ___
 
  * For improved visualization, a dark <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo_fill.png" alt=" " width="30"/> or light <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo.png" alt=" " width="30"/> mode can be selected for the background.
 
-* <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/open_in_new.png" alt=" " width="30"/> exports the binary mask in a `.png` format. Three options to create the masks: using selected ROIs only, using all the image above threshold, or a combination of both (component of the image above threshold and inside selected ROIs). The file name of the exported mask includes the suffix `_mask` to avoid overwriting an existing mask for the same file. To use it for further analysis, remove this suffix.
+* <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/open_in_new.png" alt=" " width="30"/> exports the binary mask in a `.png` format. Three options to create the masks: using selected ROIs only, using the image above threshold, or a combination of both (component of the image above threshold and inside selected ROIs). The file name of the exported mask includes the suffix `_mask` to avoid overwriting an existing mask for the same file. To use it for further analysis, remove this suffix.
 
 * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/format_list.png" alt=" " width="30"/> opens the ROI Manager. 
 
-     - `ROI`: displays the index of the ROI (as displayed in the intensity and thresholing/mask images
-     - `name`: to be entered by the user as a tag of the specicif ROI; it will be saved in the MS excel 
+     - `ROI`: displays the index of the ROI, as displayed in the intensity and thresholding/mask images
+     - `name`: to be entered by the user as a tag of the specific ROI; it will be saved in the MS Excel
      - `group `: to be entered by the user as a tag of the specicif group the ROI belongs to; it will be saved in the MS excel 
      - `select`: select the ROIs to be considered in the analysis
-     - `delete`: select the ROIs to be permanently deleted (then click the button `Delete` to actually delete them and update the tables and images)
+     - `delete`: select the ROIs to be permanently deleted (then click the button `Delete` to actually delete them and update the table and images)
      - Button `Commit`: click this button to commit the changes made to the labels of the ROIs (names, groups and selection)
      - Button `Save`: save the information on all the ROIs as a binary `.pyroi` file
      - Button `Load`: load the ROIs from a binary `.pyroi` file
-     - Button `Delete`: permanently deletes all the ROIs selected in `select`
+     - Button `Delete`: permanently deletes all the ROIs selected in `delete`; ROIs are renumbered
      - Button `Delete All`: permamently deletes all the ROIs in the list
 
 [&uarr;](#manual)
