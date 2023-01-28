@@ -20,11 +20,11 @@ ___
 ___
 ### Left panel
 
-  * <ins>Choice of polarimetry method:</ins> <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/microscope.png" alt=" " width="30"/> `1PF` (one-photon fluorescence), `CARS` (coherent anti-Stokes Raman scattering), `SRS` (stimulated Raman scattering), `SHG` (second-harmonic generation), `2PF` (two-photon fluorescence), `4POLAR 2D` (2D 4polar fluorescence), `4POLAR 3D` (3D 4polar fluorescence)
+  * <ins>Choice of polarimetry method:</ins> <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/microscope.png" alt=" " width="30"/> `1PF` (one-photon fluorescence), `CARS` (coherent anti-Stokes Raman scattering), `SRS` (stimulated Raman scattering), `SHG` (second-harmonic generation), `2PF` (two-photon fluorescence), `4POLAR 2D` (2D 4polar fluorescence), `4POLAR 3D` (3D 4polar fluorescence).
 
-  * <ins>Download</ins>  <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/download_file.png" alt=" " width="30"/> a file (`.tiff` or `.tif` stack file) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo_fill.png" alt=" " width="30"/>, a folder (containing `.tiff` or `.tif` stack files) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/folder_open.png" alt=" " width="30"/> or a previous PyPOLAR analysis (a compressed `.pbz2` pickle file) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/analytics.png" alt=" " width="30"/>. The analysis is done with 16-bit images. In case of 32-bit images, they are converted to 16-bit images before analysis.   
+  * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/download_file.png" alt=" " width="30"/> `Open file` (`.tiff` or `.tif` stack file) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo_fill.png" alt=" " width="30"/>, `Open folder` (containing `.tiff` or `.tif` stack files) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/folder_open.png" alt=" " width="30"/> or `Previous analysis` (a compressed `.pbz2` pickle file saved from a previous PyPOLAR analysis) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/analytics.png" alt=" " width="30"/>. The analysis is done with 16-bit images. In case of 32-bit images, they are converted to 16-bit images before analysis.   
 
-  * <ins>Select the method of analysis:</ins>  <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/build.png" alt=" " width="30"/> `Thresholding (manual)` (thresholding and regions of interest are manually selected for each stack), `Thresholding (auto)` (thresholding and regions of interest are selected for the first stack and applied to each stack to be analyzed in batch mode), `Mask (manual)` (a binary segmentation mask is applied to the analysis; the name of the segmentation mask has to be identical to the one of the stack with a `.png` extension), `Mask (auto)` (batch analysis, similar to `Thresholding (auto)` but with a segmentation mask applied to each stack)
+  * <ins>Select the method of analysis:</ins>  <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/build.png" alt=" " width="30"/> `Thresholding (manual)` (thresholding and regions of interest are manually selected for each stack), `Thresholding (auto)` (thresholding and regions of interest are selected for the first stack and applied to each stack to be analyzed in batch mode), `Mask (manual)` (a binary segmentation mask is applied to the analysis; the name of the segmentation mask has to be identical to the one of the stack with a `.png` extension), `Mask (auto)` (batch analysis, similar to `Thresholding (auto)` but with a segmentation mask applied to each stack).
 
   * <ins>Add ROI: </ins>  <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/roi.png" alt=" " width="30"/>   select a region of interest (ROI) on the [Thresholding/Mask](#thresholdingmask-tab) tab; each ROI, once confirmed, is numbered and displayed on the intensity image ([Intensity](#intensity-tab) tab), on the thresholded image ([Thresholding/Mask](#thresholdingmask-tab) tab) and in the ROI Manager. For each ROI, thresholding needs to be done *before* the drawing of the ROI. For polygonal ROIs, click successively the left mouse button, for freehand ROIs, click continuously the right mouse button. Double click to close the ROI. 
 
@@ -65,16 +65,16 @@ ___
 
 * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/format_list.png" alt=" " width="30"/> opens the ROI Manager. 
 
-     - `ROI`: displays the index of the ROI, as displayed in the intensity and thresholding/mask images
-     - `name`: to be entered by the user as a tag of the specific ROI; it will be saved in the MS Excel
-     - `group `: to be entered by the user as a tag of the specicif group the ROI belongs to; it will be saved in the MS excel 
-     - `select`: select the ROIs to be considered in the analysis
-     - `delete`: select the ROIs to be permanently deleted (then click the button `Delete` to actually delete them and update the table and images)
-     - Button `Commit`: click this button to commit the changes made to the labels of the ROIs (names, groups and selection)
-     - Button `Save`: save the information on all the ROIs as a binary `.pyroi` file
-     - Button `Load`: load the ROIs from a binary `.pyroi` file
-     - Button `Delete`: permanently deletes all the ROIs selected in `delete`; ROIs are renumbered in the ROI Manager and in the intensity and thresholding/mask images
-     - Button `Delete All`: permamently deletes all the ROIs in the list
+     - `ROI`: displays the index of the ROI, as displayed in the intensity and thresholding/mask images.
+     - `name`: to be entered by the user as a tag of the specific ROI; it will be saved in the MS Excel.
+     - `group `: to be entered by the user as a tag of the specicif group the ROI belongs to; it will be saved in the MS Excel.
+     - `select`: select the ROIs to be considered in the analysis.
+     - `delete`: select the ROIs to be permanently deleted (then click the button `Delete` to actually delete them and update the table and images).
+     - Button `Commit`: click this button to commit the changes made to the labels of the ROIs (names, groups and selection).
+     - Button `Save`: save the information on all the ROIs as a binary `.pyroi` file.
+     - Button `Load`: load the ROIs from a binary `.pyroi` file.
+     - Button `Delete`: permanently deletes all the ROIs selected in `delete`; ROIs are renumbered in the ROI Manager and in the intensity and thresholding/mask images.
+     - Button `Delete All`: permamently deletes all the ROIs in the list.
 
 [&uarr;](#manual)
 
@@ -83,7 +83,7 @@ ___
 
 #### Figures
 
- The `Show/Save` table lists all possible outputs (`Composite`, `Sticks`, `Histogram`, `Intensity`):
+ The `Show/Save` table lists all display outputs (`Composite`, `Sticks`, `Histogram`, `Intensity`):
   * `Composite` image of the variable *C* displays the values of *C* as color-coded pixels on top of the intensity image using the colors in the colormap.
   * `Sticks` image of the variable *C* displays the values of *C* as color-coded sticks (centered around pixels) on top of the intensity image with a color given by the value of *C* and an orientation given by the value of *&rho;*.
   * `Histogram` displays the histograms of the selected variables *C*. NB: the histograms for the variables *&rho;* (for all methods) and *&eta;* (for `4POLAR 3D`) are displayed as polar histograms.
@@ -93,12 +93,12 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
 
 #### Variables
 
-  The `Variable` table lists all the possible variables *C*. Check the boxes for the variables *C* to be displayed and/or saved in the analysis. For `1PF`, `4POLAR 2D`: (&rho;, &psi;). For `CARS`, `SRS`, `2PF`: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For `SHG`: (&rho;, S<sub>SHG</sub>). For `4POLAR 3D`: (&rho;, &psi;, &eta;). The second and third column display the minimum and maximum values of the variables (for the colorbars of histograms and composite and stick maps). These elements are editable (except for *&rho;*) if the toggle switch is selected.
+  The `Variables` table lists all the possible variables *C*. Check the boxes for the variables *C* to be displayed and/or saved in the analysis. For `1PF`, `4POLAR 2D`: (&rho;, &psi;). For `CARS`, `SRS`, `2PF`: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For `SHG`: (&rho;, S<sub>SHG</sub>). For `4POLAR 3D`: (&rho;, &psi;, &eta;). The second and third columns display the minimum and maximum values of the variables used for the colorbars of histograms and composite and stick maps. These elements are editable (except for *&rho;*) if the toggle switch is selected.
   
 
 #### Save output
 
-  The `Save extension` table lists the saving options: `data (.pbz2)` for saving data as a compressed pickle file (to be download as `previous analysis` in the file selection), `figures (.tif)` for exporting the figures in a `.tif` format, `data (.mat)` for saving the values of the variables for each pixel used in the analysis as a MATLAB `.mat` file, `mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and an animated gif file `stack (.gif)`
+  The `Save output` table lists the saving options: `data (.pbz2)` for saving data as a compressed pickle file (to be download as `Previous analysis` in the file selection), `figures (.tif)` for exporting the figures in a `.tif` format, `data (.mat)` for saving the values of the variables for each pixel used in the analysis as a MATLAB `.mat` file, `mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and an animated gif file `stack (.gif)`
 
 
 #### Post-processing
