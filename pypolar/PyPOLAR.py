@@ -557,7 +557,8 @@ class Polarimetry(CTk.CTk):
     def download_edge_mask(self, window):
         window.withdraw()
         filetypes = [("PNG files", "*.png")]
-        filename = fd.askopenfilename(title="Select a mask file", initialdir="/", filetypes=filetypes)
+        initialdir = self.stack.folder if hasattr(self, "stack") else "/"
+        filename = fd.askopenfilename(title="Select a mask file", initialdir=initialdir, filetypes=filetypes)
         self.tabview.insert(4, "Edge Detection")
         mask = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
         contours = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
@@ -651,7 +652,8 @@ class Polarimetry(CTk.CTk):
             if hasattr(self, "datastack"):
                 delete_all(manager, window)
                 filetypes = [("PyROI files", "*.pyroi")]
-                filename = fd.askopenfilename(title="Select a PyROI file", initialdir="/", filetypes=filetypes)
+                initialdir = self.stack.folder if hasattr(self, "stack") else "/"
+                filename = fd.askopenfilename(title="Select a PyROI file", initialdir=initialdir, filetypes=filetypes)
                 with open(filename, "rb") as f:
                     self.datastack.rois = pickle.load(f)
                 manager.sheet.set_options(height=manager.height(20, self.datastack.rois))
@@ -736,7 +738,8 @@ class Polarimetry(CTk.CTk):
         else:
             self.options_icon.configure(image=self.icons["build"])
         if value.startswith("Mask"):
-            self.maskfolder = fd.askdirectory(title="Select the directory containing masks", initialdir="/")
+            initialdir = self.stack.folder if hasattr(self, "stack") else "/"
+            self.maskfolder = fd.askdirectory(title="Select the directory containing masks", initialdir=initialdir)
             if hasattr(self, "datastack"):
                 self.mask = self.get_mask(self.datastack)
                 self.represent_thrsh()
@@ -749,7 +752,8 @@ class Polarimetry(CTk.CTk):
             self.openfile_icon.configure(image=self.icons["photo_fill"])
             self.options_icon.configure(image=self.icons["build"])
             filetypes = [("Tiff files", "*.tiff"), ("Tiff files", "*.tif")]
-            filename = fd.askopenfilename(title="Select a file", initialdir="/", filetypes=filetypes)
+            initialdir = self.stack.folder if hasattr(self, "stack") else "/"
+            filename = fd.askopenfilename(title="Select a file", initialdir=initialdir, filetypes=filetypes)
             self.filelist = []
             if filename:
                 self.options_dropdown.configure(state="normal", values=["Thresholding (manual)", "Mask (manual)"])
@@ -759,13 +763,15 @@ class Polarimetry(CTk.CTk):
                 self.open_file(filename)
         elif value == "Open folder":
             self.openfile_icon.configure(image=self.icons["folder_open"])
-            folder = fd.askdirectory(title="Select a directory", initialdir="/")
+            initialdir = self.stack.folder if hasattr(self, "stack") else "/"
+            folder = fd.askdirectory(title="Select a directory", initialdir=initialdir)
             self.filelist = []
-            for filename in os.listdir(folder):
-                if filename.endswith((".tif", ".tiff")):
-                    self.filelist += [os.path.join(folder, filename)]
+            if folder:
+                for filename in os.listdir(folder):
+                    if filename.endswith((".tif", ".tiff")):
+                        self.filelist += [os.path.join(folder, filename)]
             self.indxlist = 0
-            if folder and any(self.filelist):
+            if any(self.filelist):
                 self.open_file(self.filelist[0])
                 self.options_dropdown.configure(state="normal", values=["Thresholding (manual)", "Thresholding (auto)", "Mask (manual)", "Mask (auto)"])
                 self.option.set("Thresholding (manual)")
@@ -773,7 +779,8 @@ class Polarimetry(CTk.CTk):
                 window, buttons = self.showinfo(message=" The folder does not contain TIFF or TIF files", image=self.icons["download_folder"], button_labels=["OK"], geometry=(340, 140))
                 buttons[0].configure(command=lambda:window.withdraw())
         elif value == "Previous analysis":
-            filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir="/", filetypes=[("cPICKLE files", "*.pbz2")])
+            initialdir = self.stack.folder if hasattr(self, "stack") else "/"
+            filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir=initialdir, filetypes=[("cPICKLE files", "*.pbz2")])
             if filename:
                 window = self.showinfo(message=" Downloading and decompressing data...", image=self.icons["download"], geometry=(350, 80))[0]
                 window.update()
@@ -1114,7 +1121,8 @@ class Polarimetry(CTk.CTk):
     def perform_registration(self, window):
         window.withdraw()
         npix = 5
-        filename = fd.askopenfilename(title="Select a beads file", initialdir="/", filetypes=[("TIFF files", "*.tiff"), ("TIF files", "*.tif")])
+        initialdir = self.stack.folder if hasattr(self, "stack") else "/"
+        filename = fd.askopenfilename(title="Select a beads file", initialdir=initialdir, filetypes=[("TIFF files", "*.tiff"), ("TIF files", "*.tif")])
         beadstack = self.define_stack(filename)
         self.filename_label.configure(state="normal")
         self.filename_label.delete("0.0", "end")
@@ -1201,7 +1209,8 @@ class Polarimetry(CTk.CTk):
 
     def load_registration(self, window):
         window.withdraw()
-        filename = fd.askopenfilename(title="Select a registration file (*.pyreg)", initialdir="/", filetypes=[("PYREG-files", "*.pyreg")])
+        initialdir = self.stack.folder if hasattr(self, "stack") else "/"
+        filename = fd.askopenfilename(title="Select a registration file (*.pyreg)", initialdir=initialdir, filetypes=[("PYREG-files", "*.pyreg")])
         with open(filename, "rb") as f:
             self.registration = pickle.load(f)
 
@@ -2092,7 +2101,8 @@ class Calibration():
             folder = Calibration.folder_4polar
         if method in ["1PF", "4POLAR 2D", "4POLAR 3D"]:
             if label == "other":
-                file = pathlib.Path(fd.askopenfilename(title='Select file', initialdir='/', filetypes=[("MAT-files", "*.mat")]))
+                initialdir = self.stack.folder if hasattr(self, "stack") else "/"
+                file = pathlib.Path(fd.askopenfilename(title='Select file', initialdir=initialdir, filetypes=[("MAT-files", "*.mat")]))
                 folder = str(file.parent)
                 vars = (str(file.stem), 0)
             disk = loadmat(os.path.join(folder, vars[0] + ".mat"))

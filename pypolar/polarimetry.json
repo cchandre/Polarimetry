@@ -113,12 +113,12 @@
       "weight": "bold"
     },
     "Windows": {
-      "family": "Roboto",
+      "family": "Segoe UI Variable",
       "size": 13,
       "weight": "bold"
     },
     "Linux": {
-      "family": "Roboto",
+      "family": "Ubuntu",
       "size": 13,
       "weight": "bold"
     }
