@@ -16,6 +16,7 @@ from scipy.optimize import linear_sum_assignment
 from scipy.signal import convolve2d, savgol_filter
 from scipy.interpolate import interpn
 from scipy.ndimage import rotate
+from scipy.linalg import norm
 from scipy.io import savemat, loadmat
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -27,7 +28,7 @@ from PIL import Image
 from skimage import exposure
 import cv2
 import openpyxl
-from itertools import permutations
+from itertools import permutations, chain
 from datetime import date
 import copy
 
@@ -548,6 +549,7 @@ class Polarimetry(CTk.CTk):
             if hasattr(self, "edge_contours"):
                 delattr(self, "edge_contours")
             self.tabview.delete("Edge Detection")
+            self.represent_thrsh()
 
     def delete_edge_mask(self, window):
         window.withdraw()
@@ -559,34 +561,82 @@ class Polarimetry(CTk.CTk):
         filetypes = [("PNG files", "*.png")]
         initialdir = self.stack.folder if hasattr(self, "stack") else "/"
         filename = fd.askopenfilename(title="Select a mask file", initialdir=initialdir, filetypes=filetypes)
-        self.tabview.insert(4, "Edge Detection")
-        mask = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
-        contours = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
-        filter = np.asarray([len(contour) >= 200 for contour in contours])
-        self.edge_contours = [self.smooth_edge(contour.reshape((-1, 2))) for (contour, val) in zip(contours, filter) if val]
-        self.represent_thrsh()
+        self.edge_method = "download"
+        self.edge_detection_tab()
+        self.edge_mask = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
+        self.compute_edges()
 
     def compute_edge_mask(self, window):
         window.withdraw()
         if hasattr(self, "stack"):
-            self.tabview.insert(4, "Edge Detection")
-            field = (self.stack.itot / np.amax(self.stack.itot) * 255).astype(np.uint8)
+            self.edge_method = "compute"
+            self.edge_detection_tab()
+            self.compute_edges()
+
+    def edge_detection_tab(self):
+        self.tabview.insert(4, "Edge Detection")
+        adv_elts = ["Edge detection", "Layer"]
+        adv_loc = [(0, 0), (0, 1)]
+        adv = {}
+        for loc, elt in zip(adv_loc, adv_elts):
+            adv.update({elt: CTk.CTkFrame(
+            master=self.tabview.tab("Edge Detection"), fg_color=self.left_frame.cget("fg_color"))})
+            adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=(10, 10), sticky="nw")
+            CTk.CTkLabel(master=adv[elt], text=elt + "\n", width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, padx=20, pady=(10,0))
+        params = ["Low threshold", "High threshold", "Length"]
+        self.canny_thrsh = [tk.DoubleVar(value=100), tk.DoubleVar(value=200), tk.IntVar(value=100)]
+        for _, param in enumerate(params):
+            entry = self.entry(adv["Edge detection"], text=param, textvariable=self.canny_thrsh[_], row=_+1)
+            entry.bind("<Return>", command=self.compute_edges)
+        params = ["Distance from contour", "Layer width"]
+        self.layer_params = [tk.IntVar(value=0), tk.IntVar(value=10)]
+        for _, param in enumerate(params):
+            self.entry(adv["Layer"], text=param, textvariable=self.layer_params[_], row=_+1)
+
+    def compute_edges(self, event=[]):
+        if self.edge_method == "compute":
+            field = self.stack.itot.copy()
+            thrsh = float(self.ilow.get())
+            field[field <= thrsh] = 0
+            field = (field / np.amax(field) * 255).astype(np.uint8)
             field = cv2.threshold(field, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
             field = cv2.GaussianBlur(field, (5, 5), 1)
-            edges = cv2.Canny(image=field, threshold1=100, threshold2=200)
-            contours = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
-            filter = np.asarray([len(contour) >= 200 for contour in contours])
-            self.edge_contours = [self.smooth_edge(contour.reshape((-1, 2))) for (contour, val) in zip(contours, filter) if val]
-            self.represent_thrsh()
+            edges = cv2.Canny(image=field, threshold1=self.canny_thrsh[0].get(), threshold2=self.canny_thrsh[1].get())
+            contours = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
+        elif self.edge_method == "download":
+            contours = cv2.findContours(self.edge_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
+        filter = np.asarray([len(contour) >= self.canny_thrsh[2].get() for contour in contours])
+        self.edge_contours = [self.smooth_edge(contour.reshape((-1, 2))) for (contour, val) in zip(contours, filter) if val]
+        self.represent_thrsh()
+        self.rho_ct = self.define_rho_ct(self.edge_contours)
 
     def smooth_edge(self, edge):
-        window_length = 23
+        window_length = 10
         polyorder = 3
         return savgol_filter(edge, window_length=window_length, polyorder=polyorder, axis=0)
     
+    def define_rho_ct(self, contours):
+        rho_ct = np.nan * np.ones_like(self.stack.itot)
+        for contour in contours:
+            angle, normal = self.angle_edge(contour)
+            crange = chain(range(self.layer_params[0].get() - 1, self.layer_params[0].get() + self.layer_params[1].get() + 1), range(-self.layer_params[0].get() - self.layer_params[1].get() - 1, -self.layer_params[0].get() + 1))
+            for _ in crange:
+                shift_x = (contour[:, 0] + _ * normal[:, 0]).astype(np.uint16)
+                shift_y = (contour[:, 1] + _ * normal[:, 1]).astype(np.uint16)
+                shift_x[shift_x <= 0] = 0
+                shift_y[shift_y <= 0] = 0
+                shift_x[shift_x >= self.stack.width - 1] = self.stack.width - 1
+                shift_y[shift_y >= self.stack.height - 1] = self.stack.height - 1
+                rho_ct[shift_y, shift_x] = angle
+        return rho_ct
+    
     def angle_edge(self, edge):
-        tangent = np.diff(edge, axis=0, append=edge[-1, :])
-        angle = np.arctan2(tangent[:, 0], tangent[:, 1])
+        tangent = np.diff(edge, axis=0, append=edge[-1, :].reshape((1, 2)))
+        angle = np.rad2deg(np.arctan2(-tangent[:, 1], tangent[:, 0]))
+        norm_t = norm(tangent, axis=1)[:, np.newaxis]
+        tangent = np.divide(tangent, norm_t, where=np.all((norm_t!=0, np.isfinite(norm_t)), axis=0))
+        normal = np.einsum("ij,jk->ik", tangent, np.array([[0, -1], [1, 0]]))
+        return angle, normal
 
     def contrast_thrsh_slider_callback(self, value):
         if value <= 0.001:
@@ -1396,11 +1446,15 @@ class Polarimetry(CTk.CTk):
     def ilow_slider_callback(self, value):
         if hasattr(self, "stack"):
             self.ilow.set(self.stack.display.format(value))
+            if hasattr(self, "edge_contours"):
+                self.compute_edges()
             self.represent_thrsh()
 
     def ilow2slider_callback(self, event):
         if event and hasattr(self, "stack"):
             self.ilow_slider.set(float(self.ilow.get()))
+            if hasattr(self, "edge_contours"):
+                self.compute_edges()
             self.represent_thrsh()
 
     def itot_callback(self, event):
@@ -1479,11 +1533,16 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
             self.thrsh_im.set_clim(vmin, vmax)
             self.clear_patches(self.thrsh_axis, self.thrsh_fig.canvas)
+            if hasattr(self, "plot_edges"):
+                for edge in self.plot_edges:
+                    edge.pop(0).remove()
+                delattr(self, "plot_edges")
             if hasattr(self, "datastack"):
                 self.add_patches(self.datastack, self.thrsh_axis, self.thrsh_fig.canvas, rotation=False)
             if hasattr(self, "edge_contours"):
+                self.plot_edges = []
                 for contour in self.edge_contours:
-                    self.thrsh_axis.plot(contour[:, 0], contour[:, 1], 'b-', lw=1)
+                    self.plot_edges += [self.thrsh_axis.plot(contour[:, 0], contour[:, 1], 'b-', lw=1)]
             self.thrsh_canvas.draw()
 
     def compute_itot(self, stack):
@@ -1740,6 +1799,18 @@ class Polarimetry(CTk.CTk):
                 var.values[var.values==0] = np.nan
         for _, var in enumerate(vars):
             display, vmin, vmax = self.get_variable(_)
+            if display:
+                self.plot_composite(var, datastack, vmin, vmax)
+                self.plot_sticks(var, datastack, vmin, vmax)
+                if self.per_roi.get():
+                    for roi in datastack.rois:
+                        if roi["select"]:
+                            self.plot_histo(var, datastack, vmin, vmax, roi_map, roi=roi)
+                else:
+                    self.plot_histo(var, datastack, vmin, vmax, roi_map, roi=[])
+        if self.edge_detection_switch.get() == "on":
+            display, vmin, vmax = self.get_variable(0)
+            var = datastack.added_vars[-1]
             if display:
                 self.plot_composite(var, datastack, vmin, vmax)
                 self.plot_sticks(var, datastack, vmin, vmax)
@@ -2021,6 +2092,15 @@ class Polarimetry(CTk.CTk):
         X_.name, Y_.name, Int_.name = "X", "Y", "Int"
         X_.values, Y_.values, Int_.values = X, Y, a0
         datastack.added_vars = [X_, Y_, Int_]
+        if self.edge_detection_switch.get() == "on":
+            rho_ct = Variable(datastack)
+            rho_ct.name, rho_.latex = "Rho (vs contour)", r"$\rho_c$"
+            rho_ct.orientation = True
+            rho_ct.type_histo = "polar1"
+            rho_ct.colormap = "hsv"
+            filter = np.isfinite(rho_.values) * np.isfinite(self.rho_ct)
+            rho_ct.values[filter] = np.mod(2*(rho_.values[filter] - self.rho_ct[filter]), 360) / 2
+            datastack.added_vars += [rho_ct]
         if not self.method.get().startswith("4POLAR"):
             field[:, np.logical_not(mask)] = np.nan
             field_fit[:, np.logical_not(mask)] = np.nan
