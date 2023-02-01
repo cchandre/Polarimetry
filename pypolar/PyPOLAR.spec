@@ -19,15 +19,17 @@ Possible issues:
 
 import sys
 
-__version__ = "2.3"
+__version__ = "2.4"
 
 block_cipher = None
 
-CTK_PATH = "/Users/c.chandre/opt/anaconda3/envs/polarimetry_env/lib/python3.8/site-packages/customtkinter/"
+CTK_PATH = "/Users/cchandre/opt/anaconda3/envs/polarimetry_env/lib/python3.8/site-packages/customtkinter/"
 
 DATA_FILES = [("icons/*.png", "icons/"), ("polarimetry.json", "."), (CTK_PATH, "customtkinter/")]
 BINARY_FILES = [("calibration/*.mat", "calibration/"), ("diskcones/*.mat", "diskcones/")]
 
+if sys.platform == "darwin":
+    DATA_FILES += [("icons/*.icns", "icons/")]
 if sys.platform == 'win32':
     extra_options = dict(icon='main_icon.ico')
 else:
@@ -77,28 +79,31 @@ if sys.platform == 'darwin':
     app = BUNDLE(coll,
         name='PyPOLAR.app',
         icon='main_icon.icns',
-        bundle_identifier=None,
+        bundle_identifier="fr.cnrs.fresnel.pypolar",
         version=__version__,
         info_plist={
             'NSPrincipalClass': 'NSApplication',
             'NSAppleScriptEnabled': False,
             "UTExportedTypeDeclarations": [
             {
+                "UTTypeIdentifier": "fr.cnrs.fresnel.pypolar-pyroi",
                 "UTTypeDescription": "PyPOLAR ROI",
-                "UTTypeIdentifier": "com.fresnel.pypolar.pyroi",
                 "UTTypeIconFile": "icons/pyroi.icns",
+                "UTTypeConformsTo": ["public.data"],
+                "UTTypeReferenceURL": "https://www.fresnel.fr/polarimetry",
                 "UTTypeTagSpecification": {
                     "public.filename-extension": "pyroi",
-                    "public.mime-type": "application/pypolar-roi",
+                    "public.mime-type": "data/pypolar-pyroi",},
+            },
+            {
+                "UTTypeIdentifier": "fr.cnrs.fresnel.pypolar-pyreg",
+                "UTTypeDescription": "PyPOLAR Registration",
+                "UTTypeIconFile": "icons/pyreg.icns",
+                "UTTypeConformsTo": ["public.data"],
+                "UTTypeReferenceURL": "https://www.fresnel.fr/polarimetry",
+                "UTTypeTagSpecification": {
+                    "public.filename-extension": "pyreg",
+                    "public.mime-type": "data/pypolar-pyreg",
                 },
             },],
-            'CFBundleDocumentTypes': [
-                {
-                    'CFBundleTypeName': 'PyPOLAR ROI',
-                    'CFBundleTypeRole': 'Editor',
-                    'CFBundleTypeIconFile': 'icons/pyroi.icns',
-                    'LSItemContentTypes': ['com.fresnel.pypolar.pyroi'],
-                    'NSExportableTypes': ['com.fresnel.pypolar.pyroi'],
-                    'LSHandlerRank': 'Owner'
-                    }],
             })

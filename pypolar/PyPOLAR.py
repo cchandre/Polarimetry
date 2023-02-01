@@ -34,7 +34,7 @@ import copy
 
 try:
     from ctypes import windll 
-    myappid = "cnrs.fresnel.pypolar"
+    myappid = "fr.cnrs.fresnel.pypolar"
     windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except ImportError:
     pass
@@ -1254,7 +1254,7 @@ class Polarimetry(CTk.CTk):
         window.withdraw()
 
     def yes_save_registration_callback(self, window, fig, filename):
-        with open(os.path.splitext(filename)[0] + ".pyreg") as f:
+        with open(os.path.splitext(filename)[0] + ".pyreg", "wb") as f:
             pickle.dump(self.registration, f, protocol=pickle.HIGHEST_PROTOCOL)
         plt.close(fig)
         window.withdraw()
