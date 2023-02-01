@@ -545,7 +545,7 @@ class Polarimetry(CTk.CTk):
             buttons[0].configure(command=lambda:self.download_edge_mask(window))
             buttons[1].configure(command=lambda:self.compute_edge_mask(window))
             buttons[2].configure(command=lambda:self.delete_edge_mask(window))
-        else:
+        elif self.edge_detection_switch.get() == "off":
             if hasattr(self, "edge_contours"):
                 delattr(self, "edge_contours")
             self.tabview.delete("Edge Detection")
@@ -583,8 +583,8 @@ class Polarimetry(CTk.CTk):
             master=self.tabview.tab("Edge Detection"), fg_color=self.left_frame.cget("fg_color"))})
             adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=(10, 10), sticky="nw")
             CTk.CTkLabel(master=adv[elt], text=elt + "\n", width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, padx=20, pady=(10,0))
-        params = ["Low threshold", "High threshold", "Length"]
-        self.canny_thrsh = [tk.DoubleVar(value=100), tk.DoubleVar(value=200), tk.IntVar(value=100)]
+        params = ["Low threshold", "High threshold", "Length", "Smoothing window"]
+        self.canny_thrsh = [tk.DoubleVar(value=100), tk.DoubleVar(value=200), tk.IntVar(value=100), tk.IntVar(value=10)]
         for _, param in enumerate(params):
             entry = self.entry(adv["Edge detection"], text=param, textvariable=self.canny_thrsh[_], row=_+1)
             entry.bind("<Return>", command=self.compute_edges)
@@ -611,7 +611,7 @@ class Polarimetry(CTk.CTk):
         self.rho_ct = self.define_rho_ct(self.edge_contours)
 
     def smooth_edge(self, edge):
-        window_length = 10
+        window_length = self.canny_thrsh[3].get()
         polyorder = 3
         return savgol_filter(edge, window_length=window_length, polyorder=polyorder, axis=0)
     
@@ -796,6 +796,10 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_frame.update()
 
     def open_file_callback(self, value):
+        self.edge_detection_switch.deselect()
+        if hasattr(self, "edge_contours"):
+            delattr(self, "edge_contours")
+            self.tabview.delete("Edge Detection")
         if hasattr(self, "manager_window"):
             self.manager_window.destroy()
         if value == "Open file":
@@ -1942,6 +1946,8 @@ class Polarimetry(CTk.CTk):
             roi_map = np.ones(shape, dtype=np.int32)
             roi_ilow_map = np.ones(shape, dtype=np.float64) * np.float64(self.ilow.get())
         mask = self.get_mask(datastack)
+        if self.edge_detection_switch.get() == "on" and self.edge_method == "download":
+            mask *= self.edge_mask
         mask *= (datastack.itot >= roi_ilow_map) * (roi_map > 0)
         return roi_map, (mask != 0)
 
@@ -2094,7 +2100,7 @@ class Polarimetry(CTk.CTk):
         datastack.added_vars = [X_, Y_, Int_]
         if self.edge_detection_switch.get() == "on":
             rho_ct = Variable(datastack)
-            rho_ct.name, rho_.latex = "Rho (vs contour)", r"$\rho_c$"
+            rho_ct.name, rho_ct.latex = "Rho (vs contour)", r"$\rho_c$"
             rho_ct.orientation = True
             rho_ct.type_histo = "polar1"
             rho_ct.colormap = "hsv"
