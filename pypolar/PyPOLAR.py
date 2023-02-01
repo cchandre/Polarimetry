@@ -53,8 +53,8 @@ plt.rcParams["axes.unicode_minus"] = False
 plt.ion()
 
 class Polarimetry(CTk.CTk):
-    __version__ = "2.3"
-    status = ""
+    __version__ = "2.4"
+    status = "beta"
     dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023"}
 
     if status == "beta":
@@ -106,6 +106,8 @@ class Polarimetry(CTk.CTk):
         for file in os.listdir(image_path):
             if file.endswith(".png"):
                 self.icons.update({os.path.splitext(file)[0]: CTk.CTkImage(dark_image=Image.open(os.path.join(image_path, file)), size=(30, 30))})
+        if sys.platform == "win32":
+            self.iconbitmap(os.path.join(self.base_dir, "main_icon.ico"))
 
 ## DEFINE FRAMES
         self.left_frame = CTk.CTkFrame(master=self, width=Polarimetry.left_frame_width, corner_radius=0, fg_color=Polarimetry.gray[0])
@@ -555,6 +557,7 @@ class Polarimetry(CTk.CTk):
         window.withdraw()
         if hasattr(self, "edge_contours"):
             delattr(self, "edge_contours")
+        self.edge_detection_switch.deselect()
 
     def download_edge_mask(self, window):
         window.withdraw()
@@ -584,10 +587,12 @@ class Polarimetry(CTk.CTk):
             adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=(10, 10), sticky="nw")
             CTk.CTkLabel(master=adv[elt], text=elt + "\n", width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, padx=20, pady=(10,0))
         params = ["Low threshold", "High threshold", "Length", "Smoothing window"]
-        self.canny_thrsh = [tk.DoubleVar(value=100), tk.DoubleVar(value=200), tk.IntVar(value=100), tk.IntVar(value=10)]
-        for _, param in enumerate(params):
+        tooltips = [" hysteresis thresholding values: edges with intensity gradients\n below this value are not edges and discarded ", " hysteresis thresholding values: edges with intensity gradients\n larger than this value are sure to be edges", " minimum length for a contour (in px)", " number of pixels in the window used for smoothing contours"]
+        self.canny_thrsh = [tk.DoubleVar(value=60), tk.DoubleVar(value=100), tk.IntVar(value=100), tk.IntVar(value=20)]
+        for _, (param, tooltip) in enumerate(zip(params, tooltips)):
             entry = self.entry(adv["Edge detection"], text=param, textvariable=self.canny_thrsh[_], row=_+1)
             entry.bind("<Return>", command=self.compute_edges)
+            ToolTip.createToolTip(entry, tooltip)
         params = ["Distance from contour", "Layer width"]
         self.layer_params = [tk.IntVar(value=0), tk.IntVar(value=10)]
         for _, param in enumerate(params):
@@ -599,8 +604,7 @@ class Polarimetry(CTk.CTk):
             thrsh = float(self.ilow.get())
             field[field <= thrsh] = 0
             field = (field / np.amax(field) * 255).astype(np.uint8)
-            field = cv2.threshold(field, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-            field = cv2.GaussianBlur(field, (5, 5), 1)
+            field = cv2.GaussianBlur(field, (5, 5), 0)
             edges = cv2.Canny(image=field, threshold1=self.canny_thrsh[0].get(), threshold2=self.canny_thrsh[1].get())
             contours = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
         elif self.edge_method == "download":
@@ -613,7 +617,7 @@ class Polarimetry(CTk.CTk):
     def smooth_edge(self, edge):
         window_length = self.canny_thrsh[3].get()
         polyorder = 3
-        return savgol_filter(edge, window_length=window_length, polyorder=polyorder, axis=0)
+        return savgol_filter(edge, window_length=window_length, polyorder=polyorder, mode="nearest", axis=0)
     
     def define_rho_ct(self, contours):
         rho_ct = np.nan * np.ones_like(self.stack.itot)
@@ -632,9 +636,9 @@ class Polarimetry(CTk.CTk):
     
     def angle_edge(self, edge):
         tangent = np.diff(edge, axis=0, append=edge[-1, :].reshape((1, 2)))
-        angle = np.rad2deg(np.arctan2(-tangent[:, 1], tangent[:, 0]))
         norm_t = norm(tangent, axis=1)[:, np.newaxis]
         tangent = np.divide(tangent, norm_t, where=np.all((norm_t!=0, np.isfinite(norm_t)), axis=0))
+        angle = np.mod(2 * np.rad2deg(np.arctan2(-tangent[:, 1], tangent[:, 0])), 360) / 2
         normal = np.einsum("ij,jk->ik", tangent, np.array([[0, -1], [1, 0]]))
         return angle, normal
 
@@ -1098,7 +1102,7 @@ class Polarimetry(CTk.CTk):
                     slope = 180 - np.rad2deg(np.arctan((roi.previous_point[1] - roi.start_point[1]) / (roi.previous_point[0] - roi.start_point[0])))
                     slope = np.mod(2 * slope, 360) / 2
                     dist = np.sqrt(((np.asarray(roi.previous_point) - np.asarray(roi.start_point))**2).sum())
-                    window, buttons = self.showinfo(message=" The value of the angle is {:.2f} \u00b0 \n The value of the distance is {} px".format(slope, int(dist)), image=self.icons["square"], button_labels = ["OK"])
+                    window, buttons = self.showinfo(message=" Angle is {:.2f} \u00b0 \n Distance is {} px".format(slope, int(dist)), image=self.icons["square"], button_labels = ["OK"])
                     buttons[0].configure(command=lambda:window.withdraw())
                     for line in roi.lines:
                         line.remove()
@@ -1788,6 +1792,11 @@ class Polarimetry(CTk.CTk):
             self.add_patches(datastack, ax, fig.canvas)
             ax.set_title(datastack.name)
             suffix = "_Fluo"
+            if self.edge_detection_switch.get() == "on":
+                for contour in self.edge_contours:
+                    angles = np.mod(2 * self.angle_edge(contour)[0], 360) / 2
+                    p = ax.scatter(contour[:, 0], contour[:, 1], c=angles, cmap="hsv", s=4)
+                fig.colorbar(p, ax=ax)
             if self.save_table[3].get() and self.extension_table[1].get():
                 plt.savefig(datastack.filename + suffix + ".tif")
             if not self.show_table[3].get():
