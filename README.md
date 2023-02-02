@@ -16,6 +16,7 @@ ___
   * [Thresholding/Mask tab](#thresholdingmask-tab)
   * [Options tab](#options-tab)
   * [Advanced tab](#advanced-tab)
+  * [Edge Detection tab](#edge-detection-tab)
 
 ___
 ### Left panel
@@ -79,7 +80,7 @@ ___
      
 #### Edge detection switch
 
-When the swtich is on, PyPOLAR determines the edges of the thresholded image (`Compute`) as displayed in the [Thresholding/Mask](#thresholdingmask-tab) tab, or the contours of the dowloaded mask (`Mask`). The edges are displayed as blue lines on the thresholded image. To compute the edges, the Canny edge detector `cv2.Canny` is used with two parameters `low threshold` and `high threshold` (see [Edge Detection](#edgedetection-tab) tab) after a first Gaussian blur `cv2.GaussianBlur` of the image (with (5, 5) as width and height of the kernel - the standard deviations are calculated from the kernel size, see [OpenCV](https://docs.opencv.org/) for more details). The contours are determined from the edges using `cv2.findContours` (with the contour retrieval mode `cv2.RETR_TREE` and contour approximation algorithm `cv2.CHAIN_APPROX_NONE`). The contours shorter than `Length` defined in the [Edge Detection](#edgedetection-tab) tab are discarded. The obtained contours are smoothed out using a Savitzky-Golay filter `scipy.savgol_filter` with third-order polynomials and a window length defined by `Smoothing window` (in pixels) in the [Edge Detection](#edgedetection-tab) tab. From these smooth contours, the angles and the normal to the contours are computed. The angles &rho; with respect to the contours are computed in a layer around the contours defined by `Layer width` (in pixels) in the [Edge Detection](#edgedetection-tab) tab. There is the possibility to slightly move away from the contour by changing `Distance from contour` in the [Edge Detection](#edgedetection-tab) tab.
+When the swtich is on, PyPOLAR determines the edges of the thresholded image (click 'Compute') as displayed in the [Thresholding/Mask](#thresholdingmask-tab) tab, or the contours of the dowloaded mask (click 'Mask'). The edges are displayed as blue lines on the thresholded image. To compute the edges, the Canny edge detector `cv2.Canny` is used with two parameters `low threshold` and `high threshold` (see [Edge Detection](#edge-detection-tab) tab) after a first Gaussian blur `cv2.GaussianBlur` of the image (with (5, 5) as width and height of the kernel - the standard deviations are calculated from the kernel size, see [OpenCV](https://docs.opencv.org/) for more details). The contours are determined from the edges using `cv2.findContours` (with the contour retrieval mode `cv2.RETR_TREE` and contour approximation algorithm `cv2.CHAIN_APPROX_NONE`). The contours shorter than `Length` defined in the [Edge Detection](#edge-detection-tab) tab are discarded. The obtained contours are smoothed out using a Savitzky-Golay filter `scipy.savgol_filter` with third-order polynomials and a window length defined by `Smoothing window` (in pixels) in the [Edge Detection](#edge-detection-tab) tab. From these smooth contours, the angles and the normal to the contours are computed. The angles &rho; with respect to the contours are computed in a layer around the contours defined by `Layer width` (in pixels) in the [Edge Detection](#edge-detection-tab) tab. There is the possibility to slightly move away from the contour by changing `Distance from contour` in the [Edge Detection](#edge-detection-tab) tab. All the selected figures involving &rho; are duplicated using the relative values of &rho; with respect to the contours.
 
 [&uarr;](#manual)
 
@@ -183,8 +184,8 @@ ___
 
 #### Layer
 
-* `Distance from contour`:
-* `Layer width`: 
+* `Distance from contour`: number of pixels separating the contour from the layer
+* `Layer width`: width of the layer in the neighborhood of the contour (in pixels)
 
 [&uarr;](#manual)
 
