@@ -1646,6 +1646,7 @@ class Polarimetry(CTk.CTk):
                     data_vals[data_vals >= 90] = 180 - data_vals[data_vals >= 90]
                     meandata = self.circularmean(data_vals)
                     std = np.std(self.wrapto180(2 * (data_vals - meandata)) / 2)
+                    norm = mpl.colors.Normalize(0, 180)
                 distribution, bin_edges = np.histogram(data_vals, bins=bins, range=(vmin, vmax))
                 bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
                 width = np.deg2rad(bins[1] - bins[0])
