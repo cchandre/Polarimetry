@@ -108,15 +108,18 @@ class Polarimetry(CTk.CTk):
                 self.icons.update({os.path.splitext(file)[0]: CTk.CTkImage(dark_image=Image.open(os.path.join(image_path, file)), size=(30, 30))})
         if sys.platform == "win32":
             self.iconbitmap(os.path.join(self.base_dir, "main_icon.ico"))
-            import _winreg
+            import winreg
             EXTS = [".pyroi", ".pyreg", ".pykl"]
             TYPES = ["PyPOLAR ROI", "PyPOLAR Registration", "PyPOLAR Pickle"]
             ICONS = ["pyrois.ico", "pyreg.ico", "pykl.ico"]
             try:
                 for EXT, TYPE, ICON in zip(EXTS, TYPES, ICONS):
-                    ext = _winreg.OpenKey(_winreg.HKEY_CLASSES_ROOT, TYPE)
-                    _winreg.SetValue(ext, "DefaultIcon", _winreg.REG_SZ, os.path.join(image_path, ICON))
-                    _winreg.CloseKey(ext)
+                    key = winreg.CreatKey(winreg.HKEY_CLASSES_ROOT, EXT)
+                    winreg.SetValue(key, None, winreg.REG_SZ, TYPE)
+                    iconkey = winreg.CreateKey(key, "DefaultIcon")
+                    winreg.SetValue(iconkey, None, winreg.REG_SZ, os.path.join(image_path, ICON))
+                    winreg.CloseKey(iconkey)
+                    winreg.CloseKey(ext)
             except WindowsError:
                 pass
 
@@ -617,9 +620,9 @@ class Polarimetry(CTk.CTk):
             field = (field / np.amax(field) * 255).astype(np.uint8)
             field = cv2.GaussianBlur(field, (5, 5), 0)
             edges = cv2.Canny(image=field, threshold1=self.canny_thrsh[0].get(), threshold2=self.canny_thrsh[1].get())
-            contours = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
+            contours = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)[0]
         elif self.edge_method == "download":
-            contours = cv2.findContours(self.edge_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
+            contours = cv2.findContours(self.edge_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)[0]
         filter = np.asarray([len(contour) >= self.canny_thrsh[2].get() for contour in contours])
         self.edge_contours = [self.smooth_edge(contour.reshape((-1, 2))) for (contour, val) in zip(contours, filter) if val]
         self.represent_thrsh()
