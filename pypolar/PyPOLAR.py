@@ -39,6 +39,19 @@ try:
 except ImportError:
     pass
 
+if sys.platform == "win32":
+    import _winreg
+    EXTS = [".pyroi", ".pyreg", ".pykl"]
+    TYPES = ["PyPOLAR ROI", "PyPOLAR Registration", "PyPOLAR Pickle"]
+    ICONS = ["icons/pyrois.ico", "icons/pyreg.ico", "icons/pykl.ico"]
+    try:
+        for EXT, TYPE, ICON in zip(EXTS, TYPES, ICONS):
+            ext = _winreg.OpenKey(_winreg.HKEY_CLASSES_ROOT, TYPE)
+            _winreg.SetValue(ext, "DefaultIcon", _winreg.REG_SZ, ICON)
+            _winreg.CloseKey(ext)
+    except WindowsError:
+        pass
+
 CTk.set_default_color_theme(os.path.join(os.path.dirname(os.path.realpath(__file__)), "polarimetry.json"))
 CTk.set_appearance_mode("dark")
 mpl.use("TkAgg")
@@ -54,8 +67,8 @@ plt.ion()
 
 class Polarimetry(CTk.CTk):
     __version__ = "2.4"
-    status = "beta"
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023"}
+    status = ""
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023"}
 
     if status == "beta":
         __version_date__ = date.today().strftime("%B %d, %Y")
@@ -289,7 +302,7 @@ class Polarimetry(CTk.CTk):
         save_ext = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
         save_ext.grid(row=2, column=1, padx=(40, 20), pady=10, sticky="nw")
         CTk.CTkLabel(master=save_ext, text="\nSave output\n", font=CTk.CTkFont(size=16), width=260).grid(row=0, column=0, columnspan=2, padx=(0, 20), pady=(0, 0))
-        labels = ["data (.pbz2)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "movie (.gif)"]
+        labels = ["data (.pykl)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "movie (.gif)"]
         self.extension_table = [self.checkbox(save_ext) for it in range(len(labels))]
         self.extension_table[1].configure(state="disabled")
         for it in range(len(labels)):
@@ -838,7 +851,7 @@ class Polarimetry(CTk.CTk):
                 buttons[0].configure(command=lambda:window.withdraw())
         elif value == "Previous analysis":
             initialdir = self.stack.folder if hasattr(self, "stack") else "/"
-            filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir=initialdir, filetypes=[("cPICKLE files", "*.pbz2")])
+            filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir=initialdir, filetypes=[("PyPOLAR pickle files", "*.pykl")])
             if filename:
                 window = self.showinfo(message=" Downloading and decompressing data...", image=self.icons["download"], geometry=(350, 80))[0]
                 window.update()
@@ -1154,7 +1167,7 @@ class Polarimetry(CTk.CTk):
             self.calib_dropdown.configure(state="disabled")
         if method.startswith("4POLAR"):
             self.polar_dropdown.configure(state="normal")
-            window, buttons = self.showinfo(message="\n Perform: Select a beads file (*.tif)\n\n Load: Select a registration file (*_reg.mat)\n\n Registration is performed with Whitelight.tif \n   which should be in the same folder as the beads file", image=self.icons["blur_circular"], button_labels=["Perform", "Load", "Cancel"], geometry=(420, 240))
+            window, buttons = self.showinfo(message="\n Perform: Select a beads file (*.tif)\n\n Load: Select a registration file (*.pyreg)\n\n Registration is performed with Whitelight.tif \n   which should be in the same folder as the beads file", image=self.icons["blur_circular"], button_labels=["Perform", "Load", "Cancel"], geometry=(420, 240))
             buttons[0].configure(command=lambda:self.perform_registration(window))
             buttons[1].configure(command=lambda:self.load_registration(window))
             buttons[2].configure(command=lambda:window.withdraw())
@@ -1844,7 +1857,7 @@ class Polarimetry(CTk.CTk):
         else:
             self.save_mat(datastack, roi_map, roi=[])
         if self.extension_table[0].get():
-            filename = self.stack.filename + ".pbz2"
+            filename = self.stack.filename + ".pykl"
             datastack_ = copy.copy(datastack)
             delattr(datastack_, "added_vars")
             for roi in datastack_.rois:
@@ -1855,11 +1868,12 @@ class Polarimetry(CTk.CTk):
                 cPickle.dump(datastack_, f)
             window.withdraw()
         if self.extension_table[3].get():
+            suffix_excel = "_Stats.xlsx" if self.edge_detection_switch.get() == "off" else "_Stats_c.xlsx"
             if self.filelist:
-                filename = os.path.join(self.stack.folder, os.path.basename(self.stack.folder) + "_Stats.xlsx")
+                filename = os.path.join(self.stack.folder, os.path.basename(self.stack.folder) + suffix_excel)
                 title = os.path.basename(self.stack.folder)
             else:
-                filename = self.stack.filename + "_Stats.xlsx"
+                filename = self.stack.filename + suffix_excel
                 title = self.stack.name
             if os.path.exists(filename):
                 workbook = openpyxl.load_workbook(filename = filename)
@@ -1905,6 +1919,13 @@ class Polarimetry(CTk.CTk):
             results = [self.stack.name, roi["indx"], roi["name"], roi["group"], meandata, np.std(deltarho), np.mean(deltarho)]
         else:
             results = [self.stack.name, "all", "", "", meandata, np.std(deltarho), np.mean(deltarho)]
+        if self.edge_detection_switch.get() == "on":
+            title += ["MeanRho_c", "StdRho_c", "MeanDeltaRho_c"]
+            rho_c = datastack.added_vars[-1].values
+            data_vals = rho_c[mask * np.isfinite(rho) * np.isfinite(rho_c)]
+            meandata = self.circularmean(data_vals)
+            deltarho = self.wrapto180(2 * (data_vals - meandata)) / 2
+            results += [meandata, np.std(deltarho), np.mean(deltarho)]
         for var in datastack.vars[1:]:
             data_vals = var.values[mask * np.isfinite(rho)]
             meandata = np.mean(data_vals)

@@ -32,6 +32,7 @@ if sys.platform == "darwin":
     DATA_FILES += [("icons/*.icns", "icons/")]
 if sys.platform == 'win32':
     extra_options = dict(icon='main_icon.ico')
+    DATA_FILES += [("icons/*.ico", "icons/")]
 else:
     extra_options = {}
 
@@ -104,6 +105,17 @@ if sys.platform == 'darwin':
                 "UTTypeTagSpecification": {
                     "public.filename-extension": "pyreg",
                     "public.mime-type": "data/pypolar-pyreg",
+                },
+            },
+            {
+                "UTTypeIdentifier": "fr.cnrs.fresnel.pypolar-pykl",
+                "UTTypeDescription": "PyPOLAR Pickle",
+                "UTTypeIconFile": "icons/pykl.icns",
+                "UTTypeConformsTo": ["public.data"],
+                "UTTypeReferenceURL": "https://www.fresnel.fr/polarimetry",
+                "UTTypeTagSpecification": {
+                    "public.filename-extension": "pykl",
+                    "public.mime-type": "data/pypolar-pykl",
                 },
             },],
             })
