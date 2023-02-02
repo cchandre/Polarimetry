@@ -39,19 +39,6 @@ try:
 except ImportError:
     pass
 
-if sys.platform == "win32":
-    import _winreg
-    EXTS = [".pyroi", ".pyreg", ".pykl"]
-    TYPES = ["PyPOLAR ROI", "PyPOLAR Registration", "PyPOLAR Pickle"]
-    ICONS = ["icons/pyrois.ico", "icons/pyreg.ico", "icons/pykl.ico"]
-    try:
-        for EXT, TYPE, ICON in zip(EXTS, TYPES, ICONS):
-            ext = _winreg.OpenKey(_winreg.HKEY_CLASSES_ROOT, TYPE)
-            _winreg.SetValue(ext, "DefaultIcon", _winreg.REG_SZ, ICON)
-            _winreg.CloseKey(ext)
-    except WindowsError:
-        pass
-
 CTk.set_default_color_theme(os.path.join(os.path.dirname(os.path.realpath(__file__)), "polarimetry.json"))
 CTk.set_appearance_mode("dark")
 mpl.use("TkAgg")
@@ -121,6 +108,17 @@ class Polarimetry(CTk.CTk):
                 self.icons.update({os.path.splitext(file)[0]: CTk.CTkImage(dark_image=Image.open(os.path.join(image_path, file)), size=(30, 30))})
         if sys.platform == "win32":
             self.iconbitmap(os.path.join(self.base_dir, "main_icon.ico"))
+            import _winreg
+            EXTS = [".pyroi", ".pyreg", ".pykl"]
+            TYPES = ["PyPOLAR ROI", "PyPOLAR Registration", "PyPOLAR Pickle"]
+            ICONS = ["pyrois.ico", "pyreg.ico", "pykl.ico"]
+            try:
+                for EXT, TYPE, ICON in zip(EXTS, TYPES, ICONS):
+                    ext = _winreg.OpenKey(_winreg.HKEY_CLASSES_ROOT, TYPE)
+                    _winreg.SetValue(ext, "DefaultIcon", _winreg.REG_SZ, os.path.join(image_path, ICON))
+                    _winreg.CloseKey(ext)
+            except WindowsError:
+                pass
 
 ## DEFINE FRAMES
         self.left_frame = CTk.CTkFrame(master=self, width=Polarimetry.left_frame_width, corner_radius=0, fg_color=Polarimetry.gray[0])
@@ -1606,19 +1604,19 @@ class Polarimetry(CTk.CTk):
 
     def get_variable(self, indx):
         display = self.variable_display[indx].get()
-        min, max = float(self.variable_min[indx].get()), float(self.variable_max[indx].get())
-        return display, min, max
+        vmin, vmax = float(self.variable_min[indx].get()), float(self.variable_max[indx].get())
+        return display, vmin, vmax
 
-    def plot_histo(self, var, datastack, min, max, roi_map, roi=[]):
+    def plot_histo(self, var, datastack, vmin, vmax, roi_map, roi=[]):
         if self.show_table[2].get() or self.save_table[2].get():
             suffix = "for ROI " + str(roi["indx"]) if roi else ""
             fig = plt.figure(figsize=self.figsize)
             fig.canvas.manager.set_window_title(var.name + " Histogram" + suffix + ": " + self.datastack.name)
             mask = (roi_map == roi["indx"]) if roi else (roi_map == 1)
             data_vals = var.values[mask * np.isfinite(var.values)]
-            norm = mpl.colors.Normalize(min, max)
+            norm = mpl.colors.Normalize(vmin, vmax)
             cmap = mpl.colormaps[var.colormap]
-            bins = np.linspace(min, max, 60)
+            bins = np.linspace(vmin, vmax, 60)
             if var.type_histo == "normal":
                 ax = plt.gca()
                 n, bins, patches = ax.hist(data_vals, bins=bins, linewidth=0.5)
@@ -1627,7 +1625,7 @@ class Polarimetry(CTk.CTk):
                     color = cmap(norm(bin))
                     patch.set_facecolor(color)
                     patch.set_edgecolor("k")
-                ax.set_xlim((min, max))
+                ax.set_xlim((vmin, vmax))
                 ax.set_xlabel(var.latex, fontsize=20)
                 ax.set_title(datastack.name, fontsize=14)
                 text = var.latex + " = " + "{:.2f}".format(np.mean(data_vals)) + " $\pm$ " "{:.2f}".format(np.std(data_vals))
@@ -1643,15 +1641,20 @@ class Polarimetry(CTk.CTk):
                     ax.set_theta_direction(-1)
                     meandata = np.mean(data_vals)
                     std = np.std(data_vals)
-                distribution, bin_edges = np.histogram(data_vals, bins=bins, range=(min, max))
+                elif var.type_histo == "polar3":
+                    ax.set_theta_zero_location("E")
+                    data_vals[data_vals >= 90] = 180 - data_vals[data_vals >= 90]
+                    meandata = self.circularmean(data_vals)
+                    std = np.std(self.wrapto180(2 * (data_vals - meandata)) / 2)
+                distribution, bin_edges = np.histogram(data_vals, bins=bins, range=(vmin, vmax))
                 bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
                 width = np.deg2rad(bins[1] - bins[0])
                 colors = cmap(norm(bins))
                 ax.bar(np.deg2rad(bin_centers), distribution, width=width, color=colors, edgecolor="k", linewidth=0.5)
                 num = 10**(len(str(np.amax(distribution))) - 2)
                 ax.set_rticks(np.floor(np.linspace(0, np.max(distribution), 3) / num) * num)
-                ax.set_thetamin(min)
-                ax.set_thetamax(max)
+                ax.set_thetamin(vmin)
+                ax.set_thetamax(vmax)
                 ax.set_title(datastack.name, fontsize=14)
                 text = var.latex + " = " + "{:.2f}".format(meandata) + " $\pm$ " "{:.2f}".format(std)
                 ax.annotate(text, xy=(0.65, 0.95), xycoords="axes fraction", fontsize=14)
@@ -1844,8 +1847,12 @@ class Polarimetry(CTk.CTk):
                     for roi in datastack.rois:
                         if roi["select"]:
                             self.plot_histo(var, datastack, vmin, vmax, roi_map, roi=roi)
+                            var.type_histo = "polar3"
+                            self.plot_histo(var, datastack, 0, 90, roi_map, roi=roi)
                 else:
                     self.plot_histo(var, datastack, vmin, vmax, roi_map, roi=[])
+                    var.type_histo = "polar3"
+                    self.plot_histo(var, datastack, 0, 90, roi_map, roi=[])
 
     def save_data(self, datastack, roi_map=[]):
         if len(roi_map) == 0:
@@ -1920,9 +1927,15 @@ class Polarimetry(CTk.CTk):
         else:
             results = [self.stack.name, "all", "", "", meandata, np.std(deltarho), np.mean(deltarho)]
         if self.edge_detection_switch.get() == "on":
-            title += ["MeanRho_c", "StdRho_c", "MeanDeltaRho_c"]
-            rho_c = datastack.added_vars[-1].values
-            data_vals = rho_c[mask * np.isfinite(rho) * np.isfinite(rho_c)]
+            title += ["MeanRho_c_180", "StdRho_c_180", "MeanDeltaRho_c_180", "MeanRho_c_90", "StdRho_c_90", "MeanDeltaRho_c_90"]
+            rho_c_180 = datastack.added_vars[-1].values
+            rho_c_90 = rho_c_180.copy()
+            rho_c_90[rho_c_90 >= 90] = 180 - rho_c_90[rho_c_90 >= 90]
+            data_vals = rho_c_180[mask * np.isfinite(rho) * np.isfinite(rho_c_180)]
+            meandata = self.circularmean(data_vals)
+            deltarho = self.wrapto180(2 * (data_vals - meandata)) / 2
+            results += [meandata, np.std(deltarho), np.mean(deltarho)]
+            data_vals = rho_c_90[mask * np.isfinite(rho) * np.isfinite(rho_c_90)]
             meandata = self.circularmean(data_vals)
             deltarho = self.wrapto180(2 * (data_vals - meandata)) / 2
             results += [meandata, np.std(deltarho), np.mean(deltarho)]
