@@ -22,7 +22,7 @@ ___
 
   * <ins>Choice of polarimetry method:</ins> <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/microscope.png" alt=" " width="30"/> `1PF` (one-photon fluorescence), `CARS` (coherent anti-Stokes Raman scattering), `SRS` (stimulated Raman scattering), `SHG` (second-harmonic generation), `2PF` (two-photon fluorescence), `4POLAR 2D` (2D 4POLAR fluorescence), `4POLAR 3D` (3D 4POLAR fluorescence).
 
-  * <ins> Download data to be analyzed: </ins> <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/download_file.png" alt=" " width="30"/>: `Open file` (`.tiff` or `.tif` stack file) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo_fill.png" alt=" " width="30"/>, `Open folder` (containing `.tiff` or `.tif` stack files) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/folder_open.png" alt=" " width="30"/> or `Previous analysis` (a compressed `.pbz2` pickle file saved from a previous PyPOLAR analysis) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/analytics.png" alt=" " width="30"/>. The analysis is done with 16-bit images. In case of 32-bit images, they are converted to 16-bit images before analysis.   
+  * <ins> Download data to be analyzed: </ins> <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/download_file.png" alt=" " width="30"/>: `Open file` (`.tiff` or `.tif` stack file) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo_fill.png" alt=" " width="30"/>, `Open folder` (containing `.tiff` or `.tif` stack files) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/folder_open.png" alt=" " width="30"/> or `Previous analysis` (a compressed `.pykl` pickle file saved from a previous PyPOLAR analysis) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/analytics.png" alt=" " width="30"/>. The analysis is done with 16-bit images. In case of 32-bit images, they are converted to 16-bit images before analysis.   
 
   * <ins>Select the method of analysis:</ins>  <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/build.png" alt=" " width="30"/> `Thresholding (manual)` (thresholding and regions of interest are manually selected for each stack), `Thresholding (auto)` (thresholding and regions of interest are selected for the first stack and applied to each stack to be analyzed in batch mode), `Mask (manual)` (a binary segmentation mask is applied to the analysis; the name of the segmentation mask has to be identical to the one of the stack with a `.png` extension), `Mask (auto)` (batch analysis, similar to `Thresholding (auto)` but with a segmentation mask applied to each stack). For `Thresholding (auto)` and `Mask (auto)`, the menu icon is changed to <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/build_fill.png" alt=" " width="30"/>
 
@@ -63,18 +63,23 @@ ___
 
 * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/open_in_new.png" alt=" " width="30"/> exports the binary mask in a `.png` format. Three options to create the masks: using selected ROIs only, using the image above threshold, or a combination of both (component of the image above threshold and inside selected ROIs). The file name of the exported mask includes the suffix `_mask` to avoid overwriting an existing mask for the same file. To use it for further analysis, remove this suffix.
 
-* <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/format_list.png" alt=" " width="30"/> opens the ROI Manager. 
+#### ROI Manager
+<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/format_list.png" alt=" " width="30"/> opens the ROI Manager. 
+    
+ - `ROI`: displays the index of the ROI, as displayed in the intensity and thresholding/mask images.
+ - `name`: to be entered by the user as a tag of the specific ROI; it will be saved in the MS Excel.
+ - `group `: to be entered by the user as a tag of the specicif group the ROI belongs to; it will be saved in the MS Excel.
+ - `select`: select the ROIs to be considered in the analysis.
+ - `delete`: select the ROIs to be permanently deleted (then click the button `Delete` to actually delete them and update the table and images).
+ - Button `Commit`: click this button to commit the changes made to the labels of the ROIs (names, groups and selection).
+ - Button `Save`: save the information on all the ROIs as a binary `.pyroi` file.
+ - Button `Load`: load the ROIs from a binary `.pyroi` file.
+ - Button `Delete`: permanently deletes all the ROIs selected in `delete`; ROIs are renumbered in the ROI Manager and in the intensity and thresholding/mask images.
+ - Button `Delete All`: permamently deletes all the ROIs in the list.
+     
+#### Edge detection switch
 
-     - `ROI`: displays the index of the ROI, as displayed in the intensity and thresholding/mask images.
-     - `name`: to be entered by the user as a tag of the specific ROI; it will be saved in the MS Excel.
-     - `group `: to be entered by the user as a tag of the specicif group the ROI belongs to; it will be saved in the MS Excel.
-     - `select`: select the ROIs to be considered in the analysis.
-     - `delete`: select the ROIs to be permanently deleted (then click the button `Delete` to actually delete them and update the table and images).
-     - Button `Commit`: click this button to commit the changes made to the labels of the ROIs (names, groups and selection).
-     - Button `Save`: save the information on all the ROIs as a binary `.pyroi` file.
-     - Button `Load`: load the ROIs from a binary `.pyroi` file.
-     - Button `Delete`: permanently deletes all the ROIs selected in `delete`; ROIs are renumbered in the ROI Manager and in the intensity and thresholding/mask images.
-     - Button `Delete All`: permamently deletes all the ROIs in the list.
+When the swtich is on, PyPOLAR determines the edges of the thresholded image (`Compute`) as displayed in the [Thresholding/Mask](#thresholdingmask-tab) tab, or the contours of the dowloaded mask (`Mask`). The edges are displayed as blue lines on the thresholded image. To compute the edges, the Canny edge detector `cv2.Canny` is used with two parameters `low threshold` and `high threshold` (see [Edge Detection](#edgedetection-tab) tab) after a first Gaussian blur `cv2.GaussianBlur` of the image (with (5, 5) as width and height of the kernel - the standard deviations are calculated from the kernel size, see [OpenCV](https://docs.opencv.org/) for more details). The contours are determined from the edges using `cv2.findContours` (with the contour retrieval mode `cv2.RETR_TREE` and contour approximation algorithm `cv2.CHAIN_APPROX_NONE`). The contours shorter than `Length` defined in the [Edge Detection](#edgedetection-tab) tab are discarded. The obtained contours are smoothed out using a Savitzky-Golay filter `scipy.savgol_filter` with third-order polynomials and a window length defined by `Smoothing window` (in pixels) in the [Edge Detection](#edgedetection-tab) tab. From these smooth contours, the angles and the normal to the contours are computed. The angles &rho; with respect to the contours are computed in a layer around the contours defined by `Layer width` (in pixels) in the [Edge Detection](#edgedetection-tab) tab. There is the possibility to slightly move away from the contour by changing `Distance from contour` in the [Edge Detection](#edgedetection-tab) tab.
 
 [&uarr;](#manual)
 
@@ -98,7 +103,7 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
 
 #### Save output
 
-  The `Save output` table lists the saving options: `data (.pbz2)` for saving data as a compressed pickle file (to download as `Previous analysis` in the download selection), `figures (.tif)` for exporting the figures as TIFF files, `data (.mat)` for saving the values of the variables for each pixel used in the analysis as a MATLAB `.mat` file, `mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and `movie (.gif)` for an animated gif file of the stack.
+  The `Save output` table lists the saving options: `data (.pykl)` for saving data as a compressed pickle file (to download as `Previous analysis` in the download selection), `figures (.tif)` for exporting the figures as TIFF files, `data (.mat)` for saving the values of the variables for each pixel used in the analysis as a MATLAB `.mat` file, `mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and `movie (.gif)` for an animated gif file of the stack.
 
 
 #### Post-processing
@@ -163,6 +168,23 @@ This option is used to improve the quality of the stack if the signal is too wea
 #### Remove background
 
 This option is used to remove background from the stack (noise substraction). First, choose the value `Noise factor` (between 0 and 1) for the fraction of the mean intensity of the patch to be removed from the stack. Second, define the size in pixels (`Noise width` and `Noise height`) of the patch in the noisy part of the intensity image. Third, select a point (center of the patch of size `Noise width` x `Noise height`) in the intensity image by clicking the button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/exposure.png" alt=" " width="30"/> `Click background`. The mean value over the selected patch weighted by the Noise factor is removed from the entire stack. The value `Noise removal level` which is substracted from the stack is indicated in the lower part of the panel.
+
+[&uarr;](#manual)
+
+___
+### Edge Detection tab
+
+#### Edge detection
+
+* `low threshold`: integer between 0 and 255 - hysteresis thresholding value used in the Canny edge detector: edges with intensity gradients below this value are not edges and discarded
+* `high threshold`: integer between 0 and 255 - hysteresis thresholding value used in the Canny edge detector: edges with intensity gradients larger than this value are sure to be edges
+* `Length`: minimum length of a contour (in pixels)
+* `Smoothing window`: length in pixels of the window used for the smoothing (using a Savitzky-Golay filter `scipy.savgol_filter`)
+
+#### Layer
+
+* `Distance from contour`:
+* `Layer width`: 
 
 [&uarr;](#manual)
 
