@@ -31,7 +31,7 @@ BINARY_FILES = [("calibration/*.mat", "calibration/"), ("diskcones/*.mat", "disk
 if sys.platform == "darwin":
     DATA_FILES += [("icons/*.icns", "icons/")]
 if sys.platform == 'win32':
-    extra_options = dict(icon='main_icon.ico')
+    extra_options = dict(icon='main_icon.ico', version_file='version_rc')
     DATA_FILES += [("icons/*.ico", "icons/")]
 else:
     extra_options = {}
