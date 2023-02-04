@@ -1517,7 +1517,7 @@ class Polarimetry(CTk.CTk):
 
     def represent_fluo(self, update=True):
         itot = self.stack.itot if hasattr(self, "stack") else self.datastack.itot if hasattr(self, "datastack") else []
-        if any(itot):
+        if hasattr(self, "stack") or hasattr(self, "datastack"):
             if self.stack_slider.get() == 0:
                 field = itot
                 vmin, vmax = np.amin(itot), np.amax(itot)
