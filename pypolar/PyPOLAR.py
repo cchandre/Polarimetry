@@ -170,8 +170,12 @@ class Polarimetry(CTk.CTk):
         self.fluo_axis = self.fluo_fig.add_axes([0, 0, 1, 1])
         self.fluo_axis.set_axis_off()
         self.fluo_canvas = FigureCanvasTkAgg(self.fluo_fig, master=self.fluo_frame)
+        background = plt.imread(os.path.join(image_path, "blur_circular-512.png"))
+        self.fluo_axis.imshow(background, cmap=mpl.colormaps["gray"], interpolation="bicubic", alpha=0.1)
         self.fluo_canvas.draw()
         self.fluo_toolbar = NToolbar2Tk(self.fluo_canvas, self.fluo_frame, pack_toolbar=False)
+        self.fluo_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.fluo_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
         self.fluo_toolbar.config(background=Polarimetry.gray[1])
         self.fluo_toolbar._message_label.config(background=Polarimetry.gray[1])
         for button in self.fluo_toolbar.winfo_children():
@@ -211,8 +215,12 @@ class Polarimetry(CTk.CTk):
         self.thrsh_axis.set_axis_off()
         self.thrsh_axis.set_facecolor(self.thrsh_axis_facecolor)
         self.thrsh_canvas = FigureCanvasTkAgg(self.thrsh_fig, master=self.thrsh_frame)
+        self.thrsh_axis.imshow(background, cmap=mpl.colormaps["gray"], interpolation="bicubic", alpha=0.1)
         self.thrsh_canvas.draw()
         self.thrsh_toolbar = NToolbar2Tk(self.thrsh_canvas, self.thrsh_frame, pack_toolbar=False)
+        self.thrsh_toolbar.update()
+        self.thrsh_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.thrsh_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
         self.thrsh_toolbar.config(background=Polarimetry.gray[1])
         self.thrsh_toolbar._message_label.config(background=Polarimetry.gray[1])
         for button in self.thrsh_toolbar.winfo_children():
@@ -966,13 +974,14 @@ class Polarimetry(CTk.CTk):
         self.represent_thrsh()
 
     def no_background(self):
-        if self.thrsh_fig.patch.get_facecolor() == mpl.colors.to_rgba("k", 1):
-            self.thrsh_fig.patch.set_facecolor(Polarimetry.gray[1])
-            self.no_background_button.configure(image=self.icons["photo_fill"])
-        else:
-            self.thrsh_fig.patch.set_facecolor("k")
-            self.no_background_button.configure(image=self.icons["photo"])
-        self.thrsh_canvas.draw()
+        if hasattr(self, "stack"):
+            if self.thrsh_fig.patch.get_facecolor() == mpl.colors.to_rgba("k", 1):
+                self.thrsh_fig.patch.set_facecolor(Polarimetry.gray[1])
+                self.no_background_button.configure(image=self.icons["photo_fill"])
+            else:
+                self.thrsh_fig.patch.set_facecolor("k")
+                self.no_background_button.configure(image=self.icons["photo"])
+            self.thrsh_canvas.draw()
 
     def offset_angle_switch_callback(self):
         if self.offset_angle_switch.get() == "on":
@@ -1508,7 +1517,7 @@ class Polarimetry(CTk.CTk):
 
     def represent_fluo(self, update=True):
         itot = self.stack.itot if hasattr(self, "stack") else self.datastack.itot if hasattr(self, "datastack") else []
-        if itot.any():
+        if any(itot):
             if self.stack_slider.get() == 0:
                 field = itot
                 vmin, vmax = np.amin(itot), np.amax(itot)
