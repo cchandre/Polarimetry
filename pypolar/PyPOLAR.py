@@ -46,7 +46,7 @@ plt.rcParams["font.size"] = 16
 if sys.platform == "darwin":
     plt.rcParams["font.family"] = "Arial Rounded MT Bold"
 elif sys.platform == "win32":
-    plt.rcParams["font.family"] = "Segoe UI Variable"
+    plt.rcParams["font.family"] = "Arial Rounded MT"
 plt.rcParams["image.origin"] = "upper"
 plt.rcParams["figure.max_open_warning"] = 100
 plt.rcParams["axes.unicode_minus"] = False
@@ -2359,8 +2359,8 @@ class ROIManager:
             font = ("Arial Rounded MT Bold", 16, "normal")
             header_font = ("Arial Rounded MT Bold", 16, "bold")
         elif sys.platform == "win32":
-            font = ("Segoe UI Variable", 16, "normal")
-            header_font = ("Segoe UI Variable", 16, "bold")
+            font = ("Arial Rounded MT", 16, "normal")
+            header_font = ("Arial Rounded MT", 16, "bold")
 
         cell_height = 20
         self.height = lambda cell_h, rois_: 20 + (cell_h + 3) * (len(rois_) + 1)
