@@ -114,7 +114,7 @@ class Polarimetry(CTk.CTk):
             ICONS = ["pyrois.ico", "pyreg.ico", "pykl.ico"]
             try:
                 for EXT, TYPE, ICON in zip(EXTS, TYPES, ICONS):
-                    key = winreg.CreatKey(winreg.HKEY_CLASSES_ROOT, EXT)
+                    key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, EXT)
                     winreg.SetValue(key, None, winreg.REG_SZ, TYPE)
                     iconkey = winreg.CreateKey(key, "DefaultIcon")
                     winreg.SetValue(iconkey, None, winreg.REG_SZ, os.path.join(image_path, ICON))
