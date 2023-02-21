@@ -104,7 +104,8 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
 
 #### Variables
 
-  The `Variables` table lists all the possible variables *C*. Check the boxes for the variables *C* to be displayed and/or saved in the analysis. For `1PF`, `4POLAR 2D`: (&rho;, &psi;). For `CARS`, `SRS`, `2PF`: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For `SHG`: (&rho;, S<sub>SHG</sub>). For `4POLAR 3D`: (&rho;, &psi;, &eta;). The second and third columns display the minimum and maximum values of the variables used for the colorbars of histograms and composite and stick maps. These elements are editable (except for *&rho;*) if the switch is selected.
+  The `Variables` table lists all the possible variables *C*. Check the boxes for the variables *C* to be displayed and/or saved in the analysis. For `1PF`, `4POLAR 2D`: (&rho;, &psi;). For `CARS`, `SRS`, `2PF`: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For `SHG`: (&rho;, S<sub>SHG</sub>). For `4POLAR 3D`: (&rho;, &psi;, &eta;). The second and third columns display the minimum and maximum values of the variables used for the colorbars of histograms and composite and stick maps. These elements are editable (except for &rho;) if the switch is selected.
+  The colormap for &rho; is `hsv` (and `colorwheel` from [Colorcet](https://colorcet.holoviz.org/) for colorblind-friendly visualization). The colormap for &psi;, S<sub>2</sub>, S<sub>4</sub>, S<sub>SHG</sub> is `jet` (and `viridis` for colorblind-friendly visualization). The colormap for &eta; is `plasma`.   
   
 
 #### Post-processing
