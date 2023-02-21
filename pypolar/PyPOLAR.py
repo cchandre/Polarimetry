@@ -24,6 +24,7 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Polygon
 from matplotlib.collections import PolyCollection
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+import colorcet as cc
 from PIL import Image
 from skimage import exposure
 import cv2
@@ -53,9 +54,9 @@ plt.rcParams["axes.unicode_minus"] = False
 plt.ion()
 
 class Polarimetry(CTk.CTk):
-    __version__ = "2.4"
+    __version__ = "2.4.1"
     status = ""
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023"}
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 21, 2023"}
 
     if status == "beta":
         __version_date__ = date.today().strftime("%B %d, %Y")
@@ -171,7 +172,7 @@ class Polarimetry(CTk.CTk):
         self.fluo_axis.set_axis_off()
         self.fluo_canvas = FigureCanvasTkAgg(self.fluo_fig, master=self.fluo_frame)
         background = plt.imread(os.path.join(image_path, "blur_circular-512.png"))
-        self.fluo_axis.imshow(background, cmap=mpl.colormaps["gray"], interpolation="bicubic", alpha=0.1)
+        self.fluo_axis.imshow(background, cmap="gray", interpolation="bicubic", alpha=0.1)
         self.fluo_canvas.draw()
         self.fluo_toolbar = NToolbar2Tk(self.fluo_canvas, self.fluo_frame, pack_toolbar=False)
         self.fluo_toolbar.config(background=Polarimetry.gray[1])
@@ -214,7 +215,7 @@ class Polarimetry(CTk.CTk):
         self.thrsh_axis.set_axis_off()
         self.thrsh_axis.set_facecolor(self.thrsh_axis_facecolor)
         self.thrsh_canvas = FigureCanvasTkAgg(self.thrsh_fig, master=self.thrsh_frame)
-        self.thrsh_axis.imshow(background, cmap=mpl.colormaps["gray"], interpolation="bicubic", alpha=0.1)
+        self.thrsh_axis.imshow(background, cmap="gray", interpolation="bicubic", alpha=0.1)
         self.thrsh_canvas.draw()
         self.thrsh_toolbar = NToolbar2Tk(self.thrsh_canvas, self.thrsh_frame, pack_toolbar=False)
         self.thrsh_toolbar.config(background=Polarimetry.gray[1])
@@ -275,7 +276,7 @@ class Polarimetry(CTk.CTk):
             self.save_table[it].grid(row=it+2, column=2, pady=0, padx=(20, 20))
         CTk.CTkLabel(master=show_save, text=" ").grid(row=len(labels)+2, column=0, padx=0, pady=0)
         banner = CTk.CTkFrame(master=self.tabview.tab("Options"))
-        banner.grid(row=3, column=1, pady=0)
+        banner.grid(row=2, column=1, padx=20, pady=50, sticky="n")
         button = self.button(banner, image=self.icons["delete_forever"], command=self.initialize_tables)
         #ToolTip.createToolTip(button, "Reinitialize the tables Show/Save and Variable")
         button.grid(row=0, column=0, padx=(0, 100), pady=0, sticky="nw")
@@ -285,28 +286,33 @@ class Polarimetry(CTk.CTk):
         postprocessing = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
         postprocessing.grid(row=2, column=0, padx=20, pady=10)
         CTk.CTkLabel(master=postprocessing, text="\nPost-processing\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=2, padx=20, pady=0)
-        self.add_axes_checkbox = self.checkbox(postprocessing, text="\n Add axes on figures\n", command=self.add_axes_on_all_figures)
-        self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=20, pady=(0, 20))
-        self.button(postprocessing, text="Crop figures", image=self.icons["crop"], command=self.crop_figures_callback).grid(row=2, column=0, columnspan=2, padx=20, pady=0)
+        self.add_axes_checkbox = self.checkbox(postprocessing, text="\n Axes on figures\n", command=self.add_axes_on_all_figures)
+        self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=40, pady=(0, 0), sticky="ew")
+        self.colorbar_checkbox = self.checkbox(postprocessing, text="\n Colorbar on figures\n", command=self.colorbar_on_all_figures)
+        self.colorbar_checkbox.select()
+        self.colorbar_checkbox.grid(row=2, column=0, columnspan=2, padx=40, pady=(0, 0), sticky="ew")
+        self.colorblind_checkbox = self.checkbox(postprocessing, text="\n Colorblind-friendly\n")
+        self.colorblind_checkbox.grid(row=3, column=0, columnspan=2, padx=40, pady=(0, 20), sticky="ew")
+        self.button(postprocessing, text="Crop figures", image=self.icons["crop"], command=self.crop_figures_callback).grid(row=4, column=0, columnspan=2, padx=20, pady=0)
         button = self.button(postprocessing, text="Show individual fit", image=self.icons["query_stats"], command=self.show_individual_fit_callback)
         ToolTip.createToolTip(button, "Zoom into the region of interest\nthen click using the crosshair")
-        button.grid(row=3, column=0, columnspan=2, padx=20, pady=20)
-        pixels_per_sticks = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
-        pixels_per_sticks.grid(row=3, column=0, padx=20, pady=10)
-        CTk.CTkLabel(master=pixels_per_sticks, text="\n Pixels separating sticks\n", font=CTk.CTkFont(size=16), width=230).grid(row=4, column=0, columnspan=2, padx=20, pady=(0, 0))
-        labels = ["horizontally", "vertically"]
+        button.grid(row=5, column=0, columnspan=2, padx=20, pady=20)
+        #pixels_per_sticks = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
+        #pixels_per_sticks.grid(row=3, column=0, padx=20, pady=10)
+        #CTk.CTkLabel(master=pixels_per_sticks, text="\n Pixels separating sticks\n", font=CTk.CTkFont(size=16), width=230).grid(row=4, column=0, columnspan=2, padx=20, pady=(0, 0))
+        labels = ["pixels per stick (horizontal)", "pixels per stick (vertical)"]
         self.pixelsperstick = [tk.StringVar(), tk.StringVar()]
-        spinboxes = [tk.ttk.Spinbox(master=pixels_per_sticks, from_=1, to=20, textvariable=self.pixelsperstick[it], width=2, foreground=Polarimetry.gray[1], background=Polarimetry.gray[1], command=self.pixelsperstick_spinbox) for it in range(2)]
+        spinboxes = [tk.ttk.Spinbox(master=postprocessing, from_=1, to=20, textvariable=self.pixelsperstick[it], width=2, foreground=Polarimetry.gray[1], background=Polarimetry.gray[1], command=self.pixelsperstick_spinbox) for it in range(2)]
         for it in range(2):
             self.pixelsperstick[it].set(1)
-            spinboxes[it].grid(row=it+5, column=0, padx=0, pady=(0, 20))
-            label = CTk.CTkLabel(master=pixels_per_sticks, text=labels[it], anchor="w")
-            label.grid(row=it+5, column=1, padx=(0, 20), pady=(0, 20))
+            spinboxes[it].grid(row=it+7, column=0, padx=(20, 0), pady=(0, 20))
+            label = CTk.CTkLabel(master=postprocessing, text=labels[it], anchor="w")
+            label.grid(row=it+7, column=1, padx=(0, 20), pady=(0, 20))
             ToolTip.createToolTip(label, "Controls the density of sticks to be plotted")
         self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab("Options"), width=300)
         self.variable_table_frame.grid(row=0, column=1, padx=(40, 20), pady=10, sticky="nw")
         save_ext = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
-        save_ext.grid(row=2, column=1, padx=(40, 20), pady=10, sticky="nw")
+        save_ext.grid(row=2, column=1, padx=(40, 20), pady=100, sticky="sw")
         CTk.CTkLabel(master=save_ext, text="\nSave output\n", font=CTk.CTkFont(size=16), width=260).grid(row=0, column=0, columnspan=2, padx=(0, 20), pady=(0, 0))
         labels = ["data (.pykl)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "movie (.gif)"]
         self.extension_table = [self.checkbox(save_ext) for it in range(len(labels))]
@@ -391,7 +397,7 @@ class Polarimetry(CTk.CTk):
         self.button(banner, image=self.icons["contact_support"], command=lambda:self.openweb(Polarimetry.url_github + "/blob/master/README.md")).pack(side=tk.LEFT, padx=20)
         about_textbox = CTk.CTkTextbox(master=self.tabview.tab("About"), width=Polarimetry.tab_width-30, height=500)
         about_textbox.grid(row=1, column=0, padx=30)
-        message = f"Version: {Polarimetry.__version__} ({Polarimetry.__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV, Matplotlib, openpyxl, tksheet \n\n\n  uses Material Design icons by Google"
+        message = f"Version: {Polarimetry.__version__} ({Polarimetry.__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV\n Matplotlib, openpyxl, tksheet, colorcet \n\n\n  uses Material Design icons by Google"
         about_textbox.insert("0.0", message)
         about_textbox.configure(state="disabled")
         self.tabview.set("Intensity")
@@ -805,6 +811,21 @@ class Polarimetry(CTk.CTk):
             fig.axes[0].axis(self.add_axes_checkbox.get())
             fig.canvas.draw()
 
+    def colorbar_on_all_figures(self):
+        figs = list(map(plt.figure, plt.get_fignums()))
+        for fig in figs:
+            fs = fig.canvas.manager.get_window_title()
+            if ("Composite" in fs) and (self.datastack.name in fs):
+                if self.colorbar_checkbox.get():
+                    plt.colorbar(fig.axes[0].images[1])
+                else:
+                    plt.delaxes(fig.axes[1]) 
+            elif ("Sticks" in fs) and (self.datastack.name in fs):
+                if self.colorbar_checkbox.get():
+                    plt.colorbar(fig.axes[0].collections[0])
+                else: 
+                    plt.delaxes(fig.axes[1]) 
+
     def options_dropdown_callback(self, value):
         if value.endswith("(auto)"):
             self.options_icon.configure(image=self.icons["build_fill"])
@@ -1033,10 +1054,12 @@ class Polarimetry(CTk.CTk):
             fig, axs = plt.subplots(1, 2, figsize=(13, 8))
             fig.canvas.manager.set_window_title("Disk Cone: " + self.CD.name)
             fig.patch.set_facecolor("w")
-            h = axs[0].imshow(self.CD.RhoPsi[:, :, 0], cmap=mpl.colormaps["hsv"], interpolation="nearest", extent=[-1, 1, -1, 1])
+            cmap = cc.m_colorwheel if self.colorblind_checkbox.get() else "hsv"
+            h = axs[0].imshow(self.CD.RhoPsi[:, :, 0], cmap=cmap, interpolation="nearest", extent=[-1, 1, -1, 1])
             axs[0].set_title("Rho Test")
             plt.colorbar(h)
-            h = axs[1].imshow(self.CD.RhoPsi[:, :, 1], cmap=mpl.colormaps["jet"], interpolation="nearest", extent=[-1, 1, -1, 1])
+            cmap = "viridis" if self.colorblind_checkbox.get() else "jet"
+            h = axs[1].imshow(self.CD.RhoPsi[:, :, 1], cmap=cmap, interpolation="nearest", extent=[-1, 1, -1, 1])
             axs[1].set_title("Psi Test")
             plt.colorbar(h)
             plt.subplots_adjust(wspace=0.4)
@@ -1529,7 +1552,7 @@ class Polarimetry(CTk.CTk):
             else:
                 self.fluo_axis.clear()
                 self.fluo_axis.set_axis_off()
-                self.fluo_im = self.fluo_axis.imshow(field_im, cmap=mpl.colormaps["gray"], interpolation="nearest")
+                self.fluo_im = self.fluo_axis.imshow(field_im, cmap="gray", interpolation="nearest")
                 self.fluo_frame.update()
                 self.fluo_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
                 self.fluo_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
@@ -1624,7 +1647,9 @@ class Polarimetry(CTk.CTk):
             mask = (roi_map == roi["indx"]) if roi else (roi_map == 1)
             data_vals = var.values[mask * np.isfinite(var.values)]
             norm = mpl.colors.Normalize(vmin, vmax)
-            cmap = mpl.colormaps[var.colormap]
+            cmap = var.colormap[self.colorblind_checkbox.get()]
+            if isinstance(cmap, str):
+                cmap = mpl.colormaps[cmap] 
             bins = np.linspace(vmin, vmax, 60)
             if var.type_histo == "normal":
                 ax = plt.gca()
@@ -1678,7 +1703,7 @@ class Polarimetry(CTk.CTk):
         field = self.adjust(itot, self.contrast_fluo_slider.get(), vmin, vmax)
         if int(self.rotation[1].get()) != 0:
             field = rotate(field, int(self.rotation[1].get()), reshape=False, mode="constant", cval=vmin)
-        ax_im = ax.imshow(field, cmap=mpl.colormaps["gray"], interpolation="nearest")
+        ax_im = ax.imshow(field, cmap="gray", interpolation="nearest")
         ax_im.set_clim(vmin, vmax)
 
     def add_patches(self, datastack, ax, fig, rotation=True):
@@ -1710,8 +1735,9 @@ class Polarimetry(CTk.CTk):
                     im = np.mod(2 * (im + int(self.rotation[1].get())), 360) / 2
                 im = rotate(im, int(self.rotation[1].get()), reshape=False, mode="constant")
                 im[im == 0] = np.nan
-            h2 = ax.imshow(im, vmin=vmin, vmax=vmax, cmap=mpl.colormaps[var.colormap], interpolation="nearest")
-            plt.colorbar(h2)
+            h2 = ax.imshow(im, vmin=vmin, vmax=vmax, cmap=var.colormap[self.colorblind_checkbox.get()], interpolation="nearest")
+            if self.colorbar_checkbox.get():
+                plt.colorbar(h2)
             ax.set_title(datastack.name)
             plt.pause(0.001)
             suffix = "_" + var.name + "Composite"
@@ -1782,7 +1808,7 @@ class Polarimetry(CTk.CTk):
             x0, y0 = self.stack.width / 2, self.stack.height / 2
             vertices = np.asarray([x0 + (vertices[0] - x0) * np.cos(theta) + (vertices[1] - y0) * np.sin(theta), y0 - (vertices[0] - x0) * np.sin(theta) + (vertices[1] - y0) * np.cos(theta)])
         vertices = np.swapaxes(vertices, 0, 2)
-        return PolyCollection(vertices, cmap=mpl.colormaps[var.colormap], lw=2, array=stick_colors)
+        return PolyCollection(vertices, cmap=var.colormap[self.colorblind_checkbox.get()], lw=2, array=stick_colors)
 
     def plot_sticks(self, var, datastack, vmin, vmax):
         if self.show_table[1].get() or self.save_table[1].get():
@@ -1801,7 +1827,8 @@ class Polarimetry(CTk.CTk):
             p = self.get_sticks(var, datastack)
             p.set_clim([vmin, vmax])
             ax.add_collection(p)
-            fig.colorbar(p, ax=ax)
+            if self.colorbar_checkbox.get():
+                fig.colorbar(p, ax=ax)
             ax.set_title(datastack.name)
             suffix = "_" + var.name + "Sticks"
             if self.save_table[1].get() and self.extension_table[1].get():
@@ -1822,7 +1849,8 @@ class Polarimetry(CTk.CTk):
                 for contour in self.edge_contours:
                     angles = np.mod(2 * self.angle_edge(contour)[0], 360) / 2
                     p = ax.scatter(contour[:, 0], contour[:, 1], c=angles, cmap="hsv", s=4)
-                fig.colorbar(p, ax=ax)
+                if self.colorbar_checkbox.get():
+                    fig.colorbar(p, ax=ax)
             if self.save_table[3].get() and self.extension_table[1].get():
                 plt.savefig(datastack.filename + suffix + ".tif")
             if not self.show_table[3].get():
@@ -2080,7 +2108,7 @@ class Polarimetry(CTk.CTk):
         rho_.name, rho_.latex = "Rho", r"$\rho$"
         rho_.orientation = True
         rho_.type_histo = "polar1"
-        rho_.colormap = "hsv"
+        rho_.colormap = ["hsv", cc.m_colorwheel]
         if self.method.get() == "1PF":
             mask *= (np.abs(a2) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             a2_vals = np.moveaxis(np.asarray([a2.real[mask].flatten(), a2.imag[mask].flatten()]), 0, -1)
@@ -2092,7 +2120,7 @@ class Polarimetry(CTk.CTk):
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.values = np.nan * np.ones(a0.shape)
             psi_.values[ixgrid] = psi
-            psi_.colormap = "jet"
+            psi_.colormap = ["jet", "viridis"]
             mask *= np.isfinite(rho_.values) * np.isfinite(psi_.values)
             datastack.vars = [rho_, psi_]
         elif self.method.get() in ["CARS", "SRS", "2PF"]:
@@ -2103,11 +2131,11 @@ class Polarimetry(CTk.CTk):
             s2_.name, s2_.latex = "S2", "$S_2$"
             s2_.values[mask] = 1.5 * np.abs(a2[mask])
             s2_.display, s2_.min, s2_.max = self.get_variable(1)
-            s2_.colormap = "jet"
+            s2_.colormap = ["jet", "viridis"]
             s4_ = Variable(datastack)
             s4_.name, s4_.latex = "S4", "$S_4$"
             s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.values[mask])))
-            s4_.colormap = "jet"
+            s4_.colormap = ["jet", "viridis"]
             datastack.vars = [rho_, s2_, s4_]
         elif self.method.get() == "SHG":
             mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
@@ -2116,7 +2144,7 @@ class Polarimetry(CTk.CTk):
             s_shg_ = Variable(datastack)
             s_shg_.name, s_shg_.latex = "S_SHG", "$S_\mathrm{SHG}$"
             s_shg_.values[mask] = -0.5 * (np.abs(a4[mask]) - np.abs(a2[mask])) / (np.abs(a4[mask]) + np.abs(a2[mask])) - 0.65
-            s_shg_.colormap = "jet"
+            s_shg_.colormap = ["jet", "viridis"]
             datastack.vars = [rho_, s_shg_]
         elif self.method.get() == "4POLAR 3D":
             mask *= (lam < 1/3) * (lam > 0) * (pzz > lam)
@@ -2126,12 +2154,12 @@ class Polarimetry(CTk.CTk):
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.values[mask] = 2 * np.rad2deg(np.arccos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
             psi_.display, psi_.min, psi_.max = self.get_variable(1)
-            psi_.colormap = "jet"
+            psi_.colormap = ["jet", "viridis"]
             eta_ = Variable(datastack)
             eta_.name, eta_.latex = "Eta", "$\eta$"
             eta_.values[mask] = np.rad2deg(np.arccos(np.sqrt((pzz[mask] - lam[mask]) / (1 - 3 * lam[mask]))))
             eta_.type_histo = "polar2"
-            eta_.colormap = "plasma"
+            eta_.colormap = ["plasma", "plasma"]
             datastack.vars = [rho_, psi_, eta_]
         elif self.method.get() == "4POLAR 2D":
             mask *= (lam < 1/3) * (lam > 0)
@@ -2140,7 +2168,7 @@ class Polarimetry(CTk.CTk):
             psi_ = Variable(datastack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.values[mask] = 2 * np.rad2deg(np.arccos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
-            psi_.colormap = "jet"
+            psi_.colormap = ["jet", "viridis"]
             datastack.vars = [rho_, psi_]
         a0[np.logical_not(mask)] = np.nan
         X, Y = np.meshgrid(np.arange(datastack.width), np.arange(datastack.height))
@@ -2156,7 +2184,7 @@ class Polarimetry(CTk.CTk):
             rho_ct.name, rho_ct.latex = "Rho (vs contour)", r"$\rho_c$"
             rho_ct.orientation = True
             rho_ct.type_histo = "polar1"
-            rho_ct.colormap = "hsv"
+            rho_ct.colormap = ["hsv", cc.m_colorwheel]
             filter = np.isfinite(rho_.values) * np.isfinite(self.rho_ct)
             rho_ct.values[filter] = np.mod(2*(rho_.values[filter] - self.rho_ct[filter]), 360) / 2
             datastack.added_vars += [rho_ct]
