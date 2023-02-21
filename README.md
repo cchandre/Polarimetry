@@ -107,23 +107,22 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
   The `Variables` table lists all the possible variables *C*. Check the boxes for the variables *C* to be displayed and/or saved in the analysis. For `1PF`, `4POLAR 2D`: (&rho;, &psi;). For `CARS`, `SRS`, `2PF`: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For `SHG`: (&rho;, S<sub>SHG</sub>). For `4POLAR 3D`: (&rho;, &psi;, &eta;). The second and third columns display the minimum and maximum values of the variables used for the colorbars of histograms and composite and stick maps. These elements are editable (except for *&rho;*) if the switch is selected.
   
 
-#### Save output
-
-  The `Save output` table lists the saving options: `data (.pykl)` for saving data as a compressed pickle file (to download as `Previous analysis` in the download selection), `figures (.tif)` for exporting the figures as TIFF files, `data (.mat)` for saving the values of the variables for each pixel used in the analysis as a MATLAB `.mat` file, `mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and `movie (.gif)` for an animated gif file of the stack.
-
-
 #### Post-processing
-  * Checkbox `Add axes on figure`: if selected, the pixel numbers on the axes of each open figure is displayed (also visible on the `.tif` images if selected).
+  * Checkbox `Axes on figures`: if selected, the pixel numbers on the axes of each figure is displayed (also visible on the `.tif` images if selected).
+  
+  * Checkbox `Colorbar on figures`: if selected, the colorbar of each composite or stick figure is displayed (also visible on the `.tif` images if selected).
+  
+  * Checkbox `Colorblind-friendly`: if selected, uses colorblind-friendly colormaps for figure (also used in the `.tif` images if selected).
 
-* Button `Crop figures`<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/crop.png" alt=" " width="30"/>: enter the x-range and y-range for cropping the figures; the values are also the ones used in the saved animated gif (see `Save output`). 
+  * Button `Crop figures`<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/crop.png" alt=" " width="30"/>: enter the x-range and y-range for cropping the figures; the values are also the ones used in the saved animated gif (see `Save output`). 
 
-* Button `Show individual fit`<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/query_stats.png" alt=" " width="30"/>: Click this button to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the Composite figure of &rho;. 
-
-
-#### Pixels separating sticks
+  * Button `Show individual fit`<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/query_stats.png" alt=" " width="30"/>: Click this button to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the Composite figure of &rho;. 
 
   * Spinners for the number of pixels separating sticks on stick maps: `vertical` = number of pixels separating sticks vertically, `horizontal` = number of pixels separating sticks horizontally (i.e., 1 means every pixel, 2 means every other pixel, etc...); the spinners apply directly to open stick figures.
 
+#### Save output
+
+  The `Save output` table lists the saving options: `data (.pykl)` for saving data as a compressed pickle file (to download as `Previous analysis` in the download selection), `figures (.tif)` for exporting the figures as TIFF files, `data (.mat)` for saving the values of the variables for each pixel used in the analysis as a MATLAB `.mat` file, `mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and `movie (.gif)` for an animated gif file of the stack.
 
  * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/delete_forever.png" alt=" " width="30"/> reinitializes the `Show/Save` and `Variable` tables.
   * Checkbox `per ROI`: if selected, the results are displayed and saved separately for each ROI; otherwise, the results are displayed and saved by grouping all ROIs. 
