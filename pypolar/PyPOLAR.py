@@ -397,7 +397,7 @@ class Polarimetry(CTk.CTk):
         self.button(banner, image=self.icons["contact_support"], command=lambda:self.openweb(Polarimetry.url_github + "/blob/master/README.md")).pack(side=tk.LEFT, padx=20)
         about_textbox = CTk.CTkTextbox(master=self.tabview.tab("About"), width=Polarimetry.tab_width-30, height=500)
         about_textbox.grid(row=1, column=0, padx=30)
-        message = f"Version: {Polarimetry.__version__} ({Polarimetry.__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV\n Matplotlib, openpyxl, tksheet, colorcet \n\n\n  uses Material Design icons by Google"
+        message = f"Version: {Polarimetry.__version__} ({Polarimetry.__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV,\n Matplotlib, openpyxl, tksheet, colorcet \n\n\n  uses Material Design icons by Google"
         about_textbox.insert("0.0", message)
         about_textbox.configure(state="disabled")
         self.tabview.set("Intensity")
@@ -1661,9 +1661,9 @@ class Polarimetry(CTk.CTk):
                     patch.set_edgecolor("k")
                 ax.set_xlim((vmin, vmax))
                 ax.set_xlabel(var.latex, fontsize=20)
-                ax.set_title(datastack.name, fontsize=14)
+                #ax.set_title(datastack.name, fontsize=14)
                 text = var.latex + " = " + "{:.2f}".format(np.mean(data_vals)) + " $\pm$ " "{:.2f}".format(np.std(data_vals))
-                ax.annotate(text, xy=(0.05, 0.95), xycoords="axes fraction", fontsize=14)
+                ax.annotate(text, xy=(0.3, 1.05), xycoords="axes fraction", fontsize=14)
             elif var.type_histo.startswith("polar"):
                 ax = plt.subplot(projection="polar")
                 if var.type_histo == "polar1":
@@ -1690,9 +1690,9 @@ class Polarimetry(CTk.CTk):
                 ax.set_rticks(np.floor(np.linspace(0, np.max(distribution), 3) / num) * num)
                 ax.set_thetamin(vmin)
                 ax.set_thetamax(vmax)
-                ax.set_title(datastack.name, fontsize=14)
+                #ax.set_title(datastack.name, fontsize=14)
                 text = var.latex + " = " + "{:.2f}".format(meandata) + " $\pm$ " "{:.2f}".format(std)
-                ax.annotate(text, xy=(0.65, 0.95), xycoords="axes fraction", fontsize=14)
+                ax.annotate(text, xy=(0.3, 0.95), xycoords="axes fraction", fontsize=14)
             suffix = "_perROI_" + str(roi["indx"]) if roi else ""
             filename = datastack.filename + "_Histo" + var.name + suffix
             if self.save_table[2].get() and self.extension_table[1].get():
@@ -1738,7 +1738,7 @@ class Polarimetry(CTk.CTk):
             h2 = ax.imshow(im, vmin=vmin, vmax=vmax, cmap=var.colormap[self.colorblind_checkbox.get()], interpolation="nearest")
             if self.colorbar_checkbox.get():
                 plt.colorbar(h2)
-            ax.set_title(datastack.name)
+            #ax.set_title(datastack.name, fontsize=14)
             plt.pause(0.001)
             suffix = "_" + var.name + "Composite"
             if self.save_table[0].get() and self.extension_table[1].get():
@@ -1775,7 +1775,7 @@ class Polarimetry(CTk.CTk):
                     for title, ylabel, ax_ in zip(titles, ylabels, axs):
                         ax_.set_xlabel("slice", fontsize=14)
                         ax_.set_ylabel(ylabel, fontsize=14)
-                        ax_.set_title(title, fontsize=14)
+                        #ax_.set_title(title, fontsize=14)
                         ax_.set_xlim((1, self.datastack.nangle))
                         ax_.set_xticks(indx[::2], minor=True)
                         secax = ax_.secondary_xaxis("top", functions=(indx2alpha, alpha2indx))
@@ -1829,7 +1829,7 @@ class Polarimetry(CTk.CTk):
             ax.add_collection(p)
             if self.colorbar_checkbox.get():
                 fig.colorbar(p, ax=ax)
-            ax.set_title(datastack.name)
+            #ax.set_title(datastack.name, fontsize=14)
             suffix = "_" + var.name + "Sticks"
             if self.save_table[1].get() and self.extension_table[1].get():
                 plt.savefig(datastack.filename + suffix + ".tif")
@@ -1843,7 +1843,7 @@ class Polarimetry(CTk.CTk):
             ax.axis(self.add_axes_checkbox.get())
             self.add_fluo(datastack.itot, ax)
             self.add_patches(datastack, ax, fig.canvas)
-            ax.set_title(datastack.name)
+            #ax.set_title(datastack.name, fontsize=14)
             suffix = "_Fluo"
             if self.edge_detection_switch.get() == "on":
                 for contour in self.edge_contours:
