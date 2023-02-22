@@ -120,7 +120,7 @@ class Polarimetry(CTk.CTk):
                     iconkey = winreg.CreateKey(key, "DefaultIcon")
                     winreg.SetValue(iconkey, None, winreg.REG_SZ, os.path.join(image_path, ICON))
                     winreg.CloseKey(iconkey)
-                    winreg.CloseKey(ext)
+                    winreg.CloseKey(EXT)
             except WindowsError:
                 pass
 
