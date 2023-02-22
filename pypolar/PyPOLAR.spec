@@ -23,7 +23,7 @@ __version__ = "2.4"
 
 block_cipher = None
 
-CTK_PATH = "/Users/cchandre/opt/anaconda3/envs/polarimetry_env/lib/python3.8/site-packages/customtkinter/"
+CTK_PATH = "/Users/c.chandre/opt/anaconda3/envs/polarimetry_env/lib/python3.8/site-packages/customtkinter/"
 
 DATA_FILES = [("icons/*.png", "icons/"), ("polarimetry.json", "."), (CTK_PATH, "customtkinter/")]
 BINARY_FILES = [("calibration/*.mat", "calibration/"), ("diskcones/*.mat", "diskcones/")]
@@ -31,7 +31,7 @@ BINARY_FILES = [("calibration/*.mat", "calibration/"), ("diskcones/*.mat", "disk
 if sys.platform == "darwin":
     DATA_FILES += [("icons/*.icns", "icons/")]
 if sys.platform == 'win32':
-    extra_options = dict(icon='main_icon.ico', version_file='version_rc')
+    extra_options = dict(icon='main_icon.ico', version_file='version.rc')
     DATA_FILES += [("icons/*.ico", "icons/")]
 else:
     extra_options = {}
