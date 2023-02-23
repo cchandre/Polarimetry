@@ -56,7 +56,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
     __version__ = "2.4.1"
     status = ""
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 21, 2023"}
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 23, 2023"}
 
     if status == "beta":
         __version_date__ = date.today().strftime("%B %d, %Y")
@@ -283,18 +283,18 @@ class Polarimetry(CTk.CTk):
         self.per_roi = self.checkbox(banner, text="per ROI")
         ToolTip.createToolTip(self.per_roi, " Show and save data/figures separately for each region of interest")
         self.per_roi.grid(row=0, column=1, sticky="nw")
-        postprocessing = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
-        postprocessing.grid(row=2, column=0, padx=20, pady=10)
-        CTk.CTkLabel(master=postprocessing, text="\nPost-processing\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=2, padx=20, pady=0)
-        self.add_axes_checkbox = self.checkbox(postprocessing, text="\n Axes on figures\n", command=self.add_axes_on_all_figures)
+        preferences = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
+        preferences.grid(row=2, column=0, padx=20, pady=10)
+        CTk.CTkLabel(master=preferences, text="\nPreferences\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=2, padx=20, pady=0)
+        self.add_axes_checkbox = self.checkbox(preferences, text="\n Axes on figures\n", command=self.add_axes_on_all_figures)
         self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=40, pady=(0, 0), sticky="ew")
-        self.colorbar_checkbox = self.checkbox(postprocessing, text="\n Colorbar on figures\n", command=self.colorbar_on_all_figures)
+        self.colorbar_checkbox = self.checkbox(preferences, text="\n Colorbar on figures\n", command=self.colorbar_on_all_figures)
         self.colorbar_checkbox.select()
         self.colorbar_checkbox.grid(row=2, column=0, columnspan=2, padx=40, pady=(0, 0), sticky="ew")
-        self.colorblind_checkbox = self.checkbox(postprocessing, text="\n Colorblind-friendly\n")
+        self.colorblind_checkbox = self.checkbox(preferences, text="\n Colorblind-friendly\n")
         self.colorblind_checkbox.grid(row=3, column=0, columnspan=2, padx=40, pady=(0, 20), sticky="ew")
-        self.button(postprocessing, text="Crop figures", image=self.icons["crop"], command=self.crop_figures_callback).grid(row=4, column=0, columnspan=2, padx=20, pady=0)
-        button = self.button(postprocessing, text="Show individual fit", image=self.icons["query_stats"], command=self.show_individual_fit_callback)
+        self.button(preferences, text="Crop figures", image=self.icons["crop"], command=self.crop_figures_callback).grid(row=4, column=0, columnspan=2, padx=20, pady=0)
+        button = self.button(preferences, text="Show individual fit", image=self.icons["query_stats"], command=self.show_individual_fit_callback)
         ToolTip.createToolTip(button, "Zoom into the region of interest\nthen click using the crosshair")
         button.grid(row=5, column=0, columnspan=2, padx=20, pady=20)
         #pixels_per_sticks = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
@@ -302,11 +302,11 @@ class Polarimetry(CTk.CTk):
         #CTk.CTkLabel(master=pixels_per_sticks, text="\n Pixels separating sticks\n", font=CTk.CTkFont(size=16), width=230).grid(row=4, column=0, columnspan=2, padx=20, pady=(0, 0))
         labels = ["pixels per stick (horizontal)", "pixels per stick (vertical)"]
         self.pixelsperstick = [tk.StringVar(), tk.StringVar()]
-        spinboxes = [tk.ttk.Spinbox(master=postprocessing, from_=1, to=20, textvariable=self.pixelsperstick[it], width=2, foreground=Polarimetry.gray[1], background=Polarimetry.gray[1], command=self.pixelsperstick_spinbox) for it in range(2)]
+        spinboxes = [tk.ttk.Spinbox(master=preferences, from_=1, to=20, textvariable=self.pixelsperstick[it], width=2, foreground=Polarimetry.gray[1], background=Polarimetry.gray[1], command=self.pixelsperstick_spinbox) for it in range(2)]
         for it in range(2):
             self.pixelsperstick[it].set(1)
             spinboxes[it].grid(row=it+7, column=0, padx=(20, 0), pady=(0, 20))
-            label = CTk.CTkLabel(master=postprocessing, text=labels[it], anchor="w")
+            label = CTk.CTkLabel(master=preferences, text=labels[it], anchor="w")
             label.grid(row=it+7, column=1, padx=(0, 20), pady=(0, 20))
             ToolTip.createToolTip(label, "Controls the density of sticks to be plotted")
         self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab("Options"), width=300)
@@ -808,8 +808,10 @@ class Polarimetry(CTk.CTk):
     def add_axes_on_all_figures(self):
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
-            fig.axes[0].axis(self.add_axes_checkbox.get())
-            fig.canvas.draw()
+            fs = fig.canvas.manager.get_window_title()
+            if (("Composite" in fs) or ("Sticks" in fs) or ("Intensity" in fs)) and (self.datastack.name in fs):
+                fig.axes[0].axis(self.add_axes_checkbox.get())
+                fig.canvas.draw()
 
     def colorbar_on_all_figures(self):
         figs = list(map(plt.figure, plt.get_fignums()))
