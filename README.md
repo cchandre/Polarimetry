@@ -108,7 +108,7 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
   The colormap for &rho; is `hsv` (and `colorwheel` from [Colorcet](https://colorcet.holoviz.org/) for colorblind-friendly visualization). The colormap for &psi;, S<sub>2</sub>, S<sub>4</sub>, S<sub>SHG</sub> is `jet` (and `viridis` for colorblind-friendly visualization). The colormap for &eta; is `plasma`.   
   
 
-#### Post-processing
+#### Preferences
   * Checkbox `Axes on figures`: if selected, the pixel numbers on the axes of each figure is displayed (also visible on the `.tif` images if selected).
   
   * Checkbox `Colorbar on figures`: if selected, the colorbar of each composite or stick figure is displayed (also visible on the `.tif` images if selected).
