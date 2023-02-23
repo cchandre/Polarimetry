@@ -637,7 +637,6 @@ class Polarimetry(CTk.CTk):
         filter = np.asarray([len(contour) >= self.canny_thrsh[2].get() for contour in contours])
         self.edge_contours = [self.smooth_edge(contour.reshape((-1, 2))) for (contour, val) in zip(contours, filter) if val]
         self.represent_thrsh()
-        self.rho_ct = self.define_rho_ct(self.edge_contours)
 
     def smooth_edge(self, edge):
         window_length = self.canny_thrsh[3].get()
@@ -648,7 +647,7 @@ class Polarimetry(CTk.CTk):
         rho_ct = np.nan * np.ones_like(self.stack.itot)
         for contour in contours:
             angle, normal = self.angle_edge(contour)
-            crange = chain(range(self.layer_params[0].get() - 1, self.layer_params[0].get() + self.layer_params[1].get() + 1), range(-self.layer_params[0].get() - self.layer_params[1].get() - 1, -self.layer_params[0].get() + 1))
+            crange = chain(range(-self.layer_params[0].get() - self.layer_params[1].get(), -self.layer_params[0].get() + 1), range(self.layer_params[0].get(), self.layer_params[0].get() + self.layer_params[1].get() + 1))
             for _ in crange:
                 shift_x = (contour[:, 0] + _ * normal[:, 0]).astype(np.uint16)
                 shift_y = (contour[:, 1] + _ * normal[:, 1]).astype(np.uint16)
@@ -821,16 +820,12 @@ class Polarimetry(CTk.CTk):
                 if self.colorbar_checkbox.get():
                     plt.colorbar(fig.axes[0].images[1])
                 else:
-                    #plt.delaxes(fig.axes[1]) 
                     fig.axes[1].remove()
-                    plt.draw()
             elif ("Sticks" in fs) and (self.datastack.name in fs):
                 if self.colorbar_checkbox.get():
                     plt.colorbar(fig.axes[0].collections[0])
                 else: 
-                    #plt.delaxes(fig.axes[1]) 
                     fig.axes[1].remove()
-                    plt.draw()
 
     def options_dropdown_callback(self, value):
         if value.endswith("(auto)"):
@@ -1217,13 +1212,21 @@ class Polarimetry(CTk.CTk):
             if ("Sticks" in fs) and (self.datastack.name in fs):
                 ax = fig.axes[0]
                 for _, var in enumerate(self.datastack.vars):
-                    if var.name == fs.split()[0]:
+                    if (var.name == fs.split()[0]) and ("contour" not in fs):
                         for collection in ax.collections:
                             collection.remove()
                         p = self.get_sticks(var, self.datastack)
                         vmin, vmax = self.get_variable(_)[1:]
                         p.set_clim([vmin, vmax])
                         ax.add_collection(p)
+            if ("Rho (vs contour) Sticks" in fs) and (self.datastack.name in fs):
+                ax = fig.axes[0]
+                for collection in ax.collections:
+                    collection.remove()
+                    p = self.get_sticks(self.datastack.added_vars[-1], self.datastack)
+                    vmin, vmax = self.get_variable(0)[1:]
+                    p.set_clim([vmin, vmax])
+                    ax.add_collection(p)
 
     def perform_registration(self, window):
         window.withdraw()
@@ -2184,8 +2187,9 @@ class Polarimetry(CTk.CTk):
             rho_ct.orientation = True
             rho_ct.type_histo = "polar1"
             rho_ct.colormap = ["hsv", cc.m_colorwheel]
-            filter = np.isfinite(rho_.values) * np.isfinite(self.rho_ct)
-            rho_ct.values[filter] = np.mod(2*(rho_.values[filter] - self.rho_ct[filter]), 360) / 2
+            vals = self.define_rho_ct(self.edge_contours)
+            filter = np.isfinite(rho_.values) * np.isfinite(vals)
+            rho_ct.values[filter] = np.mod(2 * (rho_.values[filter] - vals[filter]), 360) / 2
             datastack.added_vars += [rho_ct]
         if not self.method.get().startswith("4POLAR"):
             field[:, np.logical_not(mask)] = np.nan
