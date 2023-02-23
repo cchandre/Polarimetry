@@ -821,12 +821,16 @@ class Polarimetry(CTk.CTk):
                 if self.colorbar_checkbox.get():
                     plt.colorbar(fig.axes[0].images[1])
                 else:
-                    plt.delaxes(fig.axes[1]) 
+                    #plt.delaxes(fig.axes[1]) 
+                    fig.axes[1].remove()
+                    plt.draw()
             elif ("Sticks" in fs) and (self.datastack.name in fs):
                 if self.colorbar_checkbox.get():
                     plt.colorbar(fig.axes[0].collections[0])
                 else: 
-                    plt.delaxes(fig.axes[1]) 
+                    #plt.delaxes(fig.axes[1]) 
+                    fig.axes[1].remove()
+                    plt.draw()
 
     def options_dropdown_callback(self, value):
         if value.endswith("(auto)"):
@@ -1663,7 +1667,6 @@ class Polarimetry(CTk.CTk):
                     patch.set_edgecolor("k")
                 ax.set_xlim((vmin, vmax))
                 ax.set_xlabel(var.latex, fontsize=20)
-                #ax.set_title(datastack.name, fontsize=14)
                 text = var.latex + " = " + "{:.2f}".format(np.mean(data_vals)) + " $\pm$ " "{:.2f}".format(np.std(data_vals))
                 ax.annotate(text, xy=(0.3, 1.05), xycoords="axes fraction", fontsize=14)
             elif var.type_histo.startswith("polar"):
@@ -1692,13 +1695,12 @@ class Polarimetry(CTk.CTk):
                 ax.set_rticks(np.floor(np.linspace(0, np.max(distribution), 3) / num) * num)
                 ax.set_thetamin(vmin)
                 ax.set_thetamax(vmax)
-                #ax.set_title(datastack.name, fontsize=14)
                 text = var.latex + " = " + "{:.2f}".format(meandata) + " $\pm$ " "{:.2f}".format(std)
                 ax.annotate(text, xy=(0.3, 0.95), xycoords="axes fraction", fontsize=14)
             suffix = "_perROI_" + str(roi["indx"]) if roi else ""
             filename = datastack.filename + "_Histo" + var.name + suffix
             if self.save_table[2].get() and self.extension_table[1].get():
-                plt.savefig(filename + ".tif")
+                plt.savefig(filename + ".tif", bbox_inches='tight')
 
     def add_fluo(self, itot, ax):
         vmin, vmax = np.amin(itot), np.amax(itot)
@@ -1740,11 +1742,9 @@ class Polarimetry(CTk.CTk):
             h2 = ax.imshow(im, vmin=vmin, vmax=vmax, cmap=var.colormap[self.colorblind_checkbox.get()], interpolation="nearest")
             if self.colorbar_checkbox.get():
                 plt.colorbar(h2)
-            #ax.set_title(datastack.name, fontsize=14)
-            plt.pause(0.001)
             suffix = "_" + var.name + "Composite"
             if self.save_table[0].get() and self.extension_table[1].get():
-                plt.savefig(datastack.filename + suffix + ".tif")
+                plt.savefig(datastack.filename + suffix + ".tif", bbox_inches='tight')
             if not self.show_table[0].get():
                 plt.close(fig)
 
@@ -1756,8 +1756,8 @@ class Polarimetry(CTk.CTk):
                 if np.isfinite(self.datastack.vars[0].values[y, x]):
                     fig_, axs = plt.subplots(2, 1, figsize=(12, 8))
                     fig_.canvas.manager.set_window_title("Individual Fit : " + self.datastack.name)
-                    signal = self.datastack.field[y, x, :]
-                    signal_fit = self.datastack.field_fit[y, x, :]
+                    signal = self.datastack.field[:, y, x]
+                    signal_fit = self.datastack.field_fit[:, y, x]
                     indx = np.arange(1, self.stack.nangle + 1)
                     rho = np.mod(2 * (self.datastack.vars[0].values[y, x] + int(self.rotation[1].get())), 360) / 2
                     title = self.datastack.vars[0].latex + " = " + "{:.2f}".format(rho) + ", "
@@ -1777,7 +1777,6 @@ class Polarimetry(CTk.CTk):
                     for title, ylabel, ax_ in zip(titles, ylabels, axs):
                         ax_.set_xlabel("slice", fontsize=14)
                         ax_.set_ylabel(ylabel, fontsize=14)
-                        #ax_.set_title(title, fontsize=14)
                         ax_.set_xlim((1, self.datastack.nangle))
                         ax_.set_xticks(indx[::2], minor=True)
                         secax = ax_.secondary_xaxis("top", functions=(indx2alpha, alpha2indx))
@@ -1831,10 +1830,9 @@ class Polarimetry(CTk.CTk):
             ax.add_collection(p)
             if self.colorbar_checkbox.get():
                 fig.colorbar(p, ax=ax)
-            #ax.set_title(datastack.name, fontsize=14)
             suffix = "_" + var.name + "Sticks"
             if self.save_table[1].get() and self.extension_table[1].get():
-                plt.savefig(datastack.filename + suffix + ".tif")
+                plt.savefig(datastack.filename + suffix + ".tif", bbox_inches='tight')
             if not self.show_table[1].get():
                 plt.close(fig)
 
@@ -1845,7 +1843,6 @@ class Polarimetry(CTk.CTk):
             ax.axis(self.add_axes_checkbox.get())
             self.add_fluo(datastack.itot, ax)
             self.add_patches(datastack, ax, fig.canvas)
-            #ax.set_title(datastack.name, fontsize=14)
             suffix = "_Fluo"
             if self.edge_detection_switch.get() == "on":
                 for contour in self.edge_contours:
@@ -1854,7 +1851,7 @@ class Polarimetry(CTk.CTk):
                 if self.colorbar_checkbox.get():
                     fig.colorbar(p, ax=ax)
             if self.save_table[3].get() and self.extension_table[1].get():
-                plt.savefig(datastack.filename + suffix + ".tif")
+                plt.savefig(datastack.filename + suffix + ".tif", bbox_inches='tight')
             if not self.show_table[3].get():
                 plt.close(fig)
 
