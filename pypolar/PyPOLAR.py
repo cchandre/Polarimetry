@@ -1750,7 +1750,7 @@ class Polarimetry(CTk.CTk):
             if int(self.rotation[1].get()) != 0:
                 if var.orientation:
                     im = np.mod(2 * (im + int(self.rotation[1].get())), 360) / 2
-                im = rotate(im, int(self.rotation[1].get()), reshape=False, mode="constant")
+                im = rotate(im, int(self.rotation[1].get()), reshape=False, order=0, mode="constant", cval=vmin)
                 im[im == 0] = np.nan
             h2 = ax.imshow(im, vmin=vmin, vmax=vmax, cmap=var.colormap[self.colorblind_checkbox.get()], interpolation="nearest")
             if self.colorbar_checkbox.get():
@@ -1834,12 +1834,6 @@ class Polarimetry(CTk.CTk):
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
             self.add_fluo(datastack.itot, ax)
-            im = var.values
-            if self.rotation[1].get() != 0:
-                if var.orientation:
-                    im = np.mod(2 * (im + int(self.rotation[1].get())), 360) / 2
-                im = rotate(im, int(self.rotation[1].get()), reshape=False, mode="constant")
-                im[im == 0] = np.nan
             p = self.get_sticks(var, datastack)
             p.set_clim([vmin, vmax])
             ax.add_collection(p)
@@ -1866,6 +1860,11 @@ class Polarimetry(CTk.CTk):
                 for contour in self.edge_contours:
                     angles = np.mod(2 * self.angle_edge(contour)[0], 360) / 2
                     cmap = cc.m_colorwheel if self.colorblind_checkbox.get() else "hsv"
+                    if self.rotation[1].get() != 0:
+                        theta = np.deg2rad(int(self.rotation[1].get()))
+                        x0, y0 = self.stack.width / 2, self.stack.height / 2
+                        contour = np.asarray([x0 + (contour[:, 0] - x0) * np.cos(theta) + (contour[:, 1] - y0) * np.sin(theta), y0 - (contour[:, 0] - x0) * np.sin(theta) + (contour[:, 1] - y0) * np.cos(theta)])
+                        contour = np.swapaxes(contour, 0, 1)
                     p = ax.scatter(contour[:, 0], contour[:, 1], c=angles, cmap=cmap, s=4, vmin=0, vmax=180)
                 if self.colorbar_checkbox.get():
                     ax_divider = make_axes_locatable(ax)
