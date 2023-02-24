@@ -1682,7 +1682,7 @@ class Polarimetry(CTk.CTk):
             elif var.type_histo.startswith("polar"):
                 ax = plt.subplot(projection="polar")
                 if var.type_histo == "polar1":
-                    data_vals = np.mod(2 * (data_vals + float(self.rotation[1].get())), 360) / 2
+                    data_vals = np.mod(2 * (data_vals + var.orientation * float(self.rotation[1].get())), 360) / 2
                     meandata = self.circularmean(data_vals)
                     std = np.std(self.wrapto180(2 * (data_vals - meandata)) / 2)
                 elif var.type_histo == "polar2":
@@ -1750,7 +1750,7 @@ class Polarimetry(CTk.CTk):
             if int(self.rotation[1].get()) != 0:
                 if var.orientation:
                     im = np.mod(2 * (im + int(self.rotation[1].get())), 360) / 2
-                im = rotate(im, int(self.rotation[1].get()), reshape=False, order=0, mode="constant", cval=vmin)
+                im = rotate(im, int(self.rotation[1].get()), reshape=False, order=0, mode="constant")
                 im[im == 0] = np.nan
             h2 = ax.imshow(im, vmin=vmin, vmax=vmax, cmap=var.colormap[self.colorblind_checkbox.get()], interpolation="nearest")
             if self.colorbar_checkbox.get():
@@ -1861,6 +1861,7 @@ class Polarimetry(CTk.CTk):
                     angles = np.mod(2 * self.angle_edge(contour)[0], 360) / 2
                     cmap = cc.m_colorwheel if self.colorblind_checkbox.get() else "hsv"
                     if self.rotation[1].get() != 0:
+                        angles = np.mod(2 * (angles + int(self.rotation[1].get())), 360) / 2
                         theta = np.deg2rad(int(self.rotation[1].get()))
                         x0, y0 = self.stack.width / 2, self.stack.height / 2
                         contour = np.asarray([x0 + (contour[:, 0] - x0) * np.cos(theta) + (contour[:, 1] - y0) * np.sin(theta), y0 - (contour[:, 0] - x0) * np.sin(theta) + (contour[:, 1] - y0) * np.cos(theta)])
@@ -2203,7 +2204,7 @@ class Polarimetry(CTk.CTk):
         if self.edge_detection_switch.get() == "on":
             rho_ct = Variable(datastack)
             rho_ct.name, rho_ct.latex = "Rho (vs contour)", r"$\rho_c$"
-            rho_ct.orientation = True
+            rho_ct.orientation = False
             rho_ct.type_histo = "polar1"
             rho_ct.colormap = ["hsv", cc.m_colorwheel]
             vals = self.define_rho_ct(self.edge_contours)
