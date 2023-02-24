@@ -189,9 +189,9 @@ class Polarimetry(CTk.CTk):
         self.contrast_fluo_slider.set(1)
         ToolTip.createToolTip(self.contrast_fluo_slider, " Adjust contrast\n The chosen contrast will be the one used\n for the intensity images in figures")
         self.contrast_fluo_slider.pack(padx=20, pady=20)
-        button = self.button(banner, image=self.icons["square"], command=self.compute_angle)
-        #ToolTip.createToolTip(button, " Left click and hold to trace a line\n segment and determine its angle")
-        button.pack(padx=20, pady=20)
+        self.compute_angle_button = self.button(banner, image=self.icons["square"], command=self.compute_angle)
+        #ToolTip.createToolTip(self.compute_angle_button, " Left click and hold to trace a line\n segment and determine its angle")
+        self.compute_angle_button.pack(padx=20, pady=20)
         self.filename_label = CTk.CTkTextbox(master=bottomframe, width=400, height=50)
         self.filename_label.configure(state="disabled")
         self.filename_label.pack(side=tk.LEFT)
@@ -822,12 +822,14 @@ class Polarimetry(CTk.CTk):
                     ax_divider = make_axes_locatable(fig.axes[0])
                     cax = ax_divider.append_axes("right", size="7%", pad="2%")
                     if ("Composite" in fs):
-                        elt = fig.axes[0].images[1]
-                    elif ("Sticks" in fs) or ("Intensity" in fs):
-                        elt = fig.axes[0].collections[0]
-                    fig.colorbar(elt, cax=cax)
-                elif (not self.colorbar_checkbox.get()) and (self.datastack.name in fs):
-                    fig.axes[1].remove()
+                        fig.colorbar(fig.axes[0].images[1], cax=cax)
+                    elif ("Sticks" in fs) or (("Intensity" in fs) and (self.edge_detection_switch.get() == "on")):
+                        fig.colorbar(fig.axes[0].collections[0], cax=cax)
+                    if ("Intensity" in fs) and (self.edge_detection_switch.get() == "off"):
+                        fig.axes[1].remove()
+                else:
+                    if len(fig.axes) >= 2:
+                        fig.axes[1].remove()
 
     def options_dropdown_callback(self, value):
         if value.endswith("(auto)"):
@@ -1117,6 +1119,7 @@ class Polarimetry(CTk.CTk):
     def compute_angle(self):
         if hasattr(self, "stack"):
             self.tabview.set("Intensity")
+            self.compute_angle_button.configure(fg_color=Polarimetry.orange[1])
             hroi = ROI()
             self.__cid1 = self.fluo_canvas.mpl_connect("motion_notify_event", lambda event: self.compute_angle_motion_notify_callback(event, hroi))
             self.__cid2 = self.fluo_canvas.mpl_connect("button_press_event", lambda event: self.compute_angle_button_press_callback(event, hroi))
@@ -1153,6 +1156,7 @@ class Polarimetry(CTk.CTk):
                     for line in roi.lines:
                         line.remove()
                     self.fluo_canvas.draw()
+                    self.compute_angle_button.configure(fg_color=Polarimetry.orange[0])
 
     def define_variable_table(self, method):
         self.initialize_tables()
@@ -1850,20 +1854,23 @@ class Polarimetry(CTk.CTk):
 
     def plot_fluo(self, datastack):
         if self.show_table[3].get() or self.save_table[3].get():
-            fig, ax = plt.subplots(figsize=self.figsize)
+            fig = plt.figure(figsize=self.figsize)
             fig.canvas.manager.set_window_title("Intensity: " + datastack.name)
+            fig.patch.set_facecolor("w")
+            ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
             self.add_fluo(datastack.itot, ax)
             self.add_patches(datastack, ax, fig.canvas)
-            suffix = "_Fluo"
             if self.edge_detection_switch.get() == "on":
                 for contour in self.edge_contours:
                     angles = np.mod(2 * self.angle_edge(contour)[0], 360) / 2
-                    p = ax.scatter(contour[:, 0], contour[:, 1], c=angles, cmap="hsv", s=4)
+                    cmap = cc.m_colorwheel if self.colorblind_checkbox.get() else "hsv"
+                    p = ax.scatter(contour[:, 0], contour[:, 1], c=angles, cmap=cmap, s=4)
                 if self.colorbar_checkbox.get():
                     ax_divider = make_axes_locatable(ax)
                     cax = ax_divider.append_axes("right", size="7%", pad="2%")
                     fig.colorbar(p, cax=cax)
+            suffix = "_Intensity"
             if self.save_table[3].get() and self.extension_table[1].get():
                 plt.savefig(datastack.filename + suffix + ".tif", bbox_inches='tight')
             if not self.show_table[3].get():
