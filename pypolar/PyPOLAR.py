@@ -1042,13 +1042,13 @@ class Polarimetry(CTk.CTk):
             fs = fig.canvas.manager.get_window_title()
             if ("Rho Composite" in fs) and (not self.method.get().endswith("4POLAR")):
                 fig_ = fig
-            break
+                break
         if fig_:
             plt.figure(fig_)
             cfm = plt.get_current_fig_manager()
             cfm.window.attributes("-topmost", True)
             cfm.window.tkraise()
-            self.click_callback(fig.axes[0], fig.canvas, "individual fit")
+            self.click_callback(fig_.axes[0], fig_.canvas, "individual fit")
             cfm.window.attributes("-topmost", False)
         else:
             window, buttons = self.showinfo(message=" Provide a Rho Composite figure\n to plot individual fits", image=self.icons["query_stats"], button_labels=["OK"])
