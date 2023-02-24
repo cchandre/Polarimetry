@@ -293,7 +293,7 @@ class Polarimetry(CTk.CTk):
         self.colorbar_checkbox = self.checkbox(preferences, text="\n Colorbar on figures\n", command=self.colorbar_on_all_figures)
         self.colorbar_checkbox.select()
         self.colorbar_checkbox.grid(row=2, column=0, columnspan=2, padx=40, pady=(0, 0), sticky="ew")
-        self.colorblind_checkbox = self.checkbox(preferences, text="\n Colorblind-friendly\n")
+        self.colorblind_checkbox = self.checkbox(preferences, text="\n Colorblind-friendly\n", command=self.colorblind_on_all_figures)
         self.colorblind_checkbox.grid(row=3, column=0, columnspan=2, padx=40, pady=(0, 20), sticky="ew")
         self.button(preferences, text="Crop figures", image=self.icons["crop"], command=self.crop_figures_callback).grid(row=4, column=0, columnspan=2, padx=20, pady=0)
         button = self.button(preferences, text="Show individual fit", image=self.icons["query_stats"], command=self.show_individual_fit_callback)
@@ -831,6 +831,20 @@ class Polarimetry(CTk.CTk):
                 else:
                     if len(fig.axes) >= 2:
                         fig.axes[1].remove()
+
+    def colorblind_on_all_figures(self):
+        figs = list(map(plt.figure, plt.get_fignums()))
+        for fig in figs:
+            fs = fig.canvas.manager.get_window_title()
+            for var in self.datastack.vars:
+                if (var.name == fs.split()[0]):
+                    cmap = var.colormap[self.colorblind_checkbox.get()]
+            if "Intensity" in fs.split()[0]:
+                cmap = self.datastack.vars[0].colormap[self.colorblind_checkbox.get()]
+            if ("Composite" in fs) and (self.datastack.name in fs):
+                fig.axes[0].images[1].set_cmap(cmap)
+            elif (("Sticks" in fs) or (("Intensity" in fs) and (self.edge_detection_switch.get() == "on"))) and (self.datastack.name in fs):
+                fig.axes[0].collections[0].set_cmap(cmap)
 
     def options_dropdown_callback(self, value):
         if value.endswith("(auto)"):
@@ -1710,18 +1724,20 @@ class Polarimetry(CTk.CTk):
                     ax.annotate(text, xy=(0.3, 0.95), xycoords="axes fraction", fontsize=14)
                 else:
                     ax.annotate(text, xy=(0.7, 0.95), xycoords="axes fraction", fontsize=14)
-            suffix = "_perROI_" + str(roi["indx"]) if roi else ""
-            filename = datastack.filename + "_Histo" + var.name + suffix
-            if self.save_table[2].get() and self.extension_table[1].get():
-                plt.savefig(filename + ".tif", bbox_inches='tight')
+            if self.save_table[2].get():
+                suffix = "_perROI_" + str(roi["indx"]) if roi else ""
+                filename = datastack.filename + "_Histo" + var.name + suffix
+                plt.savefig(filename + ".tif", bbox_inches="tight")
+            if not self.show_table[2].get():
+                plt.close(fig)
 
     def add_fluo(self, itot, ax):
         vmin, vmax = np.amin(itot), np.amax(itot)
         field = self.adjust(itot, self.contrast_fluo_slider.get(), vmin, vmax)
         if int(self.rotation[1].get()) != 0:
             field = rotate(field, int(self.rotation[1].get()), reshape=False, mode="constant", cval=vmin)
-        ax_im = ax.imshow(field, cmap="gray", interpolation="nearest")
-        ax_im.set_clim(vmin, vmax)
+        h = ax.imshow(field, cmap="gray", interpolation="nearest")
+        h.set_clim(vmin, vmax)
 
     def add_patches(self, datastack, ax, fig, rotation=True):
         if len(datastack.rois):
@@ -1746,19 +1762,19 @@ class Polarimetry(CTk.CTk):
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
             self.add_fluo(datastack.itot, ax)
-            im = var.values
+            field = var.values
             if int(self.rotation[1].get()) != 0:
                 if var.orientation:
-                    im = np.mod(2 * (im + int(self.rotation[1].get())), 360) / 2
-                im = rotate(im, int(self.rotation[1].get()), reshape=False, order=0, mode="constant")
-                im[im == 0] = np.nan
-            h2 = ax.imshow(im, vmin=vmin, vmax=vmax, cmap=var.colormap[self.colorblind_checkbox.get()], interpolation="nearest")
+                    field = np.mod(2 * (field + int(self.rotation[1].get())), 360) / 2
+                field = rotate(field, int(self.rotation[1].get()), reshape=False, order=0, mode="constant")
+                field[field == 0] = np.nan
+            h = ax.imshow(field, vmin=vmin, vmax=vmax, cmap=var.colormap[self.colorblind_checkbox.get()], interpolation="nearest")
             if self.colorbar_checkbox.get():
                 ax_divider = make_axes_locatable(ax)
                 cax = ax_divider.append_axes("right", size="7%", pad="2%")
-                fig.colorbar(h2, cax=cax)
-            suffix = "_" + var.name + "Composite"
-            if self.save_table[0].get() and self.extension_table[1].get():
+                fig.colorbar(h, cax=cax)
+            if self.save_table[0].get():
+                suffix = "_" + var.name + "Composite"
                 plt.savefig(datastack.filename + suffix + ".tif", bbox_inches='tight')
             if not self.show_table[0].get():
                 plt.close(fig)
@@ -1841,8 +1857,8 @@ class Polarimetry(CTk.CTk):
                 ax_divider = make_axes_locatable(ax)
                 cax = ax_divider.append_axes("right", size="7%", pad="2%")
                 fig.colorbar(p, cax=cax)
-            suffix = "_" + var.name + "Sticks"
-            if self.save_table[1].get() and self.extension_table[1].get():
+            if self.save_table[1].get():
+                suffix = "_" + var.name + "Sticks"
                 plt.savefig(datastack.filename + suffix + ".tif", bbox_inches='tight')
             if not self.show_table[1].get():
                 plt.close(fig)
@@ -1871,8 +1887,8 @@ class Polarimetry(CTk.CTk):
                     ax_divider = make_axes_locatable(ax)
                     cax = ax_divider.append_axes("right", size="7%", pad="2%")
                     fig.colorbar(p, cax=cax)
-            suffix = "_Intensity"
-            if self.save_table[3].get() and self.extension_table[1].get():
+            if self.save_table[3].get():
+                suffix = "_Intensity"
                 plt.savefig(datastack.filename + suffix + ".tif", bbox_inches='tight')
             if not self.show_table[3].get():
                 plt.close(fig)
