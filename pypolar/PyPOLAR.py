@@ -1866,7 +1866,7 @@ class Polarimetry(CTk.CTk):
                 for contour in self.edge_contours:
                     angles = np.mod(2 * self.angle_edge(contour)[0], 360) / 2
                     cmap = cc.m_colorwheel if self.colorblind_checkbox.get() else "hsv"
-                    p = ax.scatter(contour[:, 0], contour[:, 1], c=angles, cmap=cmap, s=4)
+                    p = ax.scatter(contour[:, 0], contour[:, 1], c=angles, cmap=cmap, s=4, vmin=0, vmax=180)
                 if self.colorbar_checkbox.get():
                     ax_divider = make_axes_locatable(ax)
                     cax = ax_divider.append_axes("right", size="7%", pad="2%")
