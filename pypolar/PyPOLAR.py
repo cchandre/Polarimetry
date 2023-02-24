@@ -52,6 +52,7 @@ elif sys.platform == "win32":
 plt.rcParams["image.origin"] = "upper"
 plt.rcParams["figure.max_open_warning"] = 100
 plt.rcParams["axes.unicode_minus"] = False
+plt.rcParams["savefig.bbox"] = "tight"
 plt.ion()
 
 class Polarimetry(CTk.CTk):
