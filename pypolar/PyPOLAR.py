@@ -24,6 +24,7 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Polygon
 from matplotlib.collections import PolyCollection
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import colorcet as cc
 from PIL import Image
 from skimage import exposure
@@ -56,7 +57,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
     __version__ = "2.4.1"
     status = ""
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 23, 2023"}
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 24, 2023"}
 
     if status == "beta":
         __version_date__ = date.today().strftime("%B %d, %Y")
@@ -816,15 +817,16 @@ class Polarimetry(CTk.CTk):
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
-            if ("Composite" in fs) and (self.datastack.name in fs):
+            if (("Composite" in fs) or ("Sticks" in fs) or ("Intensity" in fs)) and (self.datastack.name in fs):
                 if self.colorbar_checkbox.get():
-                    plt.colorbar(fig.axes[0].images[1])
-                else:
-                    fig.axes[1].remove()
-            elif ("Sticks" in fs) and (self.datastack.name in fs):
-                if self.colorbar_checkbox.get():
-                    plt.colorbar(fig.axes[0].collections[0])
-                else: 
+                    ax_divider = make_axes_locatable(fig.axes[0])
+                    cax = ax_divider.append_axes("right", size="7%", pad="2%")
+                    if ("Composite" in fs):
+                        elt = fig.axes[0].images[1]
+                    elif ("Sticks" in fs) or ("Intensity" in fs):
+                        elt = fig.axes[0].collections[0]
+                    fig.colorbar(elt, cax=cax)
+                elif (not self.colorbar_checkbox.get()) and (self.datastack.name in fs):
                     fig.axes[1].remove()
 
     def options_dropdown_callback(self, value):
@@ -1699,7 +1701,10 @@ class Polarimetry(CTk.CTk):
                 ax.set_thetamin(vmin)
                 ax.set_thetamax(vmax)
                 text = var.latex + " = " + "{:.2f}".format(meandata) + " $\pm$ " "{:.2f}".format(std)
-                ax.annotate(text, xy=(0.3, 0.95), xycoords="axes fraction", fontsize=14)
+                if var.type_histo == "polar1":
+                    ax.annotate(text, xy=(0.3, 0.95), xycoords="axes fraction", fontsize=14)
+                else:
+                    ax.annotate(text, xy=(0.7, 0.95), xycoords="axes fraction", fontsize=14)
             suffix = "_perROI_" + str(roi["indx"]) if roi else ""
             filename = datastack.filename + "_Histo" + var.name + suffix
             if self.save_table[2].get() and self.extension_table[1].get():
@@ -1744,7 +1749,9 @@ class Polarimetry(CTk.CTk):
                 im[im == 0] = np.nan
             h2 = ax.imshow(im, vmin=vmin, vmax=vmax, cmap=var.colormap[self.colorblind_checkbox.get()], interpolation="nearest")
             if self.colorbar_checkbox.get():
-                plt.colorbar(h2)
+                ax_divider = make_axes_locatable(ax)
+                cax = ax_divider.append_axes("right", size="7%", pad="2%")
+                fig.colorbar(h2, cax=cax)
             suffix = "_" + var.name + "Composite"
             if self.save_table[0].get() and self.extension_table[1].get():
                 plt.savefig(datastack.filename + suffix + ".tif", bbox_inches='tight')
@@ -1832,7 +1839,9 @@ class Polarimetry(CTk.CTk):
             p.set_clim([vmin, vmax])
             ax.add_collection(p)
             if self.colorbar_checkbox.get():
-                fig.colorbar(p, ax=ax)
+                ax_divider = make_axes_locatable(ax)
+                cax = ax_divider.append_axes("right", size="7%", pad="2%")
+                fig.colorbar(p, cax=cax)
             suffix = "_" + var.name + "Sticks"
             if self.save_table[1].get() and self.extension_table[1].get():
                 plt.savefig(datastack.filename + suffix + ".tif", bbox_inches='tight')
@@ -1852,7 +1861,9 @@ class Polarimetry(CTk.CTk):
                     angles = np.mod(2 * self.angle_edge(contour)[0], 360) / 2
                     p = ax.scatter(contour[:, 0], contour[:, 1], c=angles, cmap="hsv", s=4)
                 if self.colorbar_checkbox.get():
-                    fig.colorbar(p, ax=ax)
+                    ax_divider = make_axes_locatable(ax)
+                    cax = ax_divider.append_axes("right", size="7%", pad="2%")
+                    fig.colorbar(p, cax=cax)
             if self.save_table[3].get() and self.extension_table[1].get():
                 plt.savefig(datastack.filename + suffix + ".tif", bbox_inches='tight')
             if not self.show_table[3].get():
@@ -2028,6 +2039,7 @@ class Polarimetry(CTk.CTk):
         else:
             roi_map = np.ones(shape, dtype=np.int32)
             roi_ilow_map = np.ones(shape, dtype=np.float64) * np.float64(self.ilow.get())
+            self.per_roi.deselect()
         mask = self.get_mask(datastack)
         if self.edge_detection_switch.get() == "on" and self.edge_method == "download":
             mask *= self.edge_mask
