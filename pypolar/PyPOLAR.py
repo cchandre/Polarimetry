@@ -58,7 +58,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
     __version__ = "2.4.1"
     status = ""
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 24, 2023"}
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023"}
 
     if status == "beta":
         __version_date__ = date.today().strftime("%B %d, %Y")
@@ -544,7 +544,7 @@ class Polarimetry(CTk.CTk):
 
     def on_closing(self):
         plt.close("all")
-        self.destroy()
+        super().destroy()
 
     def clear_frame(self, frame):
         for widget in frame.winfo_children():
