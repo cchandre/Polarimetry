@@ -2465,10 +2465,11 @@ class ROIManager:
             self.sheet.delete_row()
 
 class Spinbox(CTk.CTkFrame):
-    def __init__(self, *args, width=40, height=15, step_size=1, command=None, **kwargs):
+    def __init__(self, *args, width=40, height=15, step_size=1, from_=1, to_=20, command=None, **kwargs):
         super().__init__(*args, width=width, height=height, **kwargs)
         button_size = 8
         self.step_size = step_size
+        self.from_, self.to_ = from_, to_
         self.command = command
         self.configure(fg_color="#A6A6A6") 
         self.grid_columnconfigure((0, 2), weight=0)
@@ -2484,7 +2485,7 @@ class Spinbox(CTk.CTkFrame):
     def add_button_callback(self):
         try:
             value = int(self.entry.get()) + self.step_size
-            value = value if value <= 20 else 20
+            value = value if value <= self.to_ else self.to_
             self.entry.delete(0, "end")
             self.entry.insert(0, value)
             if self.command is not None:
@@ -2495,7 +2496,7 @@ class Spinbox(CTk.CTkFrame):
     def subtract_button_callback(self):
         try:
             value = int(self.entry.get()) - self.step_size
-            value = value if value >= 1 else 1
+            value = value if value >= self.from_ else self.from_
             self.entry.delete(0, "end")
             self.entry.insert(0, value)
             if self.command is not None:
@@ -2510,11 +2511,11 @@ class Spinbox(CTk.CTkFrame):
             return None
 
     def set(self, value):
+        if value <= self.from_:
+            value = self.from_
+        elif value >= self.to_:
+            value = self.to_
         self.entry.delete(0, "end")
-        if value < 1:
-            value = 1
-        elif value > 20:
-            value = 20
         self.entry.insert(0, str(int(value)))
 
 if __name__ == "__main__":
