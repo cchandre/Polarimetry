@@ -289,6 +289,7 @@ class Polarimetry(CTk.CTk):
         preferences.grid(row=2, column=0, padx=20, pady=10)
         CTk.CTkLabel(master=preferences, text="\nPreferences\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=2, padx=20, pady=0)
         self.add_axes_checkbox = self.checkbox(preferences, text="\n Axes on figures\n", command=self.add_axes_on_all_figures)
+        self.add_axes_checkbox.select()
         self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=40, pady=(0, 0), sticky="ew")
         self.colorbar_checkbox = self.checkbox(preferences, text="\n Colorbar on figures\n", command=self.colorbar_on_all_figures)
         self.colorbar_checkbox.select()
