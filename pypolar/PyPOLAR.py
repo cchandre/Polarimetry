@@ -299,15 +299,10 @@ class Polarimetry(CTk.CTk):
         button = self.button(preferences, text="Show individual fit", image=self.icons["query_stats"], command=self.show_individual_fit_callback)
         ToolTip.createToolTip(button, "Zoom into the region of interest\nthen click using the crosshair")
         button.grid(row=5, column=0, columnspan=2, padx=20, pady=20)
-        #pixels_per_sticks = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
-        #pixels_per_sticks.grid(row=3, column=0, padx=20, pady=10)
-        #CTk.CTkLabel(master=pixels_per_sticks, text="\n Pixels separating sticks\n", font=CTk.CTkFont(size=16), width=230).grid(row=4, column=0, columnspan=2, padx=20, pady=(0, 0))
-        labels = ["pixels per stick (horizontal)", "pixels per stick (vertical)"]
-        self.pixelsperstick = [tk.StringVar(), tk.StringVar()]
-        spinboxes = [tk.ttk.Spinbox(master=preferences, from_=1, to=20, textvariable=self.pixelsperstick[it], width=2, foreground=Polarimetry.gray[1], background=Polarimetry.gray[1], command=self.pixelsperstick_spinbox) for it in range(2)]
+        labels = [" pixels per stick (horizontal)", "pixels per stick (vertical)"]
+        self.pixelsperstick_spinboxes = [Spinbox(master=preferences, command=self.pixelsperstick_spinbox_callback) for it in range(2)]
         for it in range(2):
-            self.pixelsperstick[it].set(1)
-            spinboxes[it].grid(row=it+7, column=0, padx=(20, 0), pady=(0, 20))
+            self.pixelsperstick_spinboxes[it].grid(row=it+7, column=0, padx=(20, 0), pady=(0, 20))
             label = CTk.CTkLabel(master=preferences, text=labels[it], anchor="w")
             label.grid(row=it+7, column=1, padx=(0, 20), pady=(0, 20))
             ToolTip.createToolTip(label, "Controls the density of sticks to be plotted")
@@ -1226,7 +1221,7 @@ class Polarimetry(CTk.CTk):
         else:
             self.polar_dropdown.configure(state="disabled")
 
-    def pixelsperstick_spinbox(self):
+    def pixelsperstick_spinbox_callback(self):
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
@@ -1823,9 +1818,9 @@ class Polarimetry(CTk.CTk):
         L, W = 6, 0.2
         l, w = L / 2, W / 2
         rho = datastack.vars[0]
-        rho_ = rho.values[::int(self.pixelsperstick[1].get()), ::int(self.pixelsperstick[0].get())]
-        data_ = var.values[::int(self.pixelsperstick[1].get()), ::int(self.pixelsperstick[0].get())]
-        Y, X = np.mgrid[:datastack.height:int(self.pixelsperstick[1].get()), :datastack.width:int(self.pixelsperstick[0].get())]
+        rho_ = rho.values[::int(self.pixelsperstick_spinboxes[1].get()), ::int(self.pixelsperstick_spinboxes[0].get())]
+        data_ = var.values[::int(self.pixelsperstick_spinboxes[1].get()), ::int(self.pixelsperstick_spinboxes[0].get())]
+        Y, X = np.mgrid[:datastack.height:int(self.pixelsperstick_spinboxes[1].get()), :datastack.width:int(self.pixelsperstick_spinboxes[0].get())]
         X, Y = X[np.isfinite(data_)], Y[np.isfinite(data_)]
         data_, rho_ = data_[np.isfinite(data_)], rho_[np.isfinite(data_)]
         if var.orientation:
@@ -2468,6 +2463,59 @@ class ROIManager:
     def delete_all(self):
         for _ in range(self.sheet.get_total_rows()):
             self.sheet.delete_row()
+
+class Spinbox(CTk.CTkFrame):
+    def __init__(self, *args, width=40, height=15, step_size=1, command=None, **kwargs):
+        super().__init__(*args, width=width, height=height, **kwargs)
+        button_size = 8
+        self.step_size = step_size
+        self.command = command
+        self.configure(fg_color="#A6A6A6") 
+        self.grid_columnconfigure((0, 2), weight=0)
+        self.grid_columnconfigure(1, weight=1)
+        self.subtract_button = CTk.CTkButton(self, text=u"\u25BC", width=button_size, height=button_size, command=self.subtract_button_callback)
+        self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
+        self.entry = CTk.CTkEntry(self, width=width-(2*button_size), height=button_size, border_width=0)
+        self.entry.grid(row=0, column=1, columnspan=1, padx=3, pady=3, sticky="ew")
+        self.add_button = CTk.CTkButton(self, text=u"\u25B2", width=button_size, height=button_size, command=self.add_button_callback)
+        self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
+        self.entry.insert(0, "1")
+
+    def add_button_callback(self):
+        try:
+            value = int(self.entry.get()) + self.step_size
+            value = value if value <= 20 else 20
+            self.entry.delete(0, "end")
+            self.entry.insert(0, value)
+            if self.command is not None:
+                self.command()
+        except ValueError:
+            return
+
+    def subtract_button_callback(self):
+        try:
+            value = int(self.entry.get()) - self.step_size
+            value = value if value >= 1 else 1
+            self.entry.delete(0, "end")
+            self.entry.insert(0, value)
+            if self.command is not None:
+                self.command()
+        except ValueError:
+            return
+
+    def get(self):
+        try:
+            return int(self.entry.get())
+        except ValueError:
+            return None
+
+    def set(self, value):
+        self.entry.delete(0, "end")
+        if value < 1:
+            value = 1
+        elif value > 20:
+            value = 20
+        self.entry.insert(0, str(int(value)))
 
 if __name__ == "__main__":
     app = Polarimetry()
