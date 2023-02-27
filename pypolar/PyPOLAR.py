@@ -168,29 +168,29 @@ class Polarimetry(CTk.CTk):
 ## RIGHT FRAME: INTENSITY
         bottomframe = CTk.CTkFrame(master=self.tabview.tab("Intensity"), fg_color="transparent", height=40, width=Polarimetry.axes_size[1])
         bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=20)
-        self.fluo_frame = CTk.CTkFrame(master=self.tabview.tab("Intensity"), fg_color="transparent", height=Polarimetry.axes_size[0], width=Polarimetry.axes_size[1])
-        self.fluo_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        self.fluo_fig = Figure(figsize=(self.fluo_frame.winfo_width() / self.dpi, self.fluo_frame.winfo_height() / self.dpi), facecolor=gray[1])
-        self.fluo_axis = self.fluo_fig.add_axes([0, 0, 1, 1])
-        self.fluo_axis.set_axis_off()
-        self.fluo_canvas = FigureCanvasTkAgg(self.fluo_fig, master=self.fluo_frame)
+        self.intensity_frame = CTk.CTkFrame(master=self.tabview.tab("Intensity"), fg_color="transparent", height=Polarimetry.axes_size[0], width=Polarimetry.axes_size[1])
+        self.intensity_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.intensity_fig = Figure(figsize=(self.intensity_frame.winfo_width() / self.dpi, self.intensity_frame.winfo_height() / self.dpi), facecolor=gray[1])
+        self.intensity_axis = self.intensity_fig.add_axes([0, 0, 1, 1])
+        self.intensity_axis.set_axis_off()
+        self.intensity_canvas = FigureCanvasTkAgg(self.intensity_fig, master=self.intensity_frame)
         background = plt.imread(os.path.join(image_path, "blur_circular-512.png"))
-        self.fluo_axis.imshow(background, cmap="gray", interpolation="bicubic", alpha=0.1)
-        self.fluo_canvas.draw()
-        self.fluo_toolbar = NToolbar2Tk(self.fluo_canvas, self.fluo_frame, pack_toolbar=False)
-        self.fluo_toolbar.config(background=gray[1])
-        self.fluo_toolbar._message_label.config(background=gray[1])
-        for button in self.fluo_toolbar.winfo_children():
+        self.intensity_axis.imshow(background, cmap="gray", interpolation="bicubic", alpha=0.1)
+        self.intensity_canvas.draw()
+        self.intensity_toolbar = NToolbar2Tk(self.intensity_canvas, self.intensity_frame, pack_toolbar=False)
+        self.intensity_toolbar.config(background=gray[1])
+        self.intensity_toolbar._message_label.config(background=gray[1])
+        for button in self.intensity_toolbar.winfo_children():
             button.config(background=gray[1])
-        self.fluo_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
-        self.fluo_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
+        self.intensity_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.intensity_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
         banner = CTk.CTkFrame(master=self.tabview.tab("Intensity"), fg_color="transparent", height=Polarimetry.axes_size[0], width=40)
         banner.pack(side=tk.RIGHT, fill=tk.Y)
-        Button(banner, image=self.icons["contrast"], command=self.contrast_fluo_button_callback).pack(side=tk.TOP, padx=20, pady=20)
-        self.contrast_fluo_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_fluo_slider_callback)
-        self.contrast_fluo_slider.set(1)
-        ToolTip.createToolTip(self.contrast_fluo_slider, " Adjust contrast\n The chosen contrast will be the one used\n for the intensity images in figures")
-        self.contrast_fluo_slider.pack(padx=20, pady=20)
+        Button(banner, image=self.icons["contrast"], command=self.contrast_intensity_button_callback).pack(side=tk.TOP, padx=20, pady=20)
+        self.contrast_intensity_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_intensity_slider_callback)
+        self.contrast_intensity_slider.set(1)
+        ToolTip.createToolTip(self.contrast_intensity_slider, " Adjust contrast\n The chosen contrast will be the one used\n for the intensity images in figures")
+        self.contrast_intensity_slider.pack(padx=20, pady=20)
         self.compute_angle_button = Button(banner, image=self.icons["square"], command=self.compute_angle)
         #ToolTip.createToolTip(self.compute_angle_button, " Left click and hold to trace a line\n segment and determine its angle")
         self.compute_angle_button.pack(padx=20, pady=20)
@@ -374,7 +374,7 @@ class Polarimetry(CTk.CTk):
         rows = [1, 2, 3, 5]
         entries = [Entry(adv["Remove background"], text="\n" + label + "\n", textvariable=self.noise[it], row=rows[it], column=0) for it, label in enumerate(labels)]
         entries[3].state("disabled")
-        button = Button(adv["Remove background"], text="Click background", image=self.icons["exposure"], command=lambda:self.click_callback(self.fluo_axis, self.fluo_canvas, "click background"))
+        button = Button(adv["Remove background"], text="Click background", image=self.icons["exposure"], command=lambda:self.click_callback(self.intensity_axis, self.intensity_canvas, "click background"))
         button.grid(row=4, column=0)
         ToolTip.createToolTip(button, "Click and select a point on the intensity image")
 
@@ -433,7 +433,7 @@ class Polarimetry(CTk.CTk):
             self.stack_slider.configure(to=self.stack.nangle, number_of_steps=self.stack.nangle)
             self.ilow.set(self.stack.display.format(np.amin(self.datastack.itot)))
             self.ilow_slider.set(float(self.ilow.get()))
-            self.contrast_fluo_slider.set(1)
+            self.contrast_intensity_slider.set(1)
             self.contrast_thrsh_slider.set(1)
             self.stack_slider.set(0)
             self.stack_slider_label.configure(text="T")
@@ -448,7 +448,7 @@ class Polarimetry(CTk.CTk):
         self.initialize_noise()
         if hasattr(self, "datastack"):
             self.datastack.rois = []
-        self.represent_fluo()
+        self.represent_intensity()
         self.represent_thrsh()
 
     def initialize_tables(self):
@@ -595,17 +595,17 @@ class Polarimetry(CTk.CTk):
             self.contrast_thrsh_slider.set(0.001)
         self.represent_thrsh()
 
-    def contrast_fluo_slider_callback(self, value):
+    def contrast_intensity_slider_callback(self, value):
         if value <= 0.001:
-            self.contrast_fluo_slider.set(0.001)
-        self.represent_fluo()
+            self.contrast_intensity_slider.set(0.001)
+        self.represent_intensity()
 
-    def contrast_fluo_button_callback(self):
-        if self.contrast_fluo_slider.get() <= 0.5:
-            self.contrast_fluo_slider.set(0.5)
+    def contrast_intensity_button_callback(self):
+        if self.contrast_intensity_slider.get() <= 0.5:
+            self.contrast_intensity_slider.set(0.5)
         else:
-            self.contrast_fluo_slider.set(1)
-        self.represent_fluo()
+            self.contrast_intensity_slider.set(1)
+        self.represent_intensity()
 
     def contrast_thrsh_button_callback(self):
         if self.contrast_thrsh_slider.get() <= 0.5:
@@ -624,7 +624,7 @@ class Polarimetry(CTk.CTk):
             if hasattr(self, "datastack"):
                 for roi in self.datastack.rois:
                     roi["select"] = True
-                self.represent_fluo()
+                self.represent_intensity()
                 self.represent_thrsh()
             window.destroy()
         
@@ -636,7 +636,7 @@ class Polarimetry(CTk.CTk):
                         roi["name"] = data[_][1]
                         roi["group"] = data[_][2]
                         roi["select"] = data[_][-2]
-                    self.represent_fluo()
+                    self.represent_intensity()
                     self.represent_thrsh()
 
         def save(manager):
@@ -664,7 +664,7 @@ class Polarimetry(CTk.CTk):
                 manager.sheet.insert_rows(rows=len(self.datastack.rois))
                 manager.add_elements(len(labels))
                 manager.rois2sheet(self.datastack.rois)
-                self.represent_fluo()
+                self.represent_intensity()
                 self.represent_thrsh()
 
         def delete(manager, window):
@@ -674,7 +674,7 @@ class Polarimetry(CTk.CTk):
                     manager.sheet.set_options(height=manager.height(20, self.datastack.rois))
                     x, y = window.winfo_x(), window.winfo_y()
                     window.geometry(fsize(manager.width, manager.height(20, self.datastack.rois)) + f"+{x}+{y}")
-                    self.represent_fluo()
+                    self.represent_intensity()
                     self.represent_thrsh()
         
         def delete_all(manager, window):
@@ -685,7 +685,7 @@ class Polarimetry(CTk.CTk):
                     manager.sheet.set_options(height=manager.height(20, []))
                     x, y = window.winfo_x(), window.winfo_y()
                     window.geometry(fsize(manager.width, manager.height(20, [])) + f"+{x}+{y}")
-                    self.represent_fluo()
+                    self.represent_intensity()
                     self.represent_thrsh()
 
         if not update:
@@ -755,18 +755,19 @@ class Polarimetry(CTk.CTk):
                         fig.axes[1].remove()
 
     def colorblind_on_all_figures(self):
-        figs = list(map(plt.figure, plt.get_fignums()))
-        for fig in figs:
-            fs = fig.canvas.manager.get_window_title()
-            for var in self.datastack.vars:
-                if (var.name == fs.split()[0]):
-                    cmap = var.colormap[self.colorblind_checkbox.get()]
-            if "Intensity" in fs.split()[0]:
-                cmap = self.datastack.vars[0].colormap[self.colorblind_checkbox.get()]
-            if ("Composite" in fs) and (self.datastack.name in fs):
-                fig.axes[0].images[1].set_cmap(cmap)
-            elif (("Sticks" in fs) or (("Intensity" in fs) and (self.edge_detection_switch.get() == "on"))) and (self.datastack.name in fs):
-                fig.axes[0].collections[0].set_cmap(cmap)
+        if hasattr(self, "datastack"):
+            figs = list(map(plt.figure, plt.get_fignums()))
+            for fig in figs:
+                fs = fig.canvas.manager.get_window_title()
+                for var in self.datastack.vars:
+                    if (var.name == fs.split()[0]):
+                        cmap = var.colormap[self.colorblind_checkbox.get()]
+                if "Intensity" in fs.split()[0]:
+                    cmap = self.datastack.vars[0].colormap[self.colorblind_checkbox.get()]
+                if ("Composite" in fs) and (self.datastack.name in fs):
+                    fig.axes[0].images[1].set_cmap(cmap)
+                elif (("Sticks" in fs) or (("Intensity" in fs) and (self.edge_detection_switch.get() == "on"))) and (self.datastack.name in fs):
+                    fig.axes[0].collections[0].set_cmap(cmap)
 
     def options_dropdown_callback(self, value):
         if value.endswith("(auto)"):
@@ -835,9 +836,9 @@ class Polarimetry(CTk.CTk):
                 self.define_variable_table(self.datastack.method)
                 self.options_dropdown.set_state("disabled")
                 self.option.set("Previous analysis")
-                self.fluo_axis.clear()
-                self.fluo_axis.set_axis_off()
-                self.fluo_canvas.draw()
+                self.intensity_axis.clear()
+                self.intensity_axis.set_axis_off()
+                self.intensity_canvas.draw()
                 self.thrsh_axis.clear()
                 self.thrsh_axis.set_axis_off()
                 self.thrsh_canvas.draw()
@@ -845,7 +846,7 @@ class Polarimetry(CTk.CTk):
                 self.filename_label.delete("0.0", "end")
                 self.filename_label.insert("0.0", self.datastack.name)
                 self.filename_label.configure(state="disabled")
-                self.represent_fluo(update=False)
+                self.represent_intensity(update=False)
             window.withdraw()
         if hasattr(self, "stack"):
             self.ilow_slider.configure(from_=np.amin(self.stack.itot), to=np.amax(self.stack.itot))
@@ -895,14 +896,14 @@ class Polarimetry(CTk.CTk):
         if variable == "all":
             self.datastack.rois = []
         else:
-            self.clear_patches(self.fluo_axis, self.fluo_canvas)
+            self.clear_patches(self.intensity_axis, self.intensity_canvas)
             self.clear_patches(self.thrsh_axis, self.thrsh_canvas)
             indx = int(variable)
             del self.datastack.rois[indx - 1]
             for roi in self.datastack.rois:
                 if roi["indx"] > indx:
                     roi["indx"] -= 1
-        self.represent_fluo(update=False)
+        self.represent_intensity(update=False)
         self.represent_thrsh(update=False)
         window.withdraw()
 
@@ -1000,13 +1001,13 @@ class Polarimetry(CTk.CTk):
             fig.canvas.manager.set_window_title("Disk Cone: " + self.CD.name)
             fig.patch.set_facecolor("w")
             cmap = cc.m_colorwheel if self.colorblind_checkbox.get() else "hsv"
-            h = axs[0].imshow(self.CD.RhoPsi[:, :, 0], cmap=cmap, interpolation="nearest", extent=[-1, 1, -1, 1])
+            h = axs[0].imshow(self.CD.RhoPsi[:, :, 0], cmap=cmap, interpolation="nearest", extent=[-1, 1, -1, 1], vmin=0, vmax=180)
             axs[0].set_title("Rho Test")
             ax_divider = make_axes_locatable(axs[0])
             cax = ax_divider.append_axes("right", size="7%", pad="2%")
             fig.colorbar(h, cax=cax)
             cmap = "viridis" if self.colorblind_checkbox.get() else "jet"
-            h = axs[1].imshow(self.CD.RhoPsi[:, :, 1], cmap=cmap, interpolation="nearest", extent=[-1, 1, -1, 1])
+            h = axs[1].imshow(self.CD.RhoPsi[:, :, 1], cmap=cmap, interpolation="nearest", extent=[-1, 1, -1, 1], vmin=0, vmax=180)
             axs[1].set_title("Psi Test")
             ax_divider = make_axes_locatable(axs[1])
             cax = ax_divider.append_axes("right", size="7%", pad="2%")
@@ -1064,33 +1065,33 @@ class Polarimetry(CTk.CTk):
             self.tabview.set("Intensity")
             self.compute_angle_button.configure(fg_color=orange[1])
             hroi = ROI()
-            self.__cid1 = self.fluo_canvas.mpl_connect("motion_notify_event", lambda event: self.compute_angle_motion_notify_callback(event, hroi))
-            self.__cid2 = self.fluo_canvas.mpl_connect("button_press_event", lambda event: self.compute_angle_button_press_callback(event, hroi))
+            self.__cid1 = self.intensity_canvas.mpl_connect("motion_notify_event", lambda event: self.compute_angle_motion_notify_callback(event, hroi))
+            self.__cid2 = self.intensity_canvas.mpl_connect("button_press_event", lambda event: self.compute_angle_button_press_callback(event, hroi))
 
     def compute_angle_motion_notify_callback(self, event, roi):
-        if event.inaxes == self.fluo_axis:
+        if event.inaxes == self.intensity_axis:
             x, y = event.xdata, event.ydata
             if ((event.button is None or event.button == 1) and roi.lines):
                 roi.lines[-1].set_data([roi.previous_point[0], x], [roi.previous_point[1], y])
-                self.fluo_canvas.draw()
+                self.intensity_canvas.draw()
 
     def compute_angle_button_press_callback(self, event, roi):
-        if event.inaxes == self.fluo_axis:
+        if event.inaxes == self.intensity_axis:
             x, y = event.xdata, event.ydata
             if event.button == 1:
                 if not roi.lines:
                     roi.lines = [plt.Line2D([x, x], [y, y], lw=3, color="w")]
                     roi.start_point = [x, y]
                     roi.previous_point = roi.start_point
-                    self.fluo_axis.add_line(roi.lines[0])
-                    self.fluo_canvas.draw()
+                    self.intensity_axis.add_line(roi.lines[0])
+                    self.intensity_canvas.draw()
                 else:
                     roi.lines += [plt.Line2D([roi.previous_point[0], x], [roi.previous_point[1], y], lw=3, color="w")]
                     roi.previous_point = [x, y]
-                    self.fluo_axis.add_line(roi.lines[-1])
-                    self.fluo_canvas.draw()
-                    self.fluo_canvas.mpl_disconnect(self.__cid1)
-                    self.fluo_canvas.mpl_disconnect(self.__cid2)
+                    self.intensity_axis.add_line(roi.lines[-1])
+                    self.intensity_canvas.draw()
+                    self.intensity_canvas.mpl_disconnect(self.__cid1)
+                    self.intensity_canvas.mpl_disconnect(self.__cid2)
                     slope = 180 - np.rad2deg(np.arctan((roi.previous_point[1] - roi.start_point[1]) / (roi.previous_point[0] - roi.start_point[0])))
                     slope = np.mod(2 * slope, 360) / 2
                     dist = np.sqrt(((np.asarray(roi.previous_point) - np.asarray(roi.start_point))**2).sum())
@@ -1098,7 +1099,7 @@ class Polarimetry(CTk.CTk):
                     window.get_buttons[0].configure(command=lambda:window.withdraw())
                     for line in roi.lines:
                         line.remove()
-                    self.fluo_canvas.draw()
+                    self.intensity_canvas.draw()
                     self.compute_angle_button.configure(fg_color=orange[0])
 
     def define_variable_table(self, method):
@@ -1316,9 +1317,9 @@ class Polarimetry(CTk.CTk):
         self.datastack.itot = self.stack.itot
         if self.option.get().startswith("Mask"):
             self.mask = self.get_mask(self.datastack)
-        self.represent_fluo(update=False)
+        self.represent_intensity(update=False)
         self.represent_thrsh(update=False)
-        self.fluo_frame.update()
+        self.intensity_frame.update()
         self.thrsh_frame.update()
 
     def add_roi_callback(self):
@@ -1385,7 +1386,7 @@ class Polarimetry(CTk.CTk):
             line.remove()
         roi.lines = []
         self.thrsh_canvas.draw()
-        self.represent_fluo()
+        self.represent_intensity()
         self.represent_thrsh()
         if hasattr(self, "manager_window"):
             self.roimanager(update=True)
@@ -1453,7 +1454,7 @@ class Polarimetry(CTk.CTk):
         if self.method.get().startswith("4POLAR"):
             labels = ["T", 0, 45, 90, 135]
             self.stack_slider_label.configure(text=labels[int(value)])
-        self.represent_fluo()
+        self.represent_intensity()
 
     def ilow_slider_callback(self, value):
         if hasattr(self, "stack"):
@@ -1476,12 +1477,12 @@ class Polarimetry(CTk.CTk):
             self.compute_itot(self.stack)
             if hasattr(self, "datastack"):
                 self.datastack.itot = self.stack.itot
-            self.represent_fluo(update=False)
+            self.represent_intensity(update=False)
             self.represent_thrsh(update=False)
 
     def rotation_callback(self, event):
         if event:
-            self.represent_fluo(update=False)
+            self.represent_intensity(update=False)
 
     def transparency_slider_callback(self, value):
         if value <= 0.001:
@@ -1496,7 +1497,7 @@ class Polarimetry(CTk.CTk):
         sharpened = exposure.adjust_gamma((sharpened - vmin) / vmax, contrast) * vmax
         return sharpened
 
-    def represent_fluo(self, update=True):
+    def represent_intensity(self, update=True):
         itot = self.stack.itot if hasattr(self, "stack") else self.datastack.itot if hasattr(self, "datastack") else []
         if hasattr(self, "stack") or hasattr(self, "datastack"):
             if self.stack_slider.get() == 0:
@@ -1505,23 +1506,23 @@ class Polarimetry(CTk.CTk):
             elif hasattr(self, "stack") and (self.stack_slider.get() <= self.stack.nangle):
                 field = self.stack.values[int(self.stack_slider.get())-1]
                 vmin, vmax = np.amin(self.stack.values), np.amax(self.stack.values)
-            field_im = self.adjust(field, self.contrast_fluo_slider.get(), vmin, vmax)
+            field_im = self.adjust(field, self.contrast_intensity_slider.get(), vmin, vmax)
             if int(self.rotation[1].get()) != 0:
                 field_im = rotate(field_im, int(self.rotation[1].get()), reshape=False, mode="constant", cval=vmin)
             if update:
-                self.fluo_im.set_data(field_im)
+                self.intensity_im.set_data(field_im)
             else:
-                self.fluo_axis.clear()
-                self.fluo_axis.set_axis_off()
-                self.fluo_im = self.fluo_axis.imshow(field_im, cmap="gray", interpolation="nearest")
-                self.fluo_frame.update()
-                self.fluo_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
-                self.fluo_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
-            self.fluo_im.set_clim(vmin, vmax)
-            self.clear_patches(self.fluo_axis, self.fluo_fig.canvas)
+                self.intensity_axis.clear()
+                self.intensity_axis.set_axis_off()
+                self.intensity_im = self.intensity_axis.imshow(field_im, cmap="gray", interpolation="nearest")
+                self.intensity_frame.update()
+                self.intensity_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+                self.intensity_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
+            self.intensity_im.set_clim(vmin, vmax)
+            self.clear_patches(self.intensity_axis, self.intensity_fig.canvas)
             if hasattr(self, "datastack"):
-                self.add_patches(self.datastack, self.fluo_axis, self.fluo_fig.canvas)
-            self.fluo_canvas.draw()
+                self.add_patches(self.datastack, self.intensity_axis, self.intensity_fig.canvas)
+            self.intensity_canvas.draw()
 
     def represent_thrsh(self, update=True):
         if hasattr(self, "stack"):
@@ -1627,7 +1628,8 @@ class Polarimetry(CTk.CTk):
             elif var.type_histo.startswith("polar"):
                 ax = plt.subplot(projection="polar")
                 if var.type_histo == "polar1":
-                    data_vals = np.mod(2 * (data_vals + var.orientation * float(self.rotation[1].get())), 360) / 2
+                    if var.name == "Rho":
+                        data_vals = np.mod(2 * (data_vals + int(self.rotation[1].get())), 360) / 2
                     meandata = self.circularmean(data_vals)
                     std = np.std(self.wrapto180(2 * (data_vals - meandata)) / 2)
                 elif var.type_histo == "polar2":
@@ -1662,13 +1664,12 @@ class Polarimetry(CTk.CTk):
             if not self.show_table[2].get():
                 plt.close(fig)
 
-    def add_fluo(self, itot, ax):
-        vmin, vmax = np.amin(itot), np.amax(itot)
-        field = self.adjust(itot, self.contrast_fluo_slider.get(), vmin, vmax)
+    def add_intensity(self, intensity, ax):
+        vmin, vmax = np.amin(intensity), np.amax(intensity)
+        field = self.adjust(intensity, self.contrast_intensity_slider.get(), vmin, vmax)
         if int(self.rotation[1].get()) != 0:
             field = rotate(field, int(self.rotation[1].get()), reshape=False, mode="constant", cval=vmin)
-        h = ax.imshow(field, cmap="gray", interpolation="nearest")
-        h.set_clim(vmin, vmax)
+        h = ax.imshow(field, cmap="gray", interpolation="nearest", vmin=vmin, vmax=vmax)
 
     def add_patches(self, datastack, ax, fig, rotation=True):
         if len(datastack.rois):
@@ -1692,10 +1693,10 @@ class Polarimetry(CTk.CTk):
             fig.patch.set_facecolor("w")
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
-            self.add_fluo(datastack.itot, ax)
+            self.add_intensity(datastack.itot, ax)
             field = var.values
             if int(self.rotation[1].get()) != 0:
-                if var.orientation:
+                if var.name == "Rho":
                     field = np.mod(2 * (field + int(self.rotation[1].get())), 360) / 2
                 field = rotate(field, int(self.rotation[1].get()), reshape=False, order=0, mode="constant")
                 field[field == 0] = np.nan
@@ -1759,7 +1760,7 @@ class Polarimetry(CTk.CTk):
         Y, X = np.mgrid[:datastack.height:int(self.pixelsperstick_spinboxes[1].get()), :datastack.width:int(self.pixelsperstick_spinboxes[0].get())]
         X, Y = X[np.isfinite(data_)], Y[np.isfinite(data_)]
         data_, rho_ = data_[np.isfinite(data_)], rho_[np.isfinite(data_)]
-        if var.orientation:
+        if var.name == "Rho":
             stick_colors = np.mod(2 * (data_ + int(self.rotation[1].get())), 360) / 2
         else:
             stick_colors = data_
@@ -1780,7 +1781,7 @@ class Polarimetry(CTk.CTk):
             fig.patch.set_facecolor("w")
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
-            self.add_fluo(datastack.itot, ax)
+            self.add_intensity(datastack.itot, ax)
             p = self.get_sticks(var, datastack)
             p.set_clim([vmin, vmax])
             ax.add_collection(p)
@@ -1794,14 +1795,14 @@ class Polarimetry(CTk.CTk):
             if not self.show_table[1].get():
                 plt.close(fig)
 
-    def plot_fluo(self, datastack):
+    def plot_intensity(self, datastack):
         if self.show_table[3].get() or self.save_table[3].get():
             fig = plt.figure(figsize=self.figsize)
             fig.canvas.manager.set_window_title("Intensity: " + datastack.name)
             fig.patch.set_facecolor("w")
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
-            self.add_fluo(datastack.itot, ax)
+            self.add_intensity(datastack.itot, ax)
             self.add_patches(datastack, ax, fig.canvas)
             if self.edge_detection_switch.get() == "on":
                 for contour in self.edge_contours:
@@ -1825,7 +1826,7 @@ class Polarimetry(CTk.CTk):
                 plt.close(fig)
 
     def plot_data(self, datastack, roi_map=[]):
-        self.plot_fluo(datastack)
+        self.plot_intensity(datastack)
         vars = copy.deepcopy(datastack.vars)
         if len(roi_map) == 0:
             roi_map, mask = self.compute_roi_map(datastack)
@@ -1910,7 +1911,7 @@ class Polarimetry(CTk.CTk):
             vmin, vmax = np.amin(self.stack.values), np.amax(self.stack.values)
             for _ in range(self.stack.nangle):
                 field = self.stack.values[_]
-                im = self.adjust(field, self.contrast_fluo_slider.get(), vmin, vmax)
+                im = self.adjust(field, self.contrast_intensity_slider.get(), vmin, vmax)
                 if int(self.rotation[1].get()) != 0:
                     im = rotate(im, int(self.rotation[1].get()), reshape=False, mode="constant", cval=vmin)
                 if hasattr(self, "xlim"):
@@ -1951,8 +1952,7 @@ class Polarimetry(CTk.CTk):
             title += ["Mean" + var.name, "Std" + var.name]
             results += [meandata, np.std(data_vals)]
         data_vals = datastack.added_vars[2].values[mask * np.isfinite(rho)]
-        meandata = np.mean(data_vals) 
-        stddata = np.std(data_vals)
+        meandata, stddata = np.mean(data_vals), np.std(data_vals)
         title += ["MeanInt", "StdInt", "TotalInt", "ILow", "N"]
         results += [meandata, stddata, meandata * self.stack.nangle, ilow, n]
         if self.method.get() in ["1PF", "4POLAR 2D", "4POLAR 3D"]:
@@ -1967,8 +1967,6 @@ class Polarimetry(CTk.CTk):
 
     def save_mat(self, datastack, roi_map, roi=[]):
         if self.extension_table[2].get():
-            suffix = "_ROI" + str(roi["indx"]) if roi else ""
-            filename = datastack.filename + suffix + ".mat"
             mask = (roi_map == roi["indx"]) if roi else (roi_map == 1)
             dict_ = {"dark": datastack.dark}
             for var in datastack.vars:
@@ -1977,6 +1975,8 @@ class Polarimetry(CTk.CTk):
             for var in datastack.added_vars:
                 data = var.values[mask * np.isfinite(var.values)]
                 dict_.update({var.name: data})
+            suffix = "_ROI" + str(roi["indx"]) if roi else ""
+            filename = datastack.filename + suffix + ".mat"
             savemat(filename, dict_)
 
     def compute_roi_map(self, datastack):
@@ -2075,7 +2075,6 @@ class Polarimetry(CTk.CTk):
             a0[a0 == 0] = np.nan
         rho_ = Variable(datastack)
         rho_.name, rho_.latex = "Rho", r"$\rho$"
-        rho_.orientation = True
         rho_.type_histo = "polar1"
         rho_.colormap = ["hsv", cc.m_colorwheel]
         if self.method.get() == "1PF":
@@ -2087,9 +2086,7 @@ class Polarimetry(CTk.CTk):
             rho_.values[np.isfinite(rho_.values)] = np.mod(2 * (rho_.values[np.isfinite(rho_.values)] + float(self.rotation[0].get())), 360) / 2 
             psi_ = Variable(datastack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
-            psi_.values = np.nan * np.ones(a0.shape)
             psi_.values[ixgrid] = psi
-            psi_.colormap = ["jet", "viridis"]
             mask *= np.isfinite(rho_.values) * np.isfinite(psi_.values)
             datastack.vars = [rho_, psi_]
         elif self.method.get() in ["CARS", "SRS", "2PF"]:
@@ -2099,12 +2096,9 @@ class Polarimetry(CTk.CTk):
             s2_ = Variable(datastack)
             s2_.name, s2_.latex = "S2", "$S_2$"
             s2_.values[mask] = 1.5 * np.abs(a2[mask])
-            s2_.display, s2_.min, s2_.max = self.get_variable(1)
-            s2_.colormap = ["jet", "viridis"]
             s4_ = Variable(datastack)
             s4_.name, s4_.latex = "S4", "$S_4$"
             s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.values[mask])))
-            s4_.colormap = ["jet", "viridis"]
             datastack.vars = [rho_, s2_, s4_]
         elif self.method.get() == "SHG":
             mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
@@ -2113,7 +2107,6 @@ class Polarimetry(CTk.CTk):
             s_shg_ = Variable(datastack)
             s_shg_.name, s_shg_.latex = "S_SHG", "$S_\mathrm{SHG}$"
             s_shg_.values[mask] = -0.5 * (np.abs(a4[mask]) - np.abs(a2[mask])) / (np.abs(a4[mask]) + np.abs(a2[mask])) - 0.65
-            s_shg_.colormap = ["jet", "viridis"]
             datastack.vars = [rho_, s_shg_]
         elif self.method.get() == "4POLAR 3D":
             mask *= (lam < 1/3) * (lam > 0) * (pzz > lam)
@@ -2122,8 +2115,6 @@ class Polarimetry(CTk.CTk):
             psi_ = Variable(datastack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.values[mask] = 2 * np.rad2deg(np.arccos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
-            psi_.display, psi_.min, psi_.max = self.get_variable(1)
-            psi_.colormap = ["jet", "viridis"]
             eta_ = Variable(datastack)
             eta_.name, eta_.latex = "Eta", "$\eta$"
             eta_.values[mask] = np.rad2deg(np.arccos(np.sqrt((pzz[mask] - lam[mask]) / (1 - 3 * lam[mask]))))
@@ -2137,7 +2128,6 @@ class Polarimetry(CTk.CTk):
             psi_ = Variable(datastack)
             psi_.name, psi_.latex = "Psi", "$\psi$"
             psi_.values[mask] = 2 * np.rad2deg(np.arccos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
-            psi_.colormap = ["jet", "viridis"]
             datastack.vars = [rho_, psi_]
         a0[np.logical_not(mask)] = np.nan
         X, Y = np.meshgrid(np.arange(datastack.width), np.arange(datastack.height))
@@ -2151,7 +2141,6 @@ class Polarimetry(CTk.CTk):
         if self.edge_detection_switch.get() == "on":
             rho_ct = Variable(datastack)
             rho_ct.name, rho_ct.latex = "Rho (vs contour)", r"$\rho_c$"
-            rho_ct.orientation = False
             rho_ct.type_histo = "polar1"
             rho_ct.colormap = ["hsv", cc.m_colorwheel]
             vals = self.define_rho_ct(self.edge_contours)
@@ -2201,9 +2190,8 @@ class Variable():
         self.name = ""
         self.latex = ""
         self.values = np.nan * np.ones((datastack.height, datastack.width))
-        self.orientation = False
         self.type_histo = "normal"
-        self.colormap = []
+        self.colormap = ["jet", "viridis"]
 
 class ROI:
     def __init__(self):
