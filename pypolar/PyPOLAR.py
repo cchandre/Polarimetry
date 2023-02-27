@@ -66,7 +66,7 @@ geometry_info = lambda dim: f"{dim[0]}x{dim[1]}+400+300"
 
 class Polarimetry(CTk.CTk):
     __version__ = "2.4.2"
-    
+
     dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "February 27, 2023"}
 
     try:
@@ -243,7 +243,7 @@ class Polarimetry(CTk.CTk):
         button = Button(banner, image=self.icons["open_in_new"], command=self.export_mask)
         #ToolTip.createToolTip(button, " Export mask as .png")
         button.pack(padx=20, pady=10)
-        button = Button(banner, image=self.icons["format_list"], command=lambda:self.roimanager())
+        button = Button(banner, image=self.icons["format_list"], command=self.roimanager_callback)
         #ToolTip.createToolTip(button, "Erase selected ROIs and reload image")
         button.pack(padx=20, pady=10)
         self.ilow = tk.StringVar(value="0")
@@ -265,14 +265,14 @@ class Polarimetry(CTk.CTk):
 ## RIGHT FRAME: OPTIONS
         show_save = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
         show_save.grid(row=0, column=0, padx=(20, 20), pady=10, sticky="nw")
-        CTk.CTkLabel(master=show_save, text="\nFigures\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=3, padx=20, pady=0)
+        CTk.CTkLabel(master=show_save, text="\nFigures\n", font=CTk.CTkFont(size=16), width=250).grid(row=0, column=0, columnspan=3, padx=20, pady=0)
         CTk.CTkLabel(master=show_save, text="Show", anchor="w").grid(row=1, column=1, pady=(0, 10))
         CTk.CTkLabel(master=show_save, text="Save", anchor="w").grid(row=1, column=2, pady=(0, 10))
         labels = ["Composite", "Sticks", "Histogram", "Intensity"]
         self.show_table = [CheckBox(show_save) for it in range(len(labels))]
         self.save_table = [CheckBox(show_save) for it in range(len(labels))]
         for it in range(len(labels)):
-            CTk.CTkLabel(master=show_save, text=labels[it], anchor="w", width=100).grid(row=it+2, column=0, padx=(20, 0))
+            CTk.CTkLabel(master=show_save, text=labels[it], anchor="w", width=100, height=30).grid(row=it+2, column=0, padx=(20, 0))
             self.save_table[it].configure(command=self.click_save_output)
             self.show_table[it].grid(row=it+2, column=1, pady=0, padx=20, sticky="ew")
             self.save_table[it].grid(row=it+2, column=2, pady=0, padx=(20, 20))
@@ -287,7 +287,7 @@ class Polarimetry(CTk.CTk):
         self.per_roi.grid(row=0, column=1, sticky="nw")
         preferences = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
         preferences.grid(row=2, column=0, padx=20, pady=10)
-        CTk.CTkLabel(master=preferences, text="\nPreferences\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=2, padx=20, pady=0)
+        CTk.CTkLabel(master=preferences, text="\nPreferences\n", font=CTk.CTkFont(size=16), width=250).grid(row=0, column=0, columnspan=2, padx=20, pady=0)
         self.add_axes_checkbox = CheckBox(preferences, text="\n Axes on figures\n", command=self.add_axes_on_all_figures)
         self.add_axes_checkbox.select()
         self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=40, pady=(0, 0), sticky="ew")
@@ -310,8 +310,8 @@ class Polarimetry(CTk.CTk):
         self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab("Options"), width=300)
         self.variable_table_frame.grid(row=0, column=1, padx=(40, 20), pady=10, sticky="nw")
         save_ext = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
+        CTk.CTkLabel(master=save_ext, text="\nSave output\n", font=CTk.CTkFont(size=16), width=250).grid(row=0, column=0, columnspan=2, padx=(20, 20), pady=(0, 0))
         save_ext.grid(row=2, column=1, padx=(40, 20), pady=100, sticky="sw")
-        CTk.CTkLabel(master=save_ext, text="\nSave output\n", font=CTk.CTkFont(size=16), width=260).grid(row=0, column=0, columnspan=2, padx=(0, 20), pady=(0, 0))
         labels = ["data (.pykl)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "movie (.gif)"]
         self.extension_table = [CheckBox(save_ext) for it in range(len(labels))]
         self.extension_table[1].configure(state="disabled")
@@ -362,9 +362,9 @@ class Polarimetry(CTk.CTk):
         self.bin_spinboxes = [SpinBox(adv["Binning"], command=lambda:self.itot_callback(event=1)) for _ in range(2)]
         for it in range(2):
             self.bin_spinboxes[it].bind("<Return>", command=self.itot_callback)
-            self.bin_spinboxes[it].grid(row=it+1, column=0, padx=(60, 20), pady=(0, 20), sticky="w")
+            self.bin_spinboxes[it].grid(row=it+1, column=0, padx=(60, 20), pady=(0, 0), sticky="w")
             label = CTk.CTkLabel(master=adv["Binning"], text="\n" + labels[it] + "\n")
-            label.grid(row=it+1, column=0, padx=(0, 60), pady=(0, 20), sticky="e")
+            label.grid(row=it+1, column=0, padx=(0, 60), pady=(0, 0), sticky="e")
             ToolTip.createToolTip(label, "Height and width of the bin used for data binning")
         labels = ["Stick (deg)", "Figure (deg)"]
         self.rotation = [tk.IntVar(value=0), tk.IntVar(value=0)]
@@ -398,18 +398,19 @@ class Polarimetry(CTk.CTk):
 
     def startup(self):
         info = " (1) Select a polarimetry method\n\n (2) Download a file or a folder\n        or a previous PyPOLAR analysis\n\n (3) Select a method of analysis\n\n (4) Select one or several regions of interest\n\n (5) Click on Analysis"
-        self.info_window = CTk.CTkToplevel(self)
-        self.info_window.attributes("-topmost", "true")
-        self.info_window.title("Polarimetry Analysis")
-        self.info_window.geometry(geometry_info((380, 350)))
-        CTk.CTkLabel(self.info_window, text="  PyPOLAR", font=CTk.CTkFont(size=20), image=self.icons['blur_circular'], compound="left").grid(row=0, column=0, padx=0, pady=20)
-        textbox = CTk.CTkTextbox(self.info_window, width=320, height=170, fg_color=gray[1])
+        info_window = CTk.CTkToplevel(self)
+        info_window.attributes("-topmost", "true")
+        info_window.title("Polarimetry Analysis")
+        info_window.geometry(geometry_info((380, 350)))
+        CTk.CTkLabel(info_window, text="  PyPOLAR", font=CTk.CTkFont(size=20), image=self.icons['blur_circular'], compound="left").grid(row=0, column=0, padx=0, pady=20)
+        textbox = CTk.CTkTextbox(info_window, width=320, height=170, fg_color=gray[1])
         textbox.grid(row=1, column=0, padx=40)
         textbox.insert("0.0", info)
-        link = CTk.CTkLabel(self.info_window, text="For more information, visit the GitHub page", text_color="blue", font=CTk.CTkFont(underline=True), cursor="hand2")
+        link = CTk.CTkLabel(info_window, text="For more information, visit the GitHub page", text_color="blue", font=CTk.CTkFont(underline=True), cursor="hand2")
         link.grid(row=2, column=0, padx=50, pady=10, sticky="w")
         link.bind("<Button-1>", lambda e:webbrowser.open_new_tab(Polarimetry.url_github))
-        Button(master=self.info_window, text="OK", anchor="center", command=lambda:self.info_window.withdraw(), width=80).grid(row=7, column=0, padx=20, pady=0)
+        Button(master=info_window, text="OK", anchor="center", command=lambda:info_window.withdraw(), width=80).grid(row=7, column=0, padx=20, pady=0)
+
         self.method.set("1PF")
         self.option.set("Thresholding (manual)")
         self.define_variable_table("1PF")
@@ -494,7 +495,7 @@ class Polarimetry(CTk.CTk):
 
     def edge_detection_callback(self):
         if self.edge_detection_switch.get() == "on":
-            window = ShowInfo(message=" Mask for edge detection", image=self.icons["multiline_chart"], button_labels=["Download", "Compute", "Cancel"], geometry=(370, 140))
+            window = ShowInfo(message=" Mask for edge detection", image=self.icons["multiline_chart"], button_labels=["Download", "Compute", "Cancel"], geometry=(370, 140), fontsize=16)
             buttons = window.get_buttons()
             buttons[0].configure(command=lambda:self.download_edge_mask(window))
             buttons[1].configure(command=lambda:self.compute_edge_mask(window))
@@ -535,7 +536,7 @@ class Polarimetry(CTk.CTk):
         adv = {}
         for loc, elt in zip(adv_loc, adv_elts):
             adv.update({elt: CTk.CTkFrame(
-            master=self.tabview.tab("Edge Detection"), fg_color=self.left_frame.cget("fg_color"))})
+            master=self.tabview.tab("Edge Detection"), fg_color=gray[0])})
             adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=(10, 10), sticky="nw")
             CTk.CTkLabel(master=adv[elt], text=elt + "\n", width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, padx=20, pady=(10,0))
         params = ["Low threshold", "High threshold", "Length", "Smoothing window"]
@@ -617,119 +618,56 @@ class Polarimetry(CTk.CTk):
             self.contrast_thrsh_slider.set(1)
         self.represent_thrsh(update=True)
 
-    def roimanager(self, update=False):
-        labels = ["indx", "name", "group"]
-        widths = [40, 250, 90]
-        button_labels = ["Commit", "Save", "Load", "Delete", "Delete All"]
-        fsize = lambda w, h: f"{w+40}x{h+84}"
+    def roimanager_callback(self):
 
-        def on_closing(window):
+        def on_closing(manager: ROIManager):
             if hasattr(self, "datastack"):
                 for roi in self.datastack.rois:
                     roi["select"] = True
                 self.represent_intensity()
                 self.represent_thrsh()
-            window.destroy()
-        
-        def commit(manager):
+            manager.destroy()
+
+        def commit(manager: ROIManager):
             if hasattr(self, "datastack"):
                 if any(self.datastack.rois):
-                    data = manager.sheet.get_sheet_data()
-                    for _, roi in enumerate(self.datastack.rois):
-                        roi["name"] = data[_][1]
-                        roi["group"] = data[_][2]
-                        roi["select"] = data[_][-2]
+                    self.datastack.rois = manager.update_sheet(self.datastack.rois)
                     self.represent_intensity()
                     self.represent_thrsh()
 
-        def save(manager):
+        def delete(manager: ROIManager):
             if hasattr(self, "datastack"):
-                if any(self.datastack.rois):
-                    data = manager.sheet.get_sheet_data()
-                    for _, roi in enumerate(self.datastack.rois):
-                        roi["name"] = data[_][1]
-                        roi["group"] = data[_][2]  
-                        roi["select"] = data[_][-2]
-                    with open(self.datastack.filename + ".pyroi", "wb") as f:
-                        pickle.dump(self.datastack.rois, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-        def load(manager, window):
-            if hasattr(self, "datastack"):
-                delete_all(manager, window)
-                filetypes = [("PyROI files", "*.pyroi")]
-                initialdir = self.stack.folder if hasattr(self, "stack") else "/"
-                filename = fd.askopenfilename(title="Select a PyROI file", initialdir=initialdir, filetypes=filetypes)
-                with open(filename, "rb") as f:
-                    self.datastack.rois = pickle.load(f)
-                manager.sheet.set_options(height=manager.height(20, self.datastack.rois))
-                x, y = window.winfo_x(), window.winfo_y()
-                window.geometry(fsize(manager.width, manager.height(20, self.datastack.rois)) + f"+{x}+{y}")
-                manager.sheet.insert_rows(rows=len(self.datastack.rois))
-                manager.add_elements(len(labels))
-                manager.rois2sheet(self.datastack.rois)
+                manager.delete(self.datastack.rois)
                 self.represent_intensity()
                 self.represent_thrsh()
 
-        def delete(manager, window):
-            if hasattr(self, "datastack"):
-                if any(self.datastack.rois):
-                    manager.delete(self.datastack.rois)
-                    manager.sheet.set_options(height=manager.height(20, self.datastack.rois))
-                    x, y = window.winfo_x(), window.winfo_y()
-                    window.geometry(fsize(manager.width, manager.height(20, self.datastack.rois)) + f"+{x}+{y}")
-                    self.represent_intensity()
-                    self.represent_thrsh()
-        
-        def delete_all(manager, window):
+        def delete_all(manager: ROIManager):
             if hasattr(self, "datastack"):
                 if any(self.datastack.rois):
                     self.datastack.rois = []
                     manager.delete_all()
-                    manager.sheet.set_options(height=manager.height(20, []))
-                    x, y = window.winfo_x(), window.winfo_y()
-                    window.geometry(fsize(manager.width, manager.height(20, [])) + f"+{x}+{y}")
                     self.represent_intensity()
                     self.represent_thrsh()
 
-        if not update:
-            self.manager_window = CTk.CTkToplevel(self)
-            self.manager_window.attributes("-topmost", "true")
-            self.manager_window.title("ROI Manager")
-            self.manager_window.grid_columnconfigure(1, weight = 1)
-            self.manager_window.grid_rowconfigure(0, weight = 1)
-            self.manager_window.protocol("WM_DELETE_WINDOW", lambda:on_closing(self.manager_window))
-            self.manager_window.bind("<Command-q>", lambda:on_closing(self.manager_window))
-            self.manager_window.bind("<Command-w>", lambda:on_closing(self.manager_window))
+        def load(manager: ROIManager):
             if hasattr(self, "datastack"):
-                self.manager = ROIManager(self.manager_window, self.datastack.rois, labels, widths)
-            else:
-                self.manager = ROIManager(self.manager_window, [], labels, widths)
-            self.manager.sheet.grid(row=0, column=0, sticky="nswe", padx=20, pady=(20, 0))
-            bottom_frame = CTk.CTkFrame(self.manager_window)
-            bottom_frame.grid(row=1, column=0, sticky="nswe", padx=20, pady=(0, 20))
-            buttons = []
-            for it, label in enumerate(button_labels):
-                button = Button(bottom_frame, text=label, anchor="center", width=80)
-                buttons += [button]
-                button.grid(row=0, column=it, padx=10, pady=10, sticky="nswe")
-            buttons[0].configure(width=80, fg_color=green[0], hover_color=green[1], command=lambda:commit(self.manager))
-            buttons[1].configure(command=lambda:save(self.manager))
-            buttons[2].configure(command=lambda:load(self.manager, self.manager_window))
-            buttons[-1].configure(fg_color=red[0], hover_color=red[1], command=lambda:delete_all(self.manager, self.manager_window))
-            buttons[-2].configure(fg_color=red[0], hover_color=red[1], command=lambda:delete(self.manager, self.manager_window))
-            if hasattr(self, "datastack"):
-                self.manager_window.geometry(fsize(self.manager.width, self.manager.height(20, self.datastack.rois)) + "+1200+200")
-            else:
-                self.manager_window.geometry(fsize(self.manager.width, self.manager.height(20, [])) + "+1200+200")
-        elif hasattr(self, "datastack") and update:
-            self.manager.sheet.set_options(height=self.manager.height(20, self.datastack.rois))
-            x, y = self.manager_window.winfo_x(), self.manager_window.winfo_y()
-            self.manager_window.geometry(fsize(self.manager.width, self.manager.height(20, self.datastack.rois)) + f"+{x}+{y}")
-            roi = self.datastack.rois[-1]
-            cmax = len(labels)
-            self.manager.sheet.insert_row([roi[label] for label in labels])
-            self.manager.sheet.create_checkbox(c=cmax, r=len(self.datastack.rois)-1, checked = True)
-            self.manager.sheet.create_checkbox(c=cmax+1, r=len(self.datastack.rois)-1, checked = False)
+                self.datastack.rois = manager.load(initialdir=self.stack.folder if hasattr(self, "stack") else "/")
+                self.represent_intensity()
+                self.represent_thrsh()
+
+        if hasattr(self, "datastack"):
+            self.manager = ROIManager(rois=self.datastack.rois)
+        else:
+            self.manager = ROIManager(rois=[])
+        self.manager.protocol("WM_DELETE_WINDOW", lambda:on_closing(self.manager))
+        self.manager.bind("<Command-q>", lambda:on_closing(self.manager))
+        self.manager.bind("<Command-w>", lambda:on_closing(self.manager))
+        buttons = self.manager.get_buttons()
+        buttons[0].configure(command=lambda:commit(self.manager))
+        buttons[1].configure(command=lambda:self.manager.save(self.datastack.rois, self.datastack.filename))
+        buttons[2].configure(command=lambda:load(self.manager))
+        buttons[-1].configure(command=lambda:delete_all(self.manager))
+        buttons[-2].configure(command=lambda:delete(self.manager))
 
     def add_axes_on_all_figures(self):
         figs = list(map(plt.figure, plt.get_fignums()))
@@ -823,7 +761,7 @@ class Polarimetry(CTk.CTk):
                 self.option.set("Thresholding (manual)")
             else:
                 window = ShowInfo(message=" The folder does not contain TIFF or TIF files", image=self.icons["download_folder"], button_labels=["OK"], geometry=(340, 140))
-                window.get_buttons[0].configure(command=lambda:window.withdraw())
+                window.get_buttons()[0].configure(command=lambda:window.withdraw())
         elif value == "Previous analysis":
             initialdir = self.stack.folder if hasattr(self, "stack") else "/"
             filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir=initialdir, filetypes=[("PyPOLAR pickle files", "*.pykl")])
@@ -912,7 +850,7 @@ class Polarimetry(CTk.CTk):
 
     def export_mask(self):
         if hasattr(self, "datastack"):
-            window = ShowInfo(message=" Select output mask type: \n\n   - ROI: export ROIs as segmentation mask \n   - Intensity: export intensity-thresholded image as segmentation mask \n   - ROI x Intensity: export intensity-thresholded ROIs as segmentation mask", image=self.icons['open_in_new'], button_labels=["ROI", "Intensity", "ROI x Intensity", "Cancel"], geometry=(530, 200))
+            window = ShowInfo(message=" Select output mask type: \n\n   - ROI: export ROIs as segmentation mask \n   - Intensity: export intensity-thresholded image as segmentation mask \n   - ROI \u00D7 Intensity: export intensity-thresholded ROIs as segmentation mask", image=self.icons['open_in_new'], button_labels=["ROI", "Intensity", "ROI \u00D7 Intensity", "Cancel"], geometry=(530, 200))
             buttons = window.get_buttons()
             buttons[0].configure(command=lambda:self.export_mask_callback(window, 0))
             buttons[1].configure(command=lambda:self.export_mask_callback(window, 1))
@@ -996,7 +934,7 @@ class Polarimetry(CTk.CTk):
             cfm.window.attributes("-topmost", False)
         else:
             window = ShowInfo(message=" Provide a Rho Composite figure\n to plot individual fits", image=self.icons["query_stats"], button_labels=["OK"])
-            window.get_buttons[0].configure(command=lambda:window.withdraw())
+            window.get_buttons()[0].configure(command=lambda:window.withdraw())
 
     def diskcone_display(self):
         if self.method.get() == "1PF" and hasattr(self, "CD"):
@@ -1099,7 +1037,7 @@ class Polarimetry(CTk.CTk):
                     slope = np.mod(2 * slope, 360) / 2
                     dist = np.sqrt(((np.asarray(roi.previous_point) - np.asarray(roi.start_point))**2).sum())
                     window = ShowInfo(message=" Angle is {:.2f} \u00b0 \n Distance is {} px".format(slope, int(dist)), image=self.icons["square"], button_labels = ["OK"])
-                    window.get_buttons[0].configure(command=lambda:window.withdraw())
+                    window.get_buttons()[0].configure(command=lambda:window.withdraw())
                     for line in roi.lines:
                         line.remove()
                     self.intensity_canvas.draw()
@@ -1109,8 +1047,8 @@ class Polarimetry(CTk.CTk):
         self.initialize_tables()
         self.clear_frame(self.variable_table_frame)
         self.variable_table_frame.configure(fg_color=self.left_frame.cget("fg_color"))
-        CTk.CTkLabel(master=self.variable_table_frame, text="\nVariables\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, padx=0, pady=0)
-        CTk.CTkLabel(master=self.variable_table_frame, text="      Min                   Max", text_color=text_color, font=CTk.CTkFont(weight="bold"), width=200).grid(row=1, column=0, padx=20, pady=(0, 10), sticky="e")
+        CTk.CTkLabel(master=self.variable_table_frame, text="\nVariables\n", font=CTk.CTkFont(size=16)).grid(row=0, column=0, padx=0, pady=0)
+        CTk.CTkLabel(master=self.variable_table_frame, text="      Min                         Max", text_color=text_color, font=CTk.CTkFont(weight="bold"), width=200).grid(row=1, column=0, padx=10, pady=(0, 10), sticky="e")
         self.variable_table_switch = CTk.CTkSwitch(master=self.variable_table_frame, text="", progress_color=orange[0], command=self.variable_table_switch_callback, onvalue="on", offvalue="off", width=50)
         self.variable_table_switch.grid(row=1, column=0, padx=(10, 40), sticky="w")
         if method in ["1PF", "4POLAR 2D"]:
@@ -1371,7 +1309,7 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_canvas.mpl_disconnect(self.__cid1)
                 self.thrsh_canvas.mpl_disconnect(self.__cid2)
                 self.thrsh_canvas.draw()
-                window = ShowInfo(message=" Add ROI?", image=self.icons["roi"], button_labels=["Yes", "No"])
+                window = ShowInfo(message=" Add ROI?", image=self.icons["roi"], button_labels=["Yes", "No"], fontsize=16)
                 buttons = window.get_buttons()
                 buttons[0].configure(command=lambda:self.yes_add_roi_callback(window, roi))
                 buttons[1].configure(command=lambda:self.no_add_roi_callback(window, roi))
@@ -1391,8 +1329,8 @@ class Polarimetry(CTk.CTk):
         self.thrsh_canvas.draw()
         self.represent_intensity()
         self.represent_thrsh()
-        if hasattr(self, "manager_window"):
-            self.roimanager(update=True)
+        if hasattr(self, "manager"):
+            self.manager.update_manager(self.datastack.rois)
 
     def no_add_roi_callback(self, window, roi):
         window.withdraw()
@@ -1410,7 +1348,7 @@ class Polarimetry(CTk.CTk):
                 mask = im_binarized / np.amax(im_binarized)
             else:
                 window = ShowInfo(message=f" The corresponding mask for {datastack.name} could not be found\n Continuing without mask...", image=self.icons["layers_clear"], buttons_labels=["OK"])
-                window.get_buttons[0].configure(command=lambda:window.withdraw())
+                window.get_buttons()[0].configure(command=lambda:window.withdraw())
             if hasattr(self, "mask"):
                 self.mask = mask
         return mask
@@ -1433,8 +1371,8 @@ class Polarimetry(CTk.CTk):
                     else:
                         self.indxlist = 0
                         self.open_file(self.filelist[0])
-                        window = ShowInfo(message=" End of list", image=self.icons["check_circle"], button_labels=["OK"])
-                        window.get_buttons[0].configure(command=lambda:window.withdraw())
+                        window = ShowInfo(message=" End of list", image=self.icons["check_circle"], button_labels=["OK"], fontsize=16)
+                        window.get_buttons()[0].configure(command=lambda:window.withdraw())
                         self.initialize()
                 self.analysis_button.configure(image=self.icons["play"])
             elif self.option.get().endswith("(auto)"):
@@ -1443,8 +1381,8 @@ class Polarimetry(CTk.CTk):
                     self.analyze_stack(self.datastack)
                 self.analysis_button.configure(image=self.icons["play"])
                 self.open_file(self.filelist[0])
-                window = ShowInfo(message=" End of list", image=self.icons["check_circle"], button_labels=["OK"])
-                window.get_buttons[0].configure(command=lambda:window.withdraw())
+                window = ShowInfo(message=" End of list", image=self.icons["check_circle"], button_labels=["OK"], fontsize=16)
+                window.get_buttons()[0].configure(command=lambda:window.withdraw())
                 self.initialize()
 
     def close_callback(self):
@@ -1745,6 +1683,7 @@ class Polarimetry(CTk.CTk):
                         ax_.set_ylabel(ylabel, fontsize=14)
                         ax_.set_xlim((1, self.datastack.nangle))
                         ax_.set_xticks(indx[::2], minor=True)
+                        ax_.set_title(title, fontsize=16)
                         secax = ax_.secondary_xaxis("top", functions=(indx2alpha, alpha2indx))
                         secax.set_xlabel(r"$\alpha$")
                     plt.subplots_adjust(hspace=0.9)
@@ -2024,8 +1963,8 @@ class Polarimetry(CTk.CTk):
                 stack_.values[self.order[it]] = ims_reg[it]
             return stack_
         else:
-            window = ShowInfo(message=" No registration", image=self.icons["blur_circular"], button_labels=["OK"])
-            window.get_buttons[0].configure(command=lambda:window.withdraw())
+            window = ShowInfo(message=" No registration", image=self.icons["blur_circular"], button_labels=["OK"], fontsize=16)
+            window.get_buttons()[0].configure(command=lambda:window.withdraw())
             self.method.set("1PF")
 
     def analyze_stack(self, datastack):
@@ -2340,27 +2279,50 @@ class ToolTip:
         if tw:
             tw.destroy()
 
-class ROIManager:
-    def __init__(self, master, rois, labels, widths=[]):
-        self.labels = labels
-        cmax = len(labels)
-        if sys.platform == "darwin":
-            font = ("Arial Rounded MT Bold", 16, "normal")
-            header_font = ("Arial Rounded MT Bold", 16, "bold")
-        elif sys.platform == "win32":
-            font = ("Arial Rounded MT", 16, "normal")
-            header_font = ("Arial Rounded MT", 16, "bold")
+class ROIManager(CTk.CTkToplevel):
+    labels = ["indx", "name", "group"]
+    widths = [40, 250, 90]
+    button_labels = ["Commit", "Save", "Load", "Delete", "Delete All"]
+    manager_size = lambda w, h: f"{w+40}x{h+84}"
+    cmax = len(labels)
+
+    def __init__(self, *args, rois=[], **kwargs):
+        super().__init__(*args, **kwargs)
+        self.attributes("-topmost", "true")
+        self.title("ROI Manager")
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
 
         cell_height = 20
-        self.height = lambda cell_h, rois_: 20 + (cell_h + 3) * (len(rois_) + 1)
-        widths += [70, 70]
-        self.width = sum(widths) + 2
+        self.sheet_height = lambda cell_h, rois_: 20 + (cell_h + 3) * (len(rois_) + 1)
+        widths = ROIManager.widths + [70, 70]
+        self.sheet_width = sum(widths) + 2
 
-        labels_ = labels + ["select", "delete"]
+        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f"+1200+200")
+
+        if sys.platform == "darwin":
+            font = ("Arial Rounded MT Bold", 14, "normal")
+            header_font = ("Arial Rounded MT Bold", 16, "bold")
+        elif sys.platform == "win32":
+            font = ("Arial Rounded MT", 14, "normal")
+            header_font = ("Arial Rounded MT", 16, "bold")
+
+        labels_ = ROIManager.labels + ["select", "delete"]
         labels_[0] = "ROI"
-        data = [[roi[label] for label in self.labels] for roi in rois]
-        self.sheet = tksheet.Sheet(master, data=data, headers=labels_, font=font, header_font=header_font, align="w", show_row_index=False, width=self.width, height=self.height(cell_height, rois), frame_bg=text_color, table_bg=gray[1], top_left_bg=gray[1], header_hidden_columns_expander_bg=gray[1], header_fg=text_color, header_bg=orange[0], header_grid_fg=gray[1], table_grid_fg=text_color, header_selected_cells_bg=orange[1], table_selected_cells_border_fg=orange[0], show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, enable_edit_cell_auto_resize=False, auto_resize_default_row_index=False, show_default_header_for_empty=False, empty_horizontal=0, empty_vertical=0, total_columns=cmax+2)
-        self.add_elements(cmax)
+        data = [[roi[label] for label in ROIManager.labels] for roi in rois]
+        self.sheet = tksheet.Sheet(self, data=data, headers=labels_, font=font, header_font=header_font, align="w", show_row_index=False, width=self.sheet_width, height=self.sheet_height(cell_height, rois), frame_bg=text_color, table_bg=gray[1], top_left_bg=gray[1], header_hidden_columns_expander_bg=gray[1], header_fg=text_color, header_bg=orange[0], header_grid_fg=gray[1], table_grid_fg=text_color, header_selected_cells_bg=orange[1], table_selected_cells_border_fg=orange[0], show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, enable_edit_cell_auto_resize=False, auto_resize_default_row_index=False, show_default_header_for_empty=False, empty_horizontal=0, empty_vertical=0, total_columns=ROIManager.cmax+2)
+        self.sheet.grid(row=0, column=0, sticky="nswe", padx=20, pady=(20, 0))
+        bottom_frame = CTk.CTkFrame(self)
+        bottom_frame.grid(row=1, column=0, sticky="nswe", padx=20, pady=(0, 20))
+        self.buttons = []
+        for _, label in enumerate(ROIManager.button_labels):
+            button = Button(bottom_frame, text=label, anchor="center", width=80)
+            self.buttons += [button]
+            button.grid(row=0, column=_, padx=10, pady=10, sticky="nswe")
+        self.buttons[0].configure(width=80, fg_color=green[0], hover_color=green[1])
+        self.buttons[-1].configure(fg_color=red[0], hover_color=red[1])
+        self.buttons[-2].configure(fg_color=red[0], hover_color=red[1])
+        self.add_elements(ROIManager.cmax)
         self.sheet.enable_bindings()
         self.sheet.disable_bindings(["rc_insert_column", "rc_delete_column", "rc_insert_row", "rc_delete_row", "hide_columns",  "row_height_resize","row_width_resize", "column_height_resize", "column_width_resize", "edit_header", "arrowkeys"])
         self.sheet.default_row_height(cell_height)
@@ -2371,11 +2333,6 @@ class ROIManager:
         self.sheet.align_columns(columns=[0, cmax-1], align="center")
         self.sheet.create_checkbox(r="all", c=cmax, checked=True, state="normal", redraw=False, check_function=None, text="")
         self.sheet.create_checkbox(r="all", c=cmax+1, checked=False, state="normal", redraw=False, check_function=None, text="")
-
-    def rois2sheet(self, rois):
-        for it, roi in enumerate(rois):
-            for jt, label in enumerate(self.labels):
-                self.sheet.set_cell_data(it, jt, value=roi[label])
         
     def delete(self, rois):
         vec = [_ for _, x in enumerate(self.sheet.get_column_data(c=-1)) if x == "True"]
@@ -2386,10 +2343,63 @@ class ROIManager:
                 roi["indx"] = _ + 1
             self.sheet.set_column_data(0, values=tuple(roi["indx"] for roi in rois), add_rows=False)
             vec = [_ for _, x in enumerate(self.sheet.get_column_data(c=-1)) if x == "True"]
+        self.sheet.set_options(height=self.sheet_height(20, rois))
+        x, y = self.winfo_x(), self.winfo_y()
+        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f"+{x}+{y}")
     
     def delete_all(self):
         for _ in range(self.sheet.get_total_rows()):
             self.sheet.delete_row()
+        self.sheet.set_options(height=self.sheet_height(20, []))
+        x, y = self.winfo_x(), self.winfo_y()
+        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, [])) + f"+{x}+{y}")
+
+    def get_buttons(self):
+        return self.buttons
+
+    def load(self, initialdir="/"):
+        self.delete_all()
+        filetypes = [("PyROI files", "*.pyroi")]
+        filename = fd.askopenfilename(title="Select a PyROI file", initialdir=initialdir, filetypes=filetypes)
+        with open(filename, "rb") as f:
+            rois = pickle.load(f)
+        self.sheet.set_options(height=self.sheet_height(20, rois))
+        x, y = self.winfo_x(), self.winfo_y()
+        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f"+{x}+{y}")
+        self.sheet.insert_rows(rows=len(rois))
+        self.add_elements(len(ROIManager.labels))
+        self.rois2sheet(rois)
+        return rois
+
+    def rois2sheet(self, rois):
+        for it, roi in enumerate(rois):
+            for jt, label in enumerate(self.labels):
+                self.sheet.set_cell_data(it, jt, value=roi[label])
+
+    def save(self, rois=[], filename="ROIs"):
+        if any(rois):
+            rois = self.update_sheet(rois)
+            with open(filename + ".pyroi", "wb") as f:
+                pickle.dump(rois, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def update_manager(self, rois):
+        self.sheet.set_options(height=self.sheet_height(20, rois))
+        x, y = self.winfo_x(), self.winfo_y()
+        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f"+{x}+{y}")
+        roi = rois[-1]
+        self.sheet.insert_row([roi[label] for label in ROIManager.labels])
+        self.sheet.create_checkbox(c=ROIManager.cmax, r=len(rois)-1, checked = True)
+        self.sheet.create_checkbox(c=ROIManager.cmax+1, r=len(rois)-1, checked = False)
+
+    def update_sheet(self, rois=[]):
+        if any(rois):
+            data = self.sheet.get_sheet_data()
+            for _, roi in enumerate(rois):
+                roi["name"] = data[_][1]
+                roi["group"] = data[_][2]
+                roi["select"] = data[_][-2]
+            return rois
+        return []
 
 class Button(CTk.CTkButton):
     def __init__(self, *args, text=None, image=None, width=button_size[0], height=button_size[1], anchor="w", **kwargs):
@@ -2519,12 +2529,12 @@ class SpinBox(CTk.CTkFrame):
         self.entry.insert(0, str(int(value)))
 
 class ShowInfo(CTk.CTkToplevel):
-    def __init__(self, *args, message="", image=None, button_labels=[], geometry=(300, 150), **kwargs):
+    def __init__(self, *args, message="", image=None, button_labels=[], geometry=(300, 150), fontsize=13, **kwargs):
         super().__init__(*args, **kwargs)
         self.attributes("-topmost", "true")
         self.title("Polarimetry Analysis")
         self.geometry(geometry_info(geometry))
-        CTk.CTkLabel(self, text=message, image=image, compound="left", width=250, justify=tk.LEFT).grid(row=0, column=0, padx=30, pady=20)
+        CTk.CTkLabel(self, text=message, image=image, compound="left", width=250, justify=tk.LEFT, font=CTk.CTkFont(size=fontsize)).grid(row=0, column=0, padx=30, pady=20)
         self.buttons = []
         if button_labels:
             if len(button_labels) >= 2:
@@ -2533,10 +2543,10 @@ class ShowInfo(CTk.CTkToplevel):
                 master, row_ = banner, 0
             else:
                 master, row_ = self, 1
-            for it, label in enumerate(button_labels):
+            for _, label in enumerate(button_labels):
                 button = Button(master, text=label, width=80, anchor="center")
                 self.buttons += [button]
-                button.grid(row=row_, column=it, padx=20, pady=20)
+                button.grid(row=row_, column=_, padx=20, pady=20)
     
     def get_buttons(self):
         return self.buttons
