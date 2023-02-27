@@ -65,14 +65,14 @@ gray = ("#7F7F7F", "#A6A6A6")
 geometry_info = lambda dim: f"{dim[0]}x{dim[1]}+400+300"
 
 class Polarimetry(CTk.CTk):
-    __version__ = "2.4.1"
-    status = ""
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023"}
+    __version__ = "2.4.2"
+    
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "February 27, 2023"}
 
-    if status == "beta":
-        __version_date__ = date.today().strftime("%B %d, %Y")
-    else:
+    try:
         __version_date__ = dict_versions[__version__]
+    except:
+        __version_date__ = date.today().strftime("%B %d, %Y")    
 
     left_frame_width = 180
     right_frame_width = 850
@@ -301,7 +301,7 @@ class Polarimetry(CTk.CTk):
         ToolTip.createToolTip(button, "Zoom into the region of interest\nthen click using the crosshair")
         button.grid(row=5, column=0, columnspan=2, padx=20, pady=20)
         labels = [" pixels per stick (horizontal)", "pixels per stick (vertical)"]
-        self.pixelsperstick_spinboxes = [Spinbox(master=preferences, command=self.pixelsperstick_spinbox_callback) for it in range(2)]
+        self.pixelsperstick_spinboxes = [SpinBox(master=preferences, command=self.pixelsperstick_spinbox_callback) for it in range(2)]
         for it in range(2):
             self.pixelsperstick_spinboxes[it].grid(row=it+7, column=0, padx=(20, 0), pady=(0, 20))
             label = CTk.CTkLabel(master=preferences, text=labels[it], anchor="w")
@@ -359,10 +359,13 @@ class Polarimetry(CTk.CTk):
         self.polar_dropdown.grid(row=4, column=0, pady=10)
         ToolTip.createToolTip(self.polar_dropdown, "4POLAR: Select the distribution of polarizations (0,45,90,135) among quadrants clockwise\n Upper Left (UL), Upper Right (UR), Lower Right (LR), Lower Left (LL)")
         labels = ["Bin width", "Bin height"]
-        self.bin = [tk.IntVar(value=1), tk.IntVar(value=1)]
+        self.bin_spinboxes = [SpinBox(adv["Binning"], command=lambda:self.itot_callback(event=1)) for _ in range(2)]
         for it in range(2):
-            entry = Entry(adv["Binning"], text="\n" + labels[it] + "\n", text_box=1, textvariable=self.bin[it], row=it+1, column=0)
-            entry.bind("<Return>", command=self.itot_callback)
+            self.bin_spinboxes[it].bind("<Return>", command=self.itot_callback)
+            self.bin_spinboxes[it].grid(row=it+1, column=0, padx=(60, 20), pady=(0, 20), sticky="w")
+            label = CTk.CTkLabel(master=adv["Binning"], text="\n" + labels[it] + "\n")
+            label.grid(row=it+1, column=0, padx=(0, 60), pady=(0, 20), sticky="e")
+            ToolTip.createToolTip(label, "Height and width of the bin used for data binning")
         labels = ["Stick (deg)", "Figure (deg)"]
         self.rotation = [tk.IntVar(value=0), tk.IntVar(value=0)]
         entries = [Entry(adv["Rotation"], text="\n" + label + "\n", text_box=0, textvariable=self.rotation[it], row=it+1, column=0) for it, label in enumerate(labels)]
@@ -1561,7 +1564,7 @@ class Polarimetry(CTk.CTk):
     def compute_itot(self, stack):
         dark = float(self.dark.get())
         sumcor = np.sum((stack.values - dark) * (stack.values >= dark), axis=0)
-        bin_shape = [self.bin[_].get() for _ in range(2)]
+        bin_shape = [self.bin_spinboxes[_].get() for _ in range(2)]
         if sum(bin_shape) != 2:
             stack.itot = convolve2d(sumcor, np.ones(bin_shape), mode="same") / (bin_shape[0] * bin_shape[1])
         else:
@@ -1629,7 +1632,7 @@ class Polarimetry(CTk.CTk):
                 ax = plt.subplot(projection="polar")
                 if var.type_histo == "polar1":
                     if var.name == "Rho":
-                        data_vals = np.mod(2 * (data_vals + int(self.rotation[1].get())), 360) / 2
+                        data_vals = np.mod(2 * (data_vals + float(self.rotation[1].get())), 360) / 2
                     meandata = self.circularmean(data_vals)
                     std = np.std(self.wrapto180(2 * (data_vals - meandata)) / 2)
                 elif var.type_histo == "polar2":
@@ -1677,8 +1680,8 @@ class Polarimetry(CTk.CTk):
                 if roi["select"]:
                     vertices = roi["vertices"]
                     coord = roi["label"][0], roi["label"][1]
-                    if (int(self.rotation[1].get()) != 0) and rotation:
-                        theta = np.deg2rad(int(self.rotation[1].get()))
+                    if (float(self.rotation[1].get()) != 0) and rotation:
+                        theta = np.deg2rad(float(self.rotation[1].get()))
                         x0, y0 = datastack.width / 2, datastack.height / 2
                         coord = x0 + (coord[0] - x0) * np.cos(theta) + (coord[1] - y0) * np.sin(theta), y0 - (coord[0] - x0) * np.sin(theta) + (coord[1] - y0) * np.cos(theta)
                         vertices = np.asarray([x0 + (vertices[0] - x0) * np.cos(theta) + (vertices[1] - y0) * np.sin(theta), y0 - (vertices[0] - x0) * np.sin(theta) + (vertices[1] - y0) * np.cos(theta)])
@@ -1722,7 +1725,7 @@ class Polarimetry(CTk.CTk):
                     signal = self.datastack.field[:, y, x]
                     signal_fit = self.datastack.field_fit[:, y, x]
                     indx = np.arange(1, self.stack.nangle + 1)
-                    rho = np.mod(2 * (self.datastack.vars[0].values[y, x] + int(self.rotation[1].get())), 360) / 2
+                    rho = np.mod(2 * (self.datastack.vars[0].values[y, x] + float(self.rotation[1].get())), 360) / 2
                     title = self.datastack.vars[0].latex + " = " + "{:.2f}".format(rho) + ", "
                     for var in self.datastack.vars:
                         if var.name != "Rho":
@@ -1761,14 +1764,14 @@ class Polarimetry(CTk.CTk):
         X, Y = X[np.isfinite(data_)], Y[np.isfinite(data_)]
         data_, rho_ = data_[np.isfinite(data_)], rho_[np.isfinite(data_)]
         if var.name == "Rho":
-            stick_colors = np.mod(2 * (data_ + int(self.rotation[1].get())), 360) / 2
+            stick_colors = np.mod(2 * (data_ + float(self.rotation[1].get())), 360) / 2
         else:
             stick_colors = data_
         cosd = np.cos(np.deg2rad(rho_))
         sind = np.sin(np.deg2rad(rho_))
         vertices = np.array([[X + l * cosd + w * sind, X - l * cosd + w * sind, X - l * cosd - w * sind, X + l * cosd - w * sind], [Y - l * sind + w * cosd, Y + l * sind + w * cosd, Y + l * sind - w * cosd, Y - l * sind - w * cosd]])
-        if int(self.rotation[1].get()) != 0:
-            theta = np.deg2rad(int(self.rotation[1].get()))
+        if float(self.rotation[1].get()) != 0:
+            theta = np.deg2rad(float(self.rotation[1].get()))
             x0, y0 = self.stack.width / 2, self.stack.height / 2
             vertices = np.asarray([x0 + (vertices[0] - x0) * np.cos(theta) + (vertices[1] - y0) * np.sin(theta), y0 - (vertices[0] - x0) * np.sin(theta) + (vertices[1] - y0) * np.cos(theta)])
         vertices = np.swapaxes(vertices, 0, 2)
@@ -1808,9 +1811,9 @@ class Polarimetry(CTk.CTk):
                 for contour in self.edge_contours:
                     angles = np.mod(2 * self.angle_edge(contour)[0], 360) / 2
                     cmap = cc.m_colorwheel if self.colorblind_checkbox.get() else "hsv"
-                    if self.rotation[1].get() != 0:
-                        angles = np.mod(2 * (angles + int(self.rotation[1].get())), 360) / 2
-                        theta = np.deg2rad(int(self.rotation[1].get()))
+                    if float(self.rotation[1].get()) != 0:
+                        angles = np.mod(2 * (angles + float(self.rotation[1].get())), 360) / 2
+                        theta = np.deg2rad(float(self.rotation[1].get()))
                         x0, y0 = self.stack.width / 2, self.stack.height / 2
                         contour = np.asarray([x0 + (contour[:, 0] - x0) * np.cos(theta) + (contour[:, 1] - y0) * np.sin(theta), y0 - (contour[:, 0] - x0) * np.sin(theta) + (contour[:, 1] - y0) * np.cos(theta)])
                         contour = np.swapaxes(contour, 0, 1)
@@ -1962,7 +1965,7 @@ class Polarimetry(CTk.CTk):
             title += ["4POLAR angles"]
             results += [self.polar_dropdown.get()]
         title += ["dark", "offset", "polarization", "bin width", "bin height"]
-        results += [float(self.dark.get()), self.offset_angle.get(), self.polar_dir.get(), self.bin[0].get(), self.bin[1].get()]
+        results += [float(self.dark.get()), self.offset_angle.get(), self.polar_dir.get(), self.bin_spinboxes[0].get(), self.bin_spinboxes[1].get()]
         return results, title
 
     def save_mat(self, datastack, roi_map, roi=[]):
@@ -2036,7 +2039,7 @@ class Polarimetry(CTk.CTk):
             field = np.sqrt(field)
         elif self.method.get().startswith("4POLAR"):
             field[[1, 2]] = field[[2, 1]]
-        bin_shape = np.asarray([self.bin[_].get() for _ in range(2)], dtype=np.uint8)
+        bin_shape = np.asarray([self.bin_spinboxes[_].get() for _ in range(2)], dtype=np.uint8)
         if sum(bin_shape) != 2:
             bin = np.ones(bin_shape)
             for _ in range(self.stack.nangle):
@@ -2458,7 +2461,7 @@ class DropDown(CTk.CTkFrame):
     def get_icon(self):
         return self.icon
 
-class Spinbox(CTk.CTkFrame):
+class SpinBox(CTk.CTkFrame):
     def __init__(self, *args, width=40, height=15, step_size=1, from_=1, to_=20, command=None, **kwargs):
         super().__init__(*args, width=width, height=height, **kwargs)
         updown_size = 8
@@ -2497,6 +2500,9 @@ class Spinbox(CTk.CTkFrame):
                 self.command()
         except ValueError:
             return
+        
+    def bind(self, event, command):
+        self.entry.bind(event, command)
 
     def get(self):
         try:
