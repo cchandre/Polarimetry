@@ -631,7 +631,7 @@ class Polarimetry(CTk.CTk):
         def commit(manager: ROIManager):
             if hasattr(self, "datastack"):
                 if any(self.datastack.rois):
-                    self.datastack.rois = manager.update_sheet(self.datastack.rois)
+                    self.datastack.rois = manager.update_rois(self.datastack.rois)
                     self.represent_intensity()
                     self.represent_thrsh()
 
@@ -811,9 +811,7 @@ class Polarimetry(CTk.CTk):
                 self.ylim[1].set(self.datastack.height)
             DoubleEntry(info_window, text="xlim", variables=self.xlim, row=1, state="normal")
             DoubleEntry(info_window, text="ylim", variables=self.ylim, row=2, state="normal")
-            button = Button(info_window, text="OK", anchor="center", command=lambda:self.crop_figures(info_window))
-            button.configure(width=80, height=button_size[1])
-            button.grid(row=3, column=0, pady=20)
+            Button(info_window, text="OK", anchor="center", command=lambda:self.crop_figures(info_window), width=80, height=button_size[1]).grid(row=3, column=0, pady=20)
 
     def crop_figures(self, window):
         figs = list(map(plt.figure, plt.get_fignums()))
@@ -938,25 +936,7 @@ class Polarimetry(CTk.CTk):
 
     def diskcone_display(self):
         if self.method.get() == "1PF" and hasattr(self, "CD"):
-            fig, axs = plt.subplots(1, 2, figsize=(13, 8))
-            fig.canvas.manager.set_window_title("Disk Cone: " + self.CD.name)
-            fig.patch.set_facecolor("w")
-            cmap = cc.m_colorwheel if self.colorblind_checkbox.get() else "hsv"
-            h = axs[0].imshow(self.CD.RhoPsi[:, :, 0], cmap=cmap, interpolation="nearest", extent=[-1, 1, -1, 1], vmin=0, vmax=180)
-            axs[0].set_title("Rho Test")
-            ax_divider = make_axes_locatable(axs[0])
-            cax = ax_divider.append_axes("right", size="7%", pad="2%")
-            fig.colorbar(h, cax=cax)
-            cmap = "viridis" if self.colorblind_checkbox.get() else "jet"
-            h = axs[1].imshow(self.CD.RhoPsi[:, :, 1], cmap=cmap, interpolation="nearest", extent=[-1, 1, -1, 1], vmin=0, vmax=180)
-            axs[1].set_title("Psi Test")
-            ax_divider = make_axes_locatable(axs[1])
-            cax = ax_divider.append_axes("right", size="7%", pad="2%")
-            fig.colorbar(h, cax=cax)
-            plt.subplots_adjust(wspace=0.4)
-            for ax in axs:
-                ax.set_xlabel("$B_2$")
-                ax.set_ylabel("$A_2$")
+            self.CD.display(colorblind=self.colorblind_checkbox.get())
 
     def variable_table_switch_callback(self):
         state = "normal" if self.variable_table_switch.get() == "on" else "disabled"
@@ -2187,6 +2167,27 @@ class Calibration():
         self.name = vars[0]
         self.offset_default = vars[1]
 
+    def display(self, colorblind=False):
+        fig, axs = plt.subplots(1, 2, figsize=(13, 8))
+        fig.canvas.manager.set_window_title("Disk Cone: " + self.name)
+        fig.patch.set_facecolor("w")
+        cmap = cc.m_colorwheel if colorblind else "hsv"
+        h = axs[0].imshow(self.RhoPsi[:, :, 0], cmap=cmap, interpolation="nearest", extent=[-1, 1, -1, 1], vmin=0, vmax=180)
+        axs[0].set_title("Rho Test")
+        ax_divider = make_axes_locatable(axs[0])
+        cax = ax_divider.append_axes("right", size="7%", pad="2%")
+        fig.colorbar(h, cax=cax)
+        cmap = "viridis" if colorblind else "jet"
+        h = axs[1].imshow(self.RhoPsi[:, :, 1], cmap=cmap, interpolation="nearest", extent=[-1, 1, -1, 1], vmin=0, vmax=180)
+        axs[1].set_title("Psi Test")
+        ax_divider = make_axes_locatable(axs[1])
+        cax = ax_divider.append_axes("right", size="7%", pad="2%")
+        fig.colorbar(h, cax=cax)
+        plt.subplots_adjust(wspace=0.4)
+        for ax in axs:
+            ax.set_xlabel("$B_2$")
+            ax.set_ylabel("$A_2$")
+
     def list(self, method):
         if method == "1PF":
             return [key for key in Calibration.dict_1pf.keys()]
@@ -2378,7 +2379,7 @@ class ROIManager(CTk.CTkToplevel):
 
     def save(self, rois=[], filename="ROIs"):
         if any(rois):
-            rois = self.update_sheet(rois)
+            rois = self.update_rois(rois)
             with open(filename + ".pyroi", "wb") as f:
                 pickle.dump(rois, f, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -2391,7 +2392,7 @@ class ROIManager(CTk.CTkToplevel):
         self.sheet.create_checkbox(c=ROIManager.cmax, r=len(rois)-1, checked = True)
         self.sheet.create_checkbox(c=ROIManager.cmax+1, r=len(rois)-1, checked = False)
 
-    def update_sheet(self, rois=[]):
+    def update_rois(self, rois=[]):
         if any(rois):
             data = self.sheet.get_sheet_data()
             for _, roi in enumerate(rois):
