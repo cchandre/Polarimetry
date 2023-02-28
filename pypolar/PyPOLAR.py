@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.patches import Polygon
 from matplotlib.collections import PolyCollection
-from matplotlib.backend_bases import FigureCanvasBase
+from matplotlib.backend_bases import FigureCanvasBase, MouseEvent
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import colorcet as cc
@@ -543,7 +543,7 @@ class Polarimetry(CTk.CTk):
         for _, param in enumerate(params):
             Entry(adv["Layer"], text=param, textvariable=self.layer_params[_], row=_+1)
 
-    def compute_edges(self, event=[]) -> None:
+    def compute_edges(self, event=None) -> None:
         if self.edge_method == "compute":
             field = self.stack.intensity.copy()
             thrsh = float(self.ilow.get())
@@ -936,7 +936,7 @@ class Polarimetry(CTk.CTk):
             elif method == "individual fit":
                 self.__cid2 = canvas.mpl_connect("button_press_event", lambda event: self.individual_fit_button_press_callback(event, hlines, ax, canvas))
 
-    def click_motion_notify_callback(self, event, hlines:List[mpl.lines.Line2D], ax:plt.Axes, canvas:FigureCanvasTkAgg) -> None:
+    def click_motion_notify_callback(self, event:MouseEvent, hlines:List[mpl.lines.Line2D], ax:plt.Axes, canvas:FigureCanvasTkAgg) -> None:
         if event.inaxes == ax:
             x, y = event.xdata, event.ydata
             xlim, ylim = ax.get_xlim(), ax.get_ylim()
@@ -945,7 +945,7 @@ class Polarimetry(CTk.CTk):
                 hlines[1].set_data(xlim, [y, y])
                 canvas.draw()
 
-    def click_background_button_press_callback(self, event, hlines:List[mpl.lines.Line2D], ax:plt.Axes, canvas:FigureCanvasTkAgg) -> None:
+    def click_background_button_press_callback(self, event:MouseEvent, hlines:List[mpl.lines.Line2D], ax:plt.Axes, canvas:FigureCanvasTkAgg) -> None:
         if event.inaxes == ax:
             x, y = event.xdata, event.ydata
             if event.button == 1:
@@ -966,14 +966,14 @@ class Polarimetry(CTk.CTk):
             self.__cid1 = self.intensity_canvas.mpl_connect("motion_notify_event", lambda event: self.compute_angle_motion_notify_callback(event, hroi))
             self.__cid2 = self.intensity_canvas.mpl_connect("button_press_event", lambda event: self.compute_angle_button_press_callback(event, hroi))
 
-    def compute_angle_motion_notify_callback(self, event, roi:ROI) -> None:
+    def compute_angle_motion_notify_callback(self, event:MouseEvent, roi:ROI) -> None:
         if event.inaxes == self.intensity_axis:
             x, y = event.xdata, event.ydata
             if ((event.button is None or event.button == 1) and roi.lines):
                 roi.lines[-1].set_data([roi.previous_point[0], x], [roi.previous_point[1], y])
                 self.intensity_canvas.draw()
 
-    def compute_angle_button_press_callback(self, event, roi:ROI) -> None:
+    def compute_angle_button_press_callback(self, event:MouseEvent, roi:ROI) -> None:
         if event.inaxes == self.intensity_axis:
             x, y = event.xdata, event.ydata
             if event.button == 1:
@@ -1229,7 +1229,7 @@ class Polarimetry(CTk.CTk):
             self.__cid1 = self.thrsh_canvas.mpl_connect("motion_notify_event", lambda event: self.add_roi_motion_notify_callback(event, hroi))
             self.__cid2 = self.thrsh_canvas.mpl_connect("button_press_event", lambda event: self.add_roi_button_press_callback(event, hroi))
 
-    def add_roi_motion_notify_callback(self, event, roi:ROI) -> None:
+    def add_roi_motion_notify_callback(self, event:MouseEvent, roi:ROI) -> None:
         if event.inaxes == self.thrsh_axis:
             x, y = event.xdata, event.ydata
             if (event.button is None or event.button == 1) and roi.lines:
@@ -1243,7 +1243,7 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_axis.add_line(roi.lines[-1])
                 self.thrsh_canvas.draw()
 
-    def add_roi_button_press_callback(self, event, roi:ROI) -> None:
+    def add_roi_button_press_callback(self, event:MouseEvent, roi:ROI) -> None:
         if event.inaxes == self.thrsh_axis:
             x, y = event.xdata, event.ydata
             if (event.button == 1 or event.button == 3) and not event.dblclick:
@@ -1550,7 +1550,7 @@ class Polarimetry(CTk.CTk):
             if not self.show_table[0].get():
                 plt.close(fig)
 
-    def individual_fit_button_press_callback(self, event, hlines:mpl.lines.Line2D, ax:plt.Axes, canvas:FigureCanvasBase) -> None:
+    def individual_fit_button_press_callback(self, event:MouseEvent, hlines:mpl.lines.Line2D, ax:plt.Axes, canvas:FigureCanvasBase) -> None:
         if event.inaxes == ax:
             x, y = event.xdata, event.ydata
             if event.button == 1:
