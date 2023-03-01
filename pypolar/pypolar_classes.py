@@ -17,7 +17,7 @@ from scipy.io import loadmat
 import colorcet as cc
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
-from typing import Callable, List, Tuple
+from typing import Callable, List, Tuple, Union
 
 button_size = (160, 40)
 orange = ("#FF7F4F", "#ffb295")
@@ -279,9 +279,9 @@ class ToolTip:
     @staticmethod
     def createToolTip(widget, text:str) -> None:
         tooltip = ToolTip(widget)
-        def enter(event):
+        def enter(event:tk.Event):
             tooltip.showtip(text)
-        def leave(event):
+        def leave(event:tk.Event):
             tooltip.hidetip()
         widget.bind('<Enter>', enter)
         widget.bind('<Leave>', leave)
@@ -437,47 +437,42 @@ class ROIManager(CTk.CTkToplevel):
         return []
 
 class Button(CTk.CTkButton):
-    def __init__(self, master, text=None, image:CTk.CTkImage=None, width:int=button_size[0], height:int=button_size[1], anchor:str="w", **kwargs) -> None:
+    def __init__(self, master, text:str=None, image:CTk.CTkImage=None, width:int=button_size[0], height:int=button_size[1], anchor:str="w", **kwargs) -> None:
         super().__init__(master, text=text, image=image, width=width, height=height, anchor=anchor, compound=tk.LEFT, **kwargs)
         if text is None:
             self.configure(width=height)
+
+    def bind(self, sequence=None, command=None, add=True):
+        if not (add == "+" or add is True):
+            raise ValueError("'add' argument can only be '+' or True to preserve internal callbacks")
+        self._canvas.bind(sequence, command, add=True)
+        if self._text_label:
+            self._text_label.bind(sequence, command, add=True)
+        if self._image_label:
+            self._image_label.bind(sequence, command, add=True)
 
 class CheckBox(CTk.CTkCheckBox):
     def __init__(self, master, text:str=None, command:Callable=None, **kwargs) -> None:
         super().__init__(master, text=text, command=command, onvalue=True, offvalue=False, width=30, **kwargs)
 
 class Entry(CTk.CTkFrame):
-    def __init__(self, master, text:str=None, text_box:str=None, textvariable:tk.StringVar=None, state:str="normal", row:int=0, column:int=0, **kwargs) -> None:
+    def __init__(self, master, text:str=None, textvariable:tk.StringVar=None, state:str="normal", row:int=0, column:int=0, padx:Union[int, Tuple[int, int]]=(10, 30), pady:Union[int, Tuple[int, int]]=5, fg_color:str=gray[0], **kwargs) -> None:
         super().__init__(master, **kwargs)
-        self.configure(fg_color=gray[0])
+        self.configure(fg_color=fg_color)
         self.grid(row=row, column=column, sticky="e")
-        CTk.CTkLabel(self, text=text).grid(row=0, column=0, padx=(20, 10))
-        self.entry = CTk.CTkEntry(self, placeholder_text=text_box, textvariable=textvariable, width=50, state=state)
-        self.entry.grid(row=0, column=1, padx=(10, 30), pady=5)
+        if text is not None:
+            CTk.CTkLabel(self, text=text).grid(row=0, column=0, padx=(20, 10))
+        self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=50, state=state)
+        self.entry.grid(row=0, column=1, padx=padx, pady=pady)
 
     def get(self) -> int:
         return int(self.entry.get())
         
-    def state(self, state:str) -> None:
+    def set_state(self, state:str) -> None:
         self.entry.configure(state=state)
 
     def bind(self, *args, **kwargs):
         return self.entry.bind(*args, **kwargs)
-    
-class DoubleEntry(CTk.CTkFrame):
-    def __init__(self, master, text:str=None, variables:Tuple[tk.StringVar, tk.StringVar]=(None, None), row:int=0, column:int=0, state:str="disabled", **kwargs) -> None:
-        super().__init__(master, **kwargs)
-        self.configure(fg_color=gray[0])
-        self.grid(row=row, column=column, sticky="e")
-        CTk.CTkLabel(self, text=text).grid(row=0, column=0, padx=20)
-        self.entries = [CTk.CTkEntry(self, textvariable=variables[_], width=50) for _ in range(2)]
-        for _, entry in enumerate(self.entries):
-            entry.grid(row=0, column=_+1, padx=20, pady=10)
-            entry.configure(state=state)
-        
-    def state(self, state:str) -> None:
-        for entry in self.entries:
-            entry.configure(state=state)
 
 class DropDown(CTk.CTkFrame):
     def __init__(self, master, values:List[str]=[], image:CTk.CTkImage=None, command:Callable=None, variable:tk.StringVar=None, state:str="normal", **kwargs):
@@ -503,19 +498,18 @@ class DropDown(CTk.CTkFrame):
         return self.icon
 
 class SpinBox(CTk.CTkFrame):
-    def __init__(self, master, width:int=40, height:int=15, step_size:int=1, from_:int=1, to_:int=20, command:Callable=None, **kwargs) -> None:
-        super().__init__(master, width=width, height=height, **kwargs)
-        updown_size = 8
-        self.step_size = step_size
-        self.from_, self.to_ = from_, to_
+    def __init__(self, master, from_:int=1, to_:int=20, step_size:int=1, command:Callable=None, **kwargs) -> None:
+        super().__init__(master, **kwargs)
+        width, updown_size = 40, 8
+        self.from_, self.to_, self.step_size = from_, to_, step_size
         self.command = command
         self.configure(fg_color=gray[1]) 
         self.grid_columnconfigure((0, 2), weight=0)
         self.grid_columnconfigure(1, weight=1)
         self.subtract_button = CTk.CTkButton(self, text=u"\u25BC", width=updown_size, height=updown_size, command=self.subtract_button_callback)
         self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
-        self.entry = CTk.CTkEntry(self, width=width-(2*updown_size), height=updown_size, border_width=0)
-        self.entry.grid(row=0, column=1, columnspan=1, padx=3, pady=3, sticky="ew")
+        self.entry = CTk.CTkEntry(self, width=width-(2*updown_size), height=updown_size, border_width=0, justify="center")
+        self.entry.grid(row=0, column=1, columnspan=1, padx=0, pady=0, sticky="ew")
         self.add_button = CTk.CTkButton(self, text=u"\u25B2", width=updown_size, height=updown_size, command=self.add_button_callback)
         self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
         self.entry.insert(0, "1")
@@ -536,7 +530,7 @@ class SpinBox(CTk.CTkFrame):
         if self.command is not None:
             self.command()
         
-    def bind(self, event, command:Callable) -> None:
+    def bind(self, event:tk.Event, command:Callable) -> None:
         self.entry.bind(event, command)
 
     def get(self) -> int:
