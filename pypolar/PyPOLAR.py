@@ -60,7 +60,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
     __version__ = "2.4.2"
 
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "February 27, 2023"}
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023"}
 
     try:
         __version_date__ = dict_versions[__version__]
@@ -389,7 +389,7 @@ class Polarimetry(CTk.CTk):
         self.tabview.set("Intensity")
         self.startup()
 
-    def startup(self):
+    def startup(self) -> None:
         info = " (1) Select a polarimetry method\n\n (2) Download a file or a folder\n        or a previous PyPOLAR analysis\n\n (3) Select a method of analysis\n\n (4) Select one or several regions of interest\n\n (5) Click on Analysis"
         info_window = CTk.CTkToplevel(self)
         info_window.attributes("-topmost", "true")
@@ -424,7 +424,7 @@ class Polarimetry(CTk.CTk):
         self.order = self.dict_polar["UL90-UR0-LR45-LL135"]
         self.thrsh_colormap = "hot"
 
-    def initialize_slider(self):
+    def initialize_slider(self) -> None:
         if hasattr(self, "stack"):
             self.stack_slider.configure(to=self.stack.nangle, number_of_steps=self.stack.nangle)
             self.ilow.set(self.stack.display.format(np.amin(self.datastack.intensity)))
@@ -434,12 +434,12 @@ class Polarimetry(CTk.CTk):
             self.stack_slider.set(0)
             self.stack_slider_label.configure(text="T")
 
-    def initialize_noise(self):
+    def initialize_noise(self) -> None:
         vals = [1, 3, 3, 0]
         for val, _ in zip(vals, self.noise):
             _.set(str(val))
 
-    def initialize(self):
+    def initialize(self) -> None:
         self.initialize_slider()
         self.initialize_noise()
         if hasattr(self, "datastack"):
@@ -447,7 +447,7 @@ class Polarimetry(CTk.CTk):
         self.represent_intensity()
         self.represent_thrsh()
 
-    def initialize_tables(self):
+    def initialize_tables(self) -> None:
         for show, save in zip(self.show_table, self.save_table):
             show.deselect()
             save.deselect()
@@ -457,35 +457,38 @@ class Polarimetry(CTk.CTk):
         for ext in self.extension_table:
             ext.deselect()
 
-    def click_save_output(self):
+    def click_save_output(self) -> None:
         vec = [val.get() for val in self.save_table]
         if any(vec) == 1:
             self.extension_table[1].select()
         else:
             self.extension_table[1].deselect()
 
-    def on_closing(self):
+    def on_closing(self) -> None:
         plt.close("all")
-        super().destroy()
+        try:
+            self.destroy()
+        except TclError:
+            pass    
 
-    def clear_frame(self, frame:CTk.CTkFrame):
+    def clear_frame(self, frame:CTk.CTkFrame) -> None:
         for widget in frame.winfo_children():
             widget.destroy()
         frame.pack_forget()
 
-    def openweb(self, url:str):
+    def openweb(self, url:str) -> None:
         webbrowser.open(url)
 
-    def send_email(self):
+    def send_email(self) -> None:
         webbrowser.open("mailto:?to=" + Polarimetry.email + "&subject=[Polarimetry Analysis] question", new=1)
 
-    def on_click_tab(self):
+    def on_click_tab(self) -> None:
         if self.tabview.get() != "About":
             self.tabview.set("About")
         else:
             self.tabview.set("Intensity")
 
-    def edge_detection_callback(self):
+    def edge_detection_callback(self) -> None:
         if self.edge_detection_switch.get() == "on":
             window = ShowInfo(message=" Mask for edge detection", image=self.icons["multiline_chart"], button_labels=["Download", "Compute", "Cancel"], geometry=(370, 140), fontsize=16)
             buttons = window.get_buttons()
@@ -894,13 +897,13 @@ class Polarimetry(CTk.CTk):
 
     def show_individual_fit_callback(self) -> None:
         figs = list(map(plt.figure, plt.get_fignums()))
-        fig_ = []
+        fig_ = None
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
-            if (fig.type == "Composite" and fig.var == "Rho") and (not self.method.get().endswith("4POLAR")):
+            if fig.type == "Composite" and fig.var == "Rho" and (not self.method.get().endswith("4POLAR")) and (self.datastack.name in fs):
                 fig_ = fig
                 break
-        if fig_:
+        if fig_ is not None:
             plt.figure(fig_)
             cfm = plt.get_current_fig_manager()
             cfm.window.attributes("-topmost", True)

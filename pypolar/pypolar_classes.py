@@ -17,7 +17,7 @@ from scipy.io import loadmat
 import colorcet as cc
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
-from typing import List, Tuple
+from typing import Callable, List, Tuple
 
 button_size = (160, 40)
 orange = ("#FF7F4F", "#ffb295")
@@ -263,7 +263,7 @@ class NToolbar2Tk(NavigationToolbar2Tk):
         self._message_label = tk.Label(master=self, font=self._label_font, textvariable=self.message, justify=tk.RIGHT, fg=text_color)
         self._message_label.pack(side=tk.RIGHT)
 
-    def _Button(self, text:str, image_file:CTk.CTkImage, toggle, command):
+    def _Button(self, text:str, image_file:CTk.CTkImage, toggle, command:Callable):
         b = super()._Button(text=text, image_file=image_file, toggle=toggle, command=command)
         if image_file is not None:
             NavigationToolbar2Tk._set_image_for_button(self, b)
@@ -277,7 +277,7 @@ class NToolbar2Tk(NavigationToolbar2Tk):
 
 class ToolTip:
     @staticmethod
-    def createToolTip(widget, text:str):
+    def createToolTip(widget, text:str) -> None:
         tooltip = ToolTip(widget)
         def enter(event):
             tooltip.showtip(text)
@@ -392,7 +392,7 @@ class ROIManager(CTk.CTkToplevel):
     def get_buttons(self) -> list:
         return self.buttons
 
-    def load(self, initialdir="/") -> List[dict]:
+    def load(self, initialdir:str="/") -> List[dict]:
         self.delete_all()
         filetypes = [("PyROI files", "*.pyroi")]
         filename = fd.askopenfilename(title="Select a PyROI file", initialdir=initialdir, filetypes=filetypes)
@@ -437,13 +437,13 @@ class ROIManager(CTk.CTkToplevel):
         return []
 
 class Button(CTk.CTkButton):
-    def __init__(self, master, text=None, image:CTk.CTkImage=None, width=button_size[0], height=button_size[1], anchor="w", **kwargs):
+    def __init__(self, master, text=None, image:CTk.CTkImage=None, width:int=button_size[0], height:int=button_size[1], anchor:str="w", **kwargs) -> None:
         super().__init__(master, text=text, image=image, width=width, height=height, anchor=anchor, compound=tk.LEFT, **kwargs)
         if text is None:
             self.configure(width=height)
 
 class CheckBox(CTk.CTkCheckBox):
-    def __init__(self, master, text:str=None, command=None, **kwargs) -> None:
+    def __init__(self, master, text:str=None, command:Callable=None, **kwargs) -> None:
         super().__init__(master, text=text, command=command, onvalue=True, offvalue=False, width=30, **kwargs)
 
 class Entry(CTk.CTkFrame):
@@ -480,7 +480,7 @@ class DoubleEntry(CTk.CTkFrame):
             entry.configure(state=state)
 
 class DropDown(CTk.CTkFrame):
-    def __init__(self, master, values:List[str]=[], image=None, command=None, variable=None, state:str="normal", **kwargs):
+    def __init__(self, master, values:List[str]=[], image:CTk.CTkImage=None, command:Callable=None, variable:tk.StringVar=None, state:str="normal", **kwargs):
         super().__init__(master, **kwargs)
         self.configure(fg_color=gray[0])
         self.pack(padx=20, pady=20)
@@ -493,7 +493,7 @@ class DropDown(CTk.CTkFrame):
     def set_state(self, state:str) -> None:
         self.option_menu.configure(state=state)
 
-    def set_values(self, values: List[str]) -> None:
+    def set_values(self, values:List[str]) -> None:
         self.option_menu.configure(values=values)
     
     def get_menu(self) -> CTk.CTkOptionMenu:
@@ -503,7 +503,7 @@ class DropDown(CTk.CTkFrame):
         return self.icon
 
 class SpinBox(CTk.CTkFrame):
-    def __init__(self, master, width:int=40, height:int=15, step_size:int=1, from_:int=1, to_:int=20, command=None, **kwargs) -> None:
+    def __init__(self, master, width:int=40, height:int=15, step_size:int=1, from_:int=1, to_:int=20, command:Callable=None, **kwargs) -> None:
         super().__init__(master, width=width, height=height, **kwargs)
         updown_size = 8
         self.step_size = step_size
@@ -536,7 +536,7 @@ class SpinBox(CTk.CTkFrame):
         if self.command is not None:
             self.command()
         
-    def bind(self, event, command) -> None:
+    def bind(self, event, command:Callable) -> None:
         self.entry.bind(event, command)
 
     def get(self) -> int:
