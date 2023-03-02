@@ -60,7 +60,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
     __version__ = "2.4.2"
 
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023"}
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023"}
 
     try:
         __version_date__ = dict_versions[__version__]
@@ -331,7 +331,7 @@ class Polarimetry(CTk.CTk):
         self.calculated_dark_label.grid(row=1, column=0)
         self.dark = tk.StringVar()
         self.dark_entry = Entry(adv["Dark"], text="Used dark value", textvariable=self.dark, row=2, column=0)
-        ToolTip.createToolTip(self.dark_entry, " for 1PF, use a dark value greater than 480\nRaw images correspond to a dark value 0")
+        ToolTip.createToolTip(self.dark_entry, " for 1PF, use a dark value greater than 480\n - raw images correspond to a dark value 0")
         self.dark_entry.bind("<Return>", command=self.intensity_callback)
         self.dark_entry.set_state("disabled")
         CTk.CTkLabel(master=adv["Dark"], text=" ", height=5).grid(row=3, column=0, pady=5)
@@ -531,20 +531,20 @@ class Polarimetry(CTk.CTk):
             adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=(10, 10), sticky="nw")
             CTk.CTkLabel(master=adv[elt], text=elt + "\n", width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, padx=20, pady=(10,0))
         params = ["Low threshold", "High threshold", "Length", "Smoothing window"]
-        tooltips = [" hysteresis thresholding values: edges with intensity gradients\n below this value are not edges and discarded ", " hysteresis thresholding values: edges with intensity gradients\n larger than this value are sure to be edges", " minimum length for a contour (in px)", " number of pixels in the window used for smoothing contours (in px)"]
+        tooltips = [" hysteresis thresholding values: edges with intensity gradients\n below this value are not edges and discarded ", " hysteresis thresholding values: edges with intensity gradients\n larger than this value are sure to be edges", " minimum length for a contour (in pixels)", " number of pixels in the window used for smoothing contours (in pixels)"]
         self.canny_thrsh = [tk.StringVar(value="60"), tk.StringVar(value="100"), tk.StringVar(value="100"), tk.StringVar(value="20")]
         for _, (param, tooltip) in enumerate(zip(params, tooltips)):
             entry = Entry(adv["Edge detection"], text=param, textvariable=self.canny_thrsh[_], row=_+1)
             entry.bind("<Return>", command=self.compute_edges)
             ToolTip.createToolTip(entry, tooltip)
-        CTk.CTkLabel(master=self.tabview.tab("Edge Detection"), text=" ").grid(row=5, column=0)
+        CTk.CTkLabel(master=adv["Edge detection"], text=" ").grid(row=5, column=0)
         params = ["Distance from contour", "Layer width"]
         tooltips = [" width of the region to be analyzed (in pixels)", " distance from contour of the region to be analyzed (in pixels)"]
         self.layer_params = [tk.StringVar(value="0"), tk.StringVar(value="10")]
         for _, (param, tooltip) in enumerate(zip(params, tooltips)):
             entry = Entry(adv["Layer"], text=param, textvariable=self.layer_params[_], row=_+1)
             ToolTip.createToolTip(entry, tooltip)
-        CTk.CTkLabel(master=self.tabview.tab("Layer"), text=" ").grid(row=3, column=0)
+        CTk.CTkLabel(master=adv["Layer"], text=" ").grid(row=3, column=0)
 
     def compute_edges(self, event:tk.Event=None) -> None:
         if self.edge_method == "compute":
@@ -998,7 +998,7 @@ class Polarimetry(CTk.CTk):
                     slope = 180 - np.rad2deg(np.arctan((roi.previous_point[1] - roi.start_point[1]) / (roi.previous_point[0] - roi.start_point[0])))
                     slope = np.mod(2 * slope, 360) / 2
                     dist = np.sqrt(((np.asarray(roi.previous_point) - np.asarray(roi.start_point))**2).sum())
-                    window = ShowInfo(message=" Angle is {:.2f} \u00b0 \n Distance is {} px".format(slope, int(dist)), image=self.icons["square"], button_labels = ["OK"], fontsize=16)
+                    window = ShowInfo(message=" Angle is {:.2f} \u00b0 \n Distance is {} pixels".format(slope, int(dist)), image=self.icons["square"], button_labels = ["OK"], fontsize=16)
                     window.get_buttons()[0].configure(command=lambda:window.withdraw())
                     for line in roi.lines:
                         line.remove()
