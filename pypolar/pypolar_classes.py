@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import cv2
 from skimage import exposure
 from scipy.ndimage import rotate
+from scipy.signal import convolve2d
 from tkinter import filedialog as fd
 from tkinter.messagebox import showerror
 from scipy.io import loadmat
@@ -36,10 +37,10 @@ def adjust(field:np.ndarray, contrast:float, vmin:float, vmax:float) -> np.ndarr
     sharpened = exposure.adjust_gamma((sharpened - vmin) / vmax, contrast) * vmax
     return sharpened
 
-def circularmean(rho:float) -> float:
+def circularmean(rho:np.ndarray) -> float:
     return np.mod(np.angle(np.mean(np.exp(2j * np.deg2rad(rho))), deg=True), 360) / 2
 
-def wrapto180(rho:float) -> float:
+def wrapto180(rho:np.ndarray) -> np.ndarray:
     return np.angle(np.exp(1j * np.deg2rad(rho)), deg=True)
 
 class Stack:
@@ -51,6 +52,13 @@ class Stack:
         self.display = "{:.0f}"
         self.values = []
         self.intensity = []
+
+    def get_intensity(self, dark:float=0, bin:List[int]=[1, 1]) -> np.ndarray:
+        intensity = np.sum((self.values - dark) * (self.values >= dark), axis=0)
+        if sum(bin) != 2:
+            return convolve2d(intensity, np.ones(bin), mode="same") / (bin[0] * bin[1])
+        else:
+            return intensity
 
 class DataStack:
     def __init__(self, stack) -> None:
@@ -570,3 +578,14 @@ class ShowInfo(CTk.CTkToplevel):
     
     def get_buttons(self) -> List[Button]:
         return self.buttons
+    
+class TextBox(CTk.CTkTextbox):
+    def __init__(self, master, **kwargs) -> None:
+        super().__init__(master, **kwargs)
+        self.configure(state="disabled")
+
+    def write(self, text:str) -> None:
+        self.configure(state="normal")
+        self.delete("0.0", "end")
+        self.insert("0.0", text)
+        self.configure(state="disabled")

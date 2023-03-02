@@ -32,7 +32,7 @@ from datetime import date
 import copy
 from typing import List, Tuple, Union
 from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, NToolbar2Tk, ToolTip, ROIManager
-from pypolar_classes import Button, CheckBox, Entry, DropDown, SpinBox, ShowInfo
+from pypolar_classes import Button, CheckBox, Entry, DropDown, SpinBox, ShowInfo, TextBox
 from pypolar_classes import adjust, circularmean, wrapto180
 from pypolar_classes import button_size, orange, gray, red, green, text_color, geometry_info
 
@@ -189,8 +189,7 @@ class Polarimetry(CTk.CTk):
         self.compute_angle_button = Button(banner, image=self.icons["square"], command=self.compute_angle)
         ToolTip.createToolTip(self.compute_angle_button, " left click to trace a line segment\n and determine its length and angle")
         self.compute_angle_button.pack(padx=20, pady=20)
-        self.filename_label = CTk.CTkTextbox(master=bottomframe, width=400, height=50)
-        self.filename_label.configure(state="disabled")
+        self.filename_label = TextBox(master=bottomframe, width=400, height=50)
         ToolTip.createToolTip(self.filename_label, " name of file currently analyzed")
         self.filename_label.pack(side=tk.LEFT)
         sliderframe = CTk.CTkFrame(master=bottomframe, fg_color="transparent")
@@ -349,7 +348,7 @@ class Polarimetry(CTk.CTk):
         button = Button(adv["Disk cone / Calibration data"], text="Display", image=self.icons["photo"], command=self.diskcone_display)
         button.grid(row=2, column=0, pady=10)
         ToolTip.createToolTip(button, " display the selected disk cone (for 1PF)")
-        self.calib_textbox = CTk.CTkTextbox(master=adv["Disk cone / Calibration data"], width=250, height=50, state="disabled")
+        self.calib_textbox = TextBox(master=adv["Disk cone / Calibration data"], width=250, height=50, state="disabled")
         self.calib_textbox.grid(row=3, column=0, pady=10)
         self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=button_size[0], height=button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled")
         self.polar_dropdown.grid(row=4, column=0, pady=10)
@@ -394,11 +393,9 @@ class Polarimetry(CTk.CTk):
         button = Button(banner, image=self.icons["contact_support"], command=lambda:self.openweb(Polarimetry.url_github + "/blob/master/README.md"))
         ToolTip.createToolTip(button, " visit the online help")
         button.pack(side=tk.LEFT, padx=40)
-        about_textbox = CTk.CTkTextbox(master=self.tabview.tab("About"), width=Polarimetry.tab_width-30, height=500)
+        about_textbox = TextBox(master=self.tabview.tab("About"), width=Polarimetry.tab_width-30, height=500)
+        about_textbox.write(f"Version: {Polarimetry.__version__} ({Polarimetry.__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV,\n Matplotlib, openpyxl, tksheet, colorcet \n\n\n  uses Material Design icons by Google")
         about_textbox.grid(row=1, column=0, padx=30)
-        message = f"Version: {Polarimetry.__version__} ({Polarimetry.__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV,\n Matplotlib, openpyxl, tksheet, colorcet \n\n\n  uses Material Design icons by Google"
-        about_textbox.insert("0.0", message)
-        about_textbox.configure(state="disabled")
         self.tabview.set("Intensity")
         self.startup()
 
@@ -409,10 +406,7 @@ class Polarimetry(CTk.CTk):
         self.CD = Calibration("1PF")
         self.calib_dropdown.configure(values=self.CD.list("1PF"))
         self.calib_dropdown.set(self.CD.list("1PF")[0])
-        self.calib_textbox.configure(state="normal")
-        self.calib_textbox.delete("0.0", "end")
-        self.calib_textbox.insert("0.0", self.CD.name)
-        self.calib_textbox.configure(state="disabled")
+        self.calib_textbox.write(self.CD.name)
         angles = [0, 45, 90, 135]
         self.dict_polar = {}
         for p in list(permutations([0, 1, 2, 3])):
@@ -443,8 +437,8 @@ class Polarimetry(CTk.CTk):
         self.initialize_noise()
         if hasattr(self, "datastack"):
             self.datastack.rois = []
-        self.represent_intensity()
-        self.represent_thrsh()
+        self.ontab_intensity()
+        self.ontab_thrsh()
 
     def initialize_tables(self) -> None:
         for show, save in zip(self.show_table, self.save_table):
@@ -495,7 +489,7 @@ class Polarimetry(CTk.CTk):
             if hasattr(self, "edge_contours"):
                 delattr(self, "edge_contours")
             self.tabview.delete("Edge Detection")
-            self.represent_thrsh()
+            self.ontab_thrsh()
 
     def delete_edge_mask(self, window:CTk.CTkToplevel) -> None:
         window.withdraw()
@@ -559,7 +553,7 @@ class Polarimetry(CTk.CTk):
             contours = cv2.findContours(self.edge_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)[0]
         filter = np.asarray([len(contour) >= int(self.canny_thrsh[2].get()) for contour in contours])
         self.edge_contours = [self.smooth_edge(contour.reshape((-1, 2))) for (contour, val) in zip(contours, filter) if val]
-        self.represent_thrsh()
+        self.ontab_thrsh()
 
     def smooth_edge(self, edge:np.ndarray) -> np.ndarray:
         window_length = int(self.canny_thrsh[3].get())
@@ -592,26 +586,26 @@ class Polarimetry(CTk.CTk):
     def contrast_thrsh_slider_callback(self, value:float) -> None:
         if value <= 0.001:
             self.contrast_thrsh_slider.set(0.001)
-        self.represent_thrsh()
+        self.ontab_thrsh()
 
     def contrast_intensity_slider_callback(self, value:float) -> None:
         if value <= 0.001:
             self.contrast_intensity_slider.set(0.001)
-        self.represent_intensity()
+        self.ontab_intensity()
 
     def contrast_intensity_button_callback(self) -> None:
         if self.contrast_intensity_slider.get() <= 0.5:
             self.contrast_intensity_slider.set(0.5)
         else:
             self.contrast_intensity_slider.set(1)
-        self.represent_intensity()
+        self.ontab_intensity()
 
     def contrast_thrsh_button_callback(self) -> None:
         if self.contrast_thrsh_slider.get() <= 0.5:
             self.contrast_thrsh_slider.set(0.5)
         else:
             self.contrast_thrsh_slider.set(1)
-        self.represent_thrsh(update=True)
+        self.ontab_thrsh(update=True)
 
     def roimanager_callback(self) -> None:
 
@@ -619,36 +613,36 @@ class Polarimetry(CTk.CTk):
             if hasattr(self, "datastack"):
                 for roi in self.datastack.rois:
                     roi["select"] = True
-                self.represent_intensity()
-                self.represent_thrsh()
+                self.ontab_intensity()
+                self.ontab_thrsh()
             manager.destroy()
 
         def commit(manager:ROIManager) -> None:
             if hasattr(self, "datastack"):
                 if any(self.datastack.rois):
                     self.datastack.rois = manager.update_rois(self.datastack.rois)
-                    self.represent_intensity()
-                    self.represent_thrsh()
+                    self.ontab_intensity()
+                    self.ontab_thrsh()
 
         def delete(manager:ROIManager) -> None:
             if hasattr(self, "datastack"):
                 manager.delete(self.datastack.rois)
-                self.represent_intensity()
-                self.represent_thrsh()
+                self.ontab_intensity()
+                self.ontab_thrsh()
 
         def delete_all(manager:ROIManager) -> None:
             if hasattr(self, "datastack"):
                 if any(self.datastack.rois):
                     self.datastack.rois = []
                     manager.delete_all()
-                    self.represent_intensity()
-                    self.represent_thrsh()
+                    self.ontab_intensity()
+                    self.ontab_thrsh()
 
         def load(manager:ROIManager) -> None:
             if hasattr(self, "datastack"):
                 self.datastack.rois = manager.load(initialdir=self.stack.folder if hasattr(self, "stack") else "/")
-                self.represent_intensity()
-                self.represent_thrsh()
+                self.ontab_intensity()
+                self.ontab_thrsh()
 
         if hasattr(self, "datastack"):
             self.manager = ROIManager(rois=self.datastack.rois)
@@ -715,7 +709,7 @@ class Polarimetry(CTk.CTk):
             self.maskfolder = fd.askdirectory(title="Select the directory containing masks", initialdir=initialdir)
             if hasattr(self, "datastack"):
                 self.mask = self.get_mask(self.datastack)
-                self.represent_thrsh()
+                self.ontab_thrsh()
                 self.thrsh_frame.update()
 
     def open_file_callback(self, value:str) -> None:
@@ -726,25 +720,25 @@ class Polarimetry(CTk.CTk):
         if hasattr(self, "manager_window"):
             self.manager_window.destroy()
         if value == "Open file":
-            self.openfile_dropdown.get_icon().configure(image=self.icons["photo_fill"])
             self.options_dropdown.get_icon().configure(image=self.icons["build"])
             filetypes = [("Tiff files", "*.tiff"), ("Tiff files", "*.tif")]
             initialdir = self.stack.folder if hasattr(self, "stack") else "/"
             filename = fd.askopenfilename(title="Select a file", initialdir=initialdir, filetypes=filetypes)
             self.filelist = []
             if filename:
+                self.openfile_dropdown.get_icon().configure(image=self.icons["photo_fill"])
                 self.options_dropdown.set_state("normal")
                 self.options_dropdown.set_values(["Thresholding (manual)", "Mask (manual)"])
                 self.option.set("Thresholding (manual)")
                 if hasattr(self, "mask"):
                     delattr(self, "mask")
                 self.open_file(filename)
-        elif value == "Open folder":
-            self.openfile_dropdown.get_icon().configure(image=self.icons["folder_open"])
+        elif value == "Open folder": 
             initialdir = self.stack.folder if hasattr(self, "stack") else "/"
             folder = fd.askdirectory(title="Select a directory", initialdir=initialdir)
             self.filelist = []
             if folder:
+                self.openfile_dropdown.get_icon().configure(image=self.icons["folder_open"])
                 for filename in os.listdir(folder):
                     if filename.endswith((".tif", ".tiff")):
                         self.filelist += [os.path.join(folder, filename)]
@@ -778,17 +772,14 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_axis.clear()
                 self.thrsh_axis.set_axis_off()
                 self.thrsh_canvas.draw()
-                self.filename_label.configure(state="normal")
-                self.filename_label.delete("0.0", "end")
-                self.filename_label.insert("0.0", self.datastack.name)
-                self.filename_label.configure(state="disabled")
-                self.represent_intensity(update=False)
+                self.filename_label.write(self.datastack.name)
+                self.ontab_intensity(update=False)
             window.withdraw()
         if hasattr(self, "stack"):
             self.ilow_slider.configure(from_=np.amin(self.stack.intensity), to=np.amax(self.stack.intensity))
             self.ilow_slider.set(np.amin(self.stack.intensity))
             self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
-            self.represent_thrsh(update=False)
+            self.ontab_thrsh(update=False)
 
     def crop_figures_callback(self) -> None:
         if len(plt.get_fignums()):
@@ -856,7 +847,7 @@ class Polarimetry(CTk.CTk):
             self.thrsh_colormap = "gray"
         else:
             self.thrsh_colormap = "hot"
-        self.represent_thrsh()
+        self.ontab_thrsh()
 
     def no_background(self) -> None:
         if hasattr(self, "stack"):
@@ -889,10 +880,7 @@ class Polarimetry(CTk.CTk):
     def calib_dropdown_callback(self, label:str) -> None:
         self.CD = Calibration(self.method.get(), label=label)
         self.offset_angle.set(str(self.CD.offset_default))
-        self.calib_textbox.configure(state="normal")
-        self.calib_textbox.delete("0.0", "end")
-        self.calib_textbox.insert("0.0", self.CD.name)
-        self.calib_textbox.configure(state="disabled")
+        self.calib_textbox.write(self.CD.name)
 
     def polar_dropdown_callback(self, label:str) -> None:
         self.order = self.dict_polar.get(label)
@@ -1044,10 +1032,7 @@ class Polarimetry(CTk.CTk):
         self.CD = Calibration(method)
         self.calib_dropdown.configure(values=self.CD.list(method), state="normal")
         self.calib_dropdown.set(self.CD.list(method)[0])
-        self.calib_textbox.configure(state="normal")
-        self.calib_textbox.delete("0.0", "end")
-        self.calib_textbox.insert("0.0", self.CD.name)
-        self.calib_textbox.configure(state="disabled")
+        self.calib_textbox.write(self.CD.name)
         if method in ["2PF", "SRS", "SHG", "CARS"]:
             self.calib_dropdown.configure(state="disabled")
         if method.startswith("4POLAR"):
@@ -1089,10 +1074,7 @@ class Polarimetry(CTk.CTk):
         initialdir = self.stack.folder if hasattr(self, "stack") else "/"
         filename = fd.askopenfilename(title="Select a beads file", initialdir=initialdir, filetypes=[("TIFF files", "*.tiff"), ("TIF files", "*.tif")])
         beadstack = self.define_stack(filename)
-        self.filename_label.configure(state="normal")
-        self.filename_label.delete("0.0", "end")
-        self.filename_label.insert("0.0", "")
-        self.filename_label.configure(state="disabled")
+        self.filename_label.write("")
         dark = self.compute_dark(beadstack, display=False)
         intensity = np.sum((beadstack.values - dark) * (beadstack.values >= dark), axis=0)
         whitelight = cv2.imread(os.path.join(beadstack.folder, "Whitelight.tif"), cv2.IMREAD_GRAYSCALE)
@@ -1209,10 +1191,7 @@ class Polarimetry(CTk.CTk):
             self.stack_slider.configure(to=self.stack.nangle, number_of_steps=self.stack.nangle, state="normal")
         else:
             self.stack_slider.configure(state="disabled")
-        self.filename_label.configure(state="normal")
-        self.filename_label.delete("0.0", "end")
-        self.filename_label.insert("0.0", self.stack.name)
-        self.filename_label.configure(state="disabled")
+        self.filename_label.write(self.stack.name)
         self.tabview.set("Intensity")
         self.compute_intensity(self.stack)
         self.ilow_slider.configure(from_=np.amin(self.stack.intensity), to=np.amax(self.stack.intensity))
@@ -1222,8 +1201,8 @@ class Polarimetry(CTk.CTk):
         self.datastack.intensity = self.stack.intensity
         if self.option.get().startswith("Mask"):
             self.mask = self.get_mask(self.datastack)
-        self.represent_intensity(update=False)
-        self.represent_thrsh(update=False)
+        self.ontab_intensity(update=False)
+        self.ontab_thrsh(update=False)
         self.intensity_frame.update()
         self.thrsh_frame.update()
 
@@ -1291,8 +1270,8 @@ class Polarimetry(CTk.CTk):
             line.remove()
         roi.lines = []
         self.thrsh_canvas.draw()
-        self.represent_intensity()
-        self.represent_thrsh()
+        self.ontab_intensity()
+        self.ontab_thrsh()
         if hasattr(self, "manager"):
             self.manager.update_manager(self.datastack.rois)
 
@@ -1356,21 +1335,21 @@ class Polarimetry(CTk.CTk):
         if self.method.get().startswith("4POLAR"):
             labels = ["T", 0, 45, 90, 135]
             self.stack_slider_label.configure(text=labels[int(value)])
-        self.represent_intensity()
+        self.ontab_intensity()
 
     def ilow_slider_callback(self, value:str) -> None:
         if hasattr(self, "stack"):
             self.ilow.set(self.stack.display.format(value))
             if hasattr(self, "edge_contours"):
                 self.compute_edges()
-            self.represent_thrsh()
+            self.ontab_thrsh()
 
     def ilow2slider_callback(self, event:tk.Event) -> None:
         if event and hasattr(self, "stack"):
             self.ilow_slider.set(float(self.ilow.get()))
             if hasattr(self, "edge_contours"):
                 self.compute_edges()
-            self.represent_thrsh()
+            self.ontab_thrsh()
 
     def intensity_callback(self, event:tk.Event) -> None:
         if event and hasattr(self, "stack"):
@@ -1379,19 +1358,19 @@ class Polarimetry(CTk.CTk):
             self.compute_intensity(self.stack)
             if hasattr(self, "datastack"):
                 self.datastack.intensity = self.stack.intensity
-            self.represent_intensity(update=False)
-            self.represent_thrsh(update=False)
+            self.ontab_intensity(update=False)
+            self.ontab_thrsh(update=False)
 
     def rotation_callback(self, event:tk.Event) -> None:
         if event:
-            self.represent_intensity(update=False)
+            self.ontab_intensity(update=False)
 
     def transparency_slider_callback(self, value:float) -> None:
         if value <= 0.001:
             self.transparency_slider.set(0.001)
-        self.represent_thrsh()
+        self.ontab_thrsh()
 
-    def represent_intensity(self, update:bool=True) -> None:
+    def ontab_intensity(self, update:bool=True) -> None:
         intensity = self.stack.intensity if hasattr(self, "stack") else self.datastack.intensity if hasattr(self, "datastack") else []
         if hasattr(self, "stack") or hasattr(self, "datastack"):
             if self.stack_slider.get() == 0:
@@ -1416,7 +1395,7 @@ class Polarimetry(CTk.CTk):
                 self.add_patches(self.datastack, self.intensity_axis, self.intensity_canvas)
             self.intensity_canvas.draw()
 
-    def represent_thrsh(self, update:bool=True) -> None:
+    def ontab_thrsh(self, update:bool=True) -> None:
         if hasattr(self, "stack"):
             field = self.stack.intensity.copy()
             if self.option.get().startswith("Mask"):
@@ -1450,12 +1429,8 @@ class Polarimetry(CTk.CTk):
 
     def compute_intensity(self, stack:Stack) -> None:
         dark = float(self.dark.get())
-        sumcor = np.sum((stack.values - dark) * (stack.values >= dark), axis=0)
-        bin_shape = [self.bin_spinboxes[_].get() for _ in range(2)]
-        if sum(bin_shape) != 2:
-            stack.intensity = convolve2d(sumcor, np.ones(bin_shape), mode="same") / (bin_shape[0] * bin_shape[1])
-        else:
-            stack.intensity = sumcor
+        bin = [self.bin_spinboxes[_].get() for _ in range(2)]
+        stack.intensity = stack.get_intensity(dark=dark, bin=bin)
 
     def compute_dark(self, stack:Stack, display:bool=True) -> int:
         SizeCell = 20
