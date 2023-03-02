@@ -238,15 +238,15 @@ class NToolbar2Tk(NavigationToolbar2Tk):
         super().__init__(canvas=canvas, window=window, pack_toolbar=pack_toolbar)
         self._buttons = {}
         self.toolitems = (
-        ('Home', 'Reset original view', 'home', 'home'),
+        ('Home', ' reset original view', 'home', 'home'),
         (None, None, None, None),
-        ('Back', 'Back to previous view', 'backward', 'back'),
-        ('Forward', 'Forward to next view', 'forward', 'forward'),
+        ('Back', ' back to previous view', 'backward', 'back'),
+        ('Forward', ' forward to next view', 'forward', 'forward'),
         (None, None, None, None),
-        ('Pan', 'Left button pans, Right button zooms\n x/y fixes axis, CTRL fixes aspect', 'pan', 'pan'),
-        ('Zoom', 'Zoom to rectangle\n x/y fixes axis', 'zoom', 'zoom'),
+        ('Pan', ' left button pans, right button zooms\n x/y fixes axis, CTRL fixes aspect', 'pan', 'pan'),
+        ('Zoom', ' zoom to rectangle\n x/y fixes axis', 'zoom', 'zoom'),
         (None, None, None, None),
-        ('Save', 'Save the figure', 'save', 'save_figure'),)
+        ('Save', ' save the figure', 'save', 'save_figure'),)
         tk.Frame.__init__(self, master=window)
         for text, tooltip_text, image_file, callback in self.toolitems:
             if text is None:
@@ -318,12 +318,12 @@ class ROIManager(CTk.CTkToplevel):
     labels = ["indx", "name", "group"]
     widths = [40, 250, 90]
     button_labels = ["Commit", "Save", "Load", "Delete", "Delete All"]
+    tooltips = [" commit the changes made to the labels of ROIs (name, group and select)", " save information on ROIs as a .pyroi file", " load ROIs from a .pyroi file", " permanently deletes ROIs selected in delete column", " permamently deletes all ROIs"]
     manager_size = lambda w, h: f"{w+40}x{h+84}"
     cmax = len(labels)
 
     def __init__(self, rois:list=[]) -> None:
         super().__init__()
-        self.attributes("-topmost", "true")
         self.title("ROI Manager")
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
@@ -350,8 +350,9 @@ class ROIManager(CTk.CTkToplevel):
         bottom_frame = CTk.CTkFrame(self)
         bottom_frame.grid(row=1, column=0, sticky="nswe", padx=20, pady=(0, 20))
         self.buttons = []
-        for _, label in enumerate(ROIManager.button_labels):
+        for _, (label, tooltip) in enumerate(zip(ROIManager.button_labels, ROIManager.tooltips)):
             button = Button(bottom_frame, text=label, anchor="center", width=80)
+            ToolTip.createToolTip(button, tooltip)
             self.buttons += [button]
             button.grid(row=0, column=_, padx=10, pady=10, sticky="nswe")
         self.buttons[0].configure(width=80, fg_color=green[0], hover_color=green[1])
@@ -496,6 +497,9 @@ class DropDown(CTk.CTkFrame):
     
     def get_icon(self) -> Button:
         return self.icon
+    
+    def bind(self, *args, **kwargs):
+        return self.option_menu.bind(*args, **kwargs)
 
 class SpinBox(CTk.CTkFrame):
     def __init__(self, master, from_:int=1, to_:int=20, step_size:int=1, command:Callable=None, **kwargs) -> None:

@@ -138,14 +138,16 @@ class Polarimetry(CTk.CTk):
 
 ## LEFT FRAME
         logo = Button(self.left_frame, text=" PyPOLAR", image=self.icons["blur_circular"], command=self.on_click_tab)
+        ToolTip.createToolTip(logo, " (1) Select a polarimetry method\n (2) Download a .tiff file or a folder\n        or a previous analysis (.pykl)\n (3) Select an option of analysis\n (4) Select one or several\n        regions of interest (ROI)\n (5) Click on Analysis")
         logo.configure(hover=False, fg_color="transparent", font=CTk.CTkFont(size=20))
         logo.pack(padx=20, pady=(10, 40))
         self.method = tk.StringVar()
-        DropDown(self.left_frame, values=["1PF", "CARS", "SRS", "SHG", "2PF", "4POLAR 2D", "4POLAR 3D"], image=self.icons["microscope"], command=self.method_dropdown_callback, variable=self.method)
+        dropdown = DropDown(self.left_frame, values=["1PF", "CARS", "SRS", "SHG", "2PF", "4POLAR 2D", "4POLAR 3D"], image=self.icons["microscope"], command=self.method_dropdown_callback, variable=self.method)
+        ToolTip.createToolTip(dropdown, " 1PF: one-photon fluorescence\n CARS: coherent anti-Stokes Raman scattering\n SRS: stimulated Raman scattering\n SHG: second-harmonic generation\n 2PF: two-photon fluorescence\n 4POLAR 2D: 2D 4POLAR fluorescence (not yet implemented)\n 4POLAR 3D: 3D 4POLAR fluorescence")
         self.openfile_dropdown = DropDown(self.left_frame, values=["Open file", "Open folder", "Previous analysis"], image=self.icons["download_file"], command=self.open_file_callback)
         self.option = tk.StringVar()
         self.options_dropdown = DropDown(self.left_frame, values=["Thresholding (manual)", "Mask (manual)"], image=self.icons["build"], variable=self.option, state="disabled", command=self.options_dropdown_callback)
-        ToolTip.createToolTip(self.options_dropdown, " Select the method of analysis: intensity thresholding or segmentation\n mask for single file analysis (manual) or batch processing (auto).\n The mask has to be binary and in PNG format and have the same\n file name as the respective polarimetry data file.")
+        ToolTip.createToolTip(self.options_dropdown, " select the method of analysis: intensity thresholding or segmentation\n mask for single file analysis (manual) or batch processing (auto)\n - the mask has to be binary and in PNG format and have the same\n file name as the respective polarimetry data file")
         self.add_roi_button = Button(self.left_frame, text="Add ROI", image=self.icons["roi"], command=self.add_roi_callback)
         ToolTip.createToolTip(self.add_roi_button, " add a region of interest: polygon (left button), freehand (right button)")
         self.add_roi_button.pack(padx=20, pady=20)
@@ -185,10 +187,11 @@ class Polarimetry(CTk.CTk):
         ToolTip.createToolTip(self.contrast_intensity_slider, " adjust contrast\n - the chosen contrast will be the one used\n for the intensity images in figures")
         self.contrast_intensity_slider.pack(padx=20, pady=20)
         self.compute_angle_button = Button(banner, image=self.icons["square"], command=self.compute_angle)
-        ToolTip.createToolTip(self.compute_angle_button, " left click and hold to trace a line\n segment and determine its angle")
+        ToolTip.createToolTip(self.compute_angle_button, " left click to trace a line segment\n and determine its length and angle")
         self.compute_angle_button.pack(padx=20, pady=20)
         self.filename_label = CTk.CTkTextbox(master=bottomframe, width=400, height=50)
         self.filename_label.configure(state="disabled")
+        ToolTip.createToolTip(self.filename_label, " name of file currently analyzed")
         self.filename_label.pack(side=tk.LEFT)
         sliderframe = CTk.CTkFrame(master=bottomframe, fg_color="transparent")
         sliderframe.pack(side=tk.RIGHT, padx=100)
@@ -291,7 +294,7 @@ class Polarimetry(CTk.CTk):
         self.colorblind_checkbox.grid(row=3, column=0, columnspan=2, padx=40, pady=(0, 20), sticky="ew")
         Button(preferences, text="Crop figures", image=self.icons["crop"], command=self.crop_figures_callback).grid(row=4, column=0, columnspan=2, padx=20, pady=0)
         button = Button(preferences, text="Show individual fit", image=self.icons["query_stats"], command=self.show_individual_fit_callback)
-        ToolTip.createToolTip(button, " zoom into the region of interest\nthen click using the crosshair")
+        ToolTip.createToolTip(button, " zoom into the region of interest\n then click using the crosshair")
         button.grid(row=5, column=0, columnspan=2, padx=20, pady=20)
         labels = [" pixels per stick (horizontal)", "pixels per stick (vertical)"]
         self.pixelsperstick_spinboxes = [SpinBox(master=preferences, command=self.pixelsperstick_spinbox_callback) for it in range(2)]
@@ -365,7 +368,7 @@ class Polarimetry(CTk.CTk):
         entries[1].bind("<Return>", command=self.rotation_callback)
         CTk.CTkLabel(master=adv["Rotation"], text=" ", height=5).grid(row=3, column=0, pady=5)
         for entry in entries:
-            ToolTip.createToolTip(entry, " positive value for counter-clockwise rotation / negative value for clockwise rotation")
+            ToolTip.createToolTip(entry, " positive value for counter-clockwise rotation\n negative value for clockwise rotation")
         labels = ["Noise factor", "Noise width", "Noise height", "Noise removal level"]
         self.noise = [tk.StringVar(value="1"), tk.StringVar(value="3"), tk.StringVar(value="3"), tk.StringVar(value="0")]
         rows = [1, 2, 3, 5]
@@ -400,20 +403,6 @@ class Polarimetry(CTk.CTk):
         self.startup()
 
     def startup(self) -> None:
-        info = " (1) Select a polarimetry method\n\n (2) Download a file or a folder\n        or a previous PyPOLAR analysis\n\n (3) Select a method of analysis\n\n (4) Select one or several regions of interest\n\n (5) Click on Analysis"
-        info_window = CTk.CTkToplevel(self)
-        info_window.attributes("-topmost", "true")
-        info_window.title("Polarimetry Analysis")
-        info_window.geometry(geometry_info((380, 350)))
-        CTk.CTkLabel(info_window, text="  PyPOLAR", font=CTk.CTkFont(size=20), image=self.icons['blur_circular'], compound="left").grid(row=0, column=0, padx=0, pady=20)
-        textbox = CTk.CTkTextbox(info_window, width=320, height=170, fg_color=gray[1])
-        textbox.grid(row=1, column=0, padx=40)
-        textbox.insert("0.0", info)
-        link = CTk.CTkLabel(info_window, text="For more information, visit the GitHub page", text_color="blue", font=CTk.CTkFont(underline=True), cursor="hand2")
-        link.grid(row=2, column=0, padx=50, pady=10, sticky="w")
-        link.bind("<Button-1>", lambda e:webbrowser.open_new_tab(Polarimetry.url_github))
-        Button(master=info_window, text="OK", anchor="center", command=lambda:info_window.withdraw(), width=80).grid(row=7, column=0, padx=20, pady=0)
-
         self.method.set("1PF")
         self.option.set("Thresholding (manual)")
         self.define_variable_table("1PF")
@@ -542,16 +531,20 @@ class Polarimetry(CTk.CTk):
             adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=(10, 10), sticky="nw")
             CTk.CTkLabel(master=adv[elt], text=elt + "\n", width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, padx=20, pady=(10,0))
         params = ["Low threshold", "High threshold", "Length", "Smoothing window"]
-        tooltips = [" hysteresis thresholding values: edges with intensity gradients\n below this value are not edges and discarded ", " hysteresis thresholding values: edges with intensity gradients\n larger than this value are sure to be edges", " minimum length for a contour (in px)", " number of pixels in the window used for smoothing contours"]
+        tooltips = [" hysteresis thresholding values: edges with intensity gradients\n below this value are not edges and discarded ", " hysteresis thresholding values: edges with intensity gradients\n larger than this value are sure to be edges", " minimum length for a contour (in px)", " number of pixels in the window used for smoothing contours (in px)"]
         self.canny_thrsh = [tk.StringVar(value="60"), tk.StringVar(value="100"), tk.StringVar(value="100"), tk.StringVar(value="20")]
         for _, (param, tooltip) in enumerate(zip(params, tooltips)):
             entry = Entry(adv["Edge detection"], text=param, textvariable=self.canny_thrsh[_], row=_+1)
             entry.bind("<Return>", command=self.compute_edges)
             ToolTip.createToolTip(entry, tooltip)
+        CTk.CTkLabel(master=self.tabview.tab("Edge Detection"), text=" ").grid(row=5, column=0)
         params = ["Distance from contour", "Layer width"]
+        tooltips = [" width of the region to be analyzed (in pixels)", " distance from contour of the region to be analyzed (in pixels)"]
         self.layer_params = [tk.StringVar(value="0"), tk.StringVar(value="10")]
-        for _, param in enumerate(params):
-            Entry(adv["Layer"], text=param, textvariable=self.layer_params[_], row=_+1)
+        for _, (param, tooltip) in enumerate(zip(params, tooltips)):
+            entry = Entry(adv["Layer"], text=param, textvariable=self.layer_params[_], row=_+1)
+            ToolTip.createToolTip(entry, tooltip)
+        CTk.CTkLabel(master=self.tabview.tab("Layer"), text=" ").grid(row=3, column=0)
 
     def compute_edges(self, event:tk.Event=None) -> None:
         if self.edge_method == "compute":
