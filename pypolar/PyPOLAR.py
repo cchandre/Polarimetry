@@ -264,13 +264,13 @@ class Polarimetry(CTk.CTk):
         CTk.CTkLabel(master=show_save, text="Show", anchor="w").grid(row=1, column=1, pady=(0, 10))
         CTk.CTkLabel(master=show_save, text="Save", anchor="w").grid(row=1, column=2, pady=(0, 10))
         labels = ["Composite", "Sticks", "Histogram", "Intensity"]
-        self.show_table = [CheckBox(show_save) for it in range(len(labels))]
-        self.save_table = [CheckBox(show_save) for it in range(len(labels))]
-        for it in range(len(labels)):
-            CTk.CTkLabel(master=show_save, text=labels[it], anchor="w", width=100, height=30).grid(row=it+2, column=0, padx=(20, 0))
-            self.save_table[it].configure(command=self.click_save_output)
-            self.show_table[it].grid(row=it+2, column=1, pady=0, padx=20, sticky="ew")
-            self.save_table[it].grid(row=it+2, column=2, pady=0, padx=(20, 20))
+        self.show_table = [CheckBox(show_save) for _ in range(len(labels))]
+        self.save_table = [CheckBox(show_save) for _ in range(len(labels))]
+        for _ in range(len(labels)):
+            CTk.CTkLabel(master=show_save, text=labels[_], anchor="w", width=100, height=30).grid(row=it+2, column=0, padx=(20, 0))
+            self.save_table[_].configure(command=self.click_save_output)
+            self.show_table[_].grid(row=_+2, column=1, pady=0, padx=20, sticky="ew")
+            self.save_table[_].grid(row=_+2, column=2, pady=0, padx=(20, 20))
         CTk.CTkLabel(master=show_save, text=" ").grid(row=len(labels)+2, column=0, padx=0, pady=0)
         banner = CTk.CTkFrame(master=self.tabview.tab("Options"))
         banner.grid(row=2, column=1, padx=20, pady=50, sticky="n")
@@ -297,10 +297,10 @@ class Polarimetry(CTk.CTk):
         button.grid(row=5, column=0, columnspan=2, padx=20, pady=20)
         labels = [" pixels per stick (horizontal)", "pixels per stick (vertical)"]
         self.pixelsperstick_spinboxes = [SpinBox(master=preferences, command=self.pixelsperstick_spinbox_callback) for it in range(2)]
-        for it in range(2):
-            self.pixelsperstick_spinboxes[it].grid(row=it+7, column=0, padx=(20, 0), pady=(0, 20))
-            label = CTk.CTkLabel(master=preferences, text=labels[it], anchor="w")
-            label.grid(row=it+7, column=1, padx=(0, 20), pady=(0, 20))
+        for _ in range(2):
+            self.pixelsperstick_spinboxes[_].grid(row=_+7, column=0, padx=(20, 0), pady=(0, 20))
+            label = CTk.CTkLabel(master=preferences, text=labels[_], anchor="w")
+            label.grid(row=_+7, column=1, padx=(0, 20), pady=(0, 20))
             ToolTip.createToolTip(label, " controls the density of sticks to be plotted")
         self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab("Options"), width=300)
         self.variable_table_frame.grid(row=0, column=1, padx=(40, 20), pady=10, sticky="nw")
@@ -308,11 +308,11 @@ class Polarimetry(CTk.CTk):
         CTk.CTkLabel(master=save_ext, text="\nSave output\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=2, padx=(20, 20), pady=(0, 0))
         save_ext.grid(row=2, column=1, padx=(40, 20), pady=100, sticky="sw")
         labels = ["data (.pykl)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "movie (.gif)"]
-        self.extension_table = [CheckBox(save_ext) for it in range(len(labels))]
+        self.extension_table = [CheckBox(save_ext) for _ in range(len(labels))]
         self.extension_table[1].configure(state="disabled")
-        for it in range(len(labels)):
-            CTk.CTkLabel(master=save_ext, text=labels[it], anchor="w", width=120).grid(row=it+1, column=0, padx=(20, 0))
-            self.extension_table[it].grid(row=it+1, column=1, pady=0, padx=(20,0))
+        for _ in range(len(labels)):
+            CTk.CTkLabel(master=save_ext, text=labels[_], anchor="w", width=120).grid(row=_+1, column=0, padx=(20, 0))
+            self.extension_table[_].grid(row=_+1, column=1, pady=0, padx=(20,0))
         CTk.CTkLabel(master=save_ext, text=" ").grid(row=len(labels)+1, column=0)
 
 ## RIGHT FRAME: ADV
