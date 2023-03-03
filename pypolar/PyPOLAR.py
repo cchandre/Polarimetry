@@ -1193,6 +1193,7 @@ class Polarimetry(CTk.CTk):
             self.stack_slider.configure(state="disabled")
         self.filename_label.write(self.stack.name)
         self.tabview.set("Intensity")
+        self.update()
         self.compute_intensity(self.stack)
         self.ilow_slider.configure(from_=np.amin(self.stack.intensity), to=np.amax(self.stack.intensity))
         self.ilow_slider.set(np.amin(self.stack.intensity))
@@ -1209,6 +1210,7 @@ class Polarimetry(CTk.CTk):
     def add_roi_callback(self) -> None:
         if hasattr(self, "stack"):
             self.tabview.set("Thresholding/Mask")
+            self.update()
             self.add_roi_button.configure(fg_color=orange[1])
             hroi = ROI()
             self.__cid1 = self.thrsh_canvas.mpl_connect("motion_notify_event", lambda event: self.add_roi_motion_notify_callback(event, hroi))
@@ -1304,6 +1306,7 @@ class Polarimetry(CTk.CTk):
         elif hasattr(self, "stack"):
             self.analysis_button.configure(image=self.icons["pause"])
             self.tabview.set("Intensity")
+            self.update()
             if self.option.get().endswith("(manual)"):
                 self.analyze_stack(self.datastack)
                 if self.filelist:
@@ -1966,6 +1969,7 @@ class Polarimetry(CTk.CTk):
             datastack.field_fit = field_fit
             datastack.chi2 = chi2
         self.datastack = datastack
+        #self.update()
         self.plot_data(datastack, roi_map=roi_map)
         self.save_data(datastack, roi_map=roi_map)
 

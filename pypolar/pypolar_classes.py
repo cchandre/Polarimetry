@@ -27,6 +27,8 @@ red = ("#B54D42", "#d5928b")
 green = ("#ADD1AD", "#cee3ce")
 gray = ("#7F7F7F", "#A6A6A6")
 
+## PyPOLAR USEFUL FUNCTIONS
+
 geometry_info = lambda dim: f"{dim[0]}x{dim[1]}+400+300"
 
 def adjust(field:np.ndarray, contrast:float, vmin:float, vmax:float) -> np.ndarray:
@@ -42,6 +44,155 @@ def circularmean(rho:np.ndarray) -> float:
 
 def wrapto180(rho:np.ndarray) -> np.ndarray:
     return np.angle(np.exp(1j * np.deg2rad(rho)), deg=True)
+
+## PyPOLAR WIDGETS
+
+class Button(CTk.CTkButton):
+    def __init__(self, master, text:str=None, image:CTk.CTkImage=None, width:int=button_size[0], height:int=button_size[1], anchor:str="w", **kwargs) -> None:
+        super().__init__(master, text=text, image=image, width=width, height=height, anchor=anchor, compound=tk.LEFT, **kwargs)
+        if text is None:
+            self.configure(width=height)
+
+    def bind(self, sequence=None, command=None, add=True):
+        if not (add == "+" or add is True):
+            raise ValueError("'add' argument can only be '+' or True to preserve internal callbacks")
+        self._canvas.bind(sequence, command, add=True)
+        if self._text_label:
+            self._text_label.bind(sequence, command, add=True)
+        if self._image_label:
+            self._image_label.bind(sequence, command, add=True)
+
+class CheckBox(CTk.CTkCheckBox):
+    def __init__(self, master, text:str=None, command:Callable=None, **kwargs) -> None:
+        super().__init__(master, text=text, command=command, onvalue=True, offvalue=False, width=30, **kwargs)
+
+class Entry(CTk.CTkFrame):
+    def __init__(self, master, text:str=None, textvariable:tk.StringVar=None, state:str="normal", row:int=0, column:int=0, padx:Union[int, Tuple[int, int]]=(10, 30), pady:Union[int, Tuple[int, int]]=5, fg_color:str=gray[0], **kwargs) -> None:
+        super().__init__(master, **kwargs)
+        self.configure(fg_color=fg_color)
+        self.grid(row=row, column=column, sticky="e")
+        if text is not None:
+            CTk.CTkLabel(self, text=text).grid(row=0, column=0, padx=(20, 10))
+        self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=50, state=state)
+        self.entry.grid(row=0, column=1, padx=padx, pady=pady)
+
+    def get(self) -> int:
+        return int(self.entry.get())
+        
+    def set_state(self, state:str) -> None:
+        self.entry.configure(state=state)
+
+    def bind(self, *args, **kwargs):
+        return self.entry.bind(*args, **kwargs)
+
+class DropDown(CTk.CTkFrame):
+    def __init__(self, master, values:List[str]=[], image:CTk.CTkImage=None, command:Callable=None, variable:tk.StringVar=None, state:str="normal", **kwargs):
+        super().__init__(master, **kwargs)
+        self.configure(fg_color=gray[0])
+        self.pack(padx=20, pady=20)
+        self.icon = Button(self, image=image)
+        self.icon.configure(hover=False)
+        self.icon.pack(side=tk.LEFT)
+        self.option_menu = CTk.CTkOptionMenu(self, values=values, width=button_size[0]-button_size[1], height=button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state)
+        self.option_menu.pack(side=tk.LEFT)
+
+    def set_state(self, state:str) -> None:
+        self.option_menu.configure(state=state)
+
+    def set_values(self, values:List[str]) -> None:
+        self.option_menu.configure(values=values)
+    
+    def get_menu(self) -> CTk.CTkOptionMenu:
+        return self.option_menu
+    
+    def get_icon(self) -> Button:
+        return self.icon
+    
+    def bind(self, *args, **kwargs):
+        return self.option_menu.bind(*args, **kwargs)
+
+class SpinBox(CTk.CTkFrame):
+    def __init__(self, master, from_:int=1, to_:int=20, step_size:int=1, command:Callable=None, **kwargs) -> None:
+        super().__init__(master, **kwargs)
+        width, updown_size = 40, 8
+        self.from_, self.to_, self.step_size = from_, to_, step_size
+        self.command = command
+        self.configure(fg_color=gray[1]) 
+        self.grid_columnconfigure((0, 2), weight=0)
+        self.grid_columnconfigure(1, weight=1)
+        self.subtract_button = CTk.CTkButton(self, text=u"\u25BC", width=updown_size, height=updown_size, command=self.subtract_button_callback)
+        self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
+        self.entry = CTk.CTkEntry(self, width=width-(2*updown_size), height=updown_size, border_width=0, justify="center")
+        self.entry.grid(row=0, column=1, columnspan=1, padx=0, pady=0, sticky="ew")
+        self.add_button = CTk.CTkButton(self, text=u"\u25B2", width=updown_size, height=updown_size, command=self.add_button_callback)
+        self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
+        self.entry.insert(0, "1")
+
+    def add_button_callback(self) -> None:
+        value = int(self.entry.get()) + self.step_size
+        value = value if value <= self.to_ else self.to_
+        self.entry.delete(0, "end")
+        self.entry.insert(0, value)
+        if self.command is not None:
+            self.command()
+
+    def subtract_button_callback(self) -> None:
+        value = int(self.entry.get()) - self.step_size
+        value = value if value >= self.from_ else self.from_
+        self.entry.delete(0, "end")
+        self.entry.insert(0, value)
+        if self.command is not None:
+            self.command()
+        
+    def bind(self, event:tk.Event, command:Callable) -> None:
+        self.entry.bind(event, command)
+
+    def get(self) -> int:
+        return int(self.entry.get())
+
+    def set(self, value:int) -> None:
+        if value <= self.from_:
+            value = self.from_
+        elif value >= self.to_:
+            value = self.to_
+        self.entry.delete(0, "end")
+        self.entry.insert(0, str(value))
+
+class ShowInfo(CTk.CTkToplevel):
+    def __init__(self, message:str="", image:CTk.CTkImage=None, button_labels:List[str]=[], geometry:tuple=(300, 150), fontsize:int=13) -> None:
+        super().__init__()
+        self.attributes("-topmost", "true")
+        self.title("Polarimetry Analysis")
+        self.geometry(geometry_info(geometry))
+        CTk.CTkLabel(self, text=message, image=image, compound="left", width=250, justify=tk.LEFT, font=CTk.CTkFont(size=fontsize)).grid(row=0, column=0, padx=30, pady=20)
+        self.buttons = []
+        if button_labels:
+            if len(button_labels) >= 2:
+                banner = CTk.CTkFrame(self, fg_color="transparent")
+                banner.grid(row=1, column=0)
+                master, row_ = banner, 0
+            else:
+                master, row_ = self, 1
+            for _, label in enumerate(button_labels):
+                button = Button(master, text=label, width=80, anchor="center")
+                self.buttons += [button]
+                button.grid(row=row_, column=_, padx=20, pady=20)
+    
+    def get_buttons(self) -> List[Button]:
+        return self.buttons
+    
+class TextBox(CTk.CTkTextbox):
+    def __init__(self, master, **kwargs) -> None:
+        super().__init__(master, **kwargs)
+        self.configure(state="disabled")
+
+    def write(self, text:str) -> None:
+        self.configure(state="normal")
+        self.delete("0.0", "end")
+        self.insert("0.0", text)
+        self.configure(state="disabled")
+
+## PyPOLAR MAIN CLASSES
 
 class Stack:
     def __init__(self, filename) -> None:
@@ -461,148 +612,3 @@ class ROIManager(CTk.CTkToplevel):
                 roi["select"] = data[_][-2]
             return rois
         return []
-
-class Button(CTk.CTkButton):
-    def __init__(self, master, text:str=None, image:CTk.CTkImage=None, width:int=button_size[0], height:int=button_size[1], anchor:str="w", **kwargs) -> None:
-        super().__init__(master, text=text, image=image, width=width, height=height, anchor=anchor, compound=tk.LEFT, **kwargs)
-        if text is None:
-            self.configure(width=height)
-
-    def bind(self, sequence=None, command=None, add=True):
-        if not (add == "+" or add is True):
-            raise ValueError("'add' argument can only be '+' or True to preserve internal callbacks")
-        self._canvas.bind(sequence, command, add=True)
-        if self._text_label:
-            self._text_label.bind(sequence, command, add=True)
-        if self._image_label:
-            self._image_label.bind(sequence, command, add=True)
-
-class CheckBox(CTk.CTkCheckBox):
-    def __init__(self, master, text:str=None, command:Callable=None, **kwargs) -> None:
-        super().__init__(master, text=text, command=command, onvalue=True, offvalue=False, width=30, **kwargs)
-
-class Entry(CTk.CTkFrame):
-    def __init__(self, master, text:str=None, textvariable:tk.StringVar=None, state:str="normal", row:int=0, column:int=0, padx:Union[int, Tuple[int, int]]=(10, 30), pady:Union[int, Tuple[int, int]]=5, fg_color:str=gray[0], **kwargs) -> None:
-        super().__init__(master, **kwargs)
-        self.configure(fg_color=fg_color)
-        self.grid(row=row, column=column, sticky="e")
-        if text is not None:
-            CTk.CTkLabel(self, text=text).grid(row=0, column=0, padx=(20, 10))
-        self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=50, state=state)
-        self.entry.grid(row=0, column=1, padx=padx, pady=pady)
-
-    def get(self) -> int:
-        return int(self.entry.get())
-        
-    def set_state(self, state:str) -> None:
-        self.entry.configure(state=state)
-
-    def bind(self, *args, **kwargs):
-        return self.entry.bind(*args, **kwargs)
-
-class DropDown(CTk.CTkFrame):
-    def __init__(self, master, values:List[str]=[], image:CTk.CTkImage=None, command:Callable=None, variable:tk.StringVar=None, state:str="normal", **kwargs):
-        super().__init__(master, **kwargs)
-        self.configure(fg_color=gray[0])
-        self.pack(padx=20, pady=20)
-        self.icon = Button(self, image=image)
-        self.icon.configure(hover=False)
-        self.icon.pack(side=tk.LEFT)
-        self.option_menu = CTk.CTkOptionMenu(self, values=values, width=button_size[0]-button_size[1], height=button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state)
-        self.option_menu.pack(side=tk.LEFT)
-
-    def set_state(self, state:str) -> None:
-        self.option_menu.configure(state=state)
-
-    def set_values(self, values:List[str]) -> None:
-        self.option_menu.configure(values=values)
-    
-    def get_menu(self) -> CTk.CTkOptionMenu:
-        return self.option_menu
-    
-    def get_icon(self) -> Button:
-        return self.icon
-    
-    def bind(self, *args, **kwargs):
-        return self.option_menu.bind(*args, **kwargs)
-
-class SpinBox(CTk.CTkFrame):
-    def __init__(self, master, from_:int=1, to_:int=20, step_size:int=1, command:Callable=None, **kwargs) -> None:
-        super().__init__(master, **kwargs)
-        width, updown_size = 40, 8
-        self.from_, self.to_, self.step_size = from_, to_, step_size
-        self.command = command
-        self.configure(fg_color=gray[1]) 
-        self.grid_columnconfigure((0, 2), weight=0)
-        self.grid_columnconfigure(1, weight=1)
-        self.subtract_button = CTk.CTkButton(self, text=u"\u25BC", width=updown_size, height=updown_size, command=self.subtract_button_callback)
-        self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
-        self.entry = CTk.CTkEntry(self, width=width-(2*updown_size), height=updown_size, border_width=0, justify="center")
-        self.entry.grid(row=0, column=1, columnspan=1, padx=0, pady=0, sticky="ew")
-        self.add_button = CTk.CTkButton(self, text=u"\u25B2", width=updown_size, height=updown_size, command=self.add_button_callback)
-        self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
-        self.entry.insert(0, "1")
-
-    def add_button_callback(self) -> None:
-        value = int(self.entry.get()) + self.step_size
-        value = value if value <= self.to_ else self.to_
-        self.entry.delete(0, "end")
-        self.entry.insert(0, value)
-        if self.command is not None:
-            self.command()
-
-    def subtract_button_callback(self) -> None:
-        value = int(self.entry.get()) - self.step_size
-        value = value if value >= self.from_ else self.from_
-        self.entry.delete(0, "end")
-        self.entry.insert(0, value)
-        if self.command is not None:
-            self.command()
-        
-    def bind(self, event:tk.Event, command:Callable) -> None:
-        self.entry.bind(event, command)
-
-    def get(self) -> int:
-        return int(self.entry.get())
-
-    def set(self, value:int) -> None:
-        if value <= self.from_:
-            value = self.from_
-        elif value >= self.to_:
-            value = self.to_
-        self.entry.delete(0, "end")
-        self.entry.insert(0, str(value))
-
-class ShowInfo(CTk.CTkToplevel):
-    def __init__(self, message:str="", image:CTk.CTkImage=None, button_labels:List[str]=[], geometry:tuple=(300, 150), fontsize:int=13) -> None:
-        super().__init__()
-        self.attributes("-topmost", "true")
-        self.title("Polarimetry Analysis")
-        self.geometry(geometry_info(geometry))
-        CTk.CTkLabel(self, text=message, image=image, compound="left", width=250, justify=tk.LEFT, font=CTk.CTkFont(size=fontsize)).grid(row=0, column=0, padx=30, pady=20)
-        self.buttons = []
-        if button_labels:
-            if len(button_labels) >= 2:
-                banner = CTk.CTkFrame(self, fg_color="transparent")
-                banner.grid(row=1, column=0)
-                master, row_ = banner, 0
-            else:
-                master, row_ = self, 1
-            for _, label in enumerate(button_labels):
-                button = Button(master, text=label, width=80, anchor="center")
-                self.buttons += [button]
-                button.grid(row=row_, column=_, padx=20, pady=20)
-    
-    def get_buttons(self) -> List[Button]:
-        return self.buttons
-    
-class TextBox(CTk.CTkTextbox):
-    def __init__(self, master, **kwargs) -> None:
-        super().__init__(master, **kwargs)
-        self.configure(state="disabled")
-
-    def write(self, text:str) -> None:
-        self.configure(state="normal")
-        self.delete("0.0", "end")
-        self.insert("0.0", text)
-        self.configure(state="disabled")
