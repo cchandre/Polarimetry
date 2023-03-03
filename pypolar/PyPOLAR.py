@@ -402,8 +402,8 @@ class Polarimetry(CTk.CTk):
         about_textbox = TextBox(master=self.tabview.tab("About"), width=Polarimetry.tab_width-30, height=500)
         about_textbox.write(f"Version: {Polarimetry.__version__} ({Polarimetry.__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV,\n Matplotlib, openpyxl, tksheet, colorcet \n\n\n  uses Material Design icons by Google")
         about_textbox.grid(row=1, column=0, padx=30)
-        self.tabview.set("Intensity")
         self.startup()
+        self.tabview.set("Intensity")
 
     def startup(self) -> None:
         self.method.set("1PF")
