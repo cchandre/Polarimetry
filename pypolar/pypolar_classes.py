@@ -91,7 +91,7 @@ class Variable:
         self.name = ""
         self.latex = ""
         self.values = np.nan * np.ones((datastack.height, datastack.width))
-        self.type_histo = "normal"
+        self.type_histo = ["normal"]
         self.colormap = ["jet", "viridis"]
 
     def imshow(self, vmin:float, vmax:float, colorblind:bool=False, rotation:int=0) -> mpl.image.AxesImage:
@@ -104,15 +104,15 @@ class Variable:
             field[field == 0] = np.nan
         return ax.imshow(field, vmin=vmin, vmax=vmax, cmap=self.colormap[int(colorblind)], interpolation="nearest")
 
-    def histo(self, mask:np.ndarray, vmin:float=0, vmax:float=180, colorblind:bool=False, rotation:float=0) -> None:
+    def histo(self, mask:np.ndarray, htype:str="normal", vmin:float=0, vmax:float=180, colorblind:bool=False, rotation:float=0) -> None:
         data_vals = self.values[mask * np.isfinite(self.values)]
-        vmin_, vmax_ = (0, 90) if self.type_histo == "polar3" else (vmin, vmax)
+        vmin_, vmax_ = (0, 90) if htype == "polar3" else (vmin, vmax)
         norm = mpl.colors.Normalize(vmin_, vmax_)
         cmap = self.colormap[int(colorblind)]
         if isinstance(cmap, str):
             cmap = mpl.colormaps[cmap] 
         bins = np.linspace(vmin_, vmax_, 60)
-        if self.type_histo == "normal":
+        if htype == "normal":
             ax = plt.gca()
             n, bins, patches = ax.hist(data_vals, bins=bins, linewidth=0.5)
             bin_centers = (bins[:-1] + bins[1:]) / 2
@@ -124,19 +124,19 @@ class Variable:
             ax.set_xlabel(self.latex, fontsize=20)
             text = self.latex + " = " + "{:.2f}".format(np.mean(data_vals)) + " $\pm$ " "{:.2f}".format(np.std(data_vals))
             ax.annotate(text, xy=(0.3, 1.05), xycoords="axes fraction", fontsize=14)
-        elif self.type_histo.startswith("polar"):
+        elif htype.startswith("polar"):
             ax = plt.subplot(projection="polar")
-            if self.type_histo == "polar1":
+            if htype == "polar1":
                 if self.name == "Rho":
                     data_vals = np.mod(2 * (data_vals + rotation), 360) / 2
                 meandata = circularmean(data_vals)
                 std = np.std(wrapto180(2 * (data_vals - meandata)) / 2)
-            elif self.type_histo == "polar2":
+            elif htype == "polar2":
                 ax.set_theta_zero_location("N")
                 ax.set_theta_direction(-1)
                 meandata = np.mean(data_vals)
                 std = np.std(data_vals)
-            elif self.type_histo == "polar3":
+            elif htype == "polar3":
                 ax.set_theta_zero_location("E")
                 data_vals[data_vals >= 90] = 180 - data_vals[data_vals >= 90]
                 meandata = circularmean(data_vals)
@@ -152,7 +152,7 @@ class Variable:
             ax.set_thetamin(vmin_)
             ax.set_thetamax(vmax_)
             text = self.latex + " = " + "{:.2f}".format(meandata) + " $\pm$ " "{:.2f}".format(std)
-            if self.type_histo == "polar1":
+            if htype == "polar1":
                 ax.annotate(text, xy=(0.3, 0.95), xycoords="axes fraction", fontsize=14)
             else:
                 ax.annotate(text, xy=(0.7, 0.95), xycoords="axes fraction", fontsize=14)
@@ -268,7 +268,7 @@ class NToolbar2Tk(NavigationToolbar2Tk):
         label = tk.Label(master=self, font=self._label_font, text='\N{NO-BREAK SPACE}\n\N{NO-BREAK SPACE}')
         label.pack(side=tk.RIGHT)
         self.message = tk.StringVar(master=self)
-        self._message_label = tk.Label(master=self, font=self._label_font, textvariable=self.message, justify=tk.RIGHT, fg=text_color)
+        self._message_label = tk.Label(master=self, font=self._label_font, textvariable=self.message, justify=tk.LEFT, fg=text_color)
         self._message_label.pack(side=tk.RIGHT)
 
     def _Button(self, text:str, image_file:CTk.CTkImage, toggle, command:Callable):
@@ -282,6 +282,23 @@ class NToolbar2Tk(NavigationToolbar2Tk):
 
     def destroy(self, *args):
         tk.Frame.destroy(self)
+
+    def _mouse_event_to_message(self, event):
+        if event.inaxes and event.inaxes.get_navigate():
+            try:
+                s = f"(x={int(event.xdata)}, y={int(event.ydata)})"
+            except (ValueError, OverflowError):
+                pass
+            else:
+                artists = [a for a in event.inaxes._mouseover_set if a.contains(event)[0] and a.get_visible()]
+                if artists:
+                    a = mpl.cbook._topmost_artist(artists)
+                    if a is not event.inaxes.patch:
+                        data = a.get_cursor_data(event)
+                        if data is not None:
+                            s += f"\nI={int(np.sum(data))}"
+                return s
+        return ""
 
 class ToolTip:
     @staticmethod

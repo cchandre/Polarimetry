@@ -267,7 +267,7 @@ class Polarimetry(CTk.CTk):
         self.show_table = [CheckBox(show_save) for _ in range(len(labels))]
         self.save_table = [CheckBox(show_save) for _ in range(len(labels))]
         for _ in range(len(labels)):
-            CTk.CTkLabel(master=show_save, text=labels[_], anchor="w", width=100, height=30).grid(row=it+2, column=0, padx=(20, 0))
+            CTk.CTkLabel(master=show_save, text=labels[_], anchor="w", width=100, height=30).grid(row=_+2, column=0, padx=(20, 0))
             self.save_table[_].configure(command=self.click_save_output)
             self.show_table[_].grid(row=_+2, column=1, pady=0, padx=20, sticky="ew")
             self.save_table[_].grid(row=_+2, column=2, pady=0, padx=(20, 20))
@@ -350,20 +350,26 @@ class Polarimetry(CTk.CTk):
         ToolTip.createToolTip(button, " display the selected disk cone (for 1PF)")
         self.calib_textbox = TextBox(master=adv["Disk cone / Calibration data"], width=250, height=50, state="disabled")
         self.calib_textbox.grid(row=3, column=0, pady=10)
-        self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=button_size[0], height=button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled")
+        self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], width=button_size[0], height=button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled")
+        angles = [0, 45, 90, 135]
+        self.dict_polar = {}
+        for p in list(permutations([0, 1, 2, 3])):
+            a = [angles[_] for _ in p]
+            self.dict_polar.update({f"UL{a[0]}-UR{a[1]}-LR{a[2]}-LL{a[3]}": p})
+        self.polar_dropdown.configure(values=list(self.dict_polar.keys()))
         self.polar_dropdown.grid(row=4, column=0, pady=10)
         ToolTip.createToolTip(self.polar_dropdown, " 4POLAR: select the distribution of polarizations (0,45,90,135) among quadrants clockwise\n Upper Left (UL), Upper Right (UR), Lower Right (LR), Lower Left (LL)")
         labels = ["Bin width", "Bin height"]
         self.bin_spinboxes = [SpinBox(adv["Binning"], command=lambda:self.intensity_callback(event=1)) for _ in range(2)]
-        for it in range(2):
-            self.bin_spinboxes[it].bind("<Return>", command=self.intensity_callback)
-            self.bin_spinboxes[it].grid(row=it+1, column=0, padx=(60, 20), pady=(0, 0), sticky="w")
-            label = CTk.CTkLabel(master=adv["Binning"], text="\n" + labels[it] + "\n")
-            label.grid(row=it+1, column=0, padx=(0, 60), pady=(0, 0), sticky="e")
+        for _ in range(2):
+            self.bin_spinboxes[_].bind("<Return>", command=self.intensity_callback)
+            self.bin_spinboxes[_].grid(row=_+1, column=0, padx=(60, 20), pady=(0, 0), sticky="w")
+            label = CTk.CTkLabel(master=adv["Binning"], text="\n" + labels[_] + "\n")
+            label.grid(row=_+1, column=0, padx=(0, 60), pady=(0, 0), sticky="e")
             ToolTip.createToolTip(label, " height and width of the bin used for data binning")
         labels = ["Stick (deg)", "Figure (deg)"]
         self.rotation = [tk.StringVar(value="0"), tk.StringVar(value="0")]
-        entries = [Entry(adv["Rotation"], text="\n" + label + "\n", textvariable=self.rotation[it], row=it+1, column=0) for it, label in enumerate(labels)]
+        entries = [Entry(adv["Rotation"], text="\n" + label + "\n", textvariable=self.rotation[_], row=_+1, column=0) for _, label in enumerate(labels)]
         entries[1].bind("<Return>", command=self.rotation_callback)
         CTk.CTkLabel(master=adv["Rotation"], text=" ", height=5).grid(row=3, column=0, pady=5)
         for entry in entries:
@@ -371,7 +377,7 @@ class Polarimetry(CTk.CTk):
         labels = ["Noise factor", "Noise width", "Noise height", "Noise removal level"]
         self.noise = [tk.StringVar(value="1"), tk.StringVar(value="3"), tk.StringVar(value="3"), tk.StringVar(value="0")]
         rows = [1, 2, 3, 5]
-        entries = [Entry(adv["Remove background"], text="\n" + label + "\n", textvariable=self.noise[it], row=rows[it], column=0) for it, label in enumerate(labels)]
+        entries = [Entry(adv["Remove background"], text="\n" + label + "\n", textvariable=self.noise[_], row=rows[_], column=0) for _, label in enumerate(labels)]
         entries[3].set_state("disabled")
         button = Button(adv["Remove background"], text="Click background", image=self.icons["exposure"], command=lambda:self.click_callback(self.intensity_axis, self.intensity_canvas, "click background"))
         button.grid(row=4, column=0)
@@ -407,14 +413,7 @@ class Polarimetry(CTk.CTk):
         self.calib_dropdown.configure(values=self.CD.list("1PF"))
         self.calib_dropdown.set(self.CD.list("1PF")[0])
         self.calib_textbox.write(self.CD.name)
-        angles = [0, 45, 90, 135]
-        self.dict_polar = {}
-        for p in list(permutations([0, 1, 2, 3])):
-            a = [angles[_] for _ in p]
-            self.dict_polar.update({f"UL{a[0]}-UR{a[1]}-LR{a[2]}-LL{a[3]}": p})
-        self.polar_dropdown.configure(values=list(self.dict_polar.keys()))
         self.polar_dropdown.set("UL90-UR0-LR45-LL135")
-        self.order = self.dict_polar["UL90-UR0-LR45-LL135"]
         self.thrsh_colormap = "hot"
 
     def initialize_slider(self) -> None:
@@ -1037,6 +1036,7 @@ class Polarimetry(CTk.CTk):
             self.calib_dropdown.configure(state="disabled")
         if method.startswith("4POLAR"):
             self.polar_dropdown.configure(state="normal")
+            self.order = self.dict_polar[self.polar_dropdown.get()]
             window = ShowInfo(message="\n Perform: Select a beads file (*.tif)\n\n Load: Select a registration file (*.pyreg)\n\n Registration is performed with Whitelight.tif \n   which should be in the same folder as the beads file", image=self.icons["blur_circular"], button_labels=["Perform", "Load", "Cancel"], geometry=(420, 240))
             buttons = window.get_buttons()
             buttons[0].configure(command=lambda:self.perform_registration(window))
@@ -1126,7 +1126,7 @@ class Polarimetry(CTk.CTk):
             ax.set_title(title)
             ax.set_axis_off()
         self.registration = {"name_beads": beadstack.name, "radius": radius, "centers": centers, "homographies": homographies}
-        window = ShowInfo(message=" Are you okay with this registration?", button_labels=["Yes", "Yes and Save", "No"], image=self.icons["blur_circular"], geometry=(380, 150))
+        window = ShowInfo(message=" Are you okay with this registration?", button_labels=["Yes", u"Yes \u0026 Save", "No"], image=self.icons["blur_circular"], geometry=(380, 150))
         buttons = window.get_buttons()
         buttons[0].configure(command=lambda:self.yes_registration_callback(window, fig))
         buttons[1].configure(command=lambda:self.yes_save_registration_callback(window, fig, filename))
@@ -1463,18 +1463,19 @@ class Polarimetry(CTk.CTk):
     def plot_histo(self, var:Variable, datastack:DataStack, roi_map:np.ndarray, roi:ROI=None) -> None:
         display, vmin, vmax = self.get_variable(var.indx % 10)
         if display and (self.show_table[2].get() or self.save_table[2].get()):
-            fig = plt.figure(figsize=self.figsize)
-            fig.type, fig.var = "Histogram", var.name
-            suffix = "for ROI " + str(roi["indx"]) if roi is not None else ""
-            fig.canvas.manager.set_window_title(var.name + " Histogram " + suffix + ": " + self.datastack.name)
-            mask = (roi_map == roi["indx"]) if roi is not None else (roi_map == 1)
-            var.histo(mask, vmin, vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()))
-            if self.save_table[2].get():
-                suffix = "_perROI_" + str(roi["indx"]) if roi is not None else ""
-                filename = datastack.filename + "_Histo" + var.name + suffix
-                plt.savefig(filename + ".tif", bbox_inches="tight")
-            if not self.show_table[2].get():
-                plt.close(fig)
+            for htype in var.type_histo:
+                fig = plt.figure(figsize=self.figsize)
+                fig.type, fig.var = "Histogram", var.name
+                suffix = "for ROI " + str(roi["indx"]) if roi is not None else ""
+                fig.canvas.manager.set_window_title(var.name + " Histogram " + suffix + ": " + self.datastack.name)
+                mask = (roi_map == roi["indx"]) if roi is not None else (roi_map == 1)
+                var.histo(mask, htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()))
+                if self.save_table[2].get():
+                    suffix = "_perROI_" + str(roi["indx"]) if roi is not None else ""
+                    filename = datastack.filename + "_Histo" + var.name + suffix
+                    plt.savefig(filename + ".tif", bbox_inches="tight")
+                if not self.show_table[2].get():
+                    plt.close(fig)
 
     def plot_histos(self, var:Variable, datastack:DataStack, roi_map:np.ndarray=None) -> None:
         if self.per_roi.get():
@@ -1884,7 +1885,7 @@ class Polarimetry(CTk.CTk):
             a0[a0 == 0] = np.nan
         rho_ = Variable(datastack)
         rho_.indx, rho_.name, rho_.latex = 0, "Rho", r"$\rho$"
-        rho_.type_histo = "polar1"
+        rho_.type_histo = ["polar1"]
         rho_.colormap = ["hsv", cc.m_colorwheel]
         if self.method.get() == "1PF":
             mask *= (np.abs(a2) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
@@ -1927,7 +1928,7 @@ class Polarimetry(CTk.CTk):
             eta_ = Variable(datastack)
             eta_.indx, eta_.name, eta_.latex = 2, "Eta", "$\eta$"
             eta_.values[mask] = np.rad2deg(np.arccos(np.sqrt((pzz[mask] - lam[mask]) / (1 - 3 * lam[mask]))))
-            eta_.type_histo = "polar2"
+            eta_.type_histo = ["polar2"]
             eta_.colormap = ["plasma", "plasma"]
             datastack.vars = [rho_, psi_, eta_]
         elif self.method.get() == "4POLAR 2D":
@@ -1951,7 +1952,7 @@ class Polarimetry(CTk.CTk):
         if self.edge_detection_switch.get() == "on":
             rho_ct = Variable(datastack)
             rho_ct.indx, rho_ct.name, rho_ct.latex = 10, "Rho (vs contour)", r"$\rho_c$"
-            rho_ct.type_histo = "polar1"
+            rho_ct.type_histo = ["polar1", "polar3"]
             rho_ct.colormap = ["hsv", cc.m_colorwheel]
             vals = self.define_rho_ct(self.edge_contours)
             filter = np.isfinite(rho_.values) * np.isfinite(vals)
