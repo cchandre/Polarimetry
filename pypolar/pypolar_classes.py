@@ -429,7 +429,7 @@ class NToolbar2Tk(NavigationToolbar2Tk):
 
     folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icons")
 
-    def __init__(self, canvas, window, pack_toolbar:bool) -> None:
+    def __init__(self, canvas, window, pack_toolbar:bool=False) -> None:
         super().__init__(canvas=canvas, window=window, pack_toolbar=pack_toolbar)
         self._buttons = {}
         self.toolitems = (
@@ -457,6 +457,12 @@ class NToolbar2Tk(NavigationToolbar2Tk):
         self.message = tk.StringVar(master=self)
         self._message_label = tk.Label(master=self, font=self._label_font, textvariable=self.message, justify=tk.LEFT, fg=text_color)
         self._message_label.pack(side=tk.RIGHT)
+        self.config(background=gray[1])
+        self._message_label.config(background=gray[1])
+        for button in self.winfo_children():
+            button.config(background=gray[1])
+        self.pack(side=tk.BOTTOM, fill=tk.X)
+        canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
 
     def _Button(self, text:str, image_file:CTk.CTkImage, toggle, command:Callable):
         b = super()._Button(text=text, image_file=image_file, toggle=toggle, command=command)

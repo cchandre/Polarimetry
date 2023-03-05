@@ -56,7 +56,7 @@ plt.rcParams["savefig.bbox"] = "tight"
 plt.ion()
 
 class Polarimetry(CTk.CTk):
-    __version__ = "2.4.2"
+    __version__ = "2.4.3"
 
     dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023"}
 
@@ -83,10 +83,9 @@ class Polarimetry(CTk.CTk):
 
 ## MAIN
         self.base_dir = os.path.dirname(os.path.realpath(__file__))
-        delx = self.winfo_screenwidth() // 10
-        dely = self.winfo_screenheight() // 10
-        self.dpi = self.winfo_fpixels("1i")
-        self.figsize = (Polarimetry.figsize[0] / self.dpi, Polarimetry.figsize[1] / self.dpi)
+        delx, dely = self.winfo_screenwidth() // 10, self.winfo_screenheight() // 10
+        dpi = self.winfo_fpixels("1i")
+        self.figsize = (Polarimetry.figsize[0] / dpi, Polarimetry.figsize[1] / dpi)
         self.title("Polarimetry Analysis")
         self.geometry(f"{Polarimetry.width}x{Polarimetry.height}+{delx}+{dely}")
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -163,20 +162,14 @@ class Polarimetry(CTk.CTk):
         bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=20)
         self.intensity_frame = CTk.CTkFrame(master=self.tabview.tab("Intensity"), fg_color="transparent", height=Polarimetry.axes_size[0], width=Polarimetry.axes_size[1])
         self.intensity_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        self.intensity_fig = Figure(figsize=(self.intensity_frame.winfo_width() / self.dpi, self.intensity_frame.winfo_height() / self.dpi), facecolor=gray[1])
+        self.intensity_fig = Figure(figsize=(self.intensity_frame.winfo_width() / dpi, self.intensity_frame.winfo_height() / dpi), facecolor=gray[1])
         self.intensity_axis = self.intensity_fig.add_axes([0, 0, 1, 1])
         self.intensity_axis.set_axis_off()
         self.intensity_canvas = FigureCanvasTkAgg(self.intensity_fig, master=self.intensity_frame)
         background = plt.imread(os.path.join(image_path, "blur_circular-512.png"))
         self.intensity_axis.imshow(background, cmap="gray", interpolation="bicubic", alpha=0.1)
         self.intensity_canvas.draw()
-        self.intensity_toolbar = NToolbar2Tk(self.intensity_canvas, self.intensity_frame, pack_toolbar=False)
-        self.intensity_toolbar.config(background=gray[1])
-        self.intensity_toolbar._message_label.config(background=gray[1])
-        for button in self.intensity_toolbar.winfo_children():
-            button.config(background=gray[1])
-        self.intensity_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
-        self.intensity_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
+        self.intensity_toolbar = NToolbar2Tk(self.intensity_canvas, self.intensity_frame)
         banner = CTk.CTkFrame(master=self.tabview.tab("Intensity"), fg_color="transparent", height=Polarimetry.axes_size[0], width=40)
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         Button(banner, image=self.icons["contrast"], command=self.contrast_intensity_button_callback).pack(side=tk.TOP, padx=20, pady=20)
@@ -206,20 +199,14 @@ class Polarimetry(CTk.CTk):
         self.thrsh_frame = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=Polarimetry.axes_size[0], width=Polarimetry.axes_size[1])
         self.thrsh_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.thrsh_axis_facecolor = gray[1]
-        self.thrsh_fig = Figure(figsize=(self.thrsh_frame.winfo_width() / self.dpi, self.thrsh_frame.winfo_height() / self.dpi), facecolor=self.thrsh_axis_facecolor)
+        self.thrsh_fig = Figure(figsize=(self.thrsh_frame.winfo_width() / dpi, self.thrsh_frame.winfo_height() / dpi), facecolor=self.thrsh_axis_facecolor)
         self.thrsh_axis = self.thrsh_fig.add_axes([0, 0, 1, 1])
         self.thrsh_axis.set_axis_off()
         self.thrsh_axis.set_facecolor(self.thrsh_axis_facecolor)
         self.thrsh_canvas = FigureCanvasTkAgg(self.thrsh_fig, master=self.thrsh_frame)
         self.thrsh_axis.imshow(background, cmap="gray", interpolation="bicubic", alpha=0.1)
         self.thrsh_canvas.draw()
-        self.thrsh_toolbar = NToolbar2Tk(self.thrsh_canvas, self.thrsh_frame, pack_toolbar=False)
-        self.thrsh_toolbar.config(background=gray[1])
-        self.thrsh_toolbar._message_label.config(background=gray[1])
-        for button in self.thrsh_toolbar.winfo_children():
-            button.config(background=gray[1])
-        self.thrsh_toolbar.pack(side=tk.BOTTOM, fill=tk.X)
-        self.thrsh_canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
+        self.thrsh_toolbar = NToolbar2Tk(self.thrsh_canvas, self.thrsh_frame)
         banner = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=Polarimetry.axes_size[0], width=40)
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         Button(banner, image=self.icons["contrast"], command=self.contrast_thrsh_button_callback).pack(side=tk.TOP, padx=20, pady=20)
@@ -401,7 +388,6 @@ class Polarimetry(CTk.CTk):
         about_textbox.write(f"Version: {Polarimetry.__version__} ({Polarimetry.__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV,\n Matplotlib, openpyxl, tksheet, colorcet \n\n\n  uses Material Design icons by Google")
         about_textbox.grid(row=1, column=0, padx=30)
         self.startup()
-        self.tabview.set("Intensity")
 
     def startup(self) -> None:
         self.method.set("1PF")
@@ -413,6 +399,8 @@ class Polarimetry(CTk.CTk):
         self.calib_textbox.write(self.CD.name)
         self.polar_dropdown.set("UL90-UR0-LR45-LL135")
         self.thrsh_colormap = "hot"
+        self.tabview.set("Intensity")
+        self.filename_label.focus()
 
     def initialize_slider(self) -> None:
         if hasattr(self, "stack"):
