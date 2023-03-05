@@ -14,6 +14,7 @@ from scipy.ndimage import rotate
 from scipy.signal import convolve2d
 from scipy.linalg import norm
 from scipy.optimize import linear_sum_assignment
+from PIL import Image, ImageTk
 from tkinter import filedialog as fd
 from tkinter.messagebox import showerror
 from scipy.io import loadmat
@@ -22,6 +23,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from typing import Callable, List, Tuple, Union
 
+tab_width, tab_height = 810, 830
 button_size = (160, 40)
 orange = ("#FF7F4F", "#ffb295")
 text_color = "black"
@@ -62,6 +64,12 @@ def find_matches(a:np.ndarray, b:np.ndarray, tol:float=10) -> Tuple[np.ndarray, 
     a_, b_ = (a, b[indices]) if len(b) >= len(a) else (a[indices], b)
     dist = np.linalg.norm(a_ - b_, axis=1)
     return a_[dist <= tol], b_[dist <= tol]
+
+def recolor_icon(image, color):
+    image_data = np.asarray(image).copy()
+    black_mask = (image_data[..., :3] == 0).all(axis=-1)
+    image_data[black_mask, :3] = color
+    return Image.fromarray(image_data, mode="RGBA")
 
 ## PyPOLAR WIDGETS
 
@@ -429,8 +437,8 @@ class NToolbar2Tk(NavigationToolbar2Tk):
 
     folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icons")
 
-    def __init__(self, canvas, window, pack_toolbar:bool=False) -> None:
-        super().__init__(canvas=canvas, window=window, pack_toolbar=pack_toolbar)
+    def __init__(self, canvas, window) -> None:
+        super().__init__(canvas=canvas, window=window, pack_toolbar=False)
         self._buttons = {}
         self.toolitems = (
         ('Home', ' reset original view', 'home', 'home'),
@@ -470,6 +478,7 @@ class NToolbar2Tk(NavigationToolbar2Tk):
             NavigationToolbar2Tk._set_image_for_button(self, b)
         else:
             b.configure(font=self._label_font)
+        b.configure(width=24, height=24, borderwidth=0)
         b.pack(side=tk.LEFT)
         return b
 
@@ -654,3 +663,13 @@ class ROIManager(CTk.CTkToplevel):
                 roi["select"] = data[_][-2]
             return rois
         return []
+    
+class TabView(CTk.CTkTabview):
+    def __init__(self, master, **kwargs) -> None:
+        super().__init__(master, **kwargs)
+
+        self.configure(width=tab_width, height=tab_height, segmented_button_selected_color=orange[0], segmented_button_unselected_color=gray[1], segmented_button_selected_hover_color=orange[1], text_color=text_color, segmented_button_fg_color=gray[0], fg_color=gray[1])
+        self.pack(fill=tk.BOTH, expand=True)
+        list_tabs = ["Intensity", "Thresholding/Mask", "Options", "Advanced", "About"]
+        for tab in list_tabs:
+            self.add(tab)

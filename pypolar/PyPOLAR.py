@@ -29,7 +29,7 @@ from itertools import permutations, chain
 from datetime import date
 import copy
 from typing import List, Tuple, Union
-from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, NToolbar2Tk, ToolTip, ROIManager
+from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, NToolbar2Tk, ToolTip, ROIManager, TabView
 from pypolar_classes import Button, CheckBox, Entry, DropDown, SpinBox, ShowInfo, TextBox
 from pypolar_classes import adjust, circularmean, wrapto180, angle_edge, find_matches
 from pypolar_classes import button_size, orange, gray, red, green, text_color, geometry_info
@@ -99,7 +99,8 @@ class Polarimetry(CTk.CTk):
         self.icons = {}
         for file in os.listdir(image_path):
             if file.endswith(".png"):
-                self.icons.update({os.path.splitext(file)[0]: CTk.CTkImage(dark_image=Image.open(os.path.join(image_path, file)), size=(30, 30))})
+                im = Image.open(os.path.join(image_path, file))
+                self.icons.update({os.path.splitext(file)[0]: CTk.CTkImage(dark_image=im, size=(30, 30))})
         if sys.platform == "win32":
             self.iconbitmap(os.path.join(self.base_dir, "main_icon.ico"))
             import winreg
@@ -125,13 +126,7 @@ class Polarimetry(CTk.CTk):
         self.right_frame.grid_rowconfigure(1, weight=0)
         self.right_frame.grid_columnconfigure(0, weight=1)
         self.right_frame.grid(row=0, column=1, sticky="nsew")
-
-## DEFINE TABS
-        self.tabview = CTk.CTkTabview(master=self.right_frame, width=Polarimetry.tab_width, height=Polarimetry.tab_height, segmented_button_selected_color=orange[0], segmented_button_unselected_color=gray[1], segmented_button_selected_hover_color=orange[1], text_color=text_color, segmented_button_fg_color=gray[0], fg_color=gray[1])
-        self.tabview.pack(fill=tk.BOTH, expand=True)
-        list_tabs = ["Intensity", "Thresholding/Mask", "Options", "Advanced", "About"]
-        for tab in list_tabs:
-            self.tabview.add(tab)
+        self.tabview = TabView(self.right_frame)
 
 ## LEFT FRAME
         logo = Button(self.left_frame, text=" PyPOLAR", image=self.icons["blur_circular"], command=self.on_click_tab)
@@ -169,7 +164,7 @@ class Polarimetry(CTk.CTk):
         background = plt.imread(os.path.join(image_path, "blur_circular-512.png"))
         self.intensity_axis.imshow(background, cmap="gray", interpolation="bicubic", alpha=0.1)
         self.intensity_canvas.draw()
-        self.intensity_toolbar = NToolbar2Tk(self.intensity_canvas, self.intensity_frame)
+        self.intensity_toolbar = NToolbar2Tk(canvas=self.intensity_canvas, window=self.intensity_frame)
         banner = CTk.CTkFrame(master=self.tabview.tab("Intensity"), fg_color="transparent", height=Polarimetry.axes_size[0], width=40)
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         Button(banner, image=self.icons["contrast"], command=self.contrast_intensity_button_callback).pack(side=tk.TOP, padx=20, pady=20)
@@ -206,7 +201,7 @@ class Polarimetry(CTk.CTk):
         self.thrsh_canvas = FigureCanvasTkAgg(self.thrsh_fig, master=self.thrsh_frame)
         self.thrsh_axis.imshow(background, cmap="gray", interpolation="bicubic", alpha=0.1)
         self.thrsh_canvas.draw()
-        self.thrsh_toolbar = NToolbar2Tk(self.thrsh_canvas, self.thrsh_frame)
+        self.thrsh_toolbar = NToolbar2Tk(canvas=self.thrsh_canvas, window=self.thrsh_frame)
         banner = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=Polarimetry.axes_size[0], width=40)
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         Button(banner, image=self.icons["contrast"], command=self.contrast_thrsh_button_callback).pack(side=tk.TOP, padx=20, pady=20)
