@@ -12,6 +12,8 @@ import cv2
 from skimage import exposure
 from scipy.ndimage import rotate
 from scipy.signal import convolve2d
+from scipy.linalg import norm
+from scipy.optimize import linear_sum_assignment
 from tkinter import filedialog as fd
 from tkinter.messagebox import showerror
 from scipy.io import loadmat
@@ -44,6 +46,22 @@ def circularmean(rho:np.ndarray) -> float:
 
 def wrapto180(rho:np.ndarray) -> np.ndarray:
     return np.angle(np.exp(1j * np.deg2rad(rho)), deg=True)
+
+def angle_edge(edge:np.ndarray) -> Tuple[float, np.ndarray]:
+    tangent = np.diff(edge, axis=0, append=edge[-1, :].reshape((1, 2)))
+    norm_t = norm(tangent, axis=1)[:, np.newaxis]
+    tangent = np.divide(tangent, norm_t, where=np.all((norm_t!=0, np.isfinite(norm_t)), axis=0))
+    angle = np.mod(2 * np.rad2deg(np.arctan2(-tangent[:, 1], tangent[:, 0])), 360) / 2
+    normal = np.einsum("ij,jk->ik", tangent, np.array([[0, -1], [1, 0]]))
+    return angle, normal
+
+def find_matches(a:np.ndarray, b:np.ndarray, tol:float=10) -> Tuple[np.ndarray, np.ndarray]:
+    a_, b_ = (a, b) if len(b) >= len(a) else (b, a)
+    cost = np.linalg.norm(a_[:, np.newaxis, :] - b_, axis=2)
+    indices = linear_sum_assignment(cost)[1]
+    a_, b_ = (a, b[indices]) if len(b) >= len(a) else (a[indices], b)
+    dist = np.linalg.norm(a_ - b_, axis=1)
+    return a_[dist <= tol], b_[dist <= tol]
 
 ## PyPOLAR WIDGETS
 
@@ -175,9 +193,11 @@ class ShowInfo(CTk.CTkToplevel):
                 master, row_ = self, 1
             for _, label in enumerate(button_labels):
                 button = Button(master, text=label, width=80, anchor="center")
-                self.buttons += [button]
+                if label == "OK":
+                    button.configure(command=lambda:self.withdraw())
                 button.grid(row=row_, column=_, padx=20, pady=20)
-    
+                self.buttons += [button]
+
     def get_buttons(self) -> List[Button]:
         return self.buttons
     
@@ -210,6 +230,22 @@ class Stack:
             return convolve2d(intensity, np.ones(bin), mode="same") / (bin[0] * bin[1])
         else:
             return intensity
+        
+    def compute_dark(self) -> int:
+        SizeCell = 20
+        NCellHeight = int(np.floor(self.height / SizeCell))
+        NCellWidth = int(np.floor(self.width / SizeCell))
+        cropIm = self.values[:, :SizeCell * NCellHeight, :SizeCell * NCellWidth]
+        cropIm = np.moveaxis(cropIm, 0, -1)
+        ImCG = np.asarray(np.split(np.asarray(np.split(cropIm, NCellWidth, axis=1)), NCellHeight, axis=1))
+        mImCG = np.zeros((NCellHeight, NCellWidth))
+        for it in range(NCellHeight):
+            for jt in range(NCellWidth):
+                cell = ImCG[it, jt, :, :, 0]
+                mImCG[it, jt] = np.mean(cell[cell != 0])
+        IndI, IndJ = np.where(mImCG == np.amin(mImCG))
+        cell = ImCG[IndI, IndJ, :, :, :]
+        return np.mean(cell[cell != 0])
 
 class DataStack:
     def __init__(self, stack) -> None:

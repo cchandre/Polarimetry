@@ -9,11 +9,9 @@ import _pickle as cPickle
 import copy
 import webbrowser
 import numpy as np
-from scipy.optimize import linear_sum_assignment
 from scipy.signal import convolve2d, savgol_filter
 from scipy.interpolate import interpn
 from scipy.ndimage import rotate
-from scipy.linalg import norm
 from scipy.io import savemat
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -33,7 +31,7 @@ import copy
 from typing import List, Tuple, Union
 from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, NToolbar2Tk, ToolTip, ROIManager
 from pypolar_classes import Button, CheckBox, Entry, DropDown, SpinBox, ShowInfo, TextBox
-from pypolar_classes import adjust, circularmean, wrapto180
+from pypolar_classes import adjust, circularmean, wrapto180, angle_edge, find_matches
 from pypolar_classes import button_size, orange, gray, red, green, text_color, geometry_info
 
 try:
@@ -556,13 +554,12 @@ class Polarimetry(CTk.CTk):
 
     def smooth_edge(self, edge:np.ndarray) -> np.ndarray:
         window_length = int(self.canny_thrsh[3].get())
-        polyorder = 3
-        return savgol_filter(edge, window_length=window_length, polyorder=polyorder, mode="nearest", axis=0)
+        return savgol_filter(edge, window_length=window_length, polyorder=3, mode="nearest", axis=0)
     
     def define_rho_ct(self, contours:List[np.ndarray]) -> np.ndarray:
         rho_ct = np.nan * np.ones_like(self.stack.intensity)
         for contour in contours:
-            angle, normal = self.angle_edge(contour)
+            angle, normal = angle_edge(contour)
             crange = chain(range(-int(self.layer_params[0].get()) - int(self.layer_params[1].get()), -int(self.layer_params[0].get()) + 1), range(int(self.layer_params[0].get()), int(self.layer_params[0].get()) + int(self.layer_params[1].get()) + 1))
             for _ in crange:
                 shift_x = (contour[:, 0] + _ * normal[:, 0]).astype(np.uint16)
@@ -573,14 +570,6 @@ class Polarimetry(CTk.CTk):
                 shift_y[shift_y >= self.stack.height - 1] = self.stack.height - 1
                 rho_ct[shift_y, shift_x] = angle
         return rho_ct
-    
-    def angle_edge(self, edge:np.ndarray) -> Tuple[float, np.ndarray]:
-        tangent = np.diff(edge, axis=0, append=edge[-1, :].reshape((1, 2)))
-        norm_t = norm(tangent, axis=1)[:, np.newaxis]
-        tangent = np.divide(tangent, norm_t, where=np.all((norm_t!=0, np.isfinite(norm_t)), axis=0))
-        angle = np.mod(2 * np.rad2deg(np.arctan2(-tangent[:, 1], tangent[:, 0])), 360) / 2
-        normal = np.einsum("ij,jk->ik", tangent, np.array([[0, -1], [1, 0]]))
-        return angle, normal
 
     def contrast_thrsh_slider_callback(self, value:float) -> None:
         if value <= 0.001:
@@ -713,18 +702,18 @@ class Polarimetry(CTk.CTk):
 
     def open_file_callback(self, value:str) -> None:
         self.edge_detection_switch.deselect()
+        self.filelist = []
         if hasattr(self, "edge_contours"):
             delattr(self, "edge_contours")
             self.tabview.delete("Edge Detection")
         if hasattr(self, "manager_window"):
             self.manager_window.destroy()
         if value == "Open file":
-            self.options_dropdown.get_icon().configure(image=self.icons["build"])
             filetypes = [("Tiff files", "*.tiff"), ("Tiff files", "*.tif")]
             initialdir = self.stack.folder if hasattr(self, "stack") else "/"
             filename = fd.askopenfilename(title="Select a file", initialdir=initialdir, filetypes=filetypes)
-            self.filelist = []
             if filename:
+                self.options_dropdown.get_icon().configure(image=self.icons["build"])
                 self.openfile_dropdown.get_icon().configure(image=self.icons["photo_fill"])
                 self.options_dropdown.set_state("normal")
                 self.options_dropdown.set_values(["Thresholding (manual)", "Mask (manual)"])
@@ -735,7 +724,6 @@ class Polarimetry(CTk.CTk):
         elif value == "Open folder": 
             initialdir = self.stack.folder if hasattr(self, "stack") else "/"
             folder = fd.askdirectory(title="Select a directory", initialdir=initialdir)
-            self.filelist = []
             if folder:
                 self.openfile_dropdown.get_icon().configure(image=self.icons["folder_open"])
                 for filename in os.listdir(folder):
@@ -748,32 +736,31 @@ class Polarimetry(CTk.CTk):
                 self.options_dropdown.set_values(["Thresholding (manual)", "Thresholding (auto)", "Mask (manual)", "Mask (auto)"])
                 self.option.set("Thresholding (manual)")
             else:
-                window = ShowInfo(message=" The folder does not contain TIFF or TIF files", image=self.icons["download_folder"], button_labels=["OK"], geometry=(340, 140))
-                window.get_buttons()[0].configure(command=lambda:window.withdraw())
+                ShowInfo(message=" The folder does not contain TIFF or TIF files", image=self.icons["download_folder"], button_labels=["OK"], geometry=(340, 140))
         elif value == "Previous analysis":
             initialdir = self.stack.folder if hasattr(self, "stack") else "/"
             filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir=initialdir, filetypes=[("PyPOLAR pickle files", "*.pykl")])
             if filename:
                 window = ShowInfo(message=" Downloading and decompressing data...", image=self.icons["download"], geometry=(350, 80))[0]
                 window.update()
-            with bz2.BZ2File(filename, "rb") as f:
-                if hasattr(self, "stack"):
-                    delattr(self, "stack")
-                self.openfile_dropdown.get_icon().configure(image=self.icons["analytics"])
-                self.datastack = cPickle.load(f)
-                self.method.set(self.datastack.method)
-                self.define_variable_table(self.datastack.method)
-                self.options_dropdown.set_state("disabled")
-                self.option.set("Previous analysis")
-                self.intensity_axis.clear()
-                self.intensity_axis.set_axis_off()
-                self.intensity_canvas.draw()
-                self.thrsh_axis.clear()
-                self.thrsh_axis.set_axis_off()
-                self.thrsh_canvas.draw()
-                self.filename_label.write(self.datastack.name)
-                self.ontab_intensity(update=False)
-            window.withdraw()
+                with bz2.BZ2File(filename, "rb") as f:
+                    if hasattr(self, "stack"):
+                        delattr(self, "stack")
+                    self.openfile_dropdown.get_icon().configure(image=self.icons["analytics"])
+                    self.datastack = cPickle.load(f)
+                    self.method.set(self.datastack.method)
+                    self.define_variable_table(self.datastack.method)
+                    self.options_dropdown.set_state("disabled")
+                    self.option.set("Previous analysis")
+                    self.intensity_axis.clear()
+                    self.intensity_axis.set_axis_off()
+                    self.intensity_canvas.draw()
+                    self.thrsh_axis.clear()
+                    self.thrsh_axis.set_axis_off()
+                    self.thrsh_canvas.draw()
+                    self.filename_label.write(self.datastack.name)
+                    self.ontab_intensity(update=False)
+                window.withdraw()
         if hasattr(self, "stack"):
             self.ilow_slider.configure(from_=np.amin(self.stack.intensity), to=np.amax(self.stack.intensity))
             self.ilow_slider.set(np.amin(self.stack.intensity))
@@ -842,10 +829,7 @@ class Polarimetry(CTk.CTk):
         window.withdraw()
 
     def change_colormap(self) -> None:
-        if self.thrsh_colormap == "hot":
-            self.thrsh_colormap = "gray"
-        else:
-            self.thrsh_colormap = "hot"
+        self.thrsh_colormap = "gray" if self.thrsh_colormap == "hot" else "hot"
         self.ontab_thrsh()
 
     def no_background(self) -> None:
@@ -859,10 +843,7 @@ class Polarimetry(CTk.CTk):
             self.thrsh_canvas.draw()
 
     def offset_angle_switch_callback(self) -> None:
-        if self.offset_angle_switch.get() == "on":
-            self.offset_angle_entry.set_state("normal")
-        else:
-            self.offset_angle_entry.set_state("disabled")
+        self.offset_angle_entry.set_state("normal" if self.offset_angle_switch.get() == "on" else "disabled")
 
     def dark_switch_callback(self) -> None:
         if hasattr(self, "stack"):
@@ -901,8 +882,7 @@ class Polarimetry(CTk.CTk):
                 self.click_callback(fig_.axes[0], fig_.canvas, "individual fit")
                 cfm.window.attributes("-topmost", False)
             else:
-                window = ShowInfo(message=" Provide a Rho Composite figure\n to plot individual fits", image=self.icons["query_stats"], button_labels=["OK"])
-                window.get_buttons()[0].configure(command=lambda:window.withdraw())
+                ShowInfo(message=" Provide a Rho Composite figure\n to plot individual fits", image=self.icons["query_stats"], button_labels=["OK"])
 
     def diskcone_display(self) -> None:
         if self.method.get() == "1PF" and hasattr(self, "CD"):
@@ -985,8 +965,7 @@ class Polarimetry(CTk.CTk):
                     slope = 180 - np.rad2deg(np.arctan((roi.previous_point[1] - roi.start_point[1]) / (roi.previous_point[0] - roi.start_point[0])))
                     slope = np.mod(2 * slope, 360) / 2
                     dist = np.sqrt(((np.asarray(roi.previous_point) - np.asarray(roi.start_point))**2).sum())
-                    window = ShowInfo(message=" Angle is {:.2f} \u00b0 \n Distance is {} pixels".format(slope, int(dist)), image=self.icons["square"], button_labels = ["OK"], fontsize=16)
-                    window.get_buttons()[0].configure(command=lambda:window.withdraw())
+                    ShowInfo(message=" Angle is {:.2f} \u00b0 \n Distance is {} pixels".format(slope, int(dist)), image=self.icons["square"], button_labels = ["OK"], fontsize=16)
                     for line in roi.lines:
                         line.remove()
                     self.intensity_canvas.draw()
@@ -1075,7 +1054,7 @@ class Polarimetry(CTk.CTk):
         filename = fd.askopenfilename(title="Select a beads file", initialdir=initialdir, filetypes=[("TIFF files", "*.tiff"), ("TIF files", "*.tif")])
         beadstack = self.define_stack(filename)
         self.filename_label.write("")
-        dark = self.compute_dark(beadstack, display=False)
+        dark = beadstack.compute_dark()
         intensity = np.sum((beadstack.values - dark) * (beadstack.values >= dark), axis=0)
         whitelight = cv2.imread(os.path.join(beadstack.folder, "Whitelight.tif"), cv2.IMREAD_GRAYSCALE)
         whitelight = cv2.threshold(whitelight, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
@@ -1088,11 +1067,9 @@ class Polarimetry(CTk.CTk):
         centers = np.asarray(centers, dtype=np.int32)
         radius = int(round(max(radius))) + npix
         ind = np.arange(len(contours))
-        Iul = np.argmin(np.abs(centers[:, 0] + 1j * centers[:, 1]))
-        Ilr = np.argmax(np.abs(centers[:, 0] + 1j * centers[:, 1]))
+        Iul, Ilr = np.argmin(np.abs(centers[:, 0] + 1j * centers[:, 1])), np.argmax(np.abs(centers[:, 0] + 1j * centers[:, 1]))
         ind = np.delete(ind, [Iul, Ilr])
-        Iur = np.argmin(centers[ind, 1])
-        Ill = np.argmax(centers[ind, 1])
+        Iur, Ill = np.argmin(centers[ind, 1]), np.argmax(centers[ind, 1])
         centers = centers[[Iul, ind[Iur], Ilr, ind[Ill]], :]
         ims = []
         for _ in range(4):
@@ -1110,7 +1087,7 @@ class Polarimetry(CTk.CTk):
         for im in ims[1:]:
             keypoints = sift.detect(im, None)
             points = np.asarray([kp.pt for kp in keypoints])
-            p, p0 = self.find_matches(points, points0)
+            p, p0 = find_matches(points, points0)
             homography = cv2.findHomography(p, p0, cv2.RANSAC)[0]
             homographies += [homography]
             ims_ += [cv2.warpPerspective(im, homography, (width, height))]
@@ -1118,7 +1095,6 @@ class Polarimetry(CTk.CTk):
         fig, axs = plt.subplots(2, 2)
         fig.type, fig.var = "Calibration", None
         fig.canvas.manager.set_window_title("Quality of calibration: " + beadstack.name)
-        fig.patch.set_facecolor("w")
         reg_ims[2:4] = reg_ims[3:1:-1]
         titles = ["UL", "UR", "LL", "LR"]
         for im, title, ax in zip(reg_ims, titles, axs.ravel()):
@@ -1131,14 +1107,6 @@ class Polarimetry(CTk.CTk):
         buttons[0].configure(command=lambda:self.yes_registration_callback(window, fig))
         buttons[1].configure(command=lambda:self.yes_save_registration_callback(window, fig, filename))
         buttons[2].configure(command=lambda:self.no_registration_callback(window, fig))
-
-    def find_matches(self, a:np.ndarray, b:np.ndarray, tol:float=10) -> Tuple[np.ndarray, np.ndarray]:
-        a_, b_ = (a, b) if len(b) >= len(a) else (b, a)
-        cost = np.linalg.norm(a_[:, np.newaxis, :] - b_, axis=2)
-        indices = linear_sum_assignment(cost)[1]
-        a_, b_ = (a, b[indices]) if len(b) >= len(a) else (a[indices], b)
-        dist = np.linalg.norm(a_ - b_, axis=1)
-        return a_[dist <= tol], b_[dist <= tol]
 
     def yes_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure) -> None:
         plt.close(fig)
@@ -1175,7 +1143,7 @@ class Polarimetry(CTk.CTk):
         stack = Stack(filename)
         for key in dict:
             setattr(stack, key, dict[key])
-        self.compute_dark(stack)
+        self.set_dark(stack)
         return stack
 
     def define_datastack(self, stack:Stack) -> DataStack:
@@ -1199,7 +1167,6 @@ class Polarimetry(CTk.CTk):
         self.ilow_slider.set(np.amin(self.stack.intensity))
         self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
         self.datastack = self.define_datastack(self.stack)
-        self.datastack.intensity = self.stack.intensity
         if self.option.get().startswith("Mask"):
             self.mask = self.get_mask(self.datastack)
         self.ontab_intensity(update=False)
@@ -1262,10 +1229,7 @@ class Polarimetry(CTk.CTk):
 
     def yes_add_roi_callback(self, window:CTk.CTkToplevel, roi:ROI) -> None:
         vertices = np.asarray([roi.x, roi.y])
-        if self.datastack.rois:
-            indx = self.datastack.rois[-1]["indx"] + 1
-        else:
-            indx = 1
+        indx = self.datastack.rois[-1]["indx"] + 1 if self.datastack.rois else 1
         self.datastack.rois += [{"indx": indx, "label": (roi.x[0], roi.y[0]), "vertices": vertices, "ILow": self.ilow.get(), "name": "", "group": "", "select": True}]
         window.withdraw()
         for line in roi.lines:
@@ -1292,8 +1256,7 @@ class Polarimetry(CTk.CTk):
                 im_binarized = np.asarray(Image.open(mask_name), dtype=np.float64)
                 mask = im_binarized / np.amax(im_binarized)
             else:
-                window = ShowInfo(message=f" The corresponding mask for {datastack.name} could not be found\n Continuing without mask...", image=self.icons["layers_clear"], buttons_labels=["OK"])
-                window.get_buttons()[0].configure(command=lambda:window.withdraw())
+                ShowInfo(message=f" The corresponding mask for {datastack.name} could not be found\n Continuing without mask...", image=self.icons["layers_clear"], buttons_labels=["OK"])
             if hasattr(self, "mask"):
                 self.mask = mask
         return mask
@@ -1317,8 +1280,7 @@ class Polarimetry(CTk.CTk):
                     else:
                         self.indxlist = 0
                         self.open_file(self.filelist[0])
-                        window = ShowInfo(message=" End of list", image=self.icons["check_circle"], button_labels=["OK"], fontsize=16)
-                        window.get_buttons()[0].configure(command=lambda:window.withdraw())
+                        ShowInfo(message=" End of list", image=self.icons["check_circle"], button_labels=["OK"], fontsize=16)
                         self.initialize()
                 self.analysis_button.configure(image=self.icons["play"])
             elif self.option.get().endswith("(auto)"):
@@ -1327,8 +1289,7 @@ class Polarimetry(CTk.CTk):
                     self.analyze_stack(self.datastack)
                 self.analysis_button.configure(image=self.icons["play"])
                 self.open_file(self.filelist[0])
-                window = ShowInfo(message=" End of list", image=self.icons["check_circle"], button_labels=["OK"], fontsize=16)
-                window.get_buttons()[0].configure(command=lambda:window.withdraw())
+                ShowInfo(message=" End of list", image=self.icons["check_circle"], button_labels=["OK"], fontsize=16)
                 self.initialize()
 
     def stack_slider_callback(self, value:str) -> None:
@@ -1435,28 +1396,12 @@ class Polarimetry(CTk.CTk):
         bin = [self.bin_spinboxes[_].get() for _ in range(2)]
         stack.intensity = stack.get_intensity(dark=dark, bin=bin)
 
-    def compute_dark(self, stack:Stack, display:bool=True) -> int:
-        SizeCell = 20
-        NCellHeight = int(np.floor(stack.height / SizeCell))
-        NCellWidth = int(np.floor(stack.width / SizeCell))
-        cropIm = stack.values[:, :SizeCell * NCellHeight, :SizeCell * NCellWidth]
-        cropIm = np.moveaxis(cropIm, 0, -1)
-        ImCG = np.asarray(np.split(np.asarray(np.split(cropIm, NCellWidth, axis=1)), NCellHeight, axis=1))
-        mImCG = np.zeros((NCellHeight, NCellWidth))
-        for it in range(NCellHeight):
-            for jt in range(NCellWidth):
-                cell = ImCG[it, jt, :, :, 0]
-                mImCG[it, jt] = np.mean(cell[cell != 0])
-        IndI, IndJ = np.where(mImCG == np.amin(mImCG))
-        cell = ImCG[IndI, IndJ, :, :, :]
-        dark = np.mean(cell[cell != 0])
-        if display:
-            self.calculated_dark = dark
-            self.calculated_dark_label.configure(text="Calculated dark value = " + stack.display.format(dark))
-            if self.dark_switch.get() == "off":
-                self.dark.set(stack.display.format(dark))
-        else:
-            return dark
+    def set_dark(self, stack:Stack) -> int:
+        dark = stack.compute_dark()
+        self.calculated_dark = dark
+        self.calculated_dark_label.configure(text="Calculated dark value = " + stack.display.format(dark))
+        if self.dark_switch.get() == "off":
+            self.dark.set(stack.display.format(dark))
 
     def get_variable(self, indx:int) -> Tuple[bool, float, float]:
         display = self.variable_display[indx].get()
@@ -1503,9 +1448,10 @@ class Polarimetry(CTk.CTk):
                     coord = roi["label"][0], roi["label"][1]
                     if (float(self.rotation[1].get()) != 0) and rotation:
                         theta = np.deg2rad(float(self.rotation[1].get()))
+                        cosd, sind = np.cos(theta), np.sin(theta)
                         x0, y0 = datastack.width / 2, datastack.height / 2
-                        coord = x0 + (coord[0] - x0) * np.cos(theta) + (coord[1] - y0) * np.sin(theta), y0 - (coord[0] - x0) * np.sin(theta) + (coord[1] - y0) * np.cos(theta)
-                        vertices = np.asarray([x0 + (vertices[0] - x0) * np.cos(theta) + (vertices[1] - y0) * np.sin(theta), y0 - (vertices[0] - x0) * np.sin(theta) + (vertices[1] - y0) * np.cos(theta)])
+                        coord = x0 + (coord[0] - x0) * cosd + (coord[1] - y0) * sind, y0 - (coord[0] - x0) * sind + (coord[1] - y0) * cosd
+                        vertices = np.asarray([x0 + (vertices[0] - x0) * cosd + (vertices[1] - y0) * sind, y0 - (vertices[0] - x0) * sind + (vertices[1] - y0) * cosd])
                     ax.add_patch(Polygon(vertices.T, facecolor="none", edgecolor="white"))
                     ax.text(coord[0], coord[1], str(roi["indx"]), color="w")
             canvas.draw()
@@ -1585,16 +1531,14 @@ class Polarimetry(CTk.CTk):
         Y, X = np.mgrid[:datastack.height:int(self.pixelsperstick_spinboxes[1].get()), :datastack.width:int(self.pixelsperstick_spinboxes[0].get())]
         X, Y = X[np.isfinite(data_)], Y[np.isfinite(data_)]
         data_, rho_ = data_[np.isfinite(data_)], rho_[np.isfinite(data_)]
-        if var.name == "Rho":
-            stick_colors = np.mod(2 * (data_ + float(self.rotation[1].get())), 360) / 2
-        else:
-            stick_colors = data_
+        stick_colors = np.mod(2 * (data_ + float(self.rotation[1].get())), 360) / 2 if var.name == "Rho" else data_
         cosd, sind = np.cos(np.deg2rad(rho_)), np.sin(np.deg2rad(rho_))
         vertices = np.array([[X + l * cosd + w * sind, X - l * cosd + w * sind, X - l * cosd - w * sind, X + l * cosd - w * sind], [Y - l * sind + w * cosd, Y + l * sind + w * cosd, Y + l * sind - w * cosd, Y - l * sind - w * cosd]])
         if float(self.rotation[1].get()) != 0:
             theta = np.deg2rad(float(self.rotation[1].get()))
+            cosd, sind = np.cos(theta), np.sin(theta)
             x0, y0 = self.stack.width / 2, self.stack.height / 2
-            vertices = np.asarray([x0 + (vertices[0] - x0) * np.cos(theta) + (vertices[1] - y0) * np.sin(theta), y0 - (vertices[0] - x0) * np.sin(theta) + (vertices[1] - y0) * np.cos(theta)])
+            vertices = np.asarray([x0 + (vertices[0] - x0) * cosd + (vertices[1] - y0) * sind, y0 - (vertices[0] - x0) * sind + (vertices[1] - y0) * cosd])
         vertices = np.swapaxes(vertices, 0, 2)
         return PolyCollection(vertices, cmap=var.colormap[self.colorblind_checkbox.get()], lw=2, array=stick_colors)
 
@@ -1631,13 +1575,14 @@ class Polarimetry(CTk.CTk):
             self.add_patches(datastack, ax, fig.canvas)
             if self.edge_detection_switch.get() == "on":
                 for contour in self.edge_contours:
-                    angles = np.mod(2 * self.angle_edge(contour)[0], 360) / 2
+                    angles = np.mod(2 * angle_edge(contour)[0], 360) / 2
                     cmap = cc.m_colorwheel if self.colorblind_checkbox.get() else "hsv"
                     if float(self.rotation[1].get()) != 0:
                         angles = np.mod(2 * (angles + float(self.rotation[1].get())), 360) / 2
                         theta = np.deg2rad(float(self.rotation[1].get()))
+                        cosd, sind = np.cos(theta), np.sin(theta)
                         x0, y0 = self.stack.width / 2, self.stack.height / 2
-                        contour = np.asarray([x0 + (contour[:, 0] - x0) * np.cos(theta) + (contour[:, 1] - y0) * np.sin(theta), y0 - (contour[:, 0] - x0) * np.sin(theta) + (contour[:, 1] - y0) * np.cos(theta)])
+                        contour = np.asarray([x0 + (contour[:, 0] - x0) * cosd + (contour[:, 1] - y0) * sind, y0 - (contour[:, 0] - x0) * sind + (contour[:, 1] - y0) * cosd])
                         contour = np.swapaxes(contour, 0, 1)
                     p = ax.scatter(contour[:, 0], contour[:, 1], c=angles, cmap=cmap, s=4, vmin=0, vmax=180)
                 if self.colorbar_checkbox.get():
@@ -1834,8 +1779,7 @@ class Polarimetry(CTk.CTk):
                 stack_.values[self.order[it]] = ims_reg[it]
             return stack_
         else:
-            window = ShowInfo(message=" No registration", image=self.icons["blur_circular"], button_labels=["OK"], fontsize=16)
-            window.get_buttons()[0].configure(command=lambda:window.withdraw())
+            ShowInfo(message=" No registration", image=self.icons["blur_circular"], button_labels=["OK"], fontsize=16)
             self.method.set("1PF")
 
     def analyze_stack(self, datastack:DataStack) -> None:
@@ -1843,6 +1787,7 @@ class Polarimetry(CTk.CTk):
         shape = (self.stack.height, self.stack.width)
         roi_map, mask = self.compute_roi_map(datastack)
         datastack.dark = float(self.dark.get())
+        datastack.method = self.method.get()
         field = self.stack.values - datastack.dark - float(self.noise[3].get())
         field = field * (field >= 0)
         if self.method.get() == "CARS":
@@ -1969,7 +1914,6 @@ class Polarimetry(CTk.CTk):
             datastack.field_fit = field_fit
             datastack.chi2 = chi2
         self.datastack = datastack
-        #self.update()
         self.plot_data(datastack, roi_map=roi_map)
         self.save_data(datastack, roi_map=roi_map)
 
