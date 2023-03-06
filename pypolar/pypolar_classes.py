@@ -21,6 +21,7 @@ from scipy.io import loadmat
 import colorcet as cc
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
+from matplotlib.backend_bases import NavigationToolbar2, _Mode
 from typing import Callable, List, Tuple, Union
 
 tab_width, tab_height = 810, 830
@@ -138,7 +139,7 @@ class DropDown(CTk.CTkFrame):
         return self.option_menu.bind(*args, **kwargs)
 
 class SpinBox(CTk.CTkFrame):
-    def __init__(self, master, from_:int=1, to_:int=20, step_size:int=1, command:Callable=None, **kwargs) -> None:
+    def __init__(self, master, from_:int=1, to_:int=20, step_size:int=1, textvariable:tk.StringVar=None, command:Callable=None, **kwargs) -> None:
         super().__init__(master, **kwargs)
         width, updown_size = 40, 8
         self.from_, self.to_, self.step_size = from_, to_, step_size
@@ -148,11 +149,12 @@ class SpinBox(CTk.CTkFrame):
         self.grid_columnconfigure(1, weight=1)
         self.subtract_button = CTk.CTkButton(self, text=u"\u25BC", width=updown_size, height=updown_size, command=self.subtract_button_callback)
         self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
-        self.entry = CTk.CTkEntry(self, width=width-(2*updown_size), height=updown_size, border_width=0, justify="center")
+        self.entry = CTk.CTkEntry(self, width=width-(2*updown_size), height=updown_size, border_width=0, justify="center", textvariable=textvariable)
         self.entry.grid(row=0, column=1, columnspan=1, padx=0, pady=0, sticky="ew")
         self.add_button = CTk.CTkButton(self, text=u"\u25B2", width=updown_size, height=updown_size, command=self.add_button_callback)
         self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
-        self.entry.insert(0, "1")
+        if textvariable is None:
+            self.entry.insert(0, from_)
 
     def add_button_callback(self) -> None:
         value = int(self.entry.get()) + self.step_size
@@ -501,6 +503,204 @@ class NToolbar2Tk(NavigationToolbar2Tk):
                             s += f"\nI={int(np.sum(data))}"
                 return s
         return ""
+    
+class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
+
+    folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icons")
+
+    def __init__(self, canvas, window=None, **kwargs):
+        if window is None:
+            window = canvas.get_tk_widget().master
+        tk.Frame.__init__(self, master=window, borderwidth=2, width=int(canvas.figure.bbox.width), height=50)
+
+        self.toolitems = (
+        ('Home', ' reset original view', 'home', 'home'),
+        (None, None, None, None),
+        ('Back', ' back to previous view', 'backward', 'back'),
+        ('Forward', ' forward to next view', 'forward', 'forward'),
+        (None, None, None, None),
+        ('Pan', ' left button pans, right button zooms\n x/y fixes axis, CTRL fixes aspect', 'pan', 'pan'),
+        ('Zoom', ' zoom to rectangle\n x/y fixes axis', 'zoom', 'zoom'),
+        (None, None, None, None),
+        ('Save', ' save the figure', 'save', 'save_figure'),)
+
+        self._buttons = {}
+        for text, tooltip_text, image_file, callback in self.toolitems:
+            if text is None:
+                self._Spacer()
+            else:
+                im = os.path.join(NToolbar2PyPOLAR.folder, image_file + ".png")
+                self._buttons[text] = button = self._Button(text=text, image_file=im, toggle=callback in ["zoom", "pan"], command=getattr(self, callback),)
+                if tooltip_text is not None:
+                    ToolTip.createToolTip(button, tooltip_text)
+        self._label_font = CTk.CTkFont(size=12)
+
+        label = tk.Label(master=self, font=self._label_font, text='\N{NO-BREAK SPACE}\n\N{NO-BREAK SPACE}')
+        label.pack(side=tk.RIGHT)
+        self.message = tk.StringVar(master=self)
+        self._message_label = tk.Label(master=self, font=self._label_font, textvariable=self.message, justify=tk.LEFT, fg=text_color)
+        self._message_label.pack(side=tk.RIGHT)
+        self.config(background=gray[1])
+        self._message_label.config(background=gray[1])
+        for button in self.winfo_children():
+            button.config(background=gray[1])
+        self.pack(side=tk.BOTTOM, fill=tk.X)
+        canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
+        NavigationToolbar2.__init__(self, canvas)
+
+    def _update_buttons_checked(self):
+        for text, mode in [('Zoom', _Mode.ZOOM), ('Pan', _Mode.PAN)]:
+            if text in self._buttons:
+                if self.mode == mode:
+                    self._buttons[text].select() 
+                else:
+                    self._buttons[text].deselect()
+
+    def pan(self, *args):
+        super().pan(*args)
+        self._update_buttons_checked()
+
+    def zoom(self, *args):
+        super().zoom(*args)
+        self._update_buttons_checked()
+
+    def draw_rubberband(self, event, x0, y0, x1, y1):
+        if self.canvas._rubberband_rect_white:
+            self.canvas._tkcanvas.delete(self.canvas._rubberband_rect_white)
+        if self.canvas._rubberband_rect_black:
+            self.canvas._tkcanvas.delete(self.canvas._rubberband_rect_black)
+        height = self.canvas.figure.bbox.height
+        y0 = height - y0
+        y1 = height - y1
+        self.canvas._rubberband_rect_black = (
+            self.canvas._tkcanvas.create_rectangle(
+                x0, y0, x1, y1))
+        self.canvas._rubberband_rect_white = (
+            self.canvas._tkcanvas.create_rectangle(
+                x0, y0, x1, y1, outline='white', dash=(3, 3)))
+        
+    def remove_rubberband(self):
+        if self.canvas._rubberband_rect_white:
+            self.canvas._tkcanvas.delete(self.canvas._rubberband_rect_white)
+            self.canvas._rubberband_rect_white = None
+        if self.canvas._rubberband_rect_black:
+            self.canvas._tkcanvas.delete(self.canvas._rubberband_rect_black)
+            self.canvas._rubberband_rect_black = None
+
+    def _set_image_for_button(self, button):
+        if button._image_file is None:
+            return
+        #path_regular = mpl.cbook._get_data_path('images', button._image_file)
+        size = button.winfo_pixels('24p')
+
+        def _get_color(color_name):
+            return button.winfo_rgb(button.cget(color_name))
+
+        def _is_dark(color):
+            if isinstance(color, str):
+                color = _get_color(color)
+            return max(color) < 65535 / 2
+
+        def _recolor_icon(image, color):
+            image_data = np.asarray(image).copy()
+            black_mask = (image_data[..., :3] == 0).all(axis=-1)
+            image_data[black_mask, :3] = color
+            return Image.fromarray(image_data, mode="RGBA")
+
+        with Image.open(button._image_file) as im:
+            im = im.convert("RGBA")
+            image = ImageTk.PhotoImage(im.resize((size, size)), master=self)
+            button._ntimage = image
+            #foreground = (255 / 65535) * np.array(button.winfo_rgb(button.cget("foreground")))
+            foreground = (1, 1, 1)
+            im_alt = _recolor_icon(im, foreground)
+            image_alt = ImageTk.PhotoImage(im_alt.resize((size, size)), master=self)
+            button._ntimage_alt = image_alt
+
+        if _is_dark("background"):
+            image_kwargs = {"image": image_alt}
+        else:
+            image_kwargs = {"image": image}
+        if (isinstance(button, tk.Checkbutton) and button.cget("selectcolor") != ""):
+            if self._windowingsystem != "x11":
+                selectcolor = "selectcolor"
+            else:
+                r1, g1, b1 = _get_color("selectcolor")
+                r2, g2, b2 = _get_color("activebackground")
+                selectcolor = ((r1+r2)/2, (g1+g2)/2, (b1+b2)/2)
+            if _is_dark(selectcolor):
+                image_kwargs["selectimage"] = image_alt
+            else:
+                image_kwargs["selectimage"] = image
+        button.configure(**image_kwargs, height='24p', width='24p')
+        
+    def _Button(self, text, image_file, toggle, command):
+        if not toggle:
+            b = tk.Button(master=self, text=text, command=command, relief="flat", overrelief="groove", borderwidth=0, bd=0, bg=orange[0])
+        else:
+            var = tk.IntVar(master=self)
+            b = tk.Checkbutton(master=self, text=text, command=command, indicatoron=False, variable=var, offrelief="flat", overrelief="groove", borderwidth=0, bd=0, bg=orange[0])
+            b.var = var
+        b._image_file = image_file
+        if image_file is not None:
+            self._set_image_for_button(b)
+        else:
+            b.configure(font=self._label_font)
+        b.configure(width=24, height=24, borderwidth=0)
+        b.pack(side=tk.LEFT, padx=3)
+        return b
+        
+    def _Spacer(self):
+        s = tk.Frame(master=self, height='18p', relief=tk.RIDGE, bg='DarkGray')
+        s.pack(side=tk.LEFT, padx='3p')
+        return s
+
+    def save_figure(self, *args):
+        filetypes = self.canvas.get_supported_filetypes().copy()
+        default_filetype = self.canvas.get_default_filetype()
+        default_filetype_name = filetypes.pop(default_filetype)
+        sorted_filetypes = ([(default_filetype, default_filetype_name)]
+                            + sorted(filetypes.items()))
+        tk_filetypes = [(name, '*.%s' % ext) for ext, name in sorted_filetypes]
+        defaultextension = ''
+        initialdir = os.path.expanduser(mpl.rcParams['savefig.directory'])
+        initialfile = self.canvas.get_default_filename()
+        fname = fd.asksaveasfilename(master=self.canvas.get_tk_widget().master, title='Save the figure',filetypes=tk_filetypes, defaultextension=defaultextension, initialdir=initialdir, initialfile=initialfile,)
+        if fname in ["", ()]:
+            return
+        if initialdir != "":
+            mpl.rcParams['savefig.directory'] = (os.path.dirname(str(fname)))
+        try:
+            self.canvas.figure.savefig(fname)
+        except Exception as e:
+            tk.messagebox.showerror("Error saving file", str(e))
+
+    def set_history_buttons(self):
+        state_map = {True: tk.NORMAL, False: tk.DISABLED}
+        can_back = self._nav_stack._pos > 0
+        can_forward = self._nav_stack._pos < len(self._nav_stack._elements) - 1
+        if "Back" in self._buttons:
+            self._buttons['Back']['state'] = state_map[can_back]
+        if "Forward" in self._buttons:
+            self._buttons['Forward']['state'] = state_map[can_forward]
+
+    def _mouse_event_to_message(self, event):
+        if event.inaxes and event.inaxes.get_navigate():
+            try:
+                s = f"(x={int(event.xdata)}, y={int(event.ydata)})"
+            except (ValueError, OverflowError):
+                pass
+            else:
+                artists = [a for a in event.inaxes._mouseover_set if a.contains(event)[0] and a.get_visible()]
+                if artists:
+                    a = mpl.cbook._topmost_artist(artists)
+                    if a is not event.inaxes.patch:
+                        data = a.get_cursor_data(event)
+                        if data is not None:
+                            s += f"\nI={int(np.sum(data))}"
+                return s
+        return ""
+
 
 class ToolTip:
     @staticmethod

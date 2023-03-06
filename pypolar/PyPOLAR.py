@@ -29,7 +29,7 @@ from itertools import permutations, chain
 from datetime import date
 import copy
 from typing import List, Tuple, Union
-from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, NToolbar2Tk, ToolTip, ROIManager, TabView
+from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, NToolbar2Tk, NToolbar2PyPOLAR, ToolTip, ROIManager, TabView
 from pypolar_classes import Button, CheckBox, Entry, DropDown, SpinBox, ShowInfo, TextBox
 from pypolar_classes import adjust, circularmean, wrapto180, angle_edge, find_matches
 from pypolar_classes import button_size, orange, gray, red, green, text_color, geometry_info
@@ -164,7 +164,7 @@ class Polarimetry(CTk.CTk):
         background = plt.imread(os.path.join(image_path, "blur_circular-512.png"))
         self.intensity_axis.imshow(background, cmap="gray", interpolation="bicubic", alpha=0.1)
         self.intensity_canvas.draw()
-        self.intensity_toolbar = NToolbar2Tk(canvas=self.intensity_canvas, window=self.intensity_frame)
+        self.intensity_toolbar = NToolbar2PyPOLAR(canvas=self.intensity_canvas, window=self.intensity_frame)
         banner = CTk.CTkFrame(master=self.tabview.tab("Intensity"), fg_color="transparent", height=Polarimetry.axes_size[0], width=40)
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         Button(banner, image=self.icons["contrast"], command=self.contrast_intensity_button_callback).pack(side=tk.TOP, padx=20, pady=20)
@@ -354,11 +354,18 @@ class Polarimetry(CTk.CTk):
         CTk.CTkLabel(master=adv["Rotation"], text=" ", height=5).grid(row=3, column=0, pady=5)
         for entry in entries:
             ToolTip.createToolTip(entry, " positive value for counter-clockwise rotation\n negative value for clockwise rotation")
-        labels = ["Noise factor", "Noise width", "Noise height", "Noise removal level"]
-        self.noise = [tk.StringVar(value="1"), tk.StringVar(value="3"), tk.StringVar(value="3"), tk.StringVar(value="0")]
-        rows = [1, 2, 3, 5]
+        self.noise = [tk.StringVar(value="1"), tk.StringVar(value="0"), tk.StringVar(value="3"), tk.StringVar(value="3")]
+        labels = ["Noise factor", "Noise removal level"]
+        rows = [1, 5]
         entries = [Entry(adv["Remove background"], text="\n" + label + "\n", textvariable=self.noise[_], row=rows[_], column=0) for _, label in enumerate(labels)]
-        entries[3].set_state("disabled")
+        entries[1].set_state("disabled")
+        labels = ["Width", "Height"]
+        rows = [2, 3]
+        for _ in range(2):
+            label = CTk.CTkLabel(master=adv["Remove background"], text="\n" + labels[_] + "\n")
+            label.grid(row=rows[_], column=0, padx=(95, 10), pady=(0, 0), sticky="w")
+            ToolTip.createToolTip(label, " height and width of the bin used for noise removal")
+            SpinBox(adv["Remove background"], from_=3, to_=19, step_size=2, textvariable=self.noise[_+2]).grid(row=rows[_], column=0, padx=(10, 30), pady=10, sticky="e")
         button = Button(adv["Remove background"], text="Click background", image=self.icons["exposure"], command=lambda:self.click_callback(self.intensity_axis, self.intensity_canvas, "click background"))
         button.grid(row=4, column=0)
         ToolTip.createToolTip(button, " click and select a point on the intensity image")
@@ -408,7 +415,7 @@ class Polarimetry(CTk.CTk):
             self.stack_slider_label.configure(text="T")
 
     def initialize_noise(self) -> None:
-        vals = [1, 3, 3, 0]
+        vals = [1, 0, 3, 3]
         for val, _ in zip(vals, self.noise):
             _.set(str(val))
 
@@ -877,9 +884,9 @@ class Polarimetry(CTk.CTk):
             entry.set_state(state)
 
     def click_callback(self, ax:plt.Axes, canvas:FigureCanvasTkAgg, method:str) -> None:
-        if method == "click background":
-            self.tabview.set("Intensity")
         if hasattr(self, "datastack"):
+            if method == "click background":
+                self.tabview.set("Intensity")
             xlim, ylim = ax.get_xlim(), ax.get_ylim()
             hlines = [plt.Line2D([(xlim[0] + xlim[1])/2, (xlim[0] + xlim[1])/2], ylim, lw=1, color="w"),
                 plt.Line2D(xlim, [(ylim[0] + ylim[1])/2, (ylim[0] + ylim[1])/2], lw=1, color="w")]
@@ -904,9 +911,9 @@ class Polarimetry(CTk.CTk):
         if event.inaxes == ax:
             x, y = event.xdata, event.ydata
             if event.button == 1:
-                x1, x2 = round(x) - float(self.noise[1].get())//2, round(x) + float(self.noise[1].get())//2
-                y1, y2 = round(y) - float(self.noise[2].get())//2, round(y) + float(self.noise[2].get())//2
-                self.noise[3].set(str(np.mean(self.datastack.intensity[y1:y2, x1:x2]) / self.stack.nangle * float(self.noise[0].get())))
+                x1, x2 = round(x) - float(self.noise[2].get())//2, round(x) + float(self.noise[2].get())//2
+                y1, y2 = round(y) - float(self.noise[3].get())//2, round(y) + float(self.noise[3].get())//2
+                self.noise[1].set(str(np.mean(self.datastack.intensity[y1:y2, x1:x2]) / self.stack.nangle * float(self.noise[0].get())))
                 canvas.mpl_disconnect(self.__cid1)
                 canvas.mpl_disconnect(self.__cid2)
                 for line in hlines:
@@ -1771,7 +1778,7 @@ class Polarimetry(CTk.CTk):
         roi_map, mask = self.compute_roi_map(datastack)
         datastack.dark = float(self.dark.get())
         datastack.method = self.method.get()
-        field = self.stack.values - datastack.dark - float(self.noise[3].get())
+        field = self.stack.values - datastack.dark - float(self.noise[1].get())
         field = field * (field >= 0)
         if self.method.get() == "CARS":
             field = np.sqrt(field)
