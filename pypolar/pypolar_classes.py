@@ -20,8 +20,7 @@ from tkinter.messagebox import showerror
 from scipy.io import loadmat
 import colorcet as cc
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
-from matplotlib.backend_bases import NavigationToolbar2, _Mode
+from matplotlib.backend_bases import NavigationToolbar2, _Mode, MouseEvent
 from typing import Callable, List, Tuple, Union
 
 tab_width, tab_height = 810, 830
@@ -482,6 +481,13 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
                 else:
                     self._buttons[text].deselect()
 
+    def home(self, *args) -> None:
+        super().home(*args)
+        self._update_buttons_checked()
+        self._buttons["Zoom"].deselect()
+        self._buttons["Pan"].deselect()
+        self.mode = _Mode.NONE
+    
     def pan(self, *args) -> None:
         super().pan(*args)
         self._update_buttons_checked()
@@ -493,7 +499,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
     def set_message(self, s:str) -> None:
         self.message.set(s)
 
-    def draw_rubberband(self, event, x0:int, y0:int, x1:int, y1:int) -> None:
+    def draw_rubberband(self, event:MouseEvent, x0:int, y0:int, x1:int, y1:int) -> None:
         if self.canvas._rubberband_rect_white:
             self.canvas._tkcanvas.delete(self.canvas._rubberband_rect_white)
         if self.canvas._rubberband_rect_black:
@@ -513,11 +519,11 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
 
     def _set_image_for_button(self, button:Union[tk.Button, tk.Checkbutton]) -> None:
        
-        def hex_to_rgb(hex):
+        def hex_to_rgb(hex:str) -> List[int]:
             h = hex.lstrip('#')
-            return [int(h[i:i+2], 16) for i in (0, 2, 4)]
+            return [int(h[_:_+2], 16) for _ in (0, 2, 4)]
 
-        def _recolor_icon(image, fg_color):
+        def _recolor_icon(image:Image, fg_color:str) -> Image:
             image_data = np.asarray(image).copy()
             black_mask = (image_data[..., :3] == 0).all(axis=-1)
             image_data[black_mask, :3] = hex_to_rgb(fg_color)
@@ -539,7 +545,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         
         button.configure(**image_kwargs)
         
-    def _Button(self, text, image_file, toggle, command):
+    def _Button(self, text:str, image_file:str, toggle:bool, command:Callable) -> Union[tk.Button, tk.Checkbutton]:
         size_button = 30
         if not toggle:
             b = tk.Button(master=self, text=text, command=command, relief="flat", overrelief="flat", highlightthickness=0, height=size_button, width=size_button)
@@ -556,7 +562,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         b.pack(side=tk.LEFT, padx=3)
         return b
 
-    def save_figure(self, *args):
+    def save_figure(self, *args) -> None:
         filetypes = self.canvas.get_supported_filetypes().copy()
         default_filetype = self.canvas.get_default_filetype()
         default_filetype_name = filetypes.pop(default_filetype)
@@ -575,7 +581,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         except Exception as e:
             tk.messagebox.showerror("Error saving file", str(e))
 
-    def set_history_buttons(self):
+    def set_history_buttons(self) -> None:
         state_map = {True: tk.NORMAL, False: tk.DISABLED}
         can_back = self._nav_stack._pos > 0
         can_forward = self._nav_stack._pos < len(self._nav_stack._elements) - 1
@@ -584,7 +590,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         if "Forward" in self._buttons:
             self._buttons['Forward']['state'] = state_map[can_forward]
 
-    def _mouse_event_to_message(self, event):
+    def _mouse_event_to_message(self, event:MouseEvent) -> str:
         if event.inaxes and event.inaxes.get_navigate():
             try:
                 s = f"(x={int(event.xdata)}, y={int(event.ydata)})"
