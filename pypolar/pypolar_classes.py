@@ -65,12 +65,6 @@ def find_matches(a:np.ndarray, b:np.ndarray, tol:float=10) -> Tuple[np.ndarray, 
     dist = np.linalg.norm(a_ - b_, axis=1)
     return a_[dist <= tol], b_[dist <= tol]
 
-def recolor_icon(image, color):
-    image_data = np.asarray(image).copy()
-    black_mask = (image_data[..., :3] == 0).all(axis=-1)
-    image_data[black_mask, :3] = color
-    return Image.fromarray(image_data, mode="RGBA")
-
 ## PyPOLAR WIDGETS
 
 class Button(CTk.CTkButton):
@@ -483,10 +477,8 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
 
     def home(self, *args) -> None:
         super().home(*args)
-        self._update_buttons_checked()
-        self._buttons["Zoom"].deselect()
-        self._buttons["Pan"].deselect()
         self.mode = _Mode.NONE
+        self._update_buttons_checked()  
     
     def pan(self, *args) -> None:
         super().pan(*args)
@@ -606,7 +598,6 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
                             s += f"\nI={int(np.sum(data))}"
                 return s
         return ""
-
 
 class ToolTip:
     @staticmethod

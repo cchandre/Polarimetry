@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.patches import Polygon
 from matplotlib.collections import PolyCollection
-from matplotlib.backend_bases import FigureCanvasBase, MouseEvent
+from matplotlib.backend_bases import FigureCanvasBase, _Mode, MouseEvent
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import colorcet as cc
@@ -769,13 +769,14 @@ class Polarimetry(CTk.CTk):
                 vals = [1, self.datastack.width, 1, self.datastack.height]
                 for val in vals:
                     self.xylim += [tk.StringVar(value=str(val))]
-            labels = ["xlim", "ylim"]
+            labels = [u"\u2B62 xlim", u"\u2B63 ylim"]
             positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
             for _, label in enumerate(labels):
-                CTk.CTkLabel(master=info_window, text=label).grid(row=_+1, column=0, padx=0, pady=0)
+                CTk.CTkLabel(master=info_window, text=label).grid(row=_+1, column=0, padx=(40, 0), pady=0)
             for var, position in zip(self.xylim, positions):
                 Entry(master=info_window, textvariable=var, row=position[0], column=position[1], fg_color=gray[1])
-            Button(info_window, text="OK", anchor="center", command=lambda:self.crop_figures(info_window), width=80, height=button_size[1]).grid(row=3, column=0, columnspan=3, pady=20)
+            Button(info_window, text="Crop", anchor="center", command=lambda:self.crop_figures(info_window), width=80, height=button_size[1]).grid(row=3, column=0, columnspan=3, padx=(60, 20), pady=20, sticky="w")
+            Button(info_window, text="Reset", anchor="center", command=lambda:self.reset_figures(info_window), width=80, height=button_size[1]).grid(row=3, column=0, columnspan=3, padx=(20, 60), pady=20, sticky="e")
 
     def crop_figures(self, window:CTk.CTkToplevel) -> None:
         figs = list(map(plt.figure, plt.get_fignums()))
@@ -784,6 +785,13 @@ class Polarimetry(CTk.CTk):
             if (fig.type in ["Sticks", "Composite", "Intensity"]) and (self.datastack.name in fs):
                 fig.axes[0].set_xlim((int(self.xylim[0].get()), int(self.xylim[1].get())))
                 fig.axes[0].set_ylim((int(self.xylim[3].get()), int(self.xylim[2].get())))
+        window.withdraw()
+
+    def reset_figures(self, window:CTk.CTkToplevel) -> None:
+        vals = [1, self.datastack.width, 1, self.datastack.height]
+        for _, val in enumerate(vals):
+            self.xylim[_].set(val)
+        self.crop_figures(window)
         window.withdraw()
 
     def clear_patches(self, ax:plt.Axes, canvas:FigureCanvasTkAgg) -> None:
@@ -1166,6 +1174,8 @@ class Polarimetry(CTk.CTk):
 
     def add_roi_callback(self) -> None:
         if hasattr(self, "stack"):
+            self.thrsh_toolbar.mode = _Mode.NONE
+            self.thrsh_toolbar._update_buttons_checked()
             self.tabview.set("Thresholding/Mask")
             self.update()
             self.add_roi_button.configure(fg_color=orange[1])
@@ -1586,14 +1596,16 @@ class Polarimetry(CTk.CTk):
                 plt.close(fig)
     
     def per_roi_callback(self):
-        figs = list(map(plt.figure, plt.get_fignums()))
-        for fig in figs:
-            fs = fig.canvas.manager.get_window_title()
-            if (fig.type == "Histogram") and (self.datastack.name in fs) :
-                plt.close(fig)
-        roi_map = self.compute_roi_map(self.datastack)[0]
-        for var in self.datastack.vars:
-            self.plot_histos(var, self.datastack, roi_map)
+        if hasattr(self, "datastack"):
+            if len(self.datastack.rois) >= 2:
+                figs = list(map(plt.figure, plt.get_fignums()))
+                for fig in figs:
+                    fs = fig.canvas.manager.get_window_title()
+                    if (fig.type == "Histogram") and (self.datastack.name in fs) :
+                        plt.close(fig)
+                roi_map = self.compute_roi_map(self.datastack)[0]
+                for var in self.datastack.vars:
+                    self.plot_histos(var, self.datastack, roi_map)
 
     def plot_data(self, datastack:DataStack, roi_map:np.ndarray=None) -> None:
         self.plot_intensity(datastack)
