@@ -640,42 +640,47 @@ class Polarimetry(CTk.CTk):
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
-            if (fig.type in ["Composite", "Sticks", "Intensity"]) and (self.datastack.name in fs):
-                fig.axes[0].axis(self.add_axes_checkbox.get())
-                fig.canvas.draw()
+            if hasattr(self, "datastack"):
+                if (fig.type in ["Composite", "Sticks", "Intensity"]) and (self.datastack.name in fs):
+                    fig.axes[0].axis(self.add_axes_checkbox.get())
+                    fig.canvas.draw()
 
     def colorbar_on_all_figures(self) -> None:
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
-            if (fig.type in ["Composite", "Sticks", "Intensity"]) and (self.datastack.name in fs):
-                if self.colorbar_checkbox.get():
-                    ax_divider = make_axes_locatable(fig.axes[0])
-                    cax = ax_divider.append_axes("right", size="7%", pad="2%")
-                    if fig.type == "Composite":
-                        fig.colorbar(fig.axes[0].images[1], cax=cax)
-                    elif (fig.type == "Sticks") or ((fig.type == "Intensity") and (self.edge_detection_switch.get() == "on")):
-                        fig.colorbar(fig.axes[0].collections[0], cax=cax)
-                    if (fig.type == "Intensity") and (self.edge_detection_switch.get() == "off"):
-                        fig.axes[1].remove()
-                else:
-                    if len(fig.axes) >= 2:
-                        fig.axes[1].remove()
+            if hasattr(self, "datastack"):
+                if (fig.type in ["Composite", "Sticks", "Intensity"]) and (self.datastack.name in fs):
+                    if self.colorbar_checkbox.get():
+                        ax_divider = make_axes_locatable(fig.axes[0])
+                        cax = ax_divider.append_axes("right", size="7%", pad="2%")
+                        if fig.type == "Composite":
+                            fig.colorbar(fig.axes[0].images[1], cax=cax)
+                        elif (fig.type == "Sticks") or ((fig.type == "Intensity") and (self.edge_detection_switch.get() == "on")):
+                            fig.colorbar(fig.axes[0].collections[0], cax=cax)
+                        if (fig.type == "Intensity") and (self.edge_detection_switch.get() == "off"):
+                            fig.axes[1].remove()
+                    else:
+                        if len(fig.axes) >= 2:
+                            fig.axes[1].remove()
 
     def colorblind_on_all_figures(self) -> None:
-        if hasattr(self, "datastack"):
             figs = list(map(plt.figure, plt.get_fignums()))
             for fig in figs:
                 fs = fig.canvas.manager.get_window_title()
-                for var in self.datastack.vars:
-                    if (var.name == fig.var):
-                        cmap = var.colormap[self.colorblind_checkbox.get()]
-                if fig.type == "Intensity":
-                    cmap = self.datastack.vars[0].colormap[self.colorblind_checkbox.get()]
-                if (fig.type == "Composite") and (self.datastack.name in fs):
-                    fig.axes[0].images[1].set_cmap(cmap)
-                elif ((fig.type == "Sticks") or ((fig.type == "Intensity") and (self.edge_detection_switch.get() == "on"))) and (self.datastack.name in fs):
-                    fig.axes[0].collections[0].set_cmap(cmap)
+                if hasattr(self, "datastack"):
+                    for var in self.datastack.vars:
+                        if (var.name == fig.var):
+                            cmap = var.colormap[self.colorblind_checkbox.get()]
+                    if fig.type == "Intensity":
+                        cmap = self.datastack.vars[0].colormap[self.colorblind_checkbox.get()]
+                    if (fig.type == "Composite") and (self.datastack.name in fs):
+                        fig.axes[0].images[1].set_cmap(cmap)
+                    elif ((fig.type == "Sticks") or ((fig.type == "Intensity") and (self.edge_detection_switch.get() == "on"))) and (self.datastack.name in fs):
+                        fig.axes[0].collections[0].set_cmap(cmap)
+                if fs.startswith("Disk Cone"):
+                    fig.axes[0].images[0].set_cmap("hsv" if not self.colorblind_checkbox.get() else cc.m_colorwheel)
+                    fig.axes[1].images[0].set_cmap("jet" if not self.colorblind_checkbox.get() else "viridis")
 
     def options_dropdown_callback(self, option:str) -> None:
         if option.endswith("(auto)"):
@@ -758,13 +763,13 @@ class Polarimetry(CTk.CTk):
             self.ontab_thrsh(update=False)
 
     def crop_figures_callback(self) -> None:
-        if len(plt.get_fignums()):
+        if len(plt.get_fignums()) and hasattr(self, "datastack"):
             info_window = CTk.CTkToplevel(self)
             info_window.attributes("-topmost", "true")
             info_window.title("Polarimetry Analysis")
             info_window.geometry(geometry_info((300, 230)))
             CTk.CTkLabel(info_window, text="Define xlim and ylim", image=self.icons["crop"], compound="left", font=CTk.CTkFont(size=16), width=250).grid(row=0, column=0, columnspan=3, padx=30, pady=20)
-            if not hasattr(self, "xylim") and hasattr(self, "datastack"):
+            if not hasattr(self, "xylim"):
                 self.xylim = []
                 vals = [1, self.datastack.width, 1, self.datastack.height]
                 for val in vals:
@@ -864,7 +869,7 @@ class Polarimetry(CTk.CTk):
         self.order = self.dict_polar.get(label)
 
     def show_individual_fit_callback(self) -> None:
-        if not self.method.get().endswith("4POLAR"):
+        if not self.method.get().endswith("4POLAR") and hasattr(self, "datastack"):
             figs = list(map(plt.figure, plt.get_fignums()))
             fig_ = None
             for fig in figs:

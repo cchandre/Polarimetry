@@ -433,10 +433,10 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
     folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icons")
 
     def __init__(self, canvas, window=None, **kwargs) -> None:
-        if window is None:
-            window = canvas.get_tk_widget().master
+        
         tk.Frame.__init__(self, master=window, borderwidth=2, width=int(canvas.figure.bbox.width), height=50)
 
+        self.canvas = canvas
         self.toolitems = (
         ('Home', ' reset original view', 'home', 'home'),
         ('Back', ' back to previous view', 'backward', 'back'),
@@ -571,7 +571,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         try:
             self.canvas.figure.savefig(fname)
         except Exception as e:
-            tk.messagebox.showerror("Error saving file", str(e))
+            showerror("Error saving file", str(e))
 
     def set_history_buttons(self) -> None:
         state_map = {True: tk.NORMAL, False: tk.DISABLED}
