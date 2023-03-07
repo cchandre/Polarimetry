@@ -29,7 +29,7 @@ from itertools import permutations, chain
 from datetime import date
 import copy
 from typing import List, Tuple, Union
-from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, NToolbar2Tk, NToolbar2PyPOLAR, ToolTip, ROIManager, TabView
+from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, NToolbar2PyPOLAR, ToolTip, ROIManager, TabView
 from pypolar_classes import Button, CheckBox, Entry, DropDown, SpinBox, ShowInfo, TextBox
 from pypolar_classes import adjust, circularmean, wrapto180, angle_edge, find_matches
 from pypolar_classes import button_size, orange, gray, red, green, text_color, geometry_info
@@ -58,7 +58,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
     __version__ = "2.4.3"
 
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023"}
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 7, 2023"}
 
     try:
         __version_date__ = dict_versions[__version__]
@@ -201,7 +201,7 @@ class Polarimetry(CTk.CTk):
         self.thrsh_canvas = FigureCanvasTkAgg(self.thrsh_fig, master=self.thrsh_frame)
         self.thrsh_axis.imshow(background, cmap="gray", interpolation="bicubic", alpha=0.1)
         self.thrsh_canvas.draw()
-        self.thrsh_toolbar = NToolbar2Tk(canvas=self.thrsh_canvas, window=self.thrsh_frame)
+        self.thrsh_toolbar = NToolbar2PyPOLAR(canvas=self.thrsh_canvas, window=self.thrsh_frame)
         banner = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=Polarimetry.axes_size[0], width=40)
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         Button(banner, image=self.icons["contrast"], command=self.contrast_thrsh_button_callback).pack(side=tk.TOP, padx=20, pady=20)
