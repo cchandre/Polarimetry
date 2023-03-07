@@ -474,7 +474,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         self.pack(side=tk.BOTTOM, fill=tk.X)
         canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
 
-    def _update_buttons_checked(self):
+    def _update_buttons_checked(self) -> None:
         for text, mode in [('Zoom', _Mode.ZOOM), ('Pan', _Mode.PAN)]:
             if text in self._buttons:
                 if self.mode == mode:
@@ -482,18 +482,18 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
                 else:
                     self._buttons[text].deselect()
 
-    def pan(self, *args):
+    def pan(self, *args) -> None:
         super().pan(*args)
         self._update_buttons_checked()
 
-    def zoom(self, *args):
+    def zoom(self, *args) -> None:
         super().zoom(*args)
         self._update_buttons_checked()
 
-    def set_message(self, s):
+    def set_message(self, s:str) -> None:
         self.message.set(s)
 
-    def draw_rubberband(self, event, x0, y0, x1, y1):
+    def draw_rubberband(self, event, x0:int, y0:int, x1:int, y1:int) -> None:
         if self.canvas._rubberband_rect_white:
             self.canvas._tkcanvas.delete(self.canvas._rubberband_rect_white)
         if self.canvas._rubberband_rect_black:
@@ -503,7 +503,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         self.canvas._rubberband_rect_black = (self.canvas._tkcanvas.create_rectangle(x0, y0, x1, y1))
         self.canvas._rubberband_rect_white = (self.canvas._tkcanvas.create_rectangle(x0, y0, x1, y1, outline='white', dash=(3, 3)))
         
-    def remove_rubberband(self):
+    def remove_rubberband(self) -> None:
         if self.canvas._rubberband_rect_white:
             self.canvas._tkcanvas.delete(self.canvas._rubberband_rect_white)
             self.canvas._rubberband_rect_white = None
@@ -511,17 +511,11 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
             self.canvas._tkcanvas.delete(self.canvas._rubberband_rect_black)
             self.canvas._rubberband_rect_black = None
 
-    def _set_image_for_button(self, button):
-        if button._image_file is None:
-            return
-        size = 26
-        
+    def _set_image_for_button(self, button:Union[tk.Button, tk.Checkbutton]) -> None:
+       
         def hex_to_rgb(hex):
             h = hex.lstrip('#')
             return [int(h[i:i+2], 16) for i in (0, 2, 4)]
-        
-        def _get_color(color_name):
-            return button.winfo_rgb(button.cget(color_name))
 
         def _recolor_icon(image, fg_color):
             image_data = np.asarray(image).copy()
@@ -530,11 +524,12 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
             return Image.fromarray(image_data, mode="RGBA")
 
         with Image.open(button._image_file) as im:
+            size_image = 26
             im = im.convert("RGBA")
-            im = _recolor_icon(im, fg_color="#000000")
-            image = ImageTk.PhotoImage(im.resize((size, size)), master=self)
+            im = _recolor_icon(im, fg_color="#00000")
+            image = ImageTk.PhotoImage(im.resize((size_image, size_image)), master=self)
             im = _recolor_icon(im, fg_color=orange[0])
-            image_alt = ImageTk.PhotoImage(im.resize((size, size)), master=self)
+            image_alt = ImageTk.PhotoImage(im.resize((size_image, size_image)), master=self)
             button._ntimage = image
             button._ntimage_alt = image_alt
 
@@ -545,11 +540,12 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         button.configure(**image_kwargs)
         
     def _Button(self, text, image_file, toggle, command):
+        size_button = 30
         if not toggle:
-            b = tk.Button(master=self, text=text, command=command, relief="flat", overrelief="flat", highlightthickness=0, height=30, width=30)
+            b = tk.Button(master=self, text=text, command=command, relief="flat", overrelief="flat", highlightthickness=0, height=size_button, width=size_button)
         else:
             var = tk.IntVar(master=self)
-            b = tk.Checkbutton(master=self, text=text, command=command, indicatoron=False, variable=var, offrelief="flat", overrelief="flat", height=32, width=32)
+            b = tk.Checkbutton(master=self, text=text, command=command, indicatoron=False, variable=var, offrelief="flat", overrelief="flat", height=size_button+2, width=size_button+2)
             b.var = var
         b._image_file = image_file
         if image_file is not None:
