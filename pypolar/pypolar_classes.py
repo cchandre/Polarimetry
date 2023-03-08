@@ -614,7 +614,7 @@ class ToolTip:
         self.widget = widget
         self.tipwindow = None
 
-    def showtip(self, text:str):
+    def showtip(self, text:str) -> None:
         self.text = text
         if self.tipwindow or not self.text:
             return
@@ -629,8 +629,8 @@ class ToolTip:
         except tk.TclError:
             pass
         label_font = CTk.CTkFont(size=12)
-        label = tk.Label(tw, text=self.text, font=label_font, justify=tk.LEFT, relief=tk.SOLID, borderwidth=1)
-        label.pack(ipadx=1)
+        self.label = tk.Label(tw, text=self.text, font=label_font, justify=tk.LEFT, relief=tk.SOLID, borderwidth=1)
+        self.label.pack(ipadx=1)
 
     def hidetip(self) -> None:
         tw = self.tipwindow

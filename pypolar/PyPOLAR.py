@@ -58,7 +58,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
     __version__ = "2.4.3"
 
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 7, 2023"}
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 8, 2023"}
 
     try:
         __version_date__ = dict_versions[__version__]
@@ -270,11 +270,13 @@ class Polarimetry(CTk.CTk):
         self.colorbar_checkbox.select()
         self.colorbar_checkbox.grid(row=2, column=0, columnspan=2, padx=40, pady=(0, 0), sticky="ew")
         self.colorblind_checkbox = CheckBox(preferences, text="\n Colorblind-friendly\n", command=self.colorblind_on_all_figures)
-        self.colorblind_checkbox.grid(row=3, column=0, columnspan=2, padx=40, pady=(0, 20), sticky="ew")
-        Button(preferences, text="Crop figures", image=self.icons["crop"], command=self.crop_figures_callback).grid(row=4, column=0, columnspan=2, padx=20, pady=0)
-        button = Button(preferences, text="Show individual fit", image=self.icons["query_stats"], command=self.show_individual_fit_callback)
-        ToolTip.createToolTip(button, " zoom into the region of interest\n then click using the crosshair")
-        button.grid(row=5, column=0, columnspan=2, padx=20, pady=20)
+        self.colorblind_checkbox.grid(row=3, column=0, columnspan=2, padx=40, pady=(0, 0), sticky="ew")
+        button = Button(preferences, image=self.icons["crop"], command=self.crop_figures_callback)
+        button.grid(row=4, column=0, columnspan=2, padx=40, pady=(10, 20), sticky="w")
+        ToolTip.createToolTip(button, " click to define region and crop figures")
+        button = Button(preferences, image=self.icons["query_stats"], command=self.show_individual_fit_callback)
+        ToolTip.createToolTip(button, " show individual fit\n zoom into the region of interest\n then click using the crosshair")
+        button.grid(row=4, column=0, columnspan=2, padx=40, pady=(10, 20), sticky="e")
         labels = [" pixels per stick (horizontal)", "pixels per stick (vertical)"]
         self.pixelsperstick_spinboxes = [SpinBox(master=preferences, command=self.pixelsperstick_spinbox_callback) for it in range(2)]
         for _ in range(2):
@@ -321,13 +323,15 @@ class Polarimetry(CTk.CTk):
         self.offset_angle_entry.set_state("disabled")
         CTk.CTkLabel(master=adv["Polarization"], text=" ").grid(row=2, column=0)
         self.polar_dir = tk.StringVar(value="clockwise")
-        CTk.CTkOptionMenu(master=adv["Polarization"], values=["clockwise", "counterclockwise"], width=button_size[0], height=button_size[1], dynamic_resizing=False, variable=self.polar_dir).grid(row=3, column=0, pady=(0, 10))
-        self.calib_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=button_size[0], height=button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback)
-        self.calib_dropdown.grid(row=1, column=0, pady=10)
-        ToolTip.createToolTip(self.calib_dropdown, " 1PF: select disk cone depending on wavelength and acquisition date\n 4POLAR: select .mat file containing the calibration data")
-        button = Button(adv["Disk cone / Calibration data"], text="Display", image=self.icons["photo"], command=self.diskcone_display)
-        button.grid(row=2, column=0, pady=10)
+        self.polarization_button = Button(adv["Polarization"], image=self.icons[self.polar_dir.get()], command=self.change_polarization_direction)
+        self.polarization_button.grid(row=2, column=0, pady=10)
+        self.polarization_tooltip = ToolTip.createToolTip(self.polarization_button, " change polarization direction")
+        button = Button(adv["Disk cone / Calibration data"], image=self.icons["photo"], command=self.diskcone_display)
+        button.grid(row=1, column=0, padx=(52, 0), pady=10, sticky="w")
         ToolTip.createToolTip(button, " display the selected disk cone (for 1PF)")
+        self.calib_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=button_size[0]-button_size[1], height=button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback)
+        self.calib_dropdown.grid(row=1, column=0, padx=(0, 52), pady=10, sticky="e")
+        ToolTip.createToolTip(self.calib_dropdown, " 1PF: select disk cone depending on wavelength and acquisition date\n 4POLAR: select .mat file containing the calibration data")
         self.calib_textbox = TextBox(master=adv["Disk cone / Calibration data"], width=250, height=50, state="disabled")
         self.calib_textbox.grid(row=3, column=0, pady=10)
         self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], width=button_size[0], height=button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled")
@@ -366,8 +370,11 @@ class Polarimetry(CTk.CTk):
             label.grid(row=rows[_], column=0, padx=(95, 10), pady=(0, 0), sticky="w")
             ToolTip.createToolTip(label, " height and width of the bin used for noise removal")
             SpinBox(adv["Remove background"], from_=3, to_=19, step_size=2, textvariable=self.noise[_+2]).grid(row=rows[_], column=0, padx=(10, 30), pady=10, sticky="e")
-        button = Button(adv["Remove background"], text="Click background", image=self.icons["exposure"], command=lambda:self.click_callback(self.intensity_axis, self.intensity_canvas, "click background"))
-        button.grid(row=4, column=0)
+        label = CTk.CTkLabel(master=adv["Remove background"], text="\nIntensity\n")
+        label.grid(row=4, column=0, padx=(95, 10), pady=(0, 0), sticky="w")
+        ToolTip.createToolTip(label, " intensity of the bin used for noise removal")
+        button = Button(adv["Remove background"], image=self.icons["exposure"], command=lambda:self.click_callback(self.intensity_axis, self.intensity_canvas, "click background"))
+        button.grid(row=4, column=0, padx=30, sticky="e")
         ToolTip.createToolTip(button, " click and select a point on the intensity image")
         CTk.CTkLabel(master=adv["Remove background"], text=" ", height=5).grid(row=6, column=0, pady=5)
 
@@ -466,17 +473,20 @@ class Polarimetry(CTk.CTk):
             self.tabview.set("Intensity")
 
     def edge_detection_callback(self) -> None:
-        if self.edge_detection_switch.get() == "on":
-            window = ShowInfo(message=" Mask for edge detection", image=self.icons["multiline_chart"], button_labels=["Download", "Compute", "Cancel"], geometry=(370, 140), fontsize=16)
-            buttons = window.get_buttons()
-            buttons[0].configure(command=lambda:self.download_edge_mask(window))
-            buttons[1].configure(command=lambda:self.compute_edge_mask(window))
-            buttons[2].configure(command=lambda:self.delete_edge_mask(window))
-        elif self.edge_detection_switch.get() == "off":
-            if hasattr(self, "edge_contours"):
-                delattr(self, "edge_contours")
-            self.tabview.delete("Edge Detection")
-            self.ontab_thrsh()
+        if hasattr(self, "stack"):
+            if self.edge_detection_switch.get() == "on":
+                window = ShowInfo(message=" Mask for edge detection", image=self.icons["multiline_chart"], button_labels=["Download", "Compute", "Cancel"], geometry=(370, 140), fontsize=16)
+                buttons = window.get_buttons()
+                buttons[0].configure(command=lambda:self.download_edge_mask(window))
+                buttons[1].configure(command=lambda:self.compute_edge_mask(window))
+                buttons[2].configure(command=lambda:self.delete_edge_mask(window))
+            elif self.edge_detection_switch.get() == "off":
+                if hasattr(self, "edge_contours"):
+                    delattr(self, "edge_contours")
+                self.tabview.delete("Edge Detection")
+                self.ontab_thrsh()
+        else:
+            self.edge_detection_switch.deselect()
 
     def delete_edge_mask(self, window:CTk.CTkToplevel) -> None:
         window.withdraw()
@@ -560,6 +570,10 @@ class Polarimetry(CTk.CTk):
                 shift_y[shift_y >= self.stack.height - 1] = self.stack.height - 1
                 rho_ct[shift_y, shift_x] = angle
         return rho_ct
+
+    def change_polarization_direction(self):
+        self.polar_dir.set("clockwise" if self.polar_dir.get() == "counterclockwise" else "counterclockwise")
+        self.polarization_button.configure(image=self.icons[self.polar_dir.get()])
 
     def contrast_thrsh_slider_callback(self, value:float) -> None:
         if value <= 0.001:
