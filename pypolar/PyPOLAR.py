@@ -1078,7 +1078,7 @@ class Polarimetry(CTk.CTk):
                         vmin, vmax = self.get_variable(_)[1:]
                         p.set_clim([vmin, vmax])
                         ax.add_collection(p)
-            if fig.type == "Sticks" and fig.var == "Rho (vs contour)" and (self.datastack.name in fs):
+            if (fig.type == "Sticks") and (fig.var == "Rho_contour") and (self.datastack.name in fs):
                 ax = fig.axes[0]
                 for collection in ax.collections:
                     collection.remove()
@@ -1748,7 +1748,7 @@ class Polarimetry(CTk.CTk):
             deltarho = wrapto180(2 * (data_vals - meandata)) / 2
             results += [meandata, np.std(deltarho), np.mean(deltarho)]
         for var in datastack.vars[1:]:
-            if var.name != "Rho (vs contour)":
+            if var.name != "Rho_contour":
                 data_vals = var.values[mask * np.isfinite(rho)]
                 meandata = np.mean(data_vals)
                 title += ["Mean" + var.name, "Std" + var.name]
@@ -1943,7 +1943,7 @@ class Polarimetry(CTk.CTk):
         datastack.added_vars = [X_, Y_, Int_]
         if self.edge_detection_switch.get() == "on":
             rho_ct = Variable(datastack)
-            rho_ct.indx, rho_ct.name, rho_ct.latex = 10, "Rho (vs contour)", r"$\rho_c$"
+            rho_ct.indx, rho_ct.name, rho_ct.latex = 10, "Rho_contour", r"$\rho_c$"
             rho_ct.type_histo = ["polar1", "polar3"]
             rho_ct.colormap = ["hsv", cc.m_colorwheel]
             vals = self.define_rho_ct(self.edge_contours)
