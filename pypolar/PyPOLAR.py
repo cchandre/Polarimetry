@@ -384,6 +384,7 @@ class Polarimetry(CTk.CTk):
         labels = ["Noise factor", "Noise removal level"]
         rows = [1, 5]
         entries = [Entry(adv["Remove background"], text="\n" + label + "\n", textvariable=self.noise[_], row=rows[_], column=0) for _, label in enumerate(labels)]
+        ToolTip.createToolTip(entries[0], " fraction of the mean intensity value to be substracted\n value between 0 and 1")
         entries[1].set_state("disabled")
         labels = ["Width", "Height"]
         rows = [2, 3]
@@ -960,8 +961,8 @@ class Polarimetry(CTk.CTk):
         if event.inaxes == ax:
             x, y = event.xdata, event.ydata
             if event.button == 1:
-                x1, x2 = round(x) - float(self.noise[2].get())//2, round(x) + float(self.noise[2].get())//2
-                y1, y2 = round(y) - float(self.noise[3].get())//2, round(y) + float(self.noise[3].get())//2
+                x1, x2 = int(round(x)) - int(self.noise[2].get())//2, int(round(x)) + int(self.noise[2].get())//2
+                y1, y2 = int(round(y)) - int(self.noise[3].get())//2, int(round(y)) + int(self.noise[3].get())//2
                 self.noise[1].set(str(np.mean(self.datastack.intensity[y1:y2, x1:x2]) / self.stack.nangle * float(self.noise[0].get())))
                 canvas.mpl_disconnect(self.__cid1)
                 canvas.mpl_disconnect(self.__cid2)
