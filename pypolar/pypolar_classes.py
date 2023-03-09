@@ -437,6 +437,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         tk.Frame.__init__(self, master=window, borderwidth=2, width=int(canvas.figure.bbox.width), height=50)
 
         self.canvas = canvas
+        self.window = window
         self.toolitems = (
         ('Home', ' reset original view', 'home', 'home'),
         ('Back', ' back to previous view', 'backward', 'back'),
@@ -563,7 +564,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         defaultextension = ''
         initialdir = os.path.expanduser(mpl.rcParams['savefig.directory'])
         initialfile = self.canvas.get_default_filename()
-        fname = fd.asksaveasfilename(master=self.canvas.get_tk_widget().master, title='Save the figure',filetypes=tk_filetypes, defaultextension=defaultextension, initialdir=initialdir, initialfile=initialfile,)
+        fname = fd.asksaveasfilename(master=self.canvas.get_tk_widget().master, title=f"Save image from '{self.window.master.master.get()}' tab",filetypes=tk_filetypes, defaultextension=defaultextension, initialdir=initialdir, initialfile=initialfile)
         if fname in ["", ()]:
             return
         if initialdir != "":
