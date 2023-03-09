@@ -314,7 +314,7 @@ class Polarimetry(CTk.CTk):
         CTk.CTkLabel(master=save_ext, text=" ").grid(row=len(labels)+1, column=0)
 
 ## RIGHT FRAME: ADV
-        adv_elts = ["Dark", "Binning", "Polarization", "Rotation", "Disk cone / Calibration data", "Remove background"]
+        adv_elts = ["Dark", "Binning", "Polarization", "Rotation", "Disk cone / Calibration data", "Intensity removal"]
         adv_loc = [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]
         adv = {}
         for loc, elt in zip(adv_loc, adv_elts):
@@ -380,26 +380,25 @@ class Polarimetry(CTk.CTk):
         for entry in entries:
             ToolTip.createToolTip(entry, " positive value for counter-clockwise rotation\n negative value for clockwise rotation")
 
-        self.noise = [tk.StringVar(value="1"), tk.StringVar(value="0"), tk.StringVar(value="3"), tk.StringVar(value="3")]
-        labels = ["Noise factor", "Noise removal level"]
-        rows = [1, 5]
-        entries = [Entry(adv["Remove background"], text="\n" + label + "\n", textvariable=self.noise[_], row=rows[_], column=0) for _, label in enumerate(labels)]
-        ToolTip.createToolTip(entries[0], " fraction of the mean intensity value to be substracted\n value between 0 and 1")
-        entries[1].set_state("disabled")
-        labels = ["Width", "Height"]
-        rows = [2, 3]
+        self.noise = [tk.StringVar(value="1"), tk.StringVar(value="3"), tk.StringVar(value="3")]
+        labels = ["Bin width", "Bin height"]
+        rows = [1, 2]
         for _ in range(2):
-            label = CTk.CTkLabel(master=adv["Remove background"], text="\n" + labels[_] + "\n")
-            label.grid(row=rows[_], column=0, padx=(95, 10), pady=(0, 0), sticky="w")
-            ToolTip.createToolTip(label, " height and width of the bin used for noise removal")
-            SpinBox(adv["Remove background"], from_=3, to_=19, step_size=2, textvariable=self.noise[_+2]).grid(row=rows[_], column=0, padx=(10, 30), pady=10, sticky="e")
-        label = CTk.CTkLabel(master=adv["Remove background"], text="\nIntensity\n")
-        label.grid(row=4, column=0, padx=(95, 10), pady=(0, 0), sticky="w")
-        ToolTip.createToolTip(label, " intensity of the bin used for noise removal")
-        button = Button(adv["Remove background"], image=self.icons["exposure"], command=lambda:self.click_callback(self.intensity_axis, self.intensity_canvas, "click background"))
-        button.grid(row=4, column=0, pady=10, padx=30, sticky="e")
+            SpinBox(adv["Intensity removal"], from_=3, to_=19, step_size=2, textvariable=self.noise[_+1]).grid(row=rows[_], column=0, padx=(60, 10), pady=10, sticky="w")
+            label = CTk.CTkLabel(master=adv["Intensity removal"], text="\n" + labels[_] + "\n")
+            label.grid(row=rows[_], column=0, padx=(10, 60), pady=(0, 0), sticky="e")
+            ToolTip.createToolTip(label, " height and width of the bin used for intensity removal")
+        label = CTk.CTkLabel(master=adv["Intensity removal"], text="\nPick center of bin\n")
+        label.grid(row=3, column=0, padx=(10, 50), pady=(0, 0), sticky="e")
+        ToolTip.createToolTip(label, " pick center of the bin used for intensity removal")
+        button = Button(adv["Intensity removal"], image=self.icons["removal"], command=lambda:self.click_callback(self.intensity_axis, self.intensity_canvas, "click background"))
+        button.grid(row=3, column=0, pady=10, padx=(60, 0), sticky="w")
         ToolTip.createToolTip(button, " click and select a point on the intensity image")
-        CTk.CTkLabel(master=adv["Remove background"], text=" ", height=5).grid(row=6, column=0, pady=5)
+        entry = Entry(adv["Intensity removal"], text="\n     Factor\n", textvariable=self.noise[0], row=4, column=0, sticky="w", padx=(20, 10))
+        ToolTip.createToolTip(entry, " fraction of the mean intensity value to be substracted\n value between 0 and 1")
+        self.intensity_removal_label = CTk.CTkLabel(master=adv["Intensity removal"], text="Removed intensity value = 0")
+        self.intensity_removal_label.grid(row=5, column=0, padx=(30, 10), pady=(0, 0), sticky="w")
+        CTk.CTkLabel(master=adv["Intensity removal"], text=" ", height=5).grid(row=6, column=0, pady=5)
 
 ## RIGHT FRAME: ABOUT
         banner = CTk.CTkFrame(master=self.tabview.tab("About"))
@@ -433,6 +432,7 @@ class Polarimetry(CTk.CTk):
         self.thrsh_colormap = "hot"
         self.tabview.set("Intensity")
         self.filename_label.focus()
+        self.removed_intensity = 0
 
     def initialize_slider(self) -> None:
         if hasattr(self, "stack"):
@@ -445,9 +445,11 @@ class Polarimetry(CTk.CTk):
             self.stack_slider_label.configure(text="T")
 
     def initialize_noise(self) -> None:
-        vals = [1, 0, 3, 3]
+        vals = [1, 3, 3]
         for val, _ in zip(vals, self.noise):
             _.set(str(val))
+        self.removed_intensity = 0
+        self.intensity_removal_label.configure(text="Removed intensity value = 0")
 
     def initialize(self) -> None:
         self.initialize_slider()
@@ -961,9 +963,10 @@ class Polarimetry(CTk.CTk):
         if event.inaxes == ax:
             x, y = event.xdata, event.ydata
             if event.button == 1:
-                x1, x2 = int(round(x)) - int(self.noise[2].get())//2, int(round(x)) + int(self.noise[2].get())//2
-                y1, y2 = int(round(y)) - int(self.noise[3].get())//2, int(round(y)) + int(self.noise[3].get())//2
-                self.noise[1].set(str(np.mean(self.datastack.intensity[y1:y2, x1:x2]) / self.stack.nangle * float(self.noise[0].get())))
+                x1, x2 = int(round(x)) - int(self.noise[1].get())//2, int(round(x)) + int(self.noise[1].get())//2
+                y1, y2 = int(round(y)) - int(self.noise[2].get())//2, int(round(y)) + int(self.noise[2].get())//2
+                self.removed_intensity = int(np.mean(self.datastack.intensity[y1:y2, x1:x2]) / self.stack.nangle * float(self.noise[0].get()))
+                self.intensity_removal_label.configure(text=f"Removed intensity value = {self.removed_intensity}")
                 canvas.mpl_disconnect(self.__cid1)
                 canvas.mpl_disconnect(self.__cid2)
                 for line in hlines:
@@ -1832,7 +1835,7 @@ class Polarimetry(CTk.CTk):
         roi_map, mask = self.compute_roi_map(datastack)
         datastack.dark = float(self.dark.get())
         datastack.method = self.method.get()
-        field = self.stack.values - datastack.dark - float(self.noise[1].get())
+        field = self.stack.values - datastack.dark - float(self.removed_intensity)
         field = field * (field >= 0)
         if self.method.get() == "CARS":
             field = np.sqrt(field)

@@ -87,10 +87,10 @@ class CheckBox(CTk.CTkCheckBox):
         super().__init__(master, text=text, command=command, onvalue=True, offvalue=False, width=30, **kwargs)
 
 class Entry(CTk.CTkFrame):
-    def __init__(self, master, text:str=None, textvariable:tk.StringVar=None, state:str="normal", row:int=0, column:int=0, padx:Union[int, Tuple[int, int]]=(10, 30), pady:Union[int, Tuple[int, int]]=5, fg_color:str=gray[0], **kwargs) -> None:
+    def __init__(self, master, text:str=None, textvariable:tk.StringVar=None, state:str="normal", row:int=0, column:int=0, padx:Union[int, Tuple[int, int]]=(10, 30), pady:Union[int, Tuple[int, int]]=5, sticky:str="e", fg_color:str=gray[0], **kwargs) -> None:
         super().__init__(master, **kwargs)
         self.configure(fg_color=fg_color)
-        self.grid(row=row, column=column, sticky="e")
+        self.grid(row=row, column=column, sticky=sticky)
         if text is not None:
             CTk.CTkLabel(self, text=text).grid(row=0, column=0, padx=(20, 10))
         self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=50, state=state)
@@ -444,7 +444,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         ('Forward', ' forward to next view', 'forward', 'forward'),
         ('Pan', ' left button pans, right button zooms\n x/y fixes axis, CTRL fixes aspect', 'pan', 'pan'),
         ('Zoom', ' zoom to rectangle\n x/y fixes axis', 'zoom', 'zoom'),
-        ('Save', ' save the figure', 'save', 'save_figure'),)
+        ('Save', ' save image from tab', 'save', 'save_figure'),)
 
         self._buttons = {}
         for text, tooltip_text, image_file, callback in self.toolitems:
