@@ -803,9 +803,9 @@ class Polarimetry(CTk.CTk):
         if len(plt.get_fignums()) and hasattr(self, "datastack"):
             info_window = CTk.CTkToplevel(self)
             info_window.attributes("-topmost", "true")
-            info_window.title("Polarimetry Analysis")
+            info_window.title(f"Crop figures for {self.datastack.name}")
             info_window.geometry(geometry_info((300, 230)))
-            CTk.CTkLabel(info_window, text="Define xlim and ylim", image=self.icons["crop"], compound="left", font=CTk.CTkFont(size=16), width=250).grid(row=0, column=0, columnspan=3, padx=30, pady=20)
+            CTk.CTkLabel(info_window, text="  define xlim and ylim", image=self.icons["crop"], compound="left", font=CTk.CTkFont(size=16), width=250).grid(row=0, column=0, columnspan=3, padx=30, pady=20)
             if not hasattr(self, "xylim"):
                 self.xylim = []
                 vals = [1, self.datastack.width, 1, self.datastack.height]
@@ -922,7 +922,7 @@ class Polarimetry(CTk.CTk):
                 self.click_callback(fig_.axes[0], fig_.canvas, "individual fit")
                 cfm.window.attributes("-topmost", False)
             else:
-                ShowInfo(message=" Provide a Rho Composite figure\n to plot individual fits", image=self.icons["query_stats"], button_labels=["OK"])
+                ShowInfo(message="  provide a Rho Composite figure\n  to plot individual fits", image=self.icons["query_stats"], button_labels=["OK"])
 
     def diskcone_display(self) -> None:
         if self.method.get() == "1PF" and hasattr(self, "CD"):
