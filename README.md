@@ -152,7 +152,7 @@ The `Used dark value` indicated in the entry box is the value used in the analys
 
 * The value of the offset angle used in the analysis is indicated. This angle (in degrees) is measured according to the convention mentioned in the [Options](#options-tab) tab. In order to manually change this value, the switch should be set to 'On'.
 
-* <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/clockwise.png" alt=" " width="300"/> or <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/counterclockwise.png" alt=" " width="300"/>: click to select the polarization direction as clockwise or counter-clockwise. The direction shown on the button is the direction chosen in the analysis. 
+* <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/clockwise.png" alt=" " width="30"/> or <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/counterclockwise.png" alt=" " width="30"/>: click to select the polarization direction as clockwise or counter-clockwise. The direction shown on the button is the direction chosen in the analysis. 
 
 The offset angle and the polarization direction are saved in the MS Excel file (see `Save output` in the [Options](#options-tab) tab).
 
