@@ -7,7 +7,7 @@ Source code: [PyPOLAR.py](https://github.com/cchandre/Polarimetry/blob/master/py
 
 Website: [www.fresnel.fr/polarimetry](https://www.fresnel.fr/polarimetry)
 
-![Version](https://img.shields.io/badge/version-v2.4.2-blue)
+![Version](https://img.shields.io/badge/version-v2.4.3-blue)
 ![Platform](https://img.shields.io/badge/platform-macOS|Windows-orange)
 ![License](https://img.shields.io/badge/license-BSD-lightgray)
 
@@ -114,16 +114,18 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
   * Checkbox `Colorbar on figures`: if selected, the colorbar of each composite or stick figure is displayed (also visible on the `.tif` images if selected).
   
   * Checkbox `Colorblind-friendly`: if selected, uses colorblind-friendly colormaps for figure (also used in the `.tif` images if selected).
-
-  * Button `Crop figures`<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/crop.png" alt=" " width="30"/>: enter the x-range and y-range for cropping the figures; the values are also the ones used in the saved animated gif (see `Save output`). 
-
-  * Button `Show individual fit`<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/query_stats.png" alt=" " width="30"/>: Click this button to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the Composite figure of &rho;. 
-
+  
   * Spinners for the number of pixels separating sticks on stick maps: `vertical` = number of pixels separating sticks vertically, `horizontal` = number of pixels separating sticks horizontally (i.e., 1 means every pixel, 2 means every other pixel, etc...); the spinners apply directly to open stick figures.
+
+  * Button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/crop.png" alt=" " width="30"/>: click and enter the x-range and y-range for cropping figures; the values are also the ones used in the saved animated gif (see `Save output`). 
+
+  * Button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/query_stats.png" alt=" " width="30"/>: Click this button to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the composite figure of &rho;. 
+
+  
 
 #### Save output
 
-  The `Save output` table lists the saving options: `data (.pykl)` for saving data as a compressed pickle file (to download as `Previous analysis` in the download selection), `figures (.tif)` for exporting the figures as TIFF files, `data (.mat)` for saving the values of the variables for each pixel used in the analysis as a MATLAB `.mat` file, `mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and `movie (.gif)` for an animated gif file of the stack.
+  The `Save output` table lists the saving options: `Data (.pykl)` for saving data as a compressed pickle file (to download as `Previous analysis` in the download selection), `Figures (.tif)` for exporting the figures as TIFF files, `Data (.mat)` for saving the values of the variables for each pixel used in the analysis as a MATLAB `.mat` file, `Mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and `Movie (.gif)` for an animated gif file of the stack.
 
  * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/delete_forever.png" alt=" " width="30"/> reinitializes the `Show/Save` and `Variable` tables.
   * Checkbox `per ROI`: if selected, the results are displayed and saved separately for each ROI; otherwise, the results are displayed and saved by grouping all ROIs. 
@@ -150,14 +152,14 @@ The `Used dark value` indicated in the entry box is the value used in the analys
 
 * The value of the offset angle used in the analysis is indicated. This angle (in degrees) is measured according to the convention mentioned in the [Options](#options-tab) tab. In order to manually change this value, the switch should be set to 'On'.
 
-* Select the polarization direction as clockwise or counter-clockwise.
+* <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/clockwise.png" alt=" " width="30"/> or <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/counterclockwise.png" alt=" " width="30"/>: click to select the polarization direction as clockwise or counter-clockwise. The direction shown on the button is the direction chosen in the analysis. 
 
 The offset angle and the polarization direction are saved in the MS Excel file (see `Save output` in the [Options](#options-tab) tab).
 
 #### Disk cone / Calibration data (for 1PF and 4POLAR)
 
 For 1PF: The drop down menu lists all the disk cones included in the app. If the disk cone to be used is not in the list, select `other`and download the appropriate disk cone. The choice of disk cone also sets the value for the offset angle.
-Click the button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo.png" alt=" " width="30"/> `Display` to visualize the disk cone used in the `1PF` analysis. The name of the disk cone used in the analysis is displayed on the lower part of the panel. The name of the disk cone is saved in the MS Excel file (see `Save output` in the [Options](#options-tab) tab). 
+Click the button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo.png" alt=" " width="30"/> to visualize the disk cone used in the `1PF` analysis. The name of the disk cone used in the analysis is displayed on the lower part of the panel. The name of the disk cone is saved in the MS Excel file (see `Save output` in the [Options](#options-tab) tab). 
 
 For 4POLAR: The upper drop down menu lists all the calibration data included in the app. If the calibration data to be used is not in the list, select `other`and download the appropriate calibration data. The calibration data is a `.mat` file with a name of the type `Calib*.mat` containing a 4x4 matrix *K*. The name of the calibration data used in the analysis is displayed on the lower part of the panel.
 Select the distribution of the polarization angles (0&deg;, 45&deg;, 90&deg;, 135&deg;) using the lower drop down menu: UL (upper left), UR (upper right), LR (lower right) and LL (lower left). The choice of distribution is saved in the MS Excel file (see `Save output` in the [Options](#options-tab) tab).
@@ -171,9 +173,9 @@ This option is used to improve the quality of the stack if the signal is too wea
 * `Stick (deg)`: (editable) value of the angle (in degrees) to arbitrarily rotate the sticks (following the above-mentioned convention: positive=counter-clockwise, negative=clockwise)
 * `Figure (deg)`: (editable) value of the angle (in degrees) to arbitrarily rotate the entire figure (following the above-mentioned convention: positive=counter-clockwise, negative=clockwise)
 
-#### Remove background
+#### Intensity removal
 
-This option is used to remove background from the stack (noise substraction). First, choose the value `Noise factor` (between 0 and 1) for the fraction of the mean intensity of the patch to be removed from the stack. Second, define the size in pixels (`Noise width` and `Noise height`) of the patch in the noisy part of the intensity image. Third, select a point (center of the patch of size `Noise width` x `Noise height`) in the intensity image by clicking the button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/exposure.png" alt=" " width="30"/> `Click background`. The mean value over the selected patch weighted by the Noise factor is removed from the entire stack. The value `Noise removal level` which is substracted from the stack is indicated in the lower part of the panel.
+This option is used to remove some intensity from the stack. First, define the size in pixels (`Bin width` and `Bin height`) of the patch in the part of the intensity image. Second, select a point (center of the patch of size `Bin width` x `Bin height`) in the intensity image by clicking the button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/removal.png" alt=" " width="30"/>. Third, choose the value `Factor` (between 0 and 1) for the fraction of the mean intensity of the patch to be removed from the stack. The mean value over the selected patch weighted by the chosen factor is removed from the entire stack. The value `Removed intensity value` which is substracted from the stack is indicated in the lower part of the panel.
 
 [&uarr;](#manual)
 
@@ -182,8 +184,8 @@ ___
 
 #### Edge detection
 
-* `low threshold`: integer between 0 and 255 - hysteresis thresholding value used in the Canny edge detector: edges with intensity gradients below this value are not edges and discarded
-* `high threshold`: integer between 0 and 255 - hysteresis thresholding value used in the Canny edge detector: edges with intensity gradients larger than this value are sure to be edges
+* `Low threshold`: integer between 0 and 255 - hysteresis thresholding value used in the Canny edge detector: edges with intensity gradients below this value are not edges and discarded
+* `High threshold`: integer between 0 and 255 - hysteresis thresholding value used in the Canny edge detector: edges with intensity gradients larger than this value are sure to be edges
 * `Length`: minimum length of a contour (in pixels)
 * `Smoothing window`: length in pixels of the window used for the smoothing (using a Savitzky-Golay filter `scipy.savgol_filter`)
 
