@@ -58,7 +58,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
     __version__ = "2.4.3"
 
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 8, 2023"}
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 10, 2023"}
 
     try:
         __version_date__ = dict_versions[__version__]
@@ -378,8 +378,8 @@ class Polarimetry(CTk.CTk):
         for _ in range(len(labels)):
             label = CTk.CTkLabel(adv["Rotation"], text="\n" + labels[_] + "\n")
             ToolTip.createToolTip(label, " positive value for counter-clockwise rotation\n negative value for clockwise rotation")
-            label.grid(row=_+1, column=1, padx=(10, 10), sticky="w")
-            entry = CTk.CTkEntry(adv["Rotation"], textvariable=self.rotation[_], width=50)
+            label.grid(row=_+1, column=1, padx=(0, 10), sticky="w")
+            entry = CTk.CTkEntry(adv["Rotation"], textvariable=self.rotation[_], width=50, justify="center")
             entry.grid(row=_+1, column=0, padx=20, sticky="e")
             entry.bind("<Return>", command=self.rotation_callback)
         CTk.CTkLabel(master=adv["Rotation"], text=" ", height=5).grid(row=3, column=0, pady=5)
