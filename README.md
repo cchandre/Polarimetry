@@ -184,8 +184,8 @@ ___
 
 #### Edge detection
 
-* `low threshold`: integer between 0 and 255 - hysteresis thresholding value used in the Canny edge detector: edges with intensity gradients below this value are not edges and discarded
-* `high threshold`: integer between 0 and 255 - hysteresis thresholding value used in the Canny edge detector: edges with intensity gradients larger than this value are sure to be edges
+* `Low threshold`: integer between 0 and 255 - hysteresis thresholding value used in the Canny edge detector: edges with intensity gradients below this value are not edges and discarded
+* `High threshold`: integer between 0 and 255 - hysteresis thresholding value used in the Canny edge detector: edges with intensity gradients larger than this value are sure to be edges
 * `Length`: minimum length of a contour (in pixels)
 * `Smoothing window`: length in pixels of the window used for the smoothing (using a Savitzky-Golay filter `scipy.savgol_filter`)
 
