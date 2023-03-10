@@ -316,7 +316,7 @@ class Polarimetry(CTk.CTk):
 ## RIGHT FRAME: ADV
         adv_elts = ["Dark", "Binning", "Polarization", "Rotation", "Disk cone / Calibration data", "Intensity removal"]
         adv_loc = [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]
-        columnspan = [1, 2, 1, 1, 1, 2]
+        columnspan = [1, 2, 1, 2, 1, 2]
         adv = {}
         for loc, elt, cspan in zip(adv_loc, adv_elts, columnspan):
             adv.update({elt: CTk.CTkFrame(
@@ -375,11 +375,14 @@ class Polarimetry(CTk.CTk):
 
         labels = ["Stick (deg)", "Figure (deg)"]
         self.rotation = [tk.StringVar(value="0"), tk.StringVar(value="0")]
-        entries = [Entry(adv["Rotation"], text="\n" + label + "\n", textvariable=self.rotation[_], row=_+1, column=0) for _, label in enumerate(labels)]
-        entries[1].bind("<Return>", command=self.rotation_callback)
+        for _ in range(len(labels)):
+            label = CTk.CTkLabel(adv["Rotation"], text="\n" + labels[_] + "\n")
+            ToolTip.createToolTip(label, " positive value for counter-clockwise rotation\n negative value for clockwise rotation")
+            label.grid(row=_+1, column=1, padx=(10, 10), sticky="w")
+            entry = CTk.CTkEntry(adv["Rotation"], textvariable=self.rotation[_], width=50)
+            entry.grid(row=_+1, column=0, padx=20, sticky="e")
+            entry.bind("<Return>", command=self.rotation_callback)
         CTk.CTkLabel(master=adv["Rotation"], text=" ", height=5).grid(row=3, column=0, pady=5)
-        for entry in entries:
-            ToolTip.createToolTip(entry, " positive value for counter-clockwise rotation\n negative value for clockwise rotation")
 
         self.noise = [tk.StringVar(value="1"), tk.StringVar(value="3"), tk.StringVar(value="3")]
         labels = ["Bin width", "Bin height"]
