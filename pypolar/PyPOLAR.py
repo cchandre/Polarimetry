@@ -316,12 +316,13 @@ class Polarimetry(CTk.CTk):
 ## RIGHT FRAME: ADV
         adv_elts = ["Dark", "Binning", "Polarization", "Rotation", "Disk cone / Calibration data", "Intensity removal"]
         adv_loc = [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]
+        columnspan = [1, 2, 1, 1, 1, 2]
         adv = {}
-        for loc, elt in zip(adv_loc, adv_elts):
+        for loc, elt, cspan in zip(adv_loc, adv_elts, columnspan):
             adv.update({elt: CTk.CTkFrame(
             master=self.tabview.tab("Advanced"), fg_color=self.left_frame.cget("fg_color"))})
             adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=(10, 10), sticky="nw")
-            CTk.CTkLabel(master=adv[elt], text=elt + "\n", width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, padx=20, pady=(10,0))
+            CTk.CTkLabel(master=adv[elt], text=elt + "\n", width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=cspan, padx=20, pady=(10,0))
 
         self.dark_switch = CTk.CTkSwitch(master=adv["Dark"], text="", command=self.dark_switch_callback, onvalue="on", offvalue="off", width=50)
         self.dark_switch.grid(row=0, column=0, padx=20, pady=10, sticky="ne")
@@ -367,9 +368,9 @@ class Polarimetry(CTk.CTk):
         self.bin_spinboxes = [SpinBox(adv["Binning"], command=lambda:self.intensity_callback(event=1)) for _ in range(2)]
         for _ in range(2):
             self.bin_spinboxes[_].bind("<Return>", command=self.intensity_callback)
-            self.bin_spinboxes[_].grid(row=_+1, column=0, padx=(60, 20), pady=(0, 0), sticky="w")
+            self.bin_spinboxes[_].grid(row=_+1, column=0, padx=(30, 10), pady=10, sticky="e")
             label = CTk.CTkLabel(master=adv["Binning"], text="\n" + labels[_] + "\n")
-            label.grid(row=_+1, column=0, padx=(0, 60), pady=(0, 0), sticky="e")
+            label.grid(row=_+1, column=1, padx=(10, 60), pady=0, sticky="w")
             ToolTip.createToolTip(label, " height and width of the bin used for data binning")
 
         labels = ["Stick (deg)", "Figure (deg)"]
@@ -382,22 +383,23 @@ class Polarimetry(CTk.CTk):
 
         self.noise = [tk.StringVar(value="1"), tk.StringVar(value="3"), tk.StringVar(value="3")]
         labels = ["Bin width", "Bin height"]
-        rows = [1, 2]
         for _ in range(2):
-            SpinBox(adv["Intensity removal"], from_=3, to_=19, step_size=2, textvariable=self.noise[_+1]).grid(row=rows[_], column=0, padx=(60, 10), pady=10, sticky="w")
+            SpinBox(adv["Intensity removal"], from_=3, to_=19, step_size=2, textvariable=self.noise[_+1]).grid(row=_+1, column=0, padx=(30, 10), pady=10, sticky="e")
             label = CTk.CTkLabel(master=adv["Intensity removal"], text="\n" + labels[_] + "\n")
-            label.grid(row=rows[_], column=0, padx=(10, 60), pady=(0, 0), sticky="e")
+            label.grid(row=_+1, column=1, padx=(10, 60), pady=0, sticky="w")
             ToolTip.createToolTip(label, " height and width of the bin used for intensity removal")
         label = CTk.CTkLabel(master=adv["Intensity removal"], text="\nPick center of bin\n")
-        label.grid(row=3, column=0, padx=(10, 50), pady=(0, 0), sticky="e")
+        label.grid(row=3, column=1, padx=10, pady=0, sticky="w")
         ToolTip.createToolTip(label, " pick center of the bin used for intensity removal")
         button = Button(adv["Intensity removal"], image=self.icons["removal"], command=lambda:self.click_callback(self.intensity_axis, self.intensity_canvas, "click background"))
-        button.grid(row=3, column=0, pady=10, padx=(60, 0), sticky="w")
+        button.grid(row=3, column=0, pady=10, padx=25, sticky="e")
         ToolTip.createToolTip(button, " click and select a point on the intensity image")
-        entry = Entry(adv["Intensity removal"], text="\n     Factor\n", textvariable=self.noise[0], row=4, column=0, sticky="w", padx=(20, 10))
-        ToolTip.createToolTip(entry, " fraction of the mean intensity value to be substracted\n value between 0 and 1")
+        CTk.CTkEntry(adv["Intensity removal"], textvariable=self.noise[0], width=50, justify="center").grid(row=4, column=0, sticky="e", padx=23)
+        label = CTk.CTkLabel(adv["Intensity removal"], text="\nFactor\n")
+        ToolTip.createToolTip(label, " fraction of the mean intensity value to be substracted\n value between 0 and 1")
+        label.grid(row=4, column=1, padx=10, sticky="w")
         self.intensity_removal_label = CTk.CTkLabel(master=adv["Intensity removal"], text="Removed intensity value = 0")
-        self.intensity_removal_label.grid(row=5, column=0, padx=(30, 10), pady=(0, 0), sticky="w")
+        self.intensity_removal_label.grid(row=5, column=0, columnspan=2, padx=(50, 10), pady=(0, 0), sticky="w")
         CTk.CTkLabel(master=adv["Intensity removal"], text=" ", height=5).grid(row=6, column=0, pady=5)
 
 ## RIGHT FRAME: ABOUT

@@ -93,7 +93,7 @@ class Entry(CTk.CTkFrame):
         self.grid(row=row, column=column, sticky=sticky)
         if text is not None:
             CTk.CTkLabel(self, text=text).grid(row=0, column=0, padx=(20, 10))
-        self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=50, state=state)
+        self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=50, justify="center", state=state)
         self.entry.grid(row=0, column=1, padx=padx, pady=pady)
 
     def get(self) -> int:
