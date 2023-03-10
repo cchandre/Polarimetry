@@ -251,23 +251,23 @@ class Polarimetry(CTk.CTk):
 
 ## RIGHT FRAME: OPTIONS
         show_save = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
-        show_save.grid(row=0, column=0, padx=(20, 20), pady=10, sticky="nw")
+        show_save.grid(row=0, column=0, padx=20, pady=10, sticky="nw")
         CTk.CTkLabel(master=show_save, text="\nFigures\n", font=CTk.CTkFont(size=16), width=250).grid(row=0, column=0, columnspan=3, padx=20, pady=0)
-        CTk.CTkLabel(master=show_save, text="Show", anchor="w").grid(row=1, column=1, pady=(0, 10))
-        CTk.CTkLabel(master=show_save, text="Save", anchor="w").grid(row=1, column=2, pady=(0, 10))
+        CTk.CTkLabel(master=show_save, text="Show", width=30, anchor="w").grid(row=1, column=1, padx=(0, 30), pady=(0, 10))
+        CTk.CTkLabel(master=show_save, text="Save", width=30, anchor="w").grid(row=1, column=2, padx=(0, 20), pady=(0, 10))
         labels = ["Composite", "Sticks", "Histogram", "Intensity"]
         self.show_table = [CheckBox(show_save) for _ in range(len(labels))]
         self.save_table = [CheckBox(show_save) for _ in range(len(labels))]
         for _ in range(len(labels)):
-            CTk.CTkLabel(master=show_save, text=labels[_], anchor="w", width=100, height=30).grid(row=_+2, column=0, padx=(20, 0))
+            CTk.CTkLabel(master=show_save, text=labels[_], anchor="w", width=80, height=30).grid(row=_+2, column=0, padx=(20, 0))
             self.save_table[_].configure(command=self.click_save_output)
-            self.show_table[_].grid(row=_+2, column=1, pady=0, padx=20, sticky="ew")
-            self.save_table[_].grid(row=_+2, column=2, pady=0, padx=(20, 20))
+            self.show_table[_].grid(row=_+2, column=1, pady=0, padx=10, sticky="ew")
+            self.save_table[_].grid(row=_+2, column=2, pady=0, padx=(10, 20))
         CTk.CTkLabel(master=show_save, text=" ").grid(row=len(labels)+2, column=0, padx=0, pady=0)
 
         preferences = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
         preferences.grid(row=2, column=0, padx=20, pady=10)
-        CTk.CTkLabel(master=preferences, text="\nPreferences\n", font=CTk.CTkFont(size=16), width=250).grid(row=0, column=0, columnspan=2, padx=20, pady=0)
+        CTk.CTkLabel(master=preferences, text="\nPreferences\n", font=CTk.CTkFont(size=16), width=250).grid(row=0, column=0, columnspan=2, padx=20, pady=0, sticky="nw")
         self.add_axes_checkbox = CheckBox(preferences, text="\n Axes on figures\n", command=self.add_axes_on_all_figures)
         self.add_axes_checkbox.select()
         self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=40, pady=(0, 0), sticky="ew")
@@ -291,26 +291,26 @@ class Polarimetry(CTk.CTk):
         button.grid(row=6, column=0, columnspan=2, padx=40, pady=(0, 20), sticky="e")
         
         self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab("Options"), width=300)
-        self.variable_table_frame.grid(row=0, column=1, padx=(40, 20), pady=10, sticky="nw")
+        self.variable_table_frame.grid(row=0, column=1, padx=20, pady=10, sticky="nw")
 
         banner = CTk.CTkFrame(master=self.tabview.tab("Options"))
-        banner.grid(row=2, column=1, padx=20, pady=50, sticky="n")
+        banner.grid(row=2, column=1, padx=20, pady=10, sticky="nw")
         button = Button(banner, image=self.icons["delete_forever"], command=self.initialize_tables)
         ToolTip.createToolTip(button, " reinitialize the Figures, Save output and Variables tables")
-        button.grid(row=0, column=0, padx=(0, 100), pady=0, sticky="nw")
+        button.grid(row=0, column=0, padx=(0, 100), pady=0, sticky="w")
         self.per_roi = CheckBox(banner, text="per ROI", command=self.per_roi_callback)
         ToolTip.createToolTip(self.per_roi, " show and save data/figures separately for each region of interest")
-        self.per_roi.grid(row=0, column=1, sticky="nw")
+        self.per_roi.grid(row=0, column=1, sticky="w")
 
         save_ext = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
         CTk.CTkLabel(master=save_ext, text="\nSave output\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=2, padx=(20, 20), pady=(0, 0))
-        save_ext.grid(row=2, column=1, padx=(40, 20), pady=100, sticky="sw")
-        labels = ["data (.pykl)", "figures (.tif)", "data (.mat)", "mean values (.xlsx)", "movie (.gif)"]
+        save_ext.grid(row=2, column=1, padx=20, pady=(20, 90), sticky="sw")
+        labels = ["Data (.pykl)", "Figures (.tif)", "Data (.mat)", "Mean values (.xlsx)", "Movie (.gif)"]
         self.extension_table = [CheckBox(save_ext) for _ in range(len(labels))]
         self.extension_table[1].configure(state="disabled")
         for _ in range(len(labels)):
-            CTk.CTkLabel(master=save_ext, text=labels[_], anchor="w", width=120).grid(row=_+1, column=0, padx=(20, 0))
-            self.extension_table[_].grid(row=_+1, column=1, pady=0, padx=(20,0))
+            CTk.CTkLabel(master=save_ext, text=labels[_], anchor="w").grid(row=_+1, column=0, padx=(40, 0), sticky="w")
+            self.extension_table[_].grid(row=_+1, column=1, pady=0, padx=(0,0))
         CTk.CTkLabel(master=save_ext, text=" ").grid(row=len(labels)+1, column=0)
 
 ## RIGHT FRAME: ADV
@@ -321,15 +321,15 @@ class Polarimetry(CTk.CTk):
         for loc, elt, cspan in zip(adv_loc, adv_elts, columnspan):
             adv.update({elt: CTk.CTkFrame(
             master=self.tabview.tab("Advanced"), fg_color=self.left_frame.cget("fg_color"))})
-            adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=(10, 10), sticky="nw")
+            adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=10, sticky="nw")
             CTk.CTkLabel(master=adv[elt], text=elt + "\n", width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=cspan, padx=20, pady=(10,0))
 
         self.dark_switch = CTk.CTkSwitch(master=adv["Dark"], text="", command=self.dark_switch_callback, onvalue="on", offvalue="off", width=50)
         self.dark_switch.grid(row=0, column=0, padx=20, pady=10, sticky="ne")
         self.calculated_dark_label = CTk.CTkLabel(master=adv["Dark"], text="Calculated dark value = 0")
-        self.calculated_dark_label.grid(row=1, column=0)
+        self.calculated_dark_label.grid(row=2, column=0, sticky="w", padx=40)
         self.dark = tk.StringVar()
-        self.dark_entry = Entry(adv["Dark"], text="Used dark value", textvariable=self.dark, row=2, column=0)
+        self.dark_entry = Entry(adv["Dark"], text="Used dark value", textvariable=self.dark, row=1, column=0)
         ToolTip.createToolTip(self.dark_entry, " for 1PF, use a dark value greater than 480\n - raw images correspond to a dark value 0")
         self.dark_entry.bind("<Return>", command=self.intensity_callback)
         self.dark_entry.set_state("disabled")
@@ -399,7 +399,7 @@ class Polarimetry(CTk.CTk):
         ToolTip.createToolTip(label, " fraction of the mean intensity value to be substracted\n value between 0 and 1")
         label.grid(row=4, column=1, padx=10, sticky="w")
         self.intensity_removal_label = CTk.CTkLabel(master=adv["Intensity removal"], text="Removed intensity value = 0")
-        self.intensity_removal_label.grid(row=5, column=0, columnspan=2, padx=(50, 10), pady=(0, 0), sticky="w")
+        self.intensity_removal_label.grid(row=5, column=0, columnspan=2, padx=(40, 10), pady=(0, 0), sticky="w")
         CTk.CTkLabel(master=adv["Intensity removal"], text=" ", height=5).grid(row=6, column=0, pady=5)
 
 ## RIGHT FRAME: ABOUT
@@ -1020,7 +1020,7 @@ class Polarimetry(CTk.CTk):
         self.initialize_tables()
         self.clear_frame(self.variable_table_frame)
         self.variable_table_frame.configure(fg_color=gray[0])
-        CTk.CTkLabel(master=self.variable_table_frame, text="\nVariables\n", width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=4, padx=(20, 20), pady=(0, 0))
+        CTk.CTkLabel(master=self.variable_table_frame, text="\nVariables\n", width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=4, padx=(20, 20), pady=0)
         self.variable_table_switch = CTk.CTkSwitch(master=self.variable_table_frame, text="", progress_color=orange[0], command=self.variable_table_switch_callback, onvalue="on", offvalue="off", width=50)
         self.variable_table_switch.grid(row=1, column=0, padx=(20, 0), sticky="w")
         labels = ["Min", "Max"]
@@ -1045,7 +1045,7 @@ class Polarimetry(CTk.CTk):
         for _, (var, val) in enumerate(zip(variables, vals)):
             self.variable_min[_].set(str(val[0]))
             self.variable_max[_].set(str(val[1]))
-            CTk.CTkCheckBox(master=self.variable_table_frame, text=None, variable=self.variable_display[_], width=30).grid(row=_+2, column=0, padx=(10, 0), sticky="w")
+            CTk.CTkCheckBox(master=self.variable_table_frame, text=None, variable=self.variable_display[_], width=30).grid(row=_+2, column=0, padx=(20, 0), sticky="w")
             CTk.CTkLabel(master=self.variable_table_frame, text=var).grid(row=_+2, column=1, sticky="w")
             self.variable_entries += [Entry(self.variable_table_frame, textvariable=self.variable_min[_], row=_+2, column=2, state="disabled"), Entry(self.variable_table_frame, textvariable=self.variable_max[_], row=_+2, column=3, state="disabled")]
         CTk.CTkLabel(master=self.variable_table_frame, text=" ", height=5, width=10).grid(row=len(variables)+2, column=0, columnspan=4)
