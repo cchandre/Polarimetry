@@ -11,6 +11,7 @@ Website: [www.fresnel.fr/polarimetry](https://www.fresnel.fr/polarimetry)
 ![Platform](https://img.shields.io/badge/platform-macOS|Windows-orange)
 ![License](https://img.shields.io/badge/license-BSD-lightgray)
 
+<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/PyPOLAR_layout.png" alt=" " width="400"/>
 
 ___
 ##  Manual
