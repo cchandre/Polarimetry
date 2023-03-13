@@ -103,20 +103,20 @@ class Polarimetry(CTk.CTk):
                 self.icons.update({os.path.splitext(file)[0]: CTk.CTkImage(dark_image=im, size=(30, 30))})
         if sys.platform == "win32":
             self.iconbitmap(os.path.join(self.base_dir, "main_icon.ico"))
-            import winreg
-            EXTS = [".pyroi", ".pyreg", ".pykl"]
-            TYPES = ["PyPOLAR ROI", "PyPOLAR Registration", "PyPOLAR Pickle"]
-            ICONS = ["pyrois.ico", "pyreg.ico", "pykl.ico"]
-            try:
-                for EXT, TYPE, ICON in zip(EXTS, TYPES, ICONS):
-                    key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, EXT)
-                    winreg.SetValue(key, None, winreg.REG_SZ, TYPE)
-                    iconkey = winreg.CreateKey(key, "DefaultIcon")
-                    winreg.SetValue(iconkey, None, winreg.REG_SZ, os.path.join(image_path, ICON))
-                    winreg.CloseKey(iconkey)
-                    winreg.CloseKey(EXT)
-            except WindowsError:
-                pass
+            #import winreg
+            #EXTS = [".pyroi", ".pyreg", ".pykl"]
+            #TYPES = ["PyPOLAR ROI", "PyPOLAR Registration", "PyPOLAR Pickle"]
+            #ICONS = ["pyrois.ico", "pyreg.ico", "pykl.ico"]
+            #try:
+            #    for EXT, TYPE, ICON in zip(EXTS, TYPES, ICONS):
+            #        key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, EXT)
+            #        winreg.SetValue(key, None, winreg.REG_SZ, TYPE)
+            #        iconkey = winreg.CreateKey(key, "DefaultIcon")
+            #        winreg.SetValue(iconkey, None, winreg.REG_SZ, os.path.join(image_path, ICON))
+            #        winreg.CloseKey(iconkey)
+            #        winreg.CloseKey(EXT)
+            #except WindowsError:
+            #    pass
 
 ## DEFINE FRAMES
         self.left_frame = CTk.CTkFrame(master=self, width=Polarimetry.left_frame_width, corner_radius=0, fg_color=gray[0])
@@ -285,9 +285,9 @@ class Polarimetry(CTk.CTk):
             ToolTip.createToolTip(label, " controls the density of sticks to be plotted")
         button = Button(preferences, image=self.icons["crop"], command=self.crop_figures_callback)
         button.grid(row=6, column=0, columnspan=2, padx=40, pady=(0, 20), sticky="w")
-        ToolTip.createToolTip(button, " click to define region and crop figures")
+        ToolTip.createToolTip(button, " click button to define region and crop figures")
         button = Button(preferences, image=self.icons["query_stats"], command=self.show_individual_fit_callback)
-        ToolTip.createToolTip(button, " show individual fit\n zoom into the region of interest\n then click using the crosshair")
+        ToolTip.createToolTip(button, " click button to show an individual fit (uses Rho composite)\n zoom into the region of interest\n select a pixel with the crosshair then click")
         button.grid(row=6, column=0, columnspan=2, padx=40, pady=(0, 20), sticky="e")
         
         self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab("Options"), width=300)
@@ -780,7 +780,7 @@ class Polarimetry(CTk.CTk):
             initialdir = self.stack.folder if hasattr(self, "stack") else "/"
             filename = fd.askopenfilename(title="Download a previous polarimetry analysis", initialdir=initialdir, filetypes=[("PyPOLAR pickle files", "*.pykl")])
             if filename:
-                window = ShowInfo(message=" Downloading and decompressing data...", image=self.icons["download"], geometry=(350, 80))[0]
+                window = ShowInfo(message=" Downloading and decompressing data...", image=self.icons["download"], geometry=(350, 80))
                 window.update()
                 with bz2.BZ2File(filename, "rb") as f:
                     if hasattr(self, "stack"):
@@ -1685,7 +1685,7 @@ class Polarimetry(CTk.CTk):
             delattr(datastack_, "added_vars")
             for roi in datastack_.rois:
                 roi["select"] = True
-            window = ShowInfo(message=" Compressing and saving data...", image=self.icons["save"], geometry=(350, 80))[0]
+            window = ShowInfo(message=" Compressing and saving data...", image=self.icons["save"], geometry=(350, 80))
             window.update()
             with bz2.BZ2File(filename, "wb") as f:
                 cPickle.dump(datastack_, f)
