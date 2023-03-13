@@ -20,6 +20,7 @@ from matplotlib.patches import Polygon
 from matplotlib.collections import PolyCollection
 from matplotlib.backend_bases import FigureCanvasBase, _Mode, MouseEvent
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.backends.backend_pdf
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import colorcet as cc
 from PIL import Image
@@ -122,9 +123,6 @@ class Polarimetry(CTk.CTk):
         self.left_frame = CTk.CTkFrame(master=self, width=Polarimetry.left_frame_width, corner_radius=0, fg_color=gray[0])
         self.left_frame.grid(row=0, column=0, sticky="nsew")
         self.right_frame = CTk.CTkFrame(master=self, width=Polarimetry.right_frame_width)
-        self.right_frame.grid_rowconfigure(0, weight=1)
-        self.right_frame.grid_rowconfigure(1, weight=0)
-        self.right_frame.grid_columnconfigure(0, weight=1)
         self.right_frame.grid(row=0, column=1, sticky="nsew")
         self.tabview = TabView(self.right_frame)
 
@@ -170,12 +168,10 @@ class Polarimetry(CTk.CTk):
 
         banner = CTk.CTkFrame(master=self.tabview.tab("Intensity"), fg_color="transparent", height=Polarimetry.axes_size[0], width=40)
         banner.pack(side=tk.RIGHT, fill=tk.Y)
-        button = Button(banner, image=self.icons["contrast"], command=self.contrast_intensity_button_callback)
-        ToolTip.createToolTip(button, " adjust contrast\n - the chosen contrast will be the one used\n for the intensity images in figures")
-        button.pack(side=tk.TOP, padx=20, pady=(20, 0))
+        Button(banner, image=self.icons["contrast"], command=self.contrast_intensity_button_callback).pack(side=tk.TOP, padx=20, pady=(20, 0))
         self.contrast_intensity_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_intensity_slider_callback)
         self.contrast_intensity_slider.set(1)
-        ToolTip.createToolTip(self.contrast_intensity_slider, " adjust contrast\n - the chosen contrast will be the one used\n for the intensity images in figures")
+        ToolTip.createToolTip(self.contrast_intensity_slider, " adjust contrast\n - the chosen contrast will be the one used\n for the intensity images in figures\n - the contrast changes the intensity value displayed in the navigation toolbar")
         self.contrast_intensity_slider.pack(padx=20, pady=(0, 20))
         self.compute_angle_button = Button(banner, image=self.icons["square"], command=self.compute_angle)
         ToolTip.createToolTip(self.compute_angle_button, " left click to trace a line segment\n and determine its length and angle")
@@ -213,12 +209,10 @@ class Polarimetry(CTk.CTk):
 
         banner = CTk.CTkFrame(master=self.tabview.tab("Thresholding/Mask"), fg_color="transparent", height=Polarimetry.axes_size[0], width=40)
         banner.pack(side=tk.RIGHT, fill=tk.Y)
-        button = Button(banner, image=self.icons["contrast"], command=self.contrast_thrsh_button_callback)
-        ToolTip.createToolTip(button, " adjust contrast\n The chosen contrast does not affect the analysis")
-        button.pack(side=tk.TOP, padx=20, pady=(20, 0))
+        Button(banner, image=self.icons["contrast"], command=self.contrast_thrsh_button_callback).pack(side=tk.TOP, padx=20, pady=(20, 0))
         self.contrast_thrsh_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation="vertical", command=self.contrast_thrsh_slider_callback)
         self.contrast_thrsh_slider.set(1)
-        ToolTip.createToolTip(self.contrast_thrsh_slider, " adjust contrast\n The chosen contrast does not affect the analysis")
+        ToolTip.createToolTip(self.contrast_thrsh_slider, " adjust contrast\n - the chosen contrast does not affect the analysis\n - the contrast changes the intensity value displayed in the navigation toolbar")
         self.contrast_thrsh_slider.pack(padx=20, pady=(0, 20))
         button = Button(banner, image=self.icons["palette"], command=self.change_colormap)
         ToolTip.createToolTip(button, " change the colormap used for thresholding ('hot' or 'gray')")
@@ -287,7 +281,7 @@ class Polarimetry(CTk.CTk):
         button.grid(row=6, column=0, columnspan=2, padx=40, pady=(0, 20), sticky="w")
         ToolTip.createToolTip(button, " click button to define region and crop figures")
         button = Button(preferences, image=self.icons["query_stats"], command=self.show_individual_fit_callback)
-        ToolTip.createToolTip(button, " click button to show an individual fit (uses Rho composite)\n zoom into the region of interest\n select a pixel with the crosshair then click")
+        ToolTip.createToolTip(button, " show an individual fit\n - zoom into the region of interest in the Rho composite\n - click this button\n - select a pixel with the crosshair on the Rho composite then click")
         button.grid(row=6, column=0, columnspan=2, padx=40, pady=(0, 20), sticky="e")
         
         self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab("Options"), width=300)
@@ -296,7 +290,7 @@ class Polarimetry(CTk.CTk):
         banner = CTk.CTkFrame(master=self.tabview.tab("Options"))
         banner.grid(row=2, column=1, padx=20, pady=10, sticky="nw")
         button = Button(banner, image=self.icons["delete_forever"], command=self.initialize_tables)
-        ToolTip.createToolTip(button, " reinitialize the Figures, Save output and Variables tables")
+        ToolTip.createToolTip(button, " reinitialize Figures, Save output and Variables tables")
         button.grid(row=0, column=0, padx=(0, 100), pady=0, sticky="w")
         self.per_roi = CheckBox(banner, text="per ROI", command=self.per_roi_callback)
         ToolTip.createToolTip(self.per_roi, " show and save data/figures separately for each region of interest")
@@ -396,7 +390,7 @@ class Polarimetry(CTk.CTk):
         ToolTip.createToolTip(label, " pick center of the bin used for intensity removal")
         button = Button(adv["Intensity removal"], image=self.icons["removal"], command=lambda:self.click_callback(self.intensity_axis, self.intensity_canvas, "click background"))
         button.grid(row=3, column=0, pady=10, padx=25, sticky="e")
-        ToolTip.createToolTip(button, " click and select a point on the intensity image")
+        ToolTip.createToolTip(button, " click button and select a point on the intensity image")
         CTk.CTkEntry(adv["Intensity removal"], textvariable=self.noise[0], width=50, justify="center").grid(row=4, column=0, sticky="e", padx=23)
         label = CTk.CTkLabel(adv["Intensity removal"], text="\nFactor\n")
         ToolTip.createToolTip(label, " fraction of the mean intensity value to be substracted\n value between 0 and 1")

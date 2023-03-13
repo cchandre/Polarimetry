@@ -22,6 +22,7 @@ import colorcet as cc
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.backend_bases import NavigationToolbar2, _Mode, MouseEvent
 from typing import Callable, List, Tuple, Union
+import time
 
 tab_width, tab_height = 810, 830
 button_size = (160, 40)
@@ -619,24 +620,20 @@ class ToolTip:
         self.text = text
         if self.tipwindow or not self.text:
             return
-        x, y, _, _ = self.widget.bbox("insert")
-        x = x + self.widget.winfo_rootx() + self.widget.winfo_width()
-        y = y + self.widget.winfo_rooty()
+        x, y = self.widget.bbox("insert")[:2]
+        x += self.widget.winfo_rootx() + self.widget.winfo_width()
+        y += self.widget.winfo_rooty()
         self.tipwindow = tw = CTk.CTkToplevel(self.widget)
         tw.wm_overrideredirect(1)
-        tw.wm_geometry("+%d+%d" % (x, y))
-        try:
-            tw.tk.call("::tk::unsupported::MacWindowStyle", "style", tw._w, "help", "noActivates")
-        except tk.TclError:
-            pass
+        tw.wm_geometry(f"+{x}+{y}")
         label_font = CTk.CTkFont(size=12)
-        self.label = tk.Label(tw, text=self.text, font=label_font, justify=tk.LEFT, relief=tk.SOLID, borderwidth=1)
-        self.label.pack(ipadx=1)
+        tk.Label(tw, text=self.text, font=label_font, justify=tk.LEFT, borderwidth=0).pack(ipadx=1)
 
     def hidetip(self) -> None:
         tw = self.tipwindow
         self.tipwindow = None
         if tw:
+            time.sleep(0.1)
             tw.destroy()
 
 class ROIManager(CTk.CTkToplevel):
@@ -768,6 +765,10 @@ class TabView(CTk.CTkTabview):
 
         self.configure(width=tab_width, height=tab_height, segmented_button_selected_color=orange[0], segmented_button_unselected_color=gray[1], segmented_button_selected_hover_color=orange[1], text_color=text_color, segmented_button_fg_color=gray[0], fg_color=gray[1])
         self.pack(fill=tk.BOTH, expand=True)
-        list_tabs = ["Intensity", "Thresholding/Mask", "Options", "Advanced", "About"]
-        for tab in list_tabs:
+        main_tabs = ["Intensity", "Thresholding/Mask"]
+        option_tabs = ["Options", "Advanced", "About"]
+        self.frame = {}
+        for tab in main_tabs:
+            self.add(tab)
+        for tab in option_tabs:
             self.add(tab)
