@@ -23,7 +23,7 @@ __version__ = "2.4.3"
 
 block_cipher = None
 
-DATA_FILES = [("icons/*.png", "icons/"), ("polarimetry.json", "."), ("pypolar_classes.py", "."), (CTK_PATH, "customtkinter/")]
+DATA_FILES = [("icons/*.png", "icons/"), ("polarimetry.json", "."), ("pypolar_classes.py", ".")]
 BINARY_FILES = [("calibration/*.mat", "calibration/"), ("diskcones/*.mat", "diskcones/")]
 
 if sys.platform == "darwin":
@@ -35,6 +35,8 @@ if sys.platform == 'win32':
     DATA_FILES += [("icons/*.ico", "icons/"), ("version.rc", ".")]
 else:
     extra_options = {}
+
+DATA_FILES += [(CTK_PATH, "customtkinter/")]
 
 a = Analysis(['PyPOLAR.py'],
     pathex=[],

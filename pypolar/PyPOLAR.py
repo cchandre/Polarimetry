@@ -59,7 +59,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
     __version__ = "2.4.3"
 
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 10, 2023"}
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 13, 2023"}
 
     try:
         __version_date__ = dict_versions[__version__]
@@ -818,8 +818,11 @@ class Polarimetry(CTk.CTk):
                 CTk.CTkLabel(master=info_window, text=label).grid(row=_+1, column=0, padx=(40, 0), pady=0)
             for var, position in zip(self.xylim, positions):
                 Entry(master=info_window, textvariable=var, row=position[0], column=position[1], fg_color=gray[1])
-            Button(info_window, text="Crop", anchor="center", command=lambda:self.crop_figures(info_window), width=80, height=button_size[1]).grid(row=3, column=0, columnspan=3, padx=(60, 20), pady=20, sticky="w")
-            Button(info_window, text="Reset", anchor="center", command=lambda:self.reset_figures(info_window), width=80, height=button_size[1]).grid(row=3, column=0, columnspan=3, padx=(20, 60), pady=20, sticky="e")
+            banner = CTk.CTkFrame(info_window)
+            banner.grid(row=3, column=0, columnspan=3)
+            Button(banner, text="Crop", anchor="center", command=lambda:self.crop_figures(info_window), width=80, height=button_size[1]).grid(row=0, column=0, padx=10, pady=20)
+            Button(banner, text="Get", anchor="center", command=self.get_axes, width=80, height=button_size[1]).grid(row=0, column=1, padx=10, pady=20)
+            Button(banner, text="Reset", anchor="center", command=lambda:self.reset_figures(info_window), width=80, height=button_size[1]).grid(row=0, column=2, padx=10, pady=20)
 
     def crop_figures(self, window:CTk.CTkToplevel) -> None:
         figs = list(map(plt.figure, plt.get_fignums()))
@@ -829,6 +832,17 @@ class Polarimetry(CTk.CTk):
                 fig.axes[0].set_xlim((int(self.xylim[0].get()), int(self.xylim[1].get())))
                 fig.axes[0].set_ylim((int(self.xylim[3].get()), int(self.xylim[2].get())))
         window.withdraw()
+
+    def get_axes(self) -> None:
+        fig = plt.gcf()
+        if fig.type in ["Sticks", "Composite", "Intensity"]:
+            ax = fig.axes[0]
+            self.xylim[0].set(int(ax.get_xlim()[0]))
+            self.xylim[1].set(int(ax.get_xlim()[1]))
+            self.xylim[2].set(int(ax.get_ylim()[1]))
+            self.xylim[3].set(int(ax.get_ylim()[0]))
+        else:
+            ShowInfo(message=" Select an active figure of the type\n Composite, Sticks or Intensity", image=self.icons["crop"], button_labels=["OK"])
 
     def reset_figures(self, window:CTk.CTkToplevel) -> None:
         vals = [1, self.datastack.width, 1, self.datastack.height]
