@@ -623,19 +623,16 @@ class ToolTip:
         x, y = self.widget.bbox("insert")[:2]
         x += self.widget.winfo_rootx() + self.widget.winfo_width()
         y += self.widget.winfo_rooty()
-        self.tipwindow = tw = CTk.CTkToplevel(self.widget)
-        tw.wm_overrideredirect(1)
-        tw.wm_geometry(f"+{x}+{y}")
+        self.tipwindow = CTk.CTkToplevel(self.widget)
+        self.tipwindow.wm_overrideredirect(1)
+        self.tipwindow.wm_geometry(f"+{x}+{y}")
         label_font = CTk.CTkFont(size=12)
-        tk.Label(tw, text=self.text, font=label_font, justify=tk.LEFT, borderwidth=0).pack(ipadx=1)
+        tk.Label(self.tipwindow, text=self.text, font=label_font, justify=tk.LEFT, borderwidth=0).pack()
 
     def hidetip(self) -> None:
-        tw = self.tipwindow
+        if self.tipwindow:
+            self.tipwindow.destroy()
         self.tipwindow = None
-        if tw:
-            time.sleep(0.1)
-            tw.destroy()
-            time.sleep(0.1)
 
 class ROIManager(CTk.CTkToplevel):
     labels = ["indx", "name", "group"]
