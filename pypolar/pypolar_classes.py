@@ -452,7 +452,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
             im = os.path.join(NToolbar2PyPOLAR.folder, image_file + ".png")
             self._buttons[text] = button = self._Button(text=text, image_file=im, toggle=callback in ["zoom", "pan"], command=getattr(self, callback))
             if tooltip_text is not None:
-                ToolTip.createToolTip(button, tooltip_text)
+                ToolTip(button, text=tooltip_text)
         self._label_font = CTk.CTkFont(size=12)
 
         label = tk.Label(master=self, font=self._label_font, text='\N{NO-BREAK SPACE}\n\N{NO-BREAK SPACE}')
@@ -600,39 +600,79 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
                             s += f"\nI={int(np.sum(data))}"
                 return s
         return ""
-
+    
 class ToolTip:
-    @staticmethod
-    def createToolTip(widget, text:str) -> None:
-        tooltip = ToolTip(widget)
-        def enter(event:tk.Event):
-            tooltip.showtip(text)
-        def leave(event:tk.Event):
-            tooltip.hidetip()
-        widget.bind('<Enter>', enter)
-        widget.bind('<Leave>', leave)
-
-    def __init__(self, widget) -> None:
+    def __init__(self, widget, *, pad=(5, 3, 5, 3), text:str='widget info', waittime=400, wraplength=250):
+        self.waittime = waittime  
+        self.wraplength = wraplength
         self.widget = widget
-        self.tipwindow = None
-
-    def showtip(self, text:str) -> None:
         self.text = text
-        if self.tipwindow or not self.text:
-            return
-        x, y = self.widget.bbox("insert")[:2]
-        x += self.widget.winfo_rootx() + self.widget.winfo_width()
-        y += self.widget.winfo_rooty()
-        self.tipwindow = CTk.CTkToplevel(self.widget)
-        self.tipwindow.wm_overrideredirect(1)
-        self.tipwindow.wm_geometry(f"+{x}+{y}")
-        label_font = CTk.CTkFont(size=12)
-        tk.Label(self.tipwindow, text=self.text, font=label_font, justify=tk.LEFT, borderwidth=0).pack()
+        self.widget.bind("<Enter>", self.onEnter)
+        self.widget.bind("<Leave>", self.onLeave)
+        self.widget.bind("<ButtonPress>", self.onLeave)
+        self.pad = pad
+        self.id = None
+        self.tw = None
 
-    def hidetip(self) -> None:
-        if self.tipwindow:
-            self.tipwindow.destroy()
-        self.tipwindow = None
+    def onEnter(self, event=None):
+        self.schedule()
+
+    def onLeave(self, event=None):
+        self.unschedule()
+        self.hide()
+
+    def schedule(self):
+        self.unschedule()
+        self.id = self.widget.after(self.waittime, self.show)
+
+    def unschedule(self):
+        id_ = self.id
+        self.id = None
+        if id_:
+            self.widget.after_cancel(id_)
+
+    def show(self):
+        def tip_pos_calculator(widget, label, *, tip_delta=(10, 5), pad=(5, 3, 5, 3)):
+            w = widget
+            s_width, s_height = w.winfo_screenwidth(), w.winfo_screenheight()
+            width, height = (pad[0] + label.winfo_reqwidth() + pad[2], pad[1] + label.winfo_reqheight() + pad[3])
+            mouse_x, mouse_y = w.winfo_pointerxy()
+            x1, y1 = mouse_x + tip_delta[0], mouse_y + tip_delta[1]
+            x2, y2 = x1 + width, y1 + height
+            x_delta = x2 - s_width
+            if x_delta < 0:
+                x_delta = 0
+            y_delta = y2 - s_height
+            if y_delta < 0:
+                y_delta = 0
+            offscreen = (x_delta, y_delta) != (0, 0)
+            if offscreen:
+                if x_delta:
+                    x1 = mouse_x - tip_delta[0] - width
+                if y_delta:
+                    y1 = mouse_y - tip_delta[1] - height
+            offscreen_again = y1 < 0 
+            if offscreen_again:
+                y1 = 0
+            return x1, y1
+        
+        pad = self.pad
+        widget = self.widget
+        self.tw = tk.Toplevel(widget)
+        self.tw.wm_overrideredirect(True)
+        win = tk.Frame(self.tw, borderwidth=0)
+        label_font = CTk.CTkFont(size=12)
+        label = tk.Label(win, text=self.text, font=label_font, justify=tk.LEFT, relief=tk.SOLID, borderwidth=0,wraplength=self.wraplength)
+        label.grid(padx=(pad[0], pad[2]), pady=(pad[1], pad[3]), sticky=tk.NSEW)
+        win.grid()
+        x, y = tip_pos_calculator(widget, label)
+        self.tw.wm_geometry(f"+{x}+{y}")
+
+    def hide(self):
+        tw = self.tw
+        if tw:
+            tw.destroy()
+        self.tw = None
 
 class ROIManager(CTk.CTkToplevel):
     labels = ["indx", "name", "group"]
@@ -672,7 +712,7 @@ class ROIManager(CTk.CTkToplevel):
         self.buttons = []
         for _, (label, tooltip) in enumerate(zip(ROIManager.button_labels, ROIManager.tooltips)):
             button = Button(bottom_frame, text=label, anchor="center", width=80)
-            ToolTip.createToolTip(button, tooltip)
+            ToolTip(button, text=tooltip)
             self.buttons += [button]
             button.grid(row=0, column=_, padx=10, pady=10, sticky="nswe")
         self.buttons[0].configure(width=80, fg_color=green[0], hover_color=green[1])
