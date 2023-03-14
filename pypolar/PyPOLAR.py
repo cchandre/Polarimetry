@@ -632,6 +632,7 @@ class Polarimetry(CTk.CTk):
                 self.ontab_intensity()
                 self.ontab_thrsh()
             manager.destroy()
+            delattr(self, "manager")
 
         def commit(manager:ROIManager) -> None:
             if hasattr(self, "datastack"):
@@ -659,20 +660,20 @@ class Polarimetry(CTk.CTk):
                 self.datastack.rois = manager.load(initialdir=self.stack.folder if hasattr(self, "stack") else "/")
                 self.ontab_intensity()
                 self.ontab_thrsh()
-
-        if hasattr(self, "datastack"):
-            self.manager = ROIManager(rois=self.datastack.rois)
-        else:
-            self.manager = ROIManager(rois=[])
-        self.manager.protocol("WM_DELETE_WINDOW", lambda:on_closing(self.manager))
-        self.manager.bind("<Command-q>", lambda:on_closing(self.manager))
-        self.manager.bind("<Command-w>", lambda:on_closing(self.manager))
-        buttons = self.manager.get_buttons()
-        buttons[0].configure(command=lambda:commit(self.manager))
-        buttons[1].configure(command=lambda:self.manager.save(self.datastack.rois, self.datastack.filename))
-        buttons[2].configure(command=lambda:load(self.manager))
-        buttons[-1].configure(command=lambda:delete_all(self.manager))
-        buttons[-2].configure(command=lambda:delete(self.manager))
+        if not hasattr(self, "manager"):
+            if hasattr(self, "datastack"):
+                self.manager = ROIManager(rois=self.datastack.rois)
+            else:
+                self.manager = ROIManager(rois=[])
+            self.manager.protocol("WM_DELETE_WINDOW", lambda:on_closing(self.manager))
+            self.manager.bind("<Command-q>", lambda:on_closing(self.manager))
+            self.manager.bind("<Command-w>", lambda:on_closing(self.manager))
+            buttons = self.manager.get_buttons()
+            buttons[0].configure(command=lambda:commit(self.manager))
+            buttons[1].configure(command=lambda:self.manager.save(self.datastack.rois, self.datastack.filename))
+            buttons[2].configure(command=lambda:load(self.manager))
+            buttons[-1].configure(command=lambda:delete_all(self.manager))
+            buttons[-2].configure(command=lambda:delete(self.manager))
 
     def add_axes_on_all_figures(self) -> None:
         figs = list(map(plt.figure, plt.get_fignums()))
@@ -801,11 +802,14 @@ class Polarimetry(CTk.CTk):
             self.ontab_thrsh(update=False)
 
     def crop_figures_callback(self) -> None:
-        if len(plt.get_fignums()) and hasattr(self, "datastack"):
-            info_window = CTk.CTkToplevel(self)
-            info_window.title(f"Crop figures for {self.datastack.name}")
-            info_window.geometry(geometry_info((300, 230)))
-            CTk.CTkLabel(info_window, text="  define xlim and ylim", image=self.icons["crop"], compound="left", font=CTk.CTkFont(size=16), width=250).grid(row=0, column=0, columnspan=3, padx=30, pady=20)
+        if len(plt.get_fignums()) and hasattr(self, "datastack") and (not hasattr(self, "crop_window")):
+            self.crop_window = CTk.CTkToplevel(self)
+            self.crop_window.title(f"Crop figures for {self.datastack.name}")
+            self.crop_window.geometry(geometry_info((300, 230)))
+            self.crop_window.protocol("WM_DELETE_WINDOW", self.crop_on_closing)
+            self.crop_window.bind("<Command-q>", lambda:self.crop_on_closing)
+            self.crop_window.bind("<Command-w>", self.crop_on_closing)
+            CTk.CTkLabel(self.crop_window, text="  define xlim and ylim", image=self.icons["crop"], compound="left", font=CTk.CTkFont(size=16), width=250).grid(row=0, column=0, columnspan=3, padx=30, pady=20)
             if not hasattr(self, "xylim"):
                 self.xylim = []
                 vals = [1, self.datastack.width, 1, self.datastack.height]
@@ -814,18 +818,22 @@ class Polarimetry(CTk.CTk):
             labels = [u"\u2B62 xlim", u"\u2B63 ylim"]
             positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
             for _, label in enumerate(labels):
-                CTk.CTkLabel(master=info_window, text=label).grid(row=_+1, column=0, padx=(40, 0), pady=0)
+                CTk.CTkLabel(master=self.crop_window, text=label).grid(row=_+1, column=0, padx=(40, 0), pady=0)
             for var, position in zip(self.xylim, positions):
-                Entry(master=info_window, textvariable=var, row=position[0], column=position[1], fg_color=gray[1])
-            banner = CTk.CTkFrame(info_window)
+                Entry(master=self.crop_window, textvariable=var, row=position[0], column=position[1], fg_color=gray[1])
+            banner = CTk.CTkFrame(self.crop_window)
             banner.grid(row=3, column=0, columnspan=3)
-            button = Button(banner, text="Crop", anchor="center", command=lambda:self.crop_figures(info_window), width=80, height=button_size[1])
+            button = Button(banner, text="Crop", anchor="center", command=lambda:self.crop_figures(self.crop_window), width=80, height=button_size[1])
             ToolTip.createToolTip(button, " crop figures using the chosen axis limits")
             button.grid(row=0, column=0, padx=10, pady=20)
             button = Button(banner, text="Get", anchor="center", command=self.get_axes, width=80, height=button_size[1])
             ToolTip.createToolTip(button, " get the axis limits of the active figure")
             button.grid(row=0, column=1, padx=10, pady=20)
-            Button(banner, text="Reset", anchor="center", command=lambda:self.reset_figures(info_window), width=80, height=button_size[1]).grid(row=0, column=2, padx=10, pady=20)
+            Button(banner, text="Reset", anchor="center", command=lambda:self.reset_figures(self.crop_window), width=80, height=button_size[1]).grid(row=0, column=2, padx=10, pady=20)
+
+    def crop_on_closing(self):
+        self.crop_window.destroy()
+        delattr(self, "crop_window")
 
     def crop_figures(self, window:CTk.CTkToplevel) -> None:
         figs = list(map(plt.figure, plt.get_fignums()))
