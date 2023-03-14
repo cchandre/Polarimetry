@@ -121,9 +121,9 @@
       "weight": "bold"
     },
     "Windows": {
-      "family": "Arial Rounded MT",
+      "family": "Segoe UI",
       "size": 13,
-      "weight": "bold"
+      "weight": "normal"
     },
     "Linux": {
       "family": "Ubuntu",
