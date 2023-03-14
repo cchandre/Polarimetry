@@ -803,7 +803,6 @@ class Polarimetry(CTk.CTk):
     def crop_figures_callback(self) -> None:
         if len(plt.get_fignums()) and hasattr(self, "datastack"):
             info_window = CTk.CTkToplevel(self)
-            info_window.attributes("-topmost", "true")
             info_window.title(f"Crop figures for {self.datastack.name}")
             info_window.geometry(geometry_info((300, 230)))
             CTk.CTkLabel(info_window, text="  define xlim and ylim", image=self.icons["crop"], compound="left", font=CTk.CTkFont(size=16), width=250).grid(row=0, column=0, columnspan=3, padx=30, pady=20)
