@@ -635,6 +635,7 @@ class ToolTip:
         if tw:
             time.sleep(0.1)
             tw.destroy()
+            time.sleep(0.1)
 
 class ROIManager(CTk.CTkToplevel):
     labels = ["indx", "name", "group"]
