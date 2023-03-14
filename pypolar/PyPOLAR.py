@@ -835,7 +835,6 @@ class Polarimetry(CTk.CTk):
             if (fig.type in ["Sticks", "Composite", "Intensity"]) and (self.datastack.name in fs):
                 fig.axes[0].set_xlim((int(self.xylim[0].get()), int(self.xylim[1].get())))
                 fig.axes[0].set_ylim((int(self.xylim[3].get()), int(self.xylim[2].get())))
-        window.withdraw()
 
     def get_axes(self) -> None:
         fig = plt.gcf()
@@ -853,7 +852,6 @@ class Polarimetry(CTk.CTk):
         for _, val in enumerate(vals):
             self.xylim[_].set(val)
         self.crop_figures(window)
-        window.withdraw()
 
     def clear_patches(self, ax:plt.Axes, canvas:FigureCanvasTkAgg) -> None:
         if ax.patches:
