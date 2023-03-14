@@ -123,7 +123,7 @@
     "Windows": {
       "family": "Segoe UI",
       "size": 13,
-      "weight": "normal"
+      "weight": "bold"
     },
     "Linux": {
       "family": "Ubuntu",
