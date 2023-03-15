@@ -1535,8 +1535,6 @@ class Polarimetry(CTk.CTk):
                         if self.save_table[2].get():
                             filename = os.path.join(folder, foldername + "_ConcatHisto(" + htype + ")" + var_.name) 
                             plt.savefig(filename + ".tif", bbox_inches="tight")
-                        if not self.show_table[2].get():
-                            plt.close(fig)
         if len(vars) == 0:
             ShowInfo(" The selected folder does not contain PyPOLAR data", image=self.icons["blur_circular"])
 
