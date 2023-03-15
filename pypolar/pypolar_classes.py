@@ -698,8 +698,8 @@ class ROIManager(CTk.CTkToplevel):
             font = ("Arial Rounded MT Bold", 14, "normal")
             header_font = ("Arial Rounded MT Bold", 16, "bold")
         elif sys.platform == "win32":
-            font = ("Arial Rounded MT", 14, "normal")
-            header_font = ("Arial Rounded MT", 16, "bold")
+            font = ("Segoe UI", 14, "normal")
+            header_font = ("Segoe UI", 16, "bold")
 
         labels_ = ROIManager.labels + ["select", "delete"]
         labels_[0] = "ROI"
@@ -802,10 +802,7 @@ class TabView(CTk.CTkTabview):
 
         self.configure(width=tab_width, height=tab_height, segmented_button_selected_color=orange[0], segmented_button_unselected_color=gray[1], segmented_button_selected_hover_color=orange[1], text_color=text_color, segmented_button_fg_color=gray[0], fg_color=gray[1])
         self.pack(fill=tk.BOTH, expand=True)
-        main_tabs = ["Intensity", "Thresholding/Mask"]
-        option_tabs = ["Options", "Advanced", "About"]
+        tabs = ["Intensity", "Thresholding/Mask", "Options", "Advanced", "About"]
         self.frame = {}
-        for tab in main_tabs:
-            self.add(tab)
-        for tab in option_tabs:
+        for tab in tabs:
             self.add(tab)
