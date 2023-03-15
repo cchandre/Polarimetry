@@ -128,16 +128,16 @@ class Polarimetry(CTk.CTk):
 
 ## LEFT FRAME
         logo = Button(self.left_frame, text=" PyPOLAR", image=self.icons["blur_circular"], command=self.on_click_tab)
-        ToolTip(logo, text=" (1) Select a polarimetry method\n (2) Download a .tiff file or a folder\n        or a previous analysis (.pykl)\n (3) Select an option of analysis\n (4) Select one or several\n        regions of interest (ROI)\n (5) Click on Analysis")
+        ToolTip(logo, text=" - select a polarimetry method\n - download a .tiff file or a folder or a previous analysis (.pykl)\n - select an option of analysis\n - select one or several regions of interest (ROI)\n - click on Analysis")
         logo.configure(hover=False, fg_color="transparent", font=CTk.CTkFont(size=20))
         logo.pack(padx=20, pady=(10, 40))
         self.method = tk.StringVar()
         dropdown = DropDown(self.left_frame, values=["1PF", "CARS", "SRS", "SHG", "2PF", "4POLAR 2D", "4POLAR 3D"], image=self.icons["microscope"], command=self.method_dropdown_callback, variable=self.method)
-        ToolTip(dropdown, text=" 1PF: one-photon fluorescence\n CARS: coherent anti-Stokes Raman scattering\n SRS: stimulated Raman scattering\n SHG: second-harmonic generation\n 2PF: two-photon fluorescence\n 4POLAR 2D: 2D 4POLAR fluorescence (not yet implemented)\n 4POLAR 3D: 3D 4POLAR fluorescence")
+        ToolTip(dropdown, text=" - 1PF: one-photon fluorescence\n - CARS: coherent anti-Stokes Raman scattering\n - SRS: stimulated Raman scattering\n - SHG: second-harmonic generation\n - 2PF: two-photon fluorescence\n - 4POLAR 2D: 2D 4POLAR fluorescence (not yet implemented)\n - 4POLAR 3D: 3D 4POLAR fluorescence")
         self.openfile_dropdown = DropDown(self.left_frame, values=["Open file", "Open folder", "Previous analysis"], image=self.icons["download_file"], command=self.open_file_callback)
         self.option = tk.StringVar()
         self.options_dropdown = DropDown(self.left_frame, values=["Thresholding (manual)", "Mask (manual)"], image=self.icons["build"], variable=self.option, state="disabled", command=self.options_dropdown_callback)
-        ToolTip(self.options_dropdown, text=" select the method of analysis: intensity thresholding or segmentation\n mask for single file analysis (manual) or batch processing (auto)\n - the mask has to be binary and in PNG format and have the same\n file name as the respective polarimetry data file")
+        ToolTip(self.options_dropdown, text=" select the method of analysis\n - intensity thresholding or segmentation mask for single file analysis (manual) or batch processing (auto)\n - the mask has to be binary and in PNG format and have the same file name as the respective polarimetry data file")
         self.add_roi_button = Button(self.left_frame, text="Add ROI", image=self.icons["roi"], command=self.add_roi_callback)
         ToolTip(self.add_roi_button, text=" add a region of interest: polygon (left button), freehand (right button)")
         self.add_roi_button.pack(padx=20, pady=20)
@@ -308,7 +308,7 @@ class Polarimetry(CTk.CTk):
         CTk.CTkLabel(master=save_ext, text=" ").grid(row=len(labels)+1, column=0)
 
         button = Button(self.tabview.tab("Options"), image=self.icons["merge"], command=self.merge_histos)
-        ToolTip(button, text=" click and select folder to concatenate histograms")
+        ToolTip(button, text=" concatenate histograms\n - choose variables in the Variables table\n - click button to select the folder containing the .mat files")
         button.grid(row=2, column=1, padx=20, pady=30, sticky="sw")
 
 ## RIGHT FRAME: ADV
@@ -410,7 +410,7 @@ class Polarimetry(CTk.CTk):
         ToolTip(button, text=" visit the polarimetry website")
         button.pack(side=tk.LEFT, padx=40)
         button = Button(banner, image=self.icons["mail"], command=self.send_email)
-        ToolTip(button, text=" send an email to report bugs and suggestions")
+        ToolTip(button, text=" send an email to report bugs and/or send suggestions")
         button.pack(side=tk.LEFT, padx=40)
         button = Button(banner, image=self.icons["GitHub"], command=lambda:self.openweb(Polarimetry.url_github))
         ToolTip(button, text=" visit the PyPOLAR GitHub page")
@@ -1508,7 +1508,7 @@ class Polarimetry(CTk.CTk):
         self.show_table[2].select()
         initialdir = self.stack.folder if hasattr(self, "stack") else "/"
         folder = fd.askdirectory(title="Select a directory", initialdir=initialdir)
-        goodvars = ["Rho", "Rho_contour", "Psi", "S2", "S4", "S_SHG", "Eta"]
+        goodvars = ["Rho", "Rho_contour", "Psi", "S2", "S4", "S_SHG", "Eta", "Int"]
         data, vars = {}, []
         if folder:
             foldername = os.path.basename(folder)
@@ -1523,20 +1523,28 @@ class Polarimetry(CTk.CTk):
                         else:
                             vars += [tempvar]
                             data[tempvar] = tempdata[tempvar]
+            if self.extension_table[2].get():
+                dict_ = {"polarimetry": self.method.get(), "folder": folder}
+                for var in vars:
+                    dict_.update({var: data[var]})
+                filename = os.path.join(folder, foldername + "_ConcatHisto.mat")
+                savemat(filename, dict_)
+            vars.remove("Int")
             for var in vars:
                 var_ = Variable(var, values=data[var])
                 display, vmin, vmax = self.get_variable(var_.indx % 10)
-                if display and (self.show_table[2].get() or self.save_table[2].get()):
+                if display:
                     for htype in var_.type_histo:
                         fig = plt.figure(figsize=self.figsize)
                         fig.type, fig.var = "Histogram", var_.name
                         fig.canvas.manager.set_window_title(var_.name + " Concatenated Histogram ")
                         var_.histo(htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()))
                         if self.save_table[2].get():
-                            filename = os.path.join(folder, foldername + "_ConcatHisto(" + htype + ")" + var_.name) 
+                            suffix = "(0-90)" if htype == "polar3" else ""
+                            filename = os.path.join(folder, foldername + "_ConcatHisto" + suffix + var_.name) 
                             plt.savefig(filename + ".tif", bbox_inches="tight")
         if len(vars) == 0:
-            ShowInfo(" The selected folder does not contain PyPOLAR data", image=self.icons["blur_circular"])
+            ShowInfo(" Error in the selected folder", image=self.icons["blur_circular"], button_labels=["OK"])
 
     def add_intensity(self, intensity:np.ndarray, ax:plt.Axes) -> None:
         vmin, vmax = np.amin(intensity), np.amax(intensity)
