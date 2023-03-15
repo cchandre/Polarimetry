@@ -277,13 +277,20 @@ class DataStack:
         ax.imshow(field, cmap="gray", interpolation="nearest", vmin=vmin, vmax=vmax)
 
 class Variable:
-    def __init__(self, datastack) -> None:
-        self.indx = 0
-        self.name = ""
-        self.latex = ""
-        self.values = np.nan * np.ones((datastack.height, datastack.width))
-        self.type_histo = ["normal"]
-        self.colormap = ["jet", "viridis"]
+    def __init__(self, name:str="", values:np.ndarray=None, datastack:DataStack=None) -> None:
+        var = {"Rho": [0, ["polar1"], r"$\rho$", ["hsv", cc.m_colorwheel]], 
+                "Rho_contour": [10, ["polar1", "polar3"], r"$\rho_c$", ["hsv", cc.m_colorwheel]],
+                "Psi": [1, ["normal"], "$\psi$", ["jet", "viridis"]],
+                "Eta": [2, ["polar2"], "$\eta$", ["plasma", "plasma"]],
+                "S2": [1, ["normal"], "$S_2$", ["jet", "viridis"]],
+                "S4": [2, ["normal"], "$S_4$", ["jet", "viridis"]],
+                "S_SHG": [1, ["normal"], "$S_\mathrm{SHG}$", ["jet", "viridis"]]}.get(name)
+        self.indx = var[0] if var is not None else 0
+        self.name = name
+        self.latex = var[2] if var is not None else ""
+        self.values = values if values is not None else np.nan * np.ones((datastack.height, datastack.width)) if datastack is not None else []
+        self.type_histo = var[1] if var is not None else ["normal"]
+        self.colormap = var[3] if var is not None else ["jet", "viridis"]
 
     def imshow(self, vmin:float, vmax:float, colorblind:bool=False, rotation:int=0) -> mpl.image.AxesImage:
         ax = plt.gca()
@@ -295,8 +302,8 @@ class Variable:
             field[field == 0] = np.nan
         return ax.imshow(field, vmin=vmin, vmax=vmax, cmap=self.colormap[int(colorblind)], interpolation="nearest")
 
-    def histo(self, mask:np.ndarray, htype:str="normal", vmin:float=0, vmax:float=180, colorblind:bool=False, rotation:float=0) -> None:
-        data_vals = self.values[mask * np.isfinite(self.values)]
+    def histo(self, mask:np.ndarray=None, htype:str="normal", vmin:float=0, vmax:float=180, colorblind:bool=False, rotation:float=0) -> None:
+        data_vals = self.values[mask * np.isfinite(self.values)] if mask is not None else self.values[np.isfinite(self.values)]
         vmin_, vmax_ = (0, 90) if htype == "polar3" else (vmin, vmax)
         norm = mpl.colors.Normalize(vmin_, vmax_)
         cmap = self.colormap[int(colorblind)]

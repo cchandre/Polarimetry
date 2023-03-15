@@ -12,7 +12,7 @@ import numpy as np
 from scipy.signal import convolve2d, savgol_filter
 from scipy.interpolate import interpn
 from scipy.ndimage import rotate
-from scipy.io import savemat
+from scipy.io import savemat, loadmat
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -57,9 +57,9 @@ plt.rcParams["savefig.bbox"] = "tight"
 plt.ion()
 
 class Polarimetry(CTk.CTk):
-    __version__ = "2.4.3"
+    __version__ = "2.4.4"
 
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 13, 2023"}
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 13, 2023", "2.4.4": "March 15, 2023"}
 
     try:
         __version_date__ = dict_versions[__version__]
@@ -306,6 +306,10 @@ class Polarimetry(CTk.CTk):
             CTk.CTkLabel(master=save_ext, text=labels[_], anchor="w").grid(row=_+1, column=0, padx=(40, 0), sticky="w")
             self.extension_table[_].grid(row=_+1, column=1, pady=0, padx=(0,0))
         CTk.CTkLabel(master=save_ext, text=" ").grid(row=len(labels)+1, column=0)
+
+        button = Button(self.tabview.tab("Options"), image=self.icons["merge"], command=self.merge_histos)
+        ToolTip(button, text=" click and select folder to concatenate histograms")
+        button.grid(row=2, column=1, padx=20, pady=30, sticky="sw")
 
 ## RIGHT FRAME: ADV
         adv_elts = ["Dark", "Binning", "Polarization", "Rotation", "Disk cone / Calibration data", "Intensity removal"]
@@ -1500,6 +1504,42 @@ class Polarimetry(CTk.CTk):
         else:
             self.plot_histo(var, datastack, roi_map)
 
+    def merge_histos(self):
+        self.show_table[2].select()
+        initialdir = self.stack.folder if hasattr(self, "stack") else "/"
+        folder = fd.askdirectory(title="Select a directory", initialdir=initialdir)
+        goodvars = ["Rho", "Rho_contour", "Psi", "S2", "S4", "S_SHG", "Eta"]
+        data, vars = {}, []
+        if folder:
+            foldername = os.path.basename(folder)
+            for filename in os.listdir(folder):
+                if filename.endswith((".mat")):
+                    tempdata = loadmat(os.path.join(folder, filename))
+                    tempvars = list(tempdata.keys())
+                    tempvars = [tempvar for tempvar in tempvars if tempvar in goodvars]
+                    for tempvar in tempvars:
+                        if (tempvar in vars):
+                            data[tempvar] = np.concatenate((data[tempvar], tempdata[tempvar]), axis=None)
+                        else:
+                            vars += [tempvar]
+                            data[tempvar] = tempdata[tempvar]
+            for var in vars:
+                var_ = Variable(var, values=data[var])
+                display, vmin, vmax = self.get_variable(var_.indx % 10)
+                if display and (self.show_table[2].get() or self.save_table[2].get()):
+                    for htype in var_.type_histo:
+                        fig = plt.figure(figsize=self.figsize)
+                        fig.type, fig.var = "Histogram", var_.name
+                        fig.canvas.manager.set_window_title(var_.name + " Concatenated Histogram ")
+                        var_.histo(htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()))
+                        if self.save_table[2].get():
+                            filename = os.path.join(folder, foldername + "_ConcatHisto(" + htype + ")" + var_.name) 
+                            plt.savefig(filename + ".tif", bbox_inches="tight")
+                        if not self.show_table[2].get():
+                            plt.close(fig)
+        if len(vars) == 0:
+            ShowInfo(" The selected folder does not contain PyPOLAR data", image=self.icons["blur_circular"])
+
     def add_intensity(self, intensity:np.ndarray, ax:plt.Axes) -> None:
         vmin, vmax = np.amin(intensity), np.amax(intensity)
         field = adjust(intensity, self.contrast_intensity_slider.get(), vmin, vmax)
@@ -1795,7 +1835,7 @@ class Polarimetry(CTk.CTk):
     def save_mat(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
         if self.extension_table[2].get():
             mask = (roi_map == roi["indx"]) if roi else (roi_map == 1)
-            dict_ = {"dark": datastack.dark}
+            dict_ = {"polarimetry": self.method.get(), "file": datastack.filename, "dark": datastack.dark}
             for var in datastack.vars:
                 data = var.values[mask * np.isfinite(var.values)]
                 dict_.update({var.name: data})
@@ -1900,10 +1940,7 @@ class Polarimetry(CTk.CTk):
             lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
             a0 = np.mean(field, axis=0) / 4
             a0[a0 == 0] = np.nan
-        rho_ = Variable(datastack)
-        rho_.indx, rho_.name, rho_.latex = 0, "Rho", r"$\rho$"
-        rho_.type_histo = ["polar1"]
-        rho_.colormap = ["hsv", cc.m_colorwheel]
+        rho_ = Variable("Rho", datastack=datastack)
         if self.method.get() == "1PF":
             mask *= (np.abs(a2) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             a2_vals = np.moveaxis(np.asarray([a2.real[mask].flatten(), a2.imag[mask].flatten()]), 0, -1)
@@ -1911,8 +1948,7 @@ class Polarimetry(CTk.CTk):
             ixgrid = mask.nonzero()
             rho_.values[ixgrid] = rho
             rho_.values[np.isfinite(rho_.values)] = np.mod(2 * (rho_.values[np.isfinite(rho_.values)] + float(self.rotation[0].get())), 360) / 2 
-            psi_ = Variable(datastack)
-            psi_.indx, psi_.name, psi_.latex = 1, "Psi", "$\psi$"
+            psi_ = Variable("Psi", datastack=datastack)
             psi_.values[ixgrid] = psi
             mask *= np.isfinite(rho_.values) * np.isfinite(psi_.values)
             datastack.vars = [rho_, psi_]
@@ -1920,40 +1956,32 @@ class Polarimetry(CTk.CTk):
             mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
             rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
-            s2_ = Variable(datastack)
-            s2_.indx, s2_.name, s2_.latex = 1, "S2", "$S_2$"
+            s2_ = Variable("S2", datastack=datastack)
             s2_.values[mask] = 1.5 * np.abs(a2[mask])
-            s4_ = Variable(datastack)
-            s4_.indx, s4_.name, s4_.latex = 2, "S4", "$S_4$"
+            s4_ = Variable("S4", datastack=datastack)
             s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.values[mask])))
             datastack.vars = [rho_, s2_, s4_]
         elif self.method.get() == "SHG":
             mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
             rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
             rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
-            s_shg_ = Variable(datastack)
-            s_shg_.indx, s_shg_.name, s_shg_.latex = 1, "S_SHG", "$S_\mathrm{SHG}$"
+            s_shg_ = Variable("S_SHG", datastack=datastack)
             s_shg_.values[mask] = -0.5 * (np.abs(a4[mask]) - np.abs(a2[mask])) / (np.abs(a4[mask]) + np.abs(a2[mask])) - 0.65
             datastack.vars = [rho_, s_shg_]
         elif self.method.get() == "4POLAR 3D":
             mask *= (lam < 1/3) * (lam > 0) * (pzz > lam)
             rho_.values[mask] = 0.5 * np.rad2deg(np.arctan2(puv[mask], pxy[mask]))
             rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
-            psi_ = Variable(datastack)
-            psi_.indx, psi_.name, psi_.latex = 1, "Psi", "$\psi$"
+            psi_ = Variable("Psi", datastack=datastack)
             psi_.values[mask] = 2 * np.rad2deg(np.arccos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
-            eta_ = Variable(datastack)
-            eta_.indx, eta_.name, eta_.latex = 2, "Eta", "$\eta$"
+            eta_ = Variable("Eta", datastack=datastack)
             eta_.values[mask] = np.rad2deg(np.arccos(np.sqrt((pzz[mask] - lam[mask]) / (1 - 3 * lam[mask]))))
-            eta_.type_histo = ["polar2"]
-            eta_.colormap = ["plasma", "plasma"]
             datastack.vars = [rho_, psi_, eta_]
         elif self.method.get() == "4POLAR 2D":
             mask *= (lam < 1/3) * (lam > 0)
             rho_.values[mask] = 0.5 * np.rad2deg(np.arctan2(puv[mask], pxy[mask]))
             rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
-            psi_ = Variable(datastack)
-            psi_.indx, psi_.name, psi_.latex = 1, "Psi", "$\psi$"
+            psi_ = Variable("Psi", datastack=datastack)
             psi_.values[mask] = 2 * np.rad2deg(np.arccos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
             datastack.vars = [rho_, psi_]
         a0[np.logical_not(mask)] = np.nan
@@ -1961,16 +1989,12 @@ class Polarimetry(CTk.CTk):
         X, Y = X.astype(np.float64), Y.astype(np.float64)
         X[np.logical_not(mask)] = np.nan
         Y[np.logical_not(mask)] = np.nan
-        X_, Y_, Int_ = Variable(datastack), Variable(datastack), Variable(datastack)
+        X_, Y_, Int_ = Variable("X", datastack=datastack), Variable("Y", datastack=datastack), Variable("Int", datastack=datastack)
         X_.indx, Y_.indx, Int_.indx = 1, 2, 3
-        X_.name, Y_.name, Int_.name = "X", "Y", "Int"
         X_.values, Y_.values, Int_.values = X, Y, a0
         datastack.added_vars = [X_, Y_, Int_]
         if self.edge_detection_switch.get() == "on":
-            rho_ct = Variable(datastack)
-            rho_ct.indx, rho_ct.name, rho_ct.latex = 10, "Rho_contour", r"$\rho_c$"
-            rho_ct.type_histo = ["polar1", "polar3"]
-            rho_ct.colormap = ["hsv", cc.m_colorwheel]
+            rho_ct = Variable("Rho_contour", datastack=datastack)
             vals = self.define_rho_ct(self.edge_contours)
             filter = np.isfinite(rho_.values) * np.isfinite(vals)
             rho_ct.values[filter] = np.mod(2 * (rho_.values[filter] - vals[filter]), 360) / 2
