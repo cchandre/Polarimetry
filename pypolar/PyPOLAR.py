@@ -44,12 +44,12 @@ except ImportError:
 
 CTk.set_default_color_theme(os.path.join(os.path.dirname(os.path.realpath(__file__)), "polarimetry.json"))
 CTk.set_appearance_mode("dark")
-mpl.use("TkAgg")
+#mpl.use("TkAgg")
 plt.rcParams["font.size"] = 16
 if sys.platform == "darwin":
     plt.rcParams["font.family"] = "Arial Rounded MT Bold"
 elif sys.platform == "win32":
-    plt.rcParams["font.family"] = "Arial Rounded MT"
+    plt.rcParams["font.family"] = "Segoe UI"
 plt.rcParams["image.origin"] = "upper"
 plt.rcParams["figure.max_open_warning"] = 100
 plt.rcParams["axes.unicode_minus"] = False
