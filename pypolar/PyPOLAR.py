@@ -104,20 +104,20 @@ class Polarimetry(CTk.CTk):
                 self.icons.update({os.path.splitext(file)[0]: CTk.CTkImage(dark_image=im, size=(30, 30))})
         if sys.platform == "win32":
             self.iconbitmap(os.path.join(self.base_dir, "main_icon.ico"))
-            #import winreg
-            #EXTS = [".pyroi", ".pyreg", ".pykl"]
-            #TYPES = ["PyPOLAR ROI", "PyPOLAR Registration", "PyPOLAR Pickle"]
-            #ICONS = ["pyrois.ico", "pyreg.ico", "pykl.ico"]
-            #try:
-            #    for EXT, TYPE, ICON in zip(EXTS, TYPES, ICONS):
-            #        key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, EXT)
-            #        winreg.SetValue(key, None, winreg.REG_SZ, TYPE)
-            #        iconkey = winreg.CreateKey(key, "DefaultIcon")
-            #        winreg.SetValue(iconkey, None, winreg.REG_SZ, os.path.join(image_path, ICON))
-            #        winreg.CloseKey(iconkey)
-            #        winreg.CloseKey(EXT)
-            #except WindowsError:
-            #    pass
+            import winreg
+            EXTS = [".pyroi", ".pyreg", ".pykl"]
+            TYPES = ["PyPOLAR ROI", "PyPOLAR Registration", "PyPOLAR Pickle"]
+            ICONS = ["pyrois.ico", "pyreg.ico", "pykl.ico"]
+            try:
+                for EXT, TYPE, ICON in zip(EXTS, TYPES, ICONS):
+                    key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, EXT)
+                    winreg.SetValue(key, None, winreg.REG_SZ, TYPE)
+                    iconkey = winreg.CreateKey(key, "DefaultIcon")
+                    winreg.SetValue(iconkey, None, winreg.REG_SZ, os.path.join(image_path, ICON))
+                    winreg.CloseKey(iconkey)
+                    winreg.CloseKey(key)
+            except WindowsError:
+                pass
 
 ## DEFINE FRAMES
         self.left_frame = CTk.CTkFrame(master=self, width=Polarimetry.left_frame_width, corner_radius=0, fg_color=gray[0])
