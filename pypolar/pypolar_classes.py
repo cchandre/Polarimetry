@@ -408,9 +408,8 @@ class Calibration:
         self.offset_default = vars[1]
 
     def display(self, colorblind:bool=False) -> None:
-        fig, axs = plt.subplots(1, 2, figsize=(13, 8))
+        fig, axs = plt.subplots(ncols=2, figsize=(13, 8))
         fig.canvas.manager.set_window_title("Disk Cone: " + self.name)
-        fig.patch.set_facecolor("w")
         cmap = cc.m_colorwheel if colorblind else "hsv"
         h = axs[0].imshow(self.RhoPsi[:, :, 0], cmap=cmap, interpolation="nearest", extent=[-1, 1, -1, 1], vmin=0, vmax=180)
         axs[0].set_title("Rho Test")
@@ -572,7 +571,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         defaultextension = ''
         initialdir = os.path.expanduser(mpl.rcParams['savefig.directory'])
         initialfile = self.canvas.get_default_filename()
-        fname = fd.asksaveasfilename(master=self.canvas.get_tk_widget().master, title=f"Save image from '{self.window.master.master.get()}' tab",filetypes=tk_filetypes, defaultextension=defaultextension, initialdir=initialdir, initialfile=initialfile)
+        fname = fd.asksaveasfilename(master=self.canvas.get_tk_widget().master, title=f"Save image from '{self.window.master.master.get()}' tab", filetypes=tk_filetypes, defaultextension=defaultextension, initialdir=initialdir, initialfile=initialfile)
         if fname in ["", ()]:
             return
         if initialdir != "":

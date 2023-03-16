@@ -44,7 +44,7 @@ except ImportError:
 
 CTk.set_default_color_theme(os.path.join(os.path.dirname(os.path.realpath(__file__)), "polarimetry.json"))
 CTk.set_appearance_mode("dark")
-#mpl.use("TkAgg")
+mpl.use("tkagg")
 plt.rcParams["font.size"] = 16
 if sys.platform == "darwin":
     plt.rcParams["font.family"] = "Arial Rounded MT Bold"
@@ -54,6 +54,7 @@ plt.rcParams["image.origin"] = "upper"
 plt.rcParams["figure.max_open_warning"] = 100
 plt.rcParams["axes.unicode_minus"] = False
 plt.rcParams["savefig.bbox"] = "tight"
+plt.rcParams["savefig.dpi"] = 300
 plt.ion()
 
 class Polarimetry(CTk.CTk):
@@ -304,13 +305,16 @@ class Polarimetry(CTk.CTk):
         save_ext = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=self.left_frame.cget("fg_color"))
         CTk.CTkLabel(master=save_ext, text="\nSave output\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=2, padx=(20, 20), pady=(0, 0))
         save_ext.grid(row=2, column=1, padx=20, pady=(20, 90), sticky="sw")
-        labels = ["Data (.pykl)", "Figures (.tif)", "Data (.mat)", "Mean values (.xlsx)", "Movie (.gif)"]
+        CTk.CTkLabel(save_ext, text="Figures", anchor="w").grid(row=1, column=0, padx=(40, 0), sticky="w")
+        self.figure_extension = tk.StringVar(value=".tif")
+        self.figure_extension_optionmenu = CTk.CTkOptionMenu(save_ext, width=60, height=20, variable=self.figure_extension, values=[".tif", ".pdf", ".png", ".jpeg"], state="disabled", fg_color=gray[0], button_color=gray[0], button_hover_color=gray[0], anchor="e")
+        self.figure_extension_optionmenu.grid(row=1, column=1)
+        labels = ["Data (.pykl)", "Data (.mat)", "Mean values (.xlsx)", "Movie (.gif)"]
         self.extension_table = [CheckBox(save_ext) for _ in range(len(labels))]
-        self.extension_table[1].configure(state="disabled")
         for _ in range(len(labels)):
-            CTk.CTkLabel(master=save_ext, text=labels[_], anchor="w").grid(row=_+1, column=0, padx=(40, 0), sticky="w")
-            self.extension_table[_].grid(row=_+1, column=1, pady=0, padx=(0,0))
-        CTk.CTkLabel(master=save_ext, text=" ").grid(row=len(labels)+1, column=0)
+            CTk.CTkLabel(master=save_ext, text=labels[_], anchor="w").grid(row=_+2, column=0, padx=(40, 0), sticky="w")
+            self.extension_table[_].grid(row=_+2, column=1, pady=0, padx=(0,0))
+        CTk.CTkLabel(master=save_ext, text=" ").grid(row=len(labels)+2, column=0)
 
         button = Button(self.tabview.tab("Options"), image=self.icons["merge"], command=self.merge_histos)
         ToolTip(button, text=" concatenate histograms\n - choose variables in the Variables table\n - click button to select the folder containing the .mat files")
@@ -476,13 +480,14 @@ class Polarimetry(CTk.CTk):
                 var.set(0)
         for ext in self.extension_table:
             ext.deselect()
+        self.figure_extension_optionmenu.configure(state="disabled")
 
     def click_save_output(self) -> None:
         vec = [val.get() for val in self.save_table]
         if any(vec) == 1:
-            self.extension_table[1].select()
+            self.figure_extension_optionmenu.configure(state="normal")
         else:
-            self.extension_table[1].deselect()
+            self.figure_extension_optionmenu.configure(state="disabled")
 
     def on_closing(self) -> None:
         plt.close("all") 
@@ -1497,7 +1502,7 @@ class Polarimetry(CTk.CTk):
                 if self.save_table[2].get():
                     suffix = "_perROI_" + str(roi["indx"]) if roi is not None else ""
                     filename = datastack.filename + "_Histo" + var.name + suffix
-                    plt.savefig(filename + ".tif", bbox_inches="tight")
+                    plt.savefig(filename + self.figure_extension.get(), bbox_inches="tight")
                 if not self.show_table[2].get():
                     plt.close(fig)
 
@@ -1528,7 +1533,7 @@ class Polarimetry(CTk.CTk):
                         else:
                             vars += [tempvar]
                             data[tempvar] = tempdata[tempvar]
-            if self.extension_table[2].get():
+            if self.extension_table[1].get():
                 dict_ = {"polarimetry": self.method.get(), "folder": folder}
                 for var in vars:
                     dict_.update({var: data[var]})
@@ -1547,7 +1552,7 @@ class Polarimetry(CTk.CTk):
                         if self.save_table[2].get():
                             suffix = "(0-90)" if htype == "polar3" else ""
                             filename = os.path.join(folder, foldername + "_ConcatHisto" + suffix + var_.name) 
-                            plt.savefig(filename + ".tif", bbox_inches="tight")
+                            plt.savefig(filename + self.figure_extension.get(), bbox_inches="tight")
         if len(vars) == 0:
             ShowInfo(" Error in the selected folder", image=self.icons["blur_circular"], button_labels=["OK"])
 
@@ -1590,7 +1595,7 @@ class Polarimetry(CTk.CTk):
                 fig.colorbar(h, cax=cax)
             if self.save_table[0].get():
                 suffix = "_" + var.name + "Composite"
-                plt.savefig(datastack.filename + suffix + ".tif", bbox_inches='tight')
+                plt.savefig(datastack.filename + suffix + self.figure_extension.get(), bbox_inches='tight')
             if not self.show_table[0].get():
                 plt.close(fig)
 
@@ -1678,7 +1683,7 @@ class Polarimetry(CTk.CTk):
                 fig.colorbar(p, cax=cax)
             if self.save_table[1].get():
                 suffix = "_" + var.name + "Sticks"
-                plt.savefig(datastack.filename + suffix + ".tif", bbox_inches='tight')
+                plt.savefig(datastack.filename + suffix + self.figure_extension.get(), bbox_inches='tight')
             if not self.show_table[1].get():
                 plt.close(fig)
 
@@ -1709,7 +1714,7 @@ class Polarimetry(CTk.CTk):
                     fig.colorbar(p, cax=cax)
             if self.save_table[3].get():
                 suffix = "_Intensity"
-                plt.savefig(datastack.filename + suffix + ".tif", bbox_inches='tight')
+                plt.savefig(datastack.filename + suffix + self.figure_extension.get(), bbox_inches='tight')
             if not self.show_table[3].get():
                 plt.close(fig)
     
@@ -1761,7 +1766,7 @@ class Polarimetry(CTk.CTk):
             with bz2.BZ2File(filename, "wb") as f:
                 cPickle.dump(datastack_, f)
             window.withdraw()
-        if self.extension_table[3].get():
+        if self.extension_table[2].get():
             suffix_excel = "_Stats.xlsx" if self.edge_detection_switch.get() == "off" else "_Stats_c.xlsx"
             if self.filelist:
                 filename = os.path.join(self.stack.folder, os.path.basename(self.stack.folder) + suffix_excel)
@@ -1785,7 +1790,7 @@ class Polarimetry(CTk.CTk):
             else:
                 worksheet.append(self.return_vecexcel(datastack, roi_map, roi=[])[0])
             workbook.save(filename)
-        if self.extension_table[4].get():
+        if self.extension_table[3].get():
             filename = self.stack.filename + ".gif"
             images = []
             vmin, vmax = np.amin(self.stack.values), np.amax(self.stack.values)
@@ -1847,7 +1852,7 @@ class Polarimetry(CTk.CTk):
         return results, title
 
     def save_mat(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
-        if self.extension_table[2].get():
+        if self.extension_table[1].get():
             mask = (roi_map == roi["indx"]) if roi else (roi_map == 1)
             dict_ = {"polarimetry": self.method.get(), "file": datastack.filename, "dark": datastack.dark}
             for var in datastack.vars:
