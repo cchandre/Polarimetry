@@ -54,7 +54,7 @@ plt.rcParams["image.origin"] = "upper"
 plt.rcParams["figure.max_open_warning"] = 100
 plt.rcParams["axes.unicode_minus"] = False
 plt.rcParams["savefig.bbox"] = "tight"
-plt.rcParams["savefig.dpi"] = 300
+plt.rcParams["savefig.dpi"] = 100
 plt.ion()
 
 class Polarimetry(CTk.CTk):
@@ -306,8 +306,9 @@ class Polarimetry(CTk.CTk):
         CTk.CTkLabel(master=save_ext, text="\nSave output\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=2, padx=(20, 20), pady=(0, 0))
         save_ext.grid(row=2, column=1, padx=20, pady=(20, 90), sticky="sw")
         CTk.CTkLabel(save_ext, text="Figures", anchor="w").grid(row=1, column=0, padx=(40, 0), sticky="w")
-        self.figure_extension = tk.StringVar(value=".tif")
-        self.figure_extension_optionmenu = CTk.CTkOptionMenu(save_ext, width=60, height=20, variable=self.figure_extension, values=[".tif", ".pdf", ".png", ".jpeg"], state="disabled", fg_color=gray[0], button_color=gray[0], button_hover_color=gray[0], anchor="e")
+        self.figure_extension = tk.StringVar(value=".pdf")
+        self.figure_extension_optionmenu = CTk.CTkOptionMenu(save_ext, width=60, height=20, variable=self.figure_extension, values=[".pdf", ".png", ".jpeg", ".tif"], state="disabled", fg_color=gray[0], button_color=gray[0], text_color_disabled=gray[1], button_hover_color=gray[0], anchor="e")
+        ToolTip(self.figure_extension_optionmenu, text=" select the file type for the saved figures")
         self.figure_extension_optionmenu.grid(row=1, column=1)
         labels = ["Data (.pykl)", "Data (.mat)", "Mean values (.xlsx)", "Movie (.gif)"]
         self.extension_table = [CheckBox(save_ext) for _ in range(len(labels))]
@@ -356,12 +357,12 @@ class Polarimetry(CTk.CTk):
         button = Button(adv["Disk cone / Calibration data"], image=self.icons["photo"], command=self.diskcone_display)
         button.grid(row=1, column=0, padx=(52, 0), pady=10, sticky="w")
         ToolTip(button, text=" display the selected disk cone (for 1PF)")
-        self.calib_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=button_size[0]-button_size[1], height=button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback)
+        self.calib_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=button_size[0]-button_size[1], height=button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback, text_color_disabled=gray[0])
         self.calib_dropdown.grid(row=1, column=0, padx=(0, 52), pady=10, sticky="e")
         ToolTip(self.calib_dropdown, text=" 1PF: select disk cone depending on wavelength and acquisition date\n 4POLAR: select .mat file containing the calibration data")
         self.calib_textbox = TextBox(master=adv["Disk cone / Calibration data"], width=250, height=50, state="disabled")
         self.calib_textbox.grid(row=3, column=0, pady=10)
-        self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], width=button_size[0], height=button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled")
+        self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], width=button_size[0], height=button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled", text_color_disabled=gray[0])
         angles = [0, 45, 90, 135]
         self.dict_polar = {}
         for p in list(permutations([0, 1, 2, 3])):
@@ -749,6 +750,9 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_frame.update()
 
     def open_file_callback(self, value:str) -> None:
+        if hasattr(self, "manager"):
+            self.manager.destroy()
+            delattr(self, "manager")
         self.edge_detection_switch.deselect()
         self.filelist = []
         if hasattr(self, "edge_contours"):

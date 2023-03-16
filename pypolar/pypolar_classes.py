@@ -114,7 +114,7 @@ class DropDown(CTk.CTkFrame):
         self.icon = Button(self, image=image)
         self.icon.configure(hover=False)
         self.icon.pack(side=tk.LEFT)
-        self.option_menu = CTk.CTkOptionMenu(self, values=values, width=button_size[0]-button_size[1], height=button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state)
+        self.option_menu = CTk.CTkOptionMenu(self, values=values, width=button_size[0]-button_size[1], height=button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state, text_color_disabled=gray[0])
         self.option_menu.pack(side=tk.LEFT)
 
     def set_state(self, state:str) -> None:
