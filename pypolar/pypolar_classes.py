@@ -302,14 +302,14 @@ class Variable:
             field[field == 0] = np.nan
         return ax.imshow(field, vmin=vmin, vmax=vmax, cmap=self.colormap[int(colorblind)], interpolation="nearest")
 
-    def histo(self, mask:np.ndarray=None, htype:str="normal", vmin:float=0, vmax:float=180, colorblind:bool=False, rotation:float=0) -> None:
+    def histo(self, mask:np.ndarray=None, htype:str="normal", vmin:float=0, vmax:float=180, colorblind:bool=False, rotation:float=0, nbins:int=60) -> None:
         data_vals = self.values[mask * np.isfinite(self.values)] if mask is not None else self.values[np.isfinite(self.values)]
         vmin_, vmax_ = (0, 90) if htype == "polar3" else (vmin, vmax)
         norm = mpl.colors.Normalize(vmin_, vmax_)
         cmap = self.colormap[int(colorblind)]
         if isinstance(cmap, str):
             cmap = mpl.colormaps[cmap] 
-        bins = np.linspace(vmin_, vmax_, 60)
+        bins = np.linspace(vmin_, vmax_, nbins)
         if htype == "normal":
             ax = plt.gca()
             n, bins, patches = ax.hist(data_vals, bins=bins, linewidth=0.5)

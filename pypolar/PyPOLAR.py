@@ -59,7 +59,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
     __version__ = "2.4.4"
 
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 13, 2023", "2.4.4": "March 15, 2023"}
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 13, 2023", "2.4.4": "March 16, 2023"}
 
     try:
         __version_date__ = dict_versions[__version__]
@@ -270,19 +270,24 @@ class Polarimetry(CTk.CTk):
         self.colorbar_checkbox.grid(row=2, column=0, columnspan=2, padx=40, pady=(0, 0), sticky="ew")
         self.colorblind_checkbox = CheckBox(preferences, text="\n Colorblind-friendly\n", command=self.colorblind_on_all_figures)
         self.colorblind_checkbox.grid(row=3, column=0, columnspan=2, padx=40, pady=(0, 10), sticky="ew")
-        labels = [" pixels per stick (horizontal)", "pixels per stick (vertical)"]
+        labels = [" pixels per stick (horizontal)", " pixels per stick (vertical)"]
         self.pixelsperstick_spinboxes = [SpinBox(master=preferences, command=self.pixelsperstick_spinbox_callback) for it in range(2)]
         for _ in range(2):
             self.pixelsperstick_spinboxes[_].grid(row=_+4, column=0, padx=(20, 0), pady=(0, 20))
             label = CTk.CTkLabel(master=preferences, text=labels[_], anchor="w")
-            label.grid(row=_+4, column=1, padx=(0, 20), pady=(0, 20))
+            label.grid(row=_+4, column=1, padx=(0, 20), pady=(0, 20), sticky="w")
             ToolTip(label, text=" controls the density of sticks to be plotted")
+        self.histo_nbins = tk.StringVar(value="60")
+        SpinBox(master=preferences, from_=10, to_=90, step_size=10, textvariable=self.histo_nbins).grid(row=6, column=0, padx=(20, 0), pady=(0, 20))
+        label = CTk.CTkLabel(master=preferences, text=" bins for histograms", anchor="w")
+        label.grid(row=6, column=1, padx=(0, 20), pady=(0, 20), sticky="w")
+        ToolTip(label, text=" controls the number of bins used in histograms")
         button = Button(preferences, image=self.icons["crop"], command=self.crop_figures_callback)
-        button.grid(row=6, column=0, columnspan=2, padx=40, pady=(0, 20), sticky="w")
+        button.grid(row=7, column=0, columnspan=2, padx=40, pady=(0, 20), sticky="w")
         ToolTip(button, text=" click button to define region and crop figures")
         button = Button(preferences, image=self.icons["query_stats"], command=self.show_individual_fit_callback)
         ToolTip(button, text=" show an individual fit\n - zoom into the region of interest in the Rho composite\n - click this button\n - select a pixel with the crosshair on the Rho composite then click")
-        button.grid(row=6, column=0, columnspan=2, padx=40, pady=(0, 20), sticky="e")
+        button.grid(row=7, column=0, columnspan=2, padx=40, pady=(0, 20), sticky="e")
         
         self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab("Options"), width=300)
         self.variable_table_frame.grid(row=0, column=1, padx=20, pady=10, sticky="nw")
@@ -1488,7 +1493,7 @@ class Polarimetry(CTk.CTk):
                 suffix = "for ROI " + str(roi["indx"]) if roi is not None else ""
                 fig.canvas.manager.set_window_title(var.name + " Histogram " + suffix + ": " + self.datastack.name)
                 mask = (roi_map == roi["indx"]) if roi is not None else (roi_map == 1)
-                var.histo(mask, htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()))
+                var.histo(mask, htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))
                 if self.save_table[2].get():
                     suffix = "_perROI_" + str(roi["indx"]) if roi is not None else ""
                     filename = datastack.filename + "_Histo" + var.name + suffix
@@ -1538,7 +1543,7 @@ class Polarimetry(CTk.CTk):
                         fig = plt.figure(figsize=self.figsize)
                         fig.type, fig.var = "Histogram", var_.name
                         fig.canvas.manager.set_window_title(var_.name + " Concatenated Histogram ")
-                        var_.histo(htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()))
+                        var_.histo(htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))
                         if self.save_table[2].get():
                             suffix = "(0-90)" if htype == "polar3" else ""
                             filename = os.path.join(folder, foldername + "_ConcatHisto" + suffix + var_.name) 
@@ -1712,13 +1717,16 @@ class Polarimetry(CTk.CTk):
         if hasattr(self, "datastack"):
             if len(self.datastack.rois) >= 2:
                 figs = list(map(plt.figure, plt.get_fignums()))
+                redraw = False
                 for fig in figs:
                     fs = fig.canvas.manager.get_window_title()
                     if (fig.type == "Histogram") and (self.datastack.name in fs) :
                         plt.close(fig)
-                roi_map = self.compute_roi_map(self.datastack)[0]
-                for var in self.datastack.vars:
-                    self.plot_histos(var, self.datastack, roi_map)
+                        redraw = True
+                if redraw:
+                    roi_map = self.compute_roi_map(self.datastack)[0]
+                    for var in self.datastack.vars:
+                            self.plot_histos(var, self.datastack, roi_map)
 
     def plot_data(self, datastack:DataStack, roi_map:np.ndarray=None) -> None:
         self.plot_intensity(datastack)
