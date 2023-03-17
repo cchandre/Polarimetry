@@ -298,7 +298,7 @@ class Polarimetry(CTk.CTk):
         button = Button(banner, image=self.icons["delete_forever"], command=self.initialize_tables)
         ToolTip(button, text=" reinitialize Figures, Save output and Variables tables")
         button.grid(row=0, column=0, padx=(0, 100), pady=0, sticky="w")
-        self.per_roi = CheckBox(banner, text="per ROI", command=self.per_roi_callback)
+        self.per_roi = CheckBox(banner, text="per ROI", command=self.per_roi_callback, border_color=gray[0])
         ToolTip(self.per_roi, text=" show and save data/figures separately for each region of interest")
         self.per_roi.grid(row=0, column=1, sticky="w")
 
@@ -357,12 +357,12 @@ class Polarimetry(CTk.CTk):
         button = Button(adv["Disk cone / Calibration data"], image=self.icons["photo"], command=self.diskcone_display)
         button.grid(row=1, column=0, padx=(52, 0), pady=10, sticky="w")
         ToolTip(button, text=" display the selected disk cone (for 1PF)")
-        self.calib_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=button_size[0]-button_size[1], height=button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback, text_color_disabled=gray[0])
+        self.calib_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], values="", width=button_size[0]-button_size[1], height=button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback)
         self.calib_dropdown.grid(row=1, column=0, padx=(0, 52), pady=10, sticky="e")
         ToolTip(self.calib_dropdown, text=" 1PF: select disk cone depending on wavelength and acquisition date\n 4POLAR: select .mat file containing the calibration data")
-        self.calib_textbox = TextBox(master=adv["Disk cone / Calibration data"], width=250, height=50, state="disabled")
+        self.calib_textbox = TextBox(master=adv["Disk cone / Calibration data"], width=250, height=50, state="disabled", fg_color=gray[0])
         self.calib_textbox.grid(row=3, column=0, pady=10)
-        self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], width=button_size[0], height=button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled", text_color_disabled=gray[0])
+        self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], width=button_size[0], height=button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled", fg_color=gray[0], button_color=gray[0], text_color_disabled=gray[0], button_hover_color=gray[0])
         angles = [0, 45, 90, 135]
         self.dict_polar = {}
         for p in list(permutations([0, 1, 2, 3])):
@@ -1059,7 +1059,7 @@ class Polarimetry(CTk.CTk):
         self.clear_frame(self.variable_table_frame)
         self.variable_table_frame.configure(fg_color=gray[0])
         CTk.CTkLabel(master=self.variable_table_frame, text="\nVariables\n", width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=4, padx=(20, 20), pady=0)
-        self.variable_table_switch = CTk.CTkSwitch(master=self.variable_table_frame, text="", progress_color=orange[0], command=self.variable_table_switch_callback, onvalue="on", offvalue="off", width=50)
+        self.variable_table_switch = CTk.CTkSwitch(master=self.variable_table_frame, text="", command=self.variable_table_switch_callback, onvalue="on", offvalue="off", width=50)
         self.variable_table_switch.grid(row=1, column=0, padx=(20, 0), sticky="w")
         labels = ["Min", "Max"]
         for _, label in enumerate(labels):

@@ -84,18 +84,18 @@ data = {
     "button_color": orange[0],
     "button_hover_color": orange[1],
     "text_color": text_color,
-    "text_color_disabled": gray[1]
+    "text_color_disabled": orange[0]
   },
   "CTkSegmentedButton": {
     "corner_radius": 6,
     "border_width": 0,
-    "fg_color": "#979DA2",
+    "fg_color": gray[0],
     "selected_color": orange[0],
     "selected_hover_color": orange[1],
-    "unselected_color": "#979DA2",
-    "unselected_hover_color": "gray70",
+    "unselected_color": gray[1],
+    "unselected_hover_color": orange[1],
     "text_color": text_color,
-    "text_color_disabled": "gray74"
+    "text_color_disabled": text_color
   },
   "CTkTextbox": {
     "corner_radius": 6,
