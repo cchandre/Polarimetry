@@ -42,9 +42,12 @@ try:
 except ImportError:
     pass
 
+mpl.use("tkagg")
+#mpl.use("macosx")
+
 CTk.set_default_color_theme(os.path.join(os.path.dirname(os.path.realpath(__file__)), "polarimetry.json"))
 CTk.set_appearance_mode("dark")
-mpl.use("tkagg")
+
 plt.rcParams["font.size"] = 16
 if sys.platform == "darwin":
     plt.rcParams["font.family"] = "Arial Rounded MT Bold"
