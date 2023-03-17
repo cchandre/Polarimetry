@@ -23,7 +23,7 @@ __version__ = "2.4.4"
 
 block_cipher = None
 
-DATA_FILES = [("icons/*.png", "icons/"), ("polarimetry.json", "."), ("pypolar_classes.py", ".")]
+DATA_FILES = [("icons/*.png", "icons/"), ("polarimetry.json", "."), ("pypolar_classes.py", "."), ("generate_json.py", ".")]
 BINARY_FILES = [("calibration/*.mat", "calibration/"), ("diskcones/*.mat", "diskcones/")]
 
 if sys.platform == "darwin":

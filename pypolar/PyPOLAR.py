@@ -33,7 +33,8 @@ from typing import List, Tuple, Union
 from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, NToolbar2PyPOLAR, ToolTip, ROIManager, TabView
 from pypolar_classes import Button, CheckBox, Entry, DropDown, SpinBox, ShowInfo, TextBox
 from pypolar_classes import adjust, circularmean, wrapto180, angle_edge, find_matches
-from pypolar_classes import button_size, orange, gray, red, green, text_color, geometry_info
+from pypolar_classes import button_size, geometry_info
+from generate_json import font_macosx, font_windows, orange, gray, red, green, text_color
 
 try:
     from ctypes import windll 
@@ -43,16 +44,16 @@ except ImportError:
     pass
 
 mpl.use("tkagg")
-#mpl.use("macosx")
 
 CTk.set_default_color_theme(os.path.join(os.path.dirname(os.path.realpath(__file__)), "polarimetry.json"))
 CTk.set_appearance_mode("dark")
 
 plt.rcParams["font.size"] = 16
 if sys.platform == "darwin":
-    plt.rcParams["font.family"] = "Arial Rounded MT Bold"
+    plt.rcParams["font.family"] = font_macosx
+    #mpl.use("macosx")
 elif sys.platform == "win32":
-    plt.rcParams["font.family"] = "Segoe UI"
+    plt.rcParams["font.family"] = font_windows
 plt.rcParams["image.origin"] = "upper"
 plt.rcParams["figure.max_open_warning"] = 100
 plt.rcParams["axes.unicode_minus"] = False
@@ -63,19 +64,15 @@ plt.ion()
 class Polarimetry(CTk.CTk):
     __version__ = "2.4.4"
 
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 13, 2023", "2.4.4": "March 16, 2023"}
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 13, 2023", "2.4.4": "March 17, 2023"}
 
     try:
         __version_date__ = dict_versions[__version__]
     except:
         __version_date__ = date.today().strftime("%B %d, %Y")    
 
-    left_frame_width = 180
-    right_frame_width = 850
-    height = 850
-    width = left_frame_width + right_frame_width
-    tab_width = right_frame_width - 40
-    tab_height = height - 20
+    left_frame_width, right_frame_width = 180, 850
+    height, width = right_frame_width, left_frame_width + right_frame_width
     axes_size = (680, 680)
     figsize = (450, 450)
 
@@ -111,7 +108,7 @@ class Polarimetry(CTk.CTk):
             import winreg
             EXTS = [".pyroi", ".pyreg", ".pykl"]
             TYPES = ["PyPOLAR ROI", "PyPOLAR Registration", "PyPOLAR Pickle"]
-            ICONS = ["pyrois.ico", "pyreg.ico", "pykl.ico"]
+            ICONS = ["pyroi.ico", "pyreg.ico", "pykl.ico"]
             try:
                 for EXT, TYPE, ICON in zip(EXTS, TYPES, ICONS):
                     key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, EXT)
@@ -244,7 +241,7 @@ class Polarimetry(CTk.CTk):
         entry.bind("<Return>", command=self.ilow2slider_callback)
         entry.grid(row=1, column=1, padx=(0, 20))
         CTk.CTkLabel(master=bottomframe, text="Transparency").grid(row=1, column=2, padx=(10, 0))
-        self.edge_detection_switch = CTk.CTkSwitch(master=bottomframe, text="Edge detection", onvalue="on", offvalue="off", command=self.edge_detection_callback)
+        self.edge_detection_switch = CTk.CTkSwitch(master=bottomframe, text="Edge detection", fg_color=gray[0], onvalue="on", offvalue="off", command=self.edge_detection_callback)
         self.edge_detection_switch.grid(row=0, column=3, padx=(50, 0))
 
 ## RIGHT FRAME: OPTIONS
@@ -296,7 +293,7 @@ class Polarimetry(CTk.CTk):
         self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab("Options"), width=300)
         self.variable_table_frame.grid(row=0, column=1, padx=20, pady=10, sticky="nw")
 
-        banner = CTk.CTkFrame(master=self.tabview.tab("Options"))
+        banner = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=gray[1])
         banner.grid(row=2, column=1, padx=20, pady=10, sticky="nw")
         button = Button(banner, image=self.icons["delete_forever"], command=self.initialize_tables)
         ToolTip(button, text=" reinitialize Figures, Save output and Variables tables")
@@ -417,7 +414,7 @@ class Polarimetry(CTk.CTk):
         CTk.CTkLabel(master=adv["Intensity removal"], text=" ", height=5).grid(row=6, column=0, pady=5)
 
 ## RIGHT FRAME: ABOUT
-        banner = CTk.CTkFrame(master=self.tabview.tab("About"))
+        banner = CTk.CTkFrame(master=self.tabview.tab("About"), fg_color=gray[1])
         banner.grid(row=0, column=0, pady=20, sticky="w")
         button = Button(banner, image=self.icons["web"], command=lambda:self.openweb(Polarimetry.url_fresnel))
         ToolTip(button, text=" visit the polarimetry website")
@@ -431,7 +428,7 @@ class Polarimetry(CTk.CTk):
         button = Button(banner, image=self.icons["contact_support"], command=lambda:self.openweb(Polarimetry.url_github + "/blob/master/README.md"))
         ToolTip(button, text=" visit the online help")
         button.pack(side=tk.LEFT, padx=40)
-        about_textbox = TextBox(master=self.tabview.tab("About"), width=Polarimetry.tab_width-30, height=500)
+        about_textbox = TextBox(master=self.tabview.tab("About"), width=780, height=500)
         about_textbox.write(f"Version: {Polarimetry.__version__} ({Polarimetry.__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n Based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV,\n Matplotlib, openpyxl, tksheet, colorcet \n\n\n  uses Material Design icons by Google")
         about_textbox.grid(row=1, column=0, padx=30)
         self.startup()

@@ -22,15 +22,10 @@ import colorcet as cc
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.backend_bases import NavigationToolbar2, _Mode, MouseEvent
 from typing import Callable, List, Tuple, Union
-import time
+from generate_json import orange, red, green, gray, text_color
 
 tab_width, tab_height = 810, 830
 button_size = (160, 40)
-orange = ("#FF7F4F", "#ffb295")
-text_color = "black"
-red = ("#B54D42", "#d5928b")
-green = ("#ADD1AD", "#cee3ce")
-gray = ("#7F7F7F", "#A6A6A6")
 
 ## PyPOLAR USEFUL FUNCTIONS
 
