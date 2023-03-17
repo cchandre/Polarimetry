@@ -362,7 +362,7 @@ class Polarimetry(CTk.CTk):
         ToolTip(self.calib_dropdown, text=" 1PF: select disk cone depending on wavelength and acquisition date\n 4POLAR: select .mat file containing the calibration data")
         self.calib_textbox = TextBox(master=adv["Disk cone / Calibration data"], width=250, height=50, state="disabled", fg_color=gray[0])
         self.calib_textbox.grid(row=3, column=0, pady=10)
-        self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], width=button_size[0], height=button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled", fg_color=gray[0], button_color=gray[0], text_color_disabled=gray[0], button_hover_color=gray[0])
+        self.polar_dropdown = CTk.CTkOptionMenu(master=adv["Disk cone / Calibration data"], width=button_size[0], height=button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state="disabled", text_color_disabled=gray[0])
         angles = [0, 45, 90, 135]
         self.dict_polar = {}
         for p in list(permutations([0, 1, 2, 3])):

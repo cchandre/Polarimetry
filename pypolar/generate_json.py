@@ -84,7 +84,7 @@ data = {
     "button_color": orange[0],
     "button_hover_color": orange[1],
     "text_color": text_color,
-    "text_color_disabled": orange[0]
+    "text_color_disabled": gray[0]
   },
   "CTkSegmentedButton": {
     "corner_radius": 6,
