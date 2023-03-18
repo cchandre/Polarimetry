@@ -1789,7 +1789,7 @@ class Polarimetry(CTk.CTk):
     def save_mat(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
         if self.extension_table[1].get():
             mask = (roi_map == roi["indx"]) if roi else (roi_map == 1)
-            dict_ = {"polarimetry": self.method.get(), "file": datastack.filename, "dark": datastack.dark}
+            dict_ = {"polarimetry": self.method.get(), "file": datastack.filename, "date": date.today().strftime("%B %d, %Y")}
             for var in datastack.vars:
                 data = var.values[mask * np.isfinite(var.values)]
                 dict_.update({var.name: data})
@@ -1852,7 +1852,7 @@ class Polarimetry(CTk.CTk):
         datastack.dark = float(self.dark.get())
         datastack.method = self.method.get()
         field = self.stack.values - datastack.dark - float(self.removed_intensity)
-        field = field * (field >= 0)
+        field *= (field >= 0)
         if self.method.get() == "CARS":
             field = np.sqrt(field)
         elif self.method.get().startswith("4POLAR"):
@@ -1861,7 +1861,7 @@ class Polarimetry(CTk.CTk):
         if sum(bin_shape) != 2:
             bin = np.ones(bin_shape)
             for _ in range(self.stack.nangle):
-                field[_] = convolve2d(field[_], bin, mode="same") / (bin_shape[0] * bin_shape[1])
+                field[_] = convolve2d(field[_], bin, mode="same") / np.prod(bin_shape)
         if self.method.get() in ["1PF", "CARS", "SRS", "SHG", "2PF"]:
             polardir = -1 if self.polar_dir.get() == "clockwise" else 1
             alpha = polardir * np.linspace(0, 180, self.stack.nangle, endpoint=False) + float(self.offset_angle.get())
