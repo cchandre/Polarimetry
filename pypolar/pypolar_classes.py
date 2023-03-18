@@ -216,6 +216,12 @@ class ShowInfo(CTk.CTkToplevel):
     def get_buttons(self) -> List[Button]:
         return self.buttons
     
+class Switch(CTk.CTkSwitch):
+    def __init__(self, master, tooltip:str=None, **kwargs) -> None:
+        super().__init__(master, **kwargs)
+        if tooltip is not None:
+            ToolTip(self, text=tooltip)
+    
 class TextBox(CTk.CTkTextbox):
     def __init__(self, master, tooltip:str=None, **kwargs) -> None:
         super().__init__(master, **kwargs)

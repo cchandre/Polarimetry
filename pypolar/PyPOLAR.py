@@ -30,8 +30,8 @@ from itertools import permutations, chain
 from datetime import date
 import copy
 from typing import List, Tuple, Union
-from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, NToolbar2PyPOLAR, ROIManager, TabView
-from pypolar_classes import Button, CheckBox, Entry, DropDown, Label, OptionMenu, SpinBox, ShowInfo, TextBox
+from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, NToolbar2PyPOLAR, ROIManager, TabView, ToolTip
+from pypolar_classes import Button, CheckBox, Entry, DropDown, Label, OptionMenu, SpinBox, ShowInfo, Switch, TextBox
 from pypolar_classes import adjust, circularmean, wrapto180, angle_edge, find_matches
 from pypolar_classes import button_size, geometry_info
 from generate_json import font_macosx, font_windows, orange, gray, red, green, text_color
@@ -64,7 +64,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
     __version__ = "2.4.4"
 
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 13, 2023", "2.4.4": "March 17, 2023"}
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 13, 2023", "2.4.4": "March 18, 2023"}
 
     try:
         __version_date__ = dict_versions[__version__]
@@ -165,7 +165,11 @@ class Polarimetry(CTk.CTk):
         self.contrast_intensity_slider.pack(padx=20, pady=(0, 20))
         self.compute_angle_button = Button(banner, image=self.icons["square"], command=self.compute_angle, tooltip=" left click to trace a line segment\n and determine its length and angle")
         self.compute_angle_button.pack(padx=20, pady=20)
-
+        self.pixel_size = tk.StringVar(value="0")
+        entry = CTk.CTkEntry(banner, textvariable=self.pixel_size, border_color=gray[0], width=50, justify="center")
+        ToolTip(entry, text=" enter the pixel size in nm")
+        entry.pack(padx=20, pady=0)
+       
         self.filename_label = TextBox(master=bottomframe, width=400, height=50, tooltip=" name of file currently analyzed")
         self.filename_label.pack(side=tk.LEFT)
         sliderframe = CTk.CTkFrame(master=bottomframe, fg_color="transparent")
@@ -213,12 +217,12 @@ class Polarimetry(CTk.CTk):
         self.transparency_slider = CTk.CTkSlider(master=bottomframe, from_=0, to=1, command=self.transparency_slider_callback)
         self.transparency_slider.set(0)
         self.transparency_slider.grid(row=0, column=2, padx=(100, 20), pady=0)
-        Label(master=bottomframe, text="Ilow", anchor="e").grid(row=1, column=0)
+        Label(master=bottomframe, text="Ilow", anchor="e", tooltip= " intensity value used for thresholding\n - use the slider or enter the value manually").grid(row=1, column=0)
         entry = CTk.CTkEntry(master=bottomframe, width=100, textvariable=self.ilow, border_color=gray[1], justify=tk.LEFT)
         entry.bind("<Return>", command=self.ilow2slider_callback)
         entry.grid(row=1, column=1, padx=(0, 20))
         Label(master=bottomframe, text="Transparency", tooltip=" use slider to adjust the transparency of the background image").grid(row=1, column=2, padx=(10, 0))
-        self.edge_detection_switch = CTk.CTkSwitch(master=bottomframe, text="Edge detection", fg_color=gray[0], onvalue="on", offvalue="off", command=self.edge_detection_callback)
+        self.edge_detection_switch = Switch(master=bottomframe, text="Edge detection", fg_color=gray[0], onvalue="on", offvalue="off", command=self.edge_detection_callback, tooltip=" switch on to determine the edges of the thresholded image and compute orientations with respect to the edges")
         self.edge_detection_switch.grid(row=0, column=3, padx=(50, 0))
 
 ## RIGHT FRAME: OPTIONS
@@ -256,17 +260,17 @@ class Polarimetry(CTk.CTk):
         self.histo_nbins = tk.StringVar(value="60")
         SpinBox(master=preferences, from_=10, to_=90, step_size=10, textvariable=self.histo_nbins).grid(row=6, column=0, padx=(20, 0), pady=(0, 20))
         Label(master=preferences, text=" bins for histograms", anchor="w", tooltip=" controls the number of bins used in histograms").grid(row=6, column=1, padx=(0, 20), pady=(0, 20), sticky="w")
-        Button(preferences, image=self.icons["crop"], command=self.crop_figures_callback, tooltip=" click button to define region and crop figures").grid(row=7, column=0, columnspan=2, padx=40, pady=(0, 20), sticky="w")
-        Button(preferences, image=self.icons["query_stats"], command=self.show_individual_fit_callback, tooltip=" show an individual fit\n - zoom into the region of interest in the Rho composite\n - click this button\n - select a pixel with the crosshair on the Rho composite then click").grid(row=7, column=0, columnspan=2, padx=40, pady=(0, 20), sticky="e")
+        Button(preferences, image=self.icons["crop"], command=self.crop_figures_callback, tooltip=" click button to define region and crop figures").grid(row=7, column=0, columnspan=2, padx=125, pady=(0, 20), sticky="w")
         
         self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab("Options"), width=300)
         self.variable_table_frame.grid(row=0, column=1, padx=20, pady=10, sticky="nw")
 
         banner = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=gray[1])
         banner.grid(row=2, column=1, padx=20, pady=10, sticky="nw")
-        Button(banner, image=self.icons["delete_forever"], command=self.initialize_tables, tooltip=" reinitialize Figures, Save output and Variables tables").grid(row=0, column=0, padx=(0, 100), pady=0, sticky="w")
+        Button(banner, image=self.icons["query_stats"], command=self.show_individual_fit_callback, tooltip=" show an individual fit\n - zoom into the region of interest in the Rho composite\n - click this button\n - select a pixel with the crosshair on the Rho composite then click").grid(row=0, column=0, padx=(0, 20), pady=0)
+        Button(banner, image=self.icons["merge"], command=self.merge_histos, tooltip=" concatenate histograms\n - choose variables in the Variables table\n - click button to select the folder containing the .mat files").grid(row=0, column=1, padx=20, pady=0)
         self.per_roi = CheckBox(banner, text="per ROI", command=self.per_roi_callback, border_color=gray[0], tooltip=" show and save data/figures separately for each region of interest")
-        self.per_roi.grid(row=0, column=1, sticky="w")
+        self.per_roi.grid(row=0, column=2, padx=20, pady=0)
 
         save_ext = CTk.CTkFrame(master=self.tabview.tab("Options"), fg_color=left_frame.cget("fg_color"))
         Label(master=save_ext, text="\nSave output\n", font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=2, padx=(20, 20), pady=(0, 0))
@@ -282,7 +286,7 @@ class Polarimetry(CTk.CTk):
             self.extension_table[_].grid(row=_+2, column=1, pady=0, padx=(0,0))
         Label(master=save_ext, text=" ").grid(row=len(labels)+2, column=0)
 
-        Button(self.tabview.tab("Options"), image=self.icons["merge"], command=self.merge_histos, tooltip=" concatenate histograms\n - choose variables in the Variables table\n - click button to select the folder containing the .mat files").grid(row=2, column=1, padx=20, pady=30, sticky="sw")
+        Button(self.tabview.tab("Options"), image=self.icons["delete_forever"], command=self.initialize_tables, tooltip=" reinitialize Figures, Save output and Variables tables").grid(row=2, column=1, padx=20, pady=30, sticky="sw")
 
 ## RIGHT FRAME: ADV
         adv_elts = ["Dark", "Binning", "Polarization", "Rotation", "Disk cone / Calibration data", "Intensity removal"]
@@ -979,7 +983,10 @@ class Polarimetry(CTk.CTk):
                     slope = 180 - np.rad2deg(np.arctan((roi.previous_point[1] - roi.start_point[1]) / (roi.previous_point[0] - roi.start_point[0])))
                     slope = np.mod(2 * slope, 360) / 2
                     dist = np.sqrt(((np.asarray(roi.previous_point) - np.asarray(roi.start_point))**2).sum())
-                    ShowInfo(message=" Angle is {:.2f} \u00b0 \n Distance is {} pixels".format(slope, int(dist)), image=self.icons["square"], button_labels = ["OK"], fontsize=16)
+                    message = " Angle is {:.1f}\u00b0 \n Distance is {} pixels".format(slope, int(dist))
+                    if int(self.pixel_size.get()) != 0:
+                        message += " \n Distance is {:.1f} \xb5m".format(int(dist) * int(self.pixel_size.get()) / 1000)
+                    ShowInfo(message=message, image=self.icons["square"], button_labels = ["OK"], fontsize=14)
                     for line in roi.lines:
                         line.remove()
                     self.intensity_canvas.draw()
