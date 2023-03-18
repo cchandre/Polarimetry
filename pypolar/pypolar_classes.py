@@ -64,10 +64,12 @@ def find_matches(a:np.ndarray, b:np.ndarray, tol:float=10) -> Tuple[np.ndarray, 
 ## PyPOLAR WIDGETS
 
 class Button(CTk.CTkButton):
-    def __init__(self, master, text:str=None, image:CTk.CTkImage=None, width:int=button_size[0], height:int=button_size[1], anchor:str="w", **kwargs) -> None:
+    def __init__(self, master, text:str=None, image:CTk.CTkImage=None, tooltip:str=None, width:int=button_size[0], height:int=button_size[1], anchor:str="w", **kwargs) -> None:
         super().__init__(master, text=text, image=image, width=width, height=height, anchor=anchor, compound=tk.LEFT, **kwargs)
         if text is None:
             self.configure(width=height)
+        if tooltip is not None:
+            ToolTip(self, text=tooltip)
 
     def bind(self, sequence=None, command=None, add=True):
         if not (add == "+" or add is True):
@@ -79,16 +81,18 @@ class Button(CTk.CTkButton):
             self._image_label.bind(sequence, command, add=True)
 
 class CheckBox(CTk.CTkCheckBox):
-    def __init__(self, master, text:str=None, command:Callable=None, **kwargs) -> None:
+    def __init__(self, master, text:str=None, tooltip:str=None, command:Callable=None, **kwargs) -> None:
         super().__init__(master, text=text, command=command, onvalue=True, offvalue=False, width=30, **kwargs)
+        if tooltip is not None:
+            ToolTip(self, text=tooltip)
 
 class Entry(CTk.CTkFrame):
-    def __init__(self, master, text:str=None, textvariable:tk.StringVar=None, state:str="normal", row:int=0, column:int=0, padx:Union[int, Tuple[int, int]]=(10, 30), pady:Union[int, Tuple[int, int]]=5, sticky:str="e", fg_color:str=gray[0], **kwargs) -> None:
+    def __init__(self, master, text:str=None, textvariable:tk.StringVar=None, tooltip:str=None, state:str="normal", row:int=0, column:int=0, padx:Union[int, Tuple[int, int]]=(10, 30), pady:Union[int, Tuple[int, int]]=5, sticky:str="e", fg_color:str=gray[0], **kwargs) -> None:
         super().__init__(master, **kwargs)
         self.configure(fg_color=fg_color)
         self.grid(row=row, column=column, sticky=sticky)
         if text is not None:
-            CTk.CTkLabel(self, text=text).grid(row=0, column=0, padx=(20, 10))
+            Label(self, text=text, tooltip=tooltip).grid(row=0, column=0, padx=(20, 10))
         self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=50, justify="center", state=state)
         self.entry.grid(row=0, column=1, padx=padx, pady=pady)
 
@@ -102,11 +106,11 @@ class Entry(CTk.CTkFrame):
         return self.entry.bind(*args, **kwargs)
 
 class DropDown(CTk.CTkFrame):
-    def __init__(self, master, values:List[str]=[], image:CTk.CTkImage=None, command:Callable=None, variable:tk.StringVar=None, state:str="normal", **kwargs):
+    def __init__(self, master, values:List[str]=[], image:CTk.CTkImage=None, tooltip:str=None, command:Callable=None, variable:tk.StringVar=None, state:str="normal", **kwargs):
         super().__init__(master, **kwargs)
         self.configure(fg_color=gray[0])
         self.pack(padx=20, pady=20)
-        self.icon = Button(self, image=image)
+        self.icon = Button(self, image=image, tooltip=tooltip)
         self.icon.configure(hover=False)
         self.icon.pack(side=tk.LEFT)
         self.option_menu = CTk.CTkOptionMenu(self, values=values, width=button_size[0]-button_size[1], height=button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state)
@@ -126,6 +130,18 @@ class DropDown(CTk.CTkFrame):
     
     def bind(self, *args, **kwargs):
         return self.option_menu.bind(*args, **kwargs)
+    
+class Label(CTk.CTkLabel):
+    def __init__(self, master, tooltip:str=None, **kwargs) -> None:
+        super().__init__(master, **kwargs)
+        if tooltip is not None:
+            ToolTip(self, text=tooltip)
+
+class OptionMenu(CTk.CTkOptionMenu):
+    def __init__(self, master, tooltip:str=None, **kwargs) -> None:
+        super().__init__(master, **kwargs)
+        if tooltip is not None:
+            ToolTip(self, text=tooltip)
 
 class SpinBox(CTk.CTkFrame):
     def __init__(self, master, from_:int=1, to_:int=20, step_size:int=1, textvariable:tk.StringVar=None, command:Callable=None, **kwargs) -> None:
@@ -201,9 +217,11 @@ class ShowInfo(CTk.CTkToplevel):
         return self.buttons
     
 class TextBox(CTk.CTkTextbox):
-    def __init__(self, master, **kwargs) -> None:
+    def __init__(self, master, tooltip:str=None, **kwargs) -> None:
         super().__init__(master, **kwargs)
         self.configure(state="disabled")
+        if tooltip is not None:
+            ToolTip(self, text=tooltip)
 
     def write(self, text:str) -> None:
         self.configure(state="normal")
@@ -610,7 +628,6 @@ class ToolTip:
         self.text = text
         self.widget.bind("<Enter>", self.onEnter)
         self.widget.bind("<Leave>", self.onLeave)
-        self.widget.bind("<Button>", self.onLeave)
         self.pad = pad
         self.id = None
         self.tw = None

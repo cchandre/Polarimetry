@@ -1,4 +1,6 @@
 import json
+import os
+from pathlib import Path
 
 orange = ("#FF7F4F", "#ffb295")
 text_color = "black"
@@ -10,132 +12,135 @@ font_macosx = "Arial Rounded MT Bold"
 font_windows = "Segoe UI"
 font_linux = "Ubuntu"
 
-data = {
-  "CTk": {
-    "fg_color": gray[0]
-  },
-  "CTkToplevel": {
-    "fg_color": gray[0]
-  },
-  "CTkFrame": {
-    "corner_radius": 6,
-    "border_width": 0,
-    "fg_color": gray[0],
-    "top_fg_color": gray[0],
-    "border_color": gray[1]
-  },
-  "CTkButton": {
-    "corner_radius": 6,
-    "border_width": 0,
-    "fg_color": orange[0],
-    "hover_color": orange[1],
-    "border_color": orange[0],
-    "text_color": text_color,
-    "text_color_disabled": gray[0]
-  },
-  "CTkLabel": {
-    "corner_radius": 0,
-    "fg_color": "transparent",
-    "text_color": text_color
-  },
-  "CTkEntry": {
-    "corner_radius": 6,
-    "border_width": 2,
-    "fg_color": "transparent",
-    "border_color": gray[1],
-    "text_color": text_color,
-    "placeholder_text_color": text_color
-  },
-  "CTkCheckbox": {
-    "corner_radius": 6,
-    "border_width": 3,
-    "fg_color": orange[0],
-    "border_color": gray[1],
-    "hover_color": orange[1],
-    "checkmark_color": text_color,
-    "text_color": text_color,
-    "text_color_disabled": gray[1]
-  },
-  "CTkSwitch": {
-    "corner_radius": 1000,
-    "border_width": 3,
-    "button_length": 0,
-    "fg_Color": gray[1],
-    "progress_color": orange[1],
-    "button_color": orange[0],
-    "button_hover_color": orange[1],
-    "text_color": text_color,
-    "text_color_disabled": gray[1]
-  },
-  "CTkSlider": {
-    "corner_radius": 1000,
-    "button_corner_radius": 1000,
-    "border_width": 6,
-    "button_length": 0,
-    "fg_color": "gray70",
-    "progress_color": gray[0],
-    "button_color": orange[0],
-    "button_hover_color": orange[1]
-  },
-  "CTkOptionMenu": {
-    "corner_radius": 6,
-    "fg_color": orange[0],
-    "bg_color": "transparent",
-    "button_color": orange[0],
-    "button_hover_color": orange[1],
-    "text_color": text_color,
-    "text_color_disabled": gray[0]
-  },
-  "CTkSegmentedButton": {
-    "corner_radius": 6,
-    "border_width": 0,
-    "fg_color": gray[0],
-    "selected_color": orange[0],
-    "selected_hover_color": orange[1],
-    "unselected_color": gray[1],
-    "unselected_hover_color": orange[1],
-    "text_color": text_color,
-    "text_color_disabled": text_color
-  },
-  "CTkTextbox": {
-    "corner_radius": 6,
-    "border_width": 0,
-    "fg_color": gray[1],
-    "border_color": "transparent",
-    "text_color": text_color,
-    "scrollbar_button_color": "gray55",
-    "scrollbar_button_hover_color": "gray40"
-  },
-  "DropdownMenu": {
-    "fg_color": orange[0],
-    "hover_color": orange[1],
-    "text_color": text_color
-  },
-  "CTkScrollbar": {
-    "corner_radius": 1000,
-    "border_spacing": 4,
-    "fg_color": "transparent",
-    "button_color": "gray55",
-    "button_hover_color": "gray40"
-  },
-  "CTkFont": {
-    "macOS": {
-      "family": font_macosx,
-      "size": 13,
-      "weight": "bold"
+filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "polarimetry.json")
+
+if not Path(filename).is_file():
+  data = {
+    "CTk": {
+      "fg_color": gray[0]
     },
-    "Windows": {
-      "family": font_windows,
-      "size": 13,
-      "weight": "bold"
+    "CTkToplevel": {
+      "fg_color": gray[0]
     },
-    "Linux": {
-      "family": font_linux,
-      "size": 13,
-      "weight": "bold"
+    "CTkFrame": {
+      "corner_radius": 6,
+      "border_width": 0,
+      "fg_color": gray[0],
+      "top_fg_color": gray[0],
+      "border_color": gray[1]
+    },
+    "CTkButton": {
+      "corner_radius": 6,
+      "border_width": 0,
+      "fg_color": orange[0],
+      "hover_color": orange[1],
+      "border_color": orange[0],
+      "text_color": text_color,
+      "text_color_disabled": gray[0]
+    },
+    "CTkLabel": {
+      "corner_radius": 0,
+      "fg_color": "transparent",
+      "text_color": text_color
+    },
+    "CTkEntry": {
+      "corner_radius": 6,
+      "border_width": 2,
+      "fg_color": "transparent",
+      "border_color": gray[1],
+      "text_color": text_color,
+      "placeholder_text_color": text_color
+    },
+    "CTkCheckbox": {
+      "corner_radius": 6,
+      "border_width": 3,
+      "fg_color": orange[0],
+      "border_color": gray[1],
+      "hover_color": orange[1],
+      "checkmark_color": text_color,
+      "text_color": text_color,
+      "text_color_disabled": gray[1]
+    },
+    "CTkSwitch": {
+      "corner_radius": 1000,
+      "border_width": 3,
+      "button_length": 0,
+      "fg_Color": gray[1],
+      "progress_color": orange[1],
+      "button_color": orange[0],
+      "button_hover_color": orange[1],
+      "text_color": text_color,
+      "text_color_disabled": gray[1]
+    },
+    "CTkSlider": {
+      "corner_radius": 1000,
+      "button_corner_radius": 1000,
+      "border_width": 6,
+      "button_length": 0,
+      "fg_color": "gray70",
+      "progress_color": gray[0],
+      "button_color": orange[0],
+      "button_hover_color": orange[1]
+    },
+    "CTkOptionMenu": {
+      "corner_radius": 6,
+      "fg_color": orange[0],
+      "bg_color": "transparent",
+      "button_color": orange[0],
+      "button_hover_color": orange[1],
+      "text_color": text_color,
+      "text_color_disabled": gray[0]
+    },
+    "CTkSegmentedButton": {
+      "corner_radius": 6,
+      "border_width": 0,
+      "fg_color": orange[0],
+      "selected_color": orange[0],
+      "selected_hover_color": orange[1],
+      "unselected_color": gray[1],
+      "unselected_hover_color": orange[1],
+      "text_color": text_color,
+      "text_color_disabled": text_color
+    },
+    "CTkTextbox": {
+      "corner_radius": 6,
+      "border_width": 0,
+      "fg_color": gray[1],
+      "border_color": "transparent",
+      "text_color": text_color,
+      "scrollbar_button_color": "gray55",
+      "scrollbar_button_hover_color": "gray40"
+    },
+    "DropdownMenu": {
+      "fg_color": orange[0],
+      "hover_color": orange[1],
+      "text_color": text_color
+    },
+    "CTkScrollbar": {
+      "corner_radius": 1000,
+      "border_spacing": 4,
+      "fg_color": "transparent",
+      "button_color": "gray55",
+      "button_hover_color": "gray40"
+    },
+    "CTkFont": {
+      "macOS": {
+        "family": font_macosx,
+        "size": 13,
+        "weight": "bold"
+      },
+      "Windows": {
+        "family": font_windows,
+        "size": 13,
+        "weight": "bold"
+      },
+      "Linux": {
+        "family": font_linux,
+        "size": 13,
+        "weight": "bold"
+      }
     }
   }
-}
 
-with open("polarimetry.json", "w") as write_file:
-    json.dump(data, write_file)
+  with open(filename, "w") as write_file:
+      json.dump(data, write_file)
