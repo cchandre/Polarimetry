@@ -108,13 +108,12 @@ class Entry(CTk.CTkFrame):
 class DropDown(CTk.CTkFrame):
     def __init__(self, master, values:List[str]=[], image:CTk.CTkImage=None, tooltip:str=None, command:Callable=None, variable:tk.StringVar=None, state:str="normal", **kwargs):
         super().__init__(master, **kwargs)
-        self.configure(fg_color=gray[0])
-        self.pack(padx=20, pady=20)
-        self.icon = Button(self, image=image, tooltip=tooltip)
-        self.icon.configure(hover=False)
+        self.configure(bg_color=orange[0], background_corner_colors=[gray[0], gray[0], gray[0], gray[0]])
+        self.icon = Button(self, image=image, tooltip=tooltip, hover=False)
         self.icon.pack(side=tk.LEFT)
         self.option_menu = CTk.CTkOptionMenu(self, values=values, width=button_size[0]-button_size[1], height=button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state)
         self.option_menu.pack(side=tk.LEFT)
+        self.pack(padx=20, pady=20)
 
     def set_state(self, state:str) -> None:
         self.option_menu.configure(state=state)
