@@ -1397,7 +1397,7 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_axis.set_axis_off()
                 self.thrsh_im = self.thrsh_axis.imshow(field_im, cmap=self.thrsh_colormap, alpha=alphadata, interpolation="nearest")
                 self.thrsh_frame.update()
-            #self.thrsh_im.set_clim(vmin, vmax)
+            self.thrsh_im.set_clim(vmin, vmax)
             self.clear_patches(self.thrsh_axis, self.thrsh_fig.canvas)
             if hasattr(self, "plot_edges"):
                 for edge in self.plot_edges:
