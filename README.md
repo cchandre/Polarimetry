@@ -7,7 +7,7 @@ Source code: [PyPOLAR.py](https://github.com/cchandre/Polarimetry/blob/master/py
 
 Website: [www.fresnel.fr/polarimetry](https://www.fresnel.fr/polarimetry)
 
-![Version](https://img.shields.io/badge/version-v2.4.3-blue)
+![Version](https://img.shields.io/badge/version-v2.4.4-blue)
 ![Platform](https://img.shields.io/badge/platform-macOS|Windows-orange)
 ![License](https://img.shields.io/badge/license-BSD-lightgray)
 
@@ -29,7 +29,7 @@ ___
 
   * <ins>Choice of polarimetry method:</ins> <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/microscope.png" alt=" " width="30"/> `1PF` (one-photon fluorescence), `CARS` (coherent anti-Stokes Raman scattering), `SRS` (stimulated Raman scattering), `SHG` (second-harmonic generation), `2PF` (two-photon fluorescence), `4POLAR 2D` (2D 4POLAR fluorescence), `4POLAR 3D` (3D 4POLAR fluorescence).
 
-  * <ins> Download data to be analyzed: </ins> <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/download_file.png" alt=" " width="30"/>: `Open file` (`.tiff` or `.tif` stack file) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo_fill.png" alt=" " width="30"/>, `Open folder` (containing `.tiff` or `.tif` stack files) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/folder_open.png" alt=" " width="30"/> or `Previous analysis` (a compressed `.pykl` pickle file saved from a previous PyPOLAR analysis) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/analytics.png" alt=" " width="30"/>. The analysis is done with 16-bit images. In case of 32-bit images, they are converted to 16-bit images before analysis.   
+  * <ins> Download data to be analyzed: </ins> <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/download_file.png" alt=" " width="30"/>: `Open file` (`.tiff` or `.tif` stack file) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/photo_fill.png" alt=" " width="30"/>, `Open folder` (containing `.tiff` or `.tif` stack files) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/folder_open.png" alt=" " width="30"/> or `Previous analysis` (a compressed `.pykl` pickle file saved from a previous PyPOLAR analysis) <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/analytics.png" alt=" " width="30"/>. The analysis is performed with 8 or 16-bit images. In case of 32-bit images, they are converted to 16-bit images before analysis.   
 
   * <ins>Select the method of analysis:</ins>  <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/build.png" alt=" " width="30"/> `Thresholding (manual)` (thresholding and regions of interest are manually selected for each stack), `Thresholding (auto)` (thresholding and regions of interest are selected for the first stack and applied to each stack to be analyzed in batch mode), `Mask (manual)` (a binary segmentation mask is applied to the analysis; the name of the segmentation mask has to be identical to the one of the stack with a `.png` extension), `Mask (auto)` (batch analysis, similar to `Thresholding (auto)` but with a segmentation mask applied to each stack). For `Thresholding (auto)` and `Mask (auto)`, the menu icon is changed to <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/build_fill.png" alt=" " width="30"/>
 
@@ -46,10 +46,10 @@ ___
 
   * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/contrast.png" alt=" " width="30"/> The contrast can be adjusted with the contrast slider on the right hand side of the tab. This value of the contrast will be used in the intensity images in the figures.
 
-  * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/square.png" alt=" " width="30"/> displays the angle (in deg) and the length (in number of pixels) of the segment selected on the intensity image. The angle is defined counter-clockwise in the field of view (see [Options](#options-tab) tab). Click the left mouse button to select this segment.
+  * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/square.png" alt=" " width="30"/> displays the angle (in deg) and the length (in number of pixels) of the segment selected on the intensity image. The angle is defined counter-clockwise in the field of view (see [Options](#options-tab) tab). Click the left mouse button to select this segment. In order to display the distance in &mu;m, enter the length of a pixel in nm in the entry box right below.
 
 
-  The lower part of the tab indicates the name of the stack to be analyzed.
+  The lower left part of the tab indicates the name of the stack to be analyzed.
 
 [&uarr;](#manual)
 
@@ -107,6 +107,7 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
 
   The `Variables` table lists all the possible variables *C*. Check the boxes for the variables *C* to be displayed and/or saved in the analysis. For `1PF`, `4POLAR 2D`: (&rho;, &psi;). For `CARS`, `SRS`, `2PF`: (&rho;, S<sub>2</sub>, S<sub>4</sub>). For `SHG`: (&rho;, S<sub>SHG</sub>). For `4POLAR 3D`: (&rho;, &psi;, &eta;). The second and third columns display the minimum and maximum values of the variables used for the colorbars of histograms and composite and stick maps. These elements are editable (except for &rho;) if the switch is selected.
   The colormap for &rho; is `hsv` (and `colorwheel` from [Colorcet](https://colorcet.holoviz.org/) for colorblind-friendly visualization). The colormap for &psi;, S<sub>2</sub>, S<sub>4</sub>, S<sub>SHG</sub> is `jet` (and `viridis` for colorblind-friendly visualization). The colormap for &eta; is `plasma`.   
+  The format of the figures to be saved is selected using the option menu in the frame `Save output`. 
   
 
 #### Preferences
@@ -117,19 +118,24 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
   * Checkbox `Colorblind-friendly`: if selected, uses colorblind-friendly colormaps for figure (also used in the `.tif` images if selected).
   
   * Spinners for the number of pixels separating sticks on stick maps: `vertical` = number of pixels separating sticks vertically, `horizontal` = number of pixels separating sticks horizontally (i.e., 1 means every pixel, 2 means every other pixel, etc...); the spinners apply directly to open stick figures.
+  
+  * Spiiner for the number of bins used in histogrames (default=60). 
 
   * Button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/crop.png" alt=" " width="30"/>: click and enter the x-range and y-range for cropping figures; the values are also the ones used in the saved animated gif (see `Save output`). 
-
-  * Button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/query_stats.png" alt=" " width="30"/>: Click this button to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the composite figure of &rho;. 
-
   
+#### Miscellaneous tools
+* Button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/query_stats.png" alt=" " width="30"/>: Click this button to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the composite figure of &rho;. 
+
+* Button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/merge.png" alt=" " width="30"/>: Click this button to merge the histograms of the variables selected in the Variables table. Select the folder containing the `.mat` files to be concatenated. 
+
+ * Checkbox `per ROI`: if selected, the results are displayed and saved separately for each ROI; otherwise, the results are displayed and saved by grouping all ROIs. 
 
 #### Save output
 
-  The `Save output` table lists the saving options: `Data (.pykl)` for saving data as a compressed pickle file (to download as `Previous analysis` in the download selection), `Figures (.tif)` for exporting the figures as TIFF files, `Data (.mat)` for saving the values of the variables for each pixel used in the analysis as a MATLAB `.mat` file, `Mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and `Movie (.gif)` for an animated gif file of the stack.
+  The `Save output` table lists the saving options: `Data (.pykl)` for saving data as a compressed pickle file (to download as `Previous analysis` in the download selection), `Data (.mat)` for saving the values of the variables for each pixel used in the analysis as a MATLAB `.mat` file, `Mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and `Movie (.gif)` for an animated gif file of the stack.
+  Using the option menu `Figures`, select the format of the figures to be saved (as selected in the Figures table for the variables selected in the Variables table). Possible formats are `.pdf` (default), `.png`, `.jpeg` and `.tif`. 
 
  * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/delete_forever.png" alt=" " width="30"/> reinitializes the `Show/Save` and `Variable` tables.
-  * Checkbox `per ROI`: if selected, the results are displayed and saved separately for each ROI; otherwise, the results are displayed and saved by grouping all ROIs. 
 
 
 *Convention for the origin of the angles*: The orientation angles &rho; (for sticks and histograms) are computed counter-clockwise in the field of view using the convention specified in the following image. Please also note the numbering of the pixels in the horizontal and vertical axes. 
