@@ -64,7 +64,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
     __version__ = "2.4.4"
 
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 13, 2023", "2.4.4": "March 18, 2023"}
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 13, 2023", "2.4.4": "March 19, 2023"}
 
     try:
         __version_date__ = dict_versions[__version__]
@@ -72,7 +72,7 @@ class Polarimetry(CTk.CTk):
         __version_date__ = date.today().strftime("%B %d, %Y")    
 
     left_frame_width, right_frame_width = 180, 850
-    height, width = right_frame_width, left_frame_width + right_frame_width
+    height, width = 800, left_frame_width + right_frame_width
     axes_size = (680, 680)
     figsize = (450, 450)
 
@@ -170,10 +170,10 @@ class Polarimetry(CTk.CTk):
         ToolTip(entry, text=" enter the pixel size in nm")
         entry.pack(padx=20, pady=0)
        
-        self.filename_label = TextBox(master=bottomframe, width=400, height=50, tooltip=" name of file currently analyzed")
+        self.filename_label = TextBox(master=bottomframe, width=300, height=50, tooltip=" name of file currently analyzed")
         self.filename_label.pack(side=tk.LEFT)
-        sliderframe = CTk.CTkFrame(master=bottomframe, fg_color="transparent")
-        sliderframe.pack(side=tk.RIGHT, padx=100)
+        sliderframe = CTk.CTkFrame(master=bottomframe, fg_color="transparent", width=200)
+        sliderframe.pack(side=tk.LEFT, padx=80)
         self.stack_slider = CTk.CTkSlider(master=sliderframe, from_=0, to=18, number_of_steps=18, command=self.stack_slider_callback, state="disabled")
         self.stack_slider.set(0)
         self.stack_slider.grid(row=0, column=0, columnspan=2)
@@ -389,10 +389,10 @@ class Polarimetry(CTk.CTk):
         self.removed_intensity = 0
 
     def initialize_slider(self) -> None:
-        if hasattr(self, "stack"):
+        if hasattr(self, "datastack"):
             self.stack_slider.configure(to=self.stack.nangle, number_of_steps=self.stack.nangle)
             self.ilow.set(self.stack.display.format(np.amin(self.datastack.intensity)))
-            self.ilow_slider.set(float(self.ilow.get()))
+            self.ilow_slider.set(float(self.ilow.get()) / float(np.amax(self.datastack.intensity)))
             self.contrast_intensity_slider.set(1)
             self.contrast_thrsh_slider.set(1)
             self.stack_slider.set(0)
@@ -753,8 +753,6 @@ class Polarimetry(CTk.CTk):
                     self.ontab_intensity(update=False)
                 window.withdraw()
         if hasattr(self, "stack"):
-            self.ilow_slider.configure(from_=np.amin(self.stack.intensity), to=np.amax(self.stack.intensity))
-            self.ilow_slider.set(np.amin(self.stack.intensity))
             self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
             self.ontab_thrsh(update=False)
 
@@ -1184,8 +1182,6 @@ class Polarimetry(CTk.CTk):
         self.tabview.set("Intensity")
         self.update()
         self.compute_intensity(self.stack)
-        self.ilow_slider.configure(from_=np.amin(self.stack.intensity), to=np.amax(self.stack.intensity))
-        self.ilow_slider.set(np.amin(self.stack.intensity))
         self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
         self.datastack = self.define_datastack(self.stack)
         if self.option.get().startswith("Mask"):
@@ -1325,15 +1321,15 @@ class Polarimetry(CTk.CTk):
         self.ontab_intensity()
 
     def ilow_slider_callback(self, value:str) -> None:
-        if hasattr(self, "stack"):
-            self.ilow.set(self.stack.display.format(value))
+        if hasattr(self, "datastack"):
+            self.ilow.set(self.stack.display.format(float(value) * float(np.amax(self.datastack.intensity))))
             if hasattr(self, "edge_contours"):
                 self.compute_edges()
             self.ontab_thrsh()
 
     def ilow2slider_callback(self, event:tk.Event) -> None:
-        if event and hasattr(self, "stack"):
-            self.ilow_slider.set(float(self.ilow.get()))
+        if event and hasattr(self, "datastack"):
+            self.ilow_slider.set(float(self.ilow.get()) / float(np.amax(self.datastack.intensity)))
             if hasattr(self, "edge_contours"):
                 self.compute_edges()
             self.ontab_thrsh()
@@ -1345,6 +1341,7 @@ class Polarimetry(CTk.CTk):
             self.compute_intensity(self.stack)
             if hasattr(self, "datastack"):
                 self.datastack.intensity = self.stack.intensity
+                self.ilow.set(self.stack.display.format(float(self.ilow_slider.get()) * float(np.amax(self.datastack.intensity))))
             self.ontab_intensity(update=False)
             self.ontab_thrsh(update=False)
 
@@ -1366,7 +1363,7 @@ class Polarimetry(CTk.CTk):
             elif hasattr(self, "stack") and (self.stack_slider.get() <= self.stack.nangle):
                 field = self.stack.values[int(self.stack_slider.get())-1]
                 vmin, vmax = np.amin(self.stack.values), np.amax(self.stack.values)
-            field_im = adjust(field, self.contrast_intensity_slider.get(), vmin, vmax)
+            field_im = adjust(field, float(self.contrast_intensity_slider.get()), vmin, vmax)
             if int(self.rotation[1].get()) != 0:
                 field_im = rotate(field_im, int(self.rotation[1].get()), reshape=False, mode="constant", cval=vmin)
             if update:
@@ -1400,7 +1397,7 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_axis.set_axis_off()
                 self.thrsh_im = self.thrsh_axis.imshow(field_im, cmap=self.thrsh_colormap, alpha=alphadata, interpolation="nearest")
                 self.thrsh_frame.update()
-            self.thrsh_im.set_clim(vmin, vmax)
+            #self.thrsh_im.set_clim(vmin, vmax)
             self.clear_patches(self.thrsh_axis, self.thrsh_fig.canvas)
             if hasattr(self, "plot_edges"):
                 for edge in self.plot_edges:

@@ -36,7 +36,7 @@ def adjust(field:np.ndarray, contrast:float, vmin:float, vmax:float) -> np.ndarr
     blur = cv2.GaussianBlur(field, (5, 5), 1)
     sharpened = cv2.addWeighted(field, 1 + amount, blur, -amount, 0)
     sharpened = np.maximum(sharpened, vmin)
-    sharpened = exposure.adjust_gamma((sharpened - vmin) / vmax, contrast) * vmax
+    sharpened = exposure.adjust_gamma((sharpened - vmin) / (vmax - vmin), contrast) * (vmax - vmin) + vmin
     return sharpened
 
 def circularmean(rho:np.ndarray) -> float:
