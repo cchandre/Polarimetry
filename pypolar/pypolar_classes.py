@@ -39,12 +39,6 @@ def adjust(field:np.ndarray, contrast:float, vmin:float, vmax:float) -> np.ndarr
     sharpened = exposure.adjust_gamma((sharpened - vmin) / (vmax - vmin), contrast) * (vmax - vmin) + vmin
     return sharpened
 
-def circularmean(rho:np.ndarray) -> float:
-    return np.mod(np.angle(np.mean(np.exp(2j * np.deg2rad(rho))), deg=True), 360) / 2
-
-def wrapto180(rho:np.ndarray) -> np.ndarray:
-    return np.angle(np.exp(1j * np.deg2rad(rho)), deg=True)
-
 def angle_edge(edge:np.ndarray) -> Tuple[float, np.ndarray]:
     tangent = np.diff(edge, axis=0, append=edge[-1, :].reshape((1, 2)))
     norm_t = norm(tangent, axis=1)[:, np.newaxis]
@@ -53,6 +47,12 @@ def angle_edge(edge:np.ndarray) -> Tuple[float, np.ndarray]:
     normal = np.einsum("ij,jk->ik", tangent, np.array([[0, -1], [1, 0]]))
     return angle, normal
 
+def circularmean(rho:np.ndarray) -> float:
+    return np.mod(np.angle(np.mean(np.exp(2j * np.deg2rad(rho))), deg=True), 360) / 2
+
+def divide_ext(a:np.ndarray, b:np.ndarray) -> np.ndarray:
+    return np.divide(a, b, where=np.all((b!=0, np.isfinite(b)), axis=0))
+
 def find_matches(a:np.ndarray, b:np.ndarray, tol:float=10) -> Tuple[np.ndarray, np.ndarray]:
     a_, b_ = (a, b) if len(b) >= len(a) else (b, a)
     cost = np.linalg.norm(a_[:, np.newaxis, :] - b_, axis=2)
@@ -60,6 +60,9 @@ def find_matches(a:np.ndarray, b:np.ndarray, tol:float=10) -> Tuple[np.ndarray, 
     a_, b_ = (a, b[indices]) if len(b) >= len(a) else (a[indices], b)
     dist = np.linalg.norm(a_ - b_, axis=1)
     return a_[dist <= tol], b_[dist <= tol]
+
+def wrapto180(rho:np.ndarray) -> np.ndarray:
+    return np.angle(np.exp(1j * np.deg2rad(rho)), deg=True)
 
 ## PyPOLAR WIDGETS
 

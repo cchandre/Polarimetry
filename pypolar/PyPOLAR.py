@@ -32,7 +32,7 @@ import copy
 from typing import List, Tuple, Union
 from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, NToolbar2PyPOLAR, ROIManager, TabView, ToolTip
 from pypolar_classes import Button, CheckBox, Entry, DropDown, Label, OptionMenu, SpinBox, ShowInfo, Switch, TextBox
-from pypolar_classes import adjust, circularmean, wrapto180, angle_edge, find_matches
+from pypolar_classes import adjust, angle_edge, circularmean, divide_ext, find_matches, wrapto180
 from pypolar_classes import button_size, geometry_info
 from generate_json import font_macosx, font_windows, orange, gray, red, green, text_color
 
@@ -1875,33 +1875,34 @@ class Polarimetry(CTk.CTk):
             a0[a0 == 0] = np.nan
             a2 = 2 * np.mean(field * e2, axis=0)
             field_fit = a0[np.newaxis, :, :] + (a2[np.newaxis, :, :] * e2.conj()).real
-            a2 = np.divide(a2, a0, where=np.all((a0!=0, np.isfinite(a0)), axis=0))
+            a2 = divide_ext(a2, a0)
             if self.method.get() in ["CARS", "SRS", "SHG", "2PF"]:
                 e4 = e2**2
                 a4 = 2 * np.mean(field * e4, axis=0)
                 field_fit += (a4[np.newaxis, :, :] * e4.conj()).real
-                a4 = np.divide(a4, a0, where=np.all((a0!=0, np.isfinite(a0)), axis=0))
+                a4 = divide_ext(a4, a0)
             chi2 = np.mean(np.divide((field - field_fit)**2, field_fit, where=np.all((field_fit!=0, np.isfinite(field_fit)), axis=0)), axis=0)
+            mask *= (chi2 <= chi2threshold) * (chi2 > 0)
         elif self.method.get() == "4POLAR 3D":
             mat = np.einsum("ij,jmn->imn", self.CD.invKmat_3D, field)
             s = mat[0] + mat[1] + mat[2]
-            pxy = np.divide(mat[0] - mat[1], s, where=np.all((s!=0, np.isfinite(s)), axis=0)).reshape(shape)
-            puv = np.divide(2 * mat[3], s, where=np.all((s!=0, np.isfinite(s)), axis=0)).reshape(shape)
-            pzz = np.divide(mat[2], s, where=np.all((s!=0, np.isfinite(s)), axis=0)).reshape(shape)
+            pxy = divide_ext(mat[0] - mat[1], s).reshape(shape)
+            puv = divide_ext(2 * mat[3], s).reshape(shape)
+            pzz = divide_ext(mat[2], s).reshape(shape)
             lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
             a0 = np.mean(field, axis=0) / 4
             a0[a0 == 0] = np.nan
         elif self.method.get() == "4POLAR 2D":
             mat = np.einsum("ij,jmn->imn", self.CD.invKmat_2D, field)
             s = mat[0] + mat[1] + mat[2]
-            pxy = np.divide(mat[0] - mat[1], s, where=np.all((s!=0, np.isfinite(s)), axis=0)).reshape(shape)
-            puv = np.divide(2 * mat[3], s, where=np.all((s!=0, np.isfinite(s)), axis=0)).reshape(shape)
+            pxy = divide_ext(mat[0] - mat[1], s).reshape(shape)
+            puv = divide_ext(2 * mat[3], s).reshape(shape)
             lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
             a0 = np.mean(field, axis=0) / 4
             a0[a0 == 0] = np.nan
         rho_ = Variable("Rho", datastack=datastack)
         if self.method.get() == "1PF":
-            mask *= (np.abs(a2) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
+            mask *= np.abs(a2) < 1
             a2_vals = np.moveaxis(np.asarray([a2.real[mask].flatten(), a2.imag[mask].flatten()]), 0, -1)
             rho, psi = np.moveaxis(interpn(self.CD.xy, self.CD.RhoPsi, a2_vals), 0, 1)
             ixgrid = mask.nonzero()
@@ -1912,7 +1913,7 @@ class Polarimetry(CTk.CTk):
             mask *= np.isfinite(rho_.values) * np.isfinite(psi_.values)
             datastack.vars = [rho_, psi_]
         elif self.method.get() in ["CARS", "SRS", "2PF"]:
-            mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
+            mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1)
             rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
             rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
             s2_ = Variable("S2", datastack=datastack)
@@ -1921,7 +1922,7 @@ class Polarimetry(CTk.CTk):
             s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.values[mask])))
             datastack.vars = [rho_, s2_, s4_]
         elif self.method.get() == "SHG":
-            mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1) * (chi2 <= chi2threshold) * (chi2 > 0)
+            mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1)
             rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
             rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
             s_shg_ = Variable("S_SHG", datastack=datastack)
@@ -1962,9 +1963,7 @@ class Polarimetry(CTk.CTk):
             field[:, np.logical_not(mask)] = np.nan
             field_fit[:, np.logical_not(mask)] = np.nan
             chi2[np.logical_not(mask)] = np.nan
-            datastack.field = field
-            datastack.field_fit = field_fit
-            datastack.chi2 = chi2
+            datastack.field, datastack.field_fit, datastack.chi2 = field, field_fit, chi2
         self.datastack = datastack
         self.plot_data(datastack, roi_map=roi_map)
         self.save_data(datastack, roi_map=roi_map)
