@@ -64,7 +64,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
     __version__ = "2.4.4"
 
-    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 13, 2023", "2.4.4": "March 19, 2023"}
+    dict_versions = {"2.1": "December 5, 2022", "2.2": "January 22, 2023", "2.3": "January 28, 2023", "2.4": "February 2, 2023", "2.4.1": "February 25, 2023", "2.4.2": "March 2, 2023", "2.4.3": "March 13, 2023", "2.4.4": "March 20, 2023"}
 
     try:
         __version_date__ = dict_versions[__version__]
@@ -1183,6 +1183,7 @@ class Polarimetry(CTk.CTk):
         self.update()
         self.compute_intensity(self.stack)
         self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
+        self.ilow_slider.set(0)
         self.datastack = self.define_datastack(self.stack)
         if self.option.get().startswith("Mask"):
             self.mask = self.get_mask(self.datastack)
@@ -1322,7 +1323,7 @@ class Polarimetry(CTk.CTk):
 
     def ilow_slider_callback(self, value:str) -> None:
         if hasattr(self, "datastack"):
-            self.ilow.set(self.stack.display.format(float(value) * float(np.amax(self.datastack.intensity))))
+            self.ilow.set(self.stack.display.format(float(value) * float(np.ptp(self.datastack.intensity)) + self.datastack.intensity.min()))
             if hasattr(self, "edge_contours"):
                 self.compute_edges()
             self.ontab_thrsh()
@@ -1341,7 +1342,7 @@ class Polarimetry(CTk.CTk):
             self.compute_intensity(self.stack)
             if hasattr(self, "datastack"):
                 self.datastack.intensity = self.stack.intensity
-                self.ilow.set(self.stack.display.format(float(self.ilow_slider.get()) * float(np.amax(self.datastack.intensity))))
+                self.ilow.set(self.stack.display.format(float(self.ilow_slider.get()) * float(np.ptp(self.datastack.intensity)) + self.datastack.intensity.min()))
             self.ontab_intensity(update=False)
             self.ontab_thrsh(update=False)
 
