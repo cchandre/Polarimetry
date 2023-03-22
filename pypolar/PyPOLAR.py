@@ -3,7 +3,7 @@ from tkinter import filedialog as fd
 import customtkinter as CTk
 import os
 import sys
-import bz2
+from bz2 import BZ2File
 import pickle
 import _pickle as cPickle
 import copy
@@ -22,7 +22,7 @@ from matplotlib.backend_bases import FigureCanvasBase, _Mode, MouseEvent
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.backends.backend_pdf
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-import colorcet as cc
+from colorcet import m_colorwheel
 from PIL import Image
 import cv2
 import openpyxl
@@ -672,7 +672,7 @@ class Polarimetry(CTk.CTk):
                     elif ((fig.type == "Sticks") or ((fig.type == "Intensity") and (self.edge_detection_switch.get() == "on"))) and (self.datastack.name in fs):
                         fig.axes[0].collections[0].set_cmap(cmap)
                 if fs.startswith("Disk Cone"):
-                    fig.axes[0].images[0].set_cmap("hsv" if not self.colorblind_checkbox.get() else cc.m_colorwheel)
+                    fig.axes[0].images[0].set_cmap("hsv" if not self.colorblind_checkbox.get() else m_colorwheel)
                     fig.axes[1].images[0].set_cmap("jet" if not self.colorblind_checkbox.get() else "viridis")
 
     def options_dropdown_callback(self, option:str) -> None:
@@ -734,7 +734,7 @@ class Polarimetry(CTk.CTk):
             if filename:
                 window = ShowInfo(message=" Downloading and decompressing data...", image=self.icons["download"], geometry=(350, 80))
                 window.update()
-                with bz2.BZ2File(filename, "rb") as f:
+                with BZ2File(filename, "rb") as f:
                     if hasattr(self, "stack"):
                         delattr(self, "stack")
                     self.openfile_dropdown.get_icon().configure(image=self.icons["analytics"])
@@ -1639,7 +1639,7 @@ class Polarimetry(CTk.CTk):
             if self.edge_detection_switch.get() == "on":
                 for contour in self.edge_contours:
                     angles = np.mod(2 * angle_edge(contour)[0], 360) / 2
-                    cmap = cc.m_colorwheel if self.colorblind_checkbox.get() else "hsv"
+                    cmap = m_colorwheel if self.colorblind_checkbox.get() else "hsv"
                     if float(self.rotation[1].get()) != 0:
                         angles = np.mod(2 * (angles + float(self.rotation[1].get())), 360) / 2
                         theta = np.deg2rad(float(self.rotation[1].get()))
@@ -1703,7 +1703,7 @@ class Polarimetry(CTk.CTk):
                 roi["select"] = True
             window = ShowInfo(message=" Compressing and saving data...", image=self.icons["save"], geometry=(350, 80))
             window.update()
-            with bz2.BZ2File(filename, "wb") as f:
+            with BZ2File(filename, "wb") as f:
                 cPickle.dump(datastack_, f)
             window.withdraw()
         if self.extension_table[2].get():

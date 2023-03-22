@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import cv2
-from skimage import exposure
+from skimage.exposure import adjust_gamma
 from scipy.ndimage import rotate
 from scipy.signal import convolve2d
 from scipy.linalg import norm
@@ -18,7 +18,7 @@ from PIL import Image, ImageTk
 from tkinter import filedialog as fd
 from tkinter.messagebox import showerror
 from scipy.io import loadmat
-import colorcet as cc
+from colorcet import m_colorwheel
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.backend_bases import NavigationToolbar2, _Mode, MouseEvent
 from typing import Callable, List, Tuple, Union
@@ -36,7 +36,7 @@ def adjust(field:np.ndarray, contrast:float, vmin:float, vmax:float) -> np.ndarr
     blur = cv2.GaussianBlur(field, (5, 5), 1)
     sharpened = cv2.addWeighted(field, 1 + amount, blur, -amount, 0)
     sharpened = np.maximum(sharpened, vmin)
-    sharpened = exposure.adjust_gamma((sharpened - vmin) / (vmax - vmin), contrast) * (vmax - vmin) + vmin
+    sharpened = adjust_gamma((sharpened - vmin) / (vmax - vmin), contrast) * (vmax - vmin) + vmin
     return sharpened
 
 def angle_edge(edge:np.ndarray) -> Tuple[float, np.ndarray]:
@@ -299,8 +299,8 @@ class DataStack:
 
 class Variable:
     def __init__(self, name:str="", values:np.ndarray=None, datastack:DataStack=None) -> None:
-        var = {"Rho": [0, ["polar1"], r"$\rho$", ["hsv", cc.m_colorwheel]], 
-                "Rho_contour": [10, ["polar1", "polar3"], r"$\rho_c$", ["hsv", cc.m_colorwheel]],
+        var = {"Rho": [0, ["polar1"], r"$\rho$", ["hsv", m_colorwheel]], 
+                "Rho_contour": [10, ["polar1", "polar3"], r"$\rho_c$", ["hsv", m_colorwheel]],
                 "Psi": [1, ["normal"], "$\psi$", ["jet", "viridis"]],
                 "Eta": [2, ["polar2"], "$\eta$", ["plasma", "plasma"]],
                 "S2": [1, ["normal"], "$S_2$", ["jet", "viridis"]],
@@ -431,7 +431,7 @@ class Calibration:
     def display(self, colorblind:bool=False) -> None:
         fig, axs = plt.subplots(ncols=2, figsize=(13, 8))
         fig.canvas.manager.set_window_title("Disk Cone: " + self.name)
-        cmap = cc.m_colorwheel if colorblind else "hsv"
+        cmap = m_colorwheel if colorblind else "hsv"
         h = axs[0].imshow(self.RhoPsi[:, :, 0], cmap=cmap, interpolation="nearest", extent=[-1, 1, -1, 1], vmin=0, vmax=180)
         axs[0].set_title("Rho Test")
         ax_divider = make_axes_locatable(axs[0])
