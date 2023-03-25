@@ -29,7 +29,7 @@ button_size = (160, 40)
 
 ## PyPOLAR USEFUL FUNCTIONS
 
-geometry_info = lambda dim: f"{dim[0]}x{dim[1]}+400+300"
+geometry_info = lambda dim: f'{dim[0]}x{dim[1]}+400+300'
 
 def adjust(field:np.ndarray, contrast:float, vmin:float, vmax:float) -> np.ndarray:
     amount = 0.8
@@ -44,7 +44,7 @@ def angle_edge(edge:np.ndarray) -> Tuple[float, np.ndarray]:
     norm_t = norm(tangent, axis=1)[:, np.newaxis]
     tangent = np.divide(tangent, norm_t, where=np.all((norm_t!=0, np.isfinite(norm_t)), axis=0))
     angle = np.mod(2 * np.rad2deg(np.arctan2(-tangent[:, 1], tangent[:, 0])), 360) / 2
-    normal = np.einsum("ij,jk->ik", tangent, np.array([[0, -1], [1, 0]]))
+    normal = np.einsum('ij,jk->ik', tangent, np.array([[0, -1], [1, 0]]))
     return angle, normal
 
 def circularmean(rho:np.ndarray) -> float:
@@ -67,7 +67,7 @@ def wrapto180(rho:np.ndarray) -> np.ndarray:
 ## PyPOLAR WIDGETS
 
 class Button(CTk.CTkButton):
-    def __init__(self, master, text:str=None, image:CTk.CTkImage=None, tooltip:str=None, width:int=button_size[0], height:int=button_size[1], anchor:str="w", **kwargs) -> None:
+    def __init__(self, master, text:str=None, image:CTk.CTkImage=None, tooltip:str=None, width:int=button_size[0], height:int=button_size[1], anchor:str='w', **kwargs) -> None:
         super().__init__(master, text=text, image=image, width=width, height=height, anchor=anchor, compound=tk.LEFT, **kwargs)
         if text is None:
             self.configure(width=height)
@@ -75,7 +75,7 @@ class Button(CTk.CTkButton):
             ToolTip(self, text=tooltip)
 
     def bind(self, sequence=None, command=None, add=True):
-        if not (add == "+" or add is True):
+        if not (add == '+' or add is True):
             raise ValueError("'add' argument can only be '+' or True to preserve internal callbacks")
         self._canvas.bind(sequence, command, add=True)
         if self._text_label:
@@ -90,13 +90,13 @@ class CheckBox(CTk.CTkCheckBox):
             ToolTip(self, text=tooltip)
 
 class Entry(CTk.CTkFrame):
-    def __init__(self, master, text:str=None, textvariable:tk.StringVar=None, tooltip:str=None, state:str="normal", row:int=0, column:int=0, padx:Union[int, Tuple[int, int]]=(10, 30), pady:Union[int, Tuple[int, int]]=5, sticky:str="e", fg_color:str=gray[0], **kwargs) -> None:
+    def __init__(self, master, text:str=None, textvariable:tk.StringVar=None, tooltip:str=None, state:str='normal', row:int=0, column:int=0, padx:Union[int, Tuple[int, int]]=(10, 30), pady:Union[int, Tuple[int, int]]=5, sticky:str='e', fg_color:str=gray[0], **kwargs) -> None:
         super().__init__(master, **kwargs)
         self.configure(fg_color=fg_color)
         self.grid(row=row, column=column, sticky=sticky)
         if text is not None:
             Label(self, text=text, tooltip=tooltip).grid(row=0, column=0, padx=(20, 10))
-        self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=50, justify="center", state=state)
+        self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=50, justify='center', state=state)
         self.entry.grid(row=0, column=1, padx=padx, pady=pady)
 
     def get(self) -> int:
@@ -109,7 +109,7 @@ class Entry(CTk.CTkFrame):
         return self.entry.bind(*args, **kwargs)
 
 class DropDown(CTk.CTkFrame):
-    def __init__(self, master, values:List[str]=[], image:CTk.CTkImage=None, tooltip:str=None, command:Callable=None, variable:tk.StringVar=None, state:str="normal", **kwargs):
+    def __init__(self, master, values:List[str]=[], image:CTk.CTkImage=None, tooltip:str=None, command:Callable=None, variable:tk.StringVar=None, state:str='normal', **kwargs):
         super().__init__(master, **kwargs)
         self.configure(bg_color=orange[0], background_corner_colors=[gray[0], gray[0], gray[0], gray[0]])
         self.icon = Button(self, image=image, tooltip=tooltip, hover=False)
@@ -154,11 +154,11 @@ class SpinBox(CTk.CTkFrame):
         self.configure(fg_color=gray[1]) 
         self.grid_columnconfigure((0, 2), weight=0)
         self.grid_columnconfigure(1, weight=1)
-        self.subtract_button = CTk.CTkButton(self, text=u"\u25BC", width=updown_size, height=updown_size, command=self.subtract_button_callback)
+        self.subtract_button = CTk.CTkButton(self, text=u'\u25BC', width=updown_size, height=updown_size, command=self.subtract_button_callback)
         self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
-        self.entry = CTk.CTkEntry(self, width=width-(2*updown_size), height=updown_size, border_width=0, justify="center", textvariable=textvariable)
-        self.entry.grid(row=0, column=1, columnspan=1, padx=0, pady=0, sticky="ew")
-        self.add_button = CTk.CTkButton(self, text=u"\u25B2", width=updown_size, height=updown_size, command=self.add_button_callback)
+        self.entry = CTk.CTkEntry(self, width=width-(2*updown_size), height=updown_size, border_width=0, justify='center', textvariable=textvariable)
+        self.entry.grid(row=0, column=1, columnspan=1, padx=0, pady=0, sticky='ew')
+        self.add_button = CTk.CTkButton(self, text=u'\u25B2', width=updown_size, height=updown_size, command=self.add_button_callback)
         self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
         if textvariable is None:
             self.entry.insert(0, from_)
@@ -166,7 +166,7 @@ class SpinBox(CTk.CTkFrame):
     def add_button_callback(self) -> None:
         value = int(self.entry.get()) + self.step_size
         value = value if value <= self.to_ else self.to_
-        self.entry.delete(0, "end")
+        self.entry.delete(0, 'end')
         self.entry.insert(0, value)
         if self.command is not None:
             self.command()
@@ -174,7 +174,7 @@ class SpinBox(CTk.CTkFrame):
     def subtract_button_callback(self) -> None:
         value = int(self.entry.get()) - self.step_size
         value = value if value >= self.from_ else self.from_
-        self.entry.delete(0, "end")
+        self.entry.delete(0, 'end')
         self.entry.insert(0, value)
         if self.command is not None:
             self.command()
@@ -190,27 +190,27 @@ class SpinBox(CTk.CTkFrame):
             value = self.from_
         elif value >= self.to_:
             value = self.to_
-        self.entry.delete(0, "end")
+        self.entry.delete(0, 'end')
         self.entry.insert(0, str(value))
 
 class ShowInfo(CTk.CTkToplevel):
-    def __init__(self, message:str="", image:CTk.CTkImage=None, button_labels:List[str]=[], geometry:tuple=(300, 150), fontsize:int=13) -> None:
+    def __init__(self, message:str='', image:CTk.CTkImage=None, button_labels:List[str]=[], geometry:tuple=(300, 150), fontsize:int=13) -> None:
         super().__init__()
-        self.attributes("-topmost", "true")
-        self.title("Polarimetry Analysis")
+        self.attributes('-topmost', 'true')
+        self.title('Polarimetry Analysis')
         self.geometry(geometry_info(geometry))
-        CTk.CTkLabel(self, text=message, image=image, compound="left", width=250, justify=tk.LEFT, font=CTk.CTkFont(size=fontsize)).grid(row=0, column=0, padx=30, pady=20)
+        CTk.CTkLabel(self, text=message, image=image, compound='left', width=250, justify=tk.LEFT, font=CTk.CTkFont(size=fontsize)).grid(row=0, column=0, padx=30, pady=20)
         self.buttons = []
         if button_labels:
             if len(button_labels) >= 2:
-                banner = CTk.CTkFrame(self, fg_color="transparent")
+                banner = CTk.CTkFrame(self, fg_color='transparent')
                 banner.grid(row=1, column=0)
                 master, row_ = banner, 0
             else:
                 master, row_ = self, 1
             for _, label in enumerate(button_labels):
-                button = Button(master, text=label, width=80, anchor="center")
-                if label == "OK":
+                button = Button(master, text=label, width=80, anchor='center')
+                if label == 'OK':
                     button.configure(command=lambda:self.withdraw())
                 button.grid(row=row_, column=_, padx=20, pady=20)
                 self.buttons += [button]
@@ -227,15 +227,15 @@ class Switch(CTk.CTkSwitch):
 class TextBox(CTk.CTkTextbox):
     def __init__(self, master, tooltip:str=None, **kwargs) -> None:
         super().__init__(master, **kwargs)
-        self.configure(state="disabled")
+        self.configure(state='disabled')
         if tooltip is not None:
             ToolTip(self, text=tooltip)
 
     def write(self, text:str) -> None:
-        self.configure(state="normal")
-        self.delete("0.0", "end")
-        self.insert("0.0", text)
-        self.configure(state="disabled")
+        self.configure(state='normal')
+        self.delete('0.0', 'end')
+        self.insert('0.0', text)
+        self.configure(state='disabled')
 
 ## PyPOLAR MAIN CLASSES
 
@@ -245,14 +245,14 @@ class Stack:
         self.folder = str(pathlib.Path(filename).parent)
         self.name = str(pathlib.Path(filename).stem)
         self.height, self.width, self.nangle = 0, 0, 0
-        self.display = "{:.0f}"
+        self.display = '{:.0f}'
         self.values = []
         self.intensity = []
 
     def get_intensity(self, dark:float=0, bin:List[int]=[1, 1]) -> np.ndarray:
         intensity = np.sum((self.values - dark) * (self.values >= dark), axis=0)
         if sum(bin) != 2:
-            return convolve2d(intensity, np.ones(bin), mode="same") / (bin[0] * bin[1])
+            return convolve2d(intensity, np.ones(bin), mode='same') / (bin[0] * bin[1])
         else:
             return intensity
         
@@ -277,7 +277,7 @@ class DataStack:
         self.filename = stack.filename
         self.folder = stack.folder
         self.name = stack.name
-        self.method = ""
+        self.method = ''
         self.height, self.width, self.nangle = stack.height, stack.width, stack.nangle
         self.display = stack.display
         self.dark = 0
@@ -294,69 +294,69 @@ class DataStack:
         vmin, vmax = np.amin(self.intensity), np.amax(self.intensity)
         field = adjust(self.intensity, contrast, vmin, vmax)
         if rotation:
-            field = rotate(field, rotation, reshape=False, mode="constant", cval=vmin)
-        ax.imshow(field, cmap="gray", interpolation="nearest", vmin=vmin, vmax=vmax)
+            field = rotate(field, rotation, reshape=False, mode='constant', cval=vmin)
+        ax.imshow(field, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
 
 class Variable:
-    def __init__(self, name:str="", values:np.ndarray=None, datastack:DataStack=None) -> None:
-        var = {"Rho": [0, ["polar1"], r"$\rho$", ["hsv", m_colorwheel]], 
-                "Rho_contour": [10, ["polar1", "polar3"], r"$\rho_c$", ["hsv", m_colorwheel]],
-                "Psi": [1, ["normal"], "$\psi$", ["jet", "viridis"]],
-                "Eta": [2, ["polar2"], "$\eta$", ["plasma", "plasma"]],
-                "S2": [1, ["normal"], "$S_2$", ["jet", "viridis"]],
-                "S4": [2, ["normal"], "$S_4$", ["jet", "viridis"]],
-                "S_SHG": [1, ["normal"], "$S_\mathrm{SHG}$", ["jet", "viridis"]]}.get(name)
+    def __init__(self, name:str='', values:np.ndarray=None, datastack:DataStack=None) -> None:
+        var = {'Rho': [0, ['polar1'], r'$\rho$', ['hsv', m_colorwheel]], 
+                'Rho_contour': [10, ['polar1', 'polar3'], r'$\rho_c$', ['hsv', m_colorwheel]],
+                'Psi': [1, ['normal'], '$\psi$', ['jet', 'viridis']],
+                'Eta': [2, ['polar2'], '$\eta$', ['plasma', 'plasma']],
+                'S2': [1, ['normal'], '$S_2$', ['jet', 'viridis']],
+                'S4': [2, ['normal'], '$S_4$', ['jet', 'viridis']],
+                'S_SHG': [1, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis']]}.get(name)
         self.indx = var[0] if var is not None else 0
         self.name = name
-        self.latex = var[2] if var is not None else ""
+        self.latex = var[2] if var is not None else ''
         self.values = values if values is not None else np.nan * np.ones((datastack.height, datastack.width)) if datastack is not None else []
-        self.type_histo = var[1] if var is not None else ["normal"]
-        self.colormap = var[3] if var is not None else ["jet", "viridis"]
+        self.type_histo = var[1] if var is not None else ['normal']
+        self.colormap = var[3] if var is not None else ['jet', 'viridis']
 
     def imshow(self, vmin:float, vmax:float, colorblind:bool=False, rotation:int=0) -> mpl.image.AxesImage:
         ax = plt.gca()
         field = self.values
         if rotation:
-            if self.name == "Rho":
+            if self.name == 'Rho':
                 field = np.mod(2 * (field + rotation), 360) / 2
-            field = rotate(field, rotation, reshape=False, order=0, mode="constant")
+            field = rotate(field, rotation, reshape=False, order=0, mode='constant')
             field[field == 0] = np.nan
-        return ax.imshow(field, vmin=vmin, vmax=vmax, cmap=self.colormap[int(colorblind)], interpolation="nearest")
+        return ax.imshow(field, vmin=vmin, vmax=vmax, cmap=self.colormap[int(colorblind)], interpolation='nearest')
 
-    def histo(self, mask:np.ndarray=None, htype:str="normal", vmin:float=0, vmax:float=180, colorblind:bool=False, rotation:float=0, nbins:int=60) -> None:
+    def histo(self, mask:np.ndarray=None, htype:str='normal', vmin:float=0, vmax:float=180, colorblind:bool=False, rotation:float=0, nbins:int=60) -> None:
         data_vals = self.values[mask * np.isfinite(self.values)] if mask is not None else self.values[np.isfinite(self.values)]
-        vmin_, vmax_ = (0, 90) if htype == "polar3" else (vmin, vmax)
+        vmin_, vmax_ = (0, 90) if htype == 'polar3' else (vmin, vmax)
         norm = mpl.colors.Normalize(vmin_, vmax_)
         cmap = self.colormap[int(colorblind)]
         if isinstance(cmap, str):
             cmap = mpl.colormaps[cmap] 
         bins = np.linspace(vmin_, vmax_, nbins)
-        if htype == "normal":
+        if htype == 'normal':
             ax = plt.gca()
             n, bins, patches = ax.hist(data_vals, bins=bins, linewidth=0.5)
             bin_centers = (bins[:-1] + bins[1:]) / 2
             for bin, patch in zip(bin_centers, patches):
                 color = cmap(norm(bin))
                 patch.set_facecolor(color)
-                patch.set_edgecolor("k")
+                patch.set_edgecolor('k')
             ax.set_xlim((vmin_, vmax_))
             ax.set_xlabel(self.latex, fontsize=20)
-            text = self.latex + " = " + "{:.2f}".format(np.mean(data_vals)) + " $\pm$ " "{:.2f}".format(np.std(data_vals))
-            ax.annotate(text, xy=(0.3, 1.05), xycoords="axes fraction", fontsize=14)
-        elif htype.startswith("polar"):
-            ax = plt.subplot(projection="polar")
-            if htype == "polar1":
-                if self.name == "Rho":
+            text = self.latex + ' = ' + '{:.2f}'.format(np.mean(data_vals)) + ' $\pm$ ' '{:.2f}'.format(np.std(data_vals))
+            ax.annotate(text, xy=(0.3, 1.05), xycoords='axes fraction', fontsize=14)
+        elif htype.startswith('polar'):
+            ax = plt.subplot(projection='polar')
+            if htype == 'polar1':
+                if self.name == 'Rho':
                     data_vals = np.mod(2 * (data_vals + rotation), 360) / 2
                 meandata = circularmean(data_vals)
                 std = np.std(wrapto180(2 * (data_vals - meandata)) / 2)
-            elif htype == "polar2":
-                ax.set_theta_zero_location("N")
+            elif htype == 'polar2':
+                ax.set_theta_zero_location('N')
                 ax.set_theta_direction(-1)
                 meandata = np.mean(data_vals)
                 std = np.std(data_vals)
-            elif htype == "polar3":
-                ax.set_theta_zero_location("E")
+            elif htype == 'polar3':
+                ax.set_theta_zero_location('E')
                 data_vals[data_vals >= 90] = 180 - data_vals[data_vals >= 90]
                 meandata = circularmean(data_vals)
                 std = np.std(wrapto180(2 * (data_vals - meandata)) / 2)
@@ -365,16 +365,16 @@ class Variable:
             bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
             width = np.deg2rad(bins[1] - bins[0])
             colors = cmap(norm(bins))
-            ax.bar(np.deg2rad(bin_centers), distribution, width=width, color=colors, edgecolor="k", linewidth=0.5)
+            ax.bar(np.deg2rad(bin_centers), distribution, width=width, color=colors, edgecolor='k', linewidth=0.5)
             num = 10**(len(str(np.amax(distribution))) - 2)
             ax.set_rticks(np.floor(np.linspace(0, np.max(distribution), 3) / num) * num)
             ax.set_thetamin(vmin_)
             ax.set_thetamax(vmax_)
-            text = self.latex + " = " + "{:.2f}".format(meandata) + " $\pm$ " "{:.2f}".format(std)
-            if htype == "polar1":
-                ax.annotate(text, xy=(0.3, 0.95), xycoords="axes fraction", fontsize=14)
+            text = self.latex + ' = ' + '{:.2f}'.format(meandata) + ' $\pm$ ' '{:.2f}'.format(std)
+            if htype == 'polar1':
+                ax.annotate(text, xy=(0.3, 0.95), xycoords='axes fraction', fontsize=14)
             else:
-                ax.annotate(text, xy=(0.7, 0.95), xycoords="axes fraction", fontsize=14)
+                ax.annotate(text, xy=(0.7, 0.95), xycoords='axes fraction', fontsize=14)
 
 class ROI:
     def __init__(self) -> None:
@@ -387,78 +387,78 @@ class ROI:
 
 class Calibration:
 
-    dict_1pf = {"no distortions": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 0), "488 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 175), "561 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 120), "640 nm (no distortions)": ("Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0", 125), "488 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0", 0), "561 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0", 0), "640 nm (16/03/2020 - 12/04/2022)": ("Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0", 0), "488 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0", 0), "561 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0", 0), "640 nm (13/12/2019 - 15/03/2020)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0", 0), "488 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0", 0), "561 nm (before 13/12/2019)": ("Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0", 0), "640 nm (before 13/12/2019)": ("Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0", 0), "other": (None, 0)}
+    dict_1pf = {'no distortions': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 0), '488 nm (no distortions)': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 175), '561 nm (no distortions)': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 120), '640 nm (no distortions)': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 125), '488 nm (16/03/2020 - 12/04/2022)': ('Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0', 0), '561 nm (16/03/2020 - 12/04/2022)': ('Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0', 0), '640 nm (16/03/2020 - 12/04/2022)': ('Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0', 0), '488 nm (13/12/2019 - 15/03/2020)': ('Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0', 0), '561 nm (13/12/2019 - 15/03/2020)': ('Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0', 0), '640 nm (13/12/2019 - 15/03/2020)': ('Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0', 0), '488 nm (before 13/12/2019)': ('Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0', 0), '561 nm (before 13/12/2019)': ('Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0', 0), '640 nm (before 13/12/2019)': ('Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0', 0), 'other': (None, 0)}
 
-    folder_1pf = os.path.join(os.path.dirname(os.path.realpath(__file__)), "diskcones")
+    folder_1pf = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'diskcones')
 
-    dict_4polar = {"Calib_20221102": ("Calib_20221102", 0), "Calib_20221011": ("Calib_20221011", 0), "other": (None, 0)}
+    dict_4polar = {'Calib_20221102': ('Calib_20221102', 0), 'Calib_20221011': ('Calib_20221011', 0), 'other': (None, 0)}
 
-    folder_4polar = os.path.join(os.path.dirname(os.path.realpath(__file__)), "calibration")
+    folder_4polar = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'calibration')
 
     def __init__(self, method:str, label:str=None) -> None:
         if label is None:
-            if method == "1PF":
-                label = "no distortions"
-            elif method.startswith("4POLAR"):
-                label = "Calib_20221102"
-        if method == "1PF":
+            if method == '1PF':
+                label = 'no distortions'
+            elif method.startswith('4POLAR'):
+                label = 'Calib_20221102'
+        if method == '1PF':
             vars = Calibration.dict_1pf.get(label, (None, 0))
             folder = Calibration.folder_1pf
-        elif method.startswith("4POLAR"):
+        elif method.startswith('4POLAR'):
             vars = Calibration.dict_4polar.get(label, (None, 0))
             folder = Calibration.folder_4polar
-        if method in ["1PF", "4POLAR 2D", "4POLAR 3D"]:
-            if label == "other":
-                initialdir = self.stack.folder if hasattr(self, "stack") else "/"
-                file = pathlib.Path(fd.askopenfilename(title='Select file', initialdir=initialdir, filetypes=[("MAT-files", "*.mat")]))
+        if method in ['1PF', '4POLAR 2D', '4POLAR 3D']:
+            if label == 'other':
+                initialdir = self.stack.folder if hasattr(self, 'stack') else '/'
+                file = pathlib.Path(fd.askopenfilename(title='Select file', initialdir=initialdir, filetypes=[('MAT-files', '*.mat')]))
                 folder = str(file.parent)
                 vars = (str(file.stem), 0)
-            disk = loadmat(os.path.join(folder, vars[0] + ".mat"))
-            if method == "1PF" and vars[0].startswith("Disk"):
-                self.RhoPsi = np.moveaxis(np.stack((np.array(disk["RoTest"], dtype=np.float64), np.array(disk["PsiTest"], dtype=np.float64))), 0, -1)
-                self.xy = 2 * (np.linspace(-1, 1, int(disk["NbMapValues"]), dtype=np.float64),)
-            elif method.startswith("4POLAR") and vars[0].startswith("Calib"):
-                self.invKmat_2D = np.linalg.inv(np.array(disk["K2D"], dtype=np.float64))
-                self.invKmat_3D = np.linalg.inv(np.array(disk["K3D"], dtype=np.float64))
+            disk = loadmat(os.path.join(folder, vars[0] + '.mat'))
+            if method == '1PF' and vars[0].startswith('Disk'):
+                self.RhoPsi = np.moveaxis(np.stack((np.array(disk['RoTest'], dtype=np.float64), np.array(disk['PsiTest'], dtype=np.float64))), 0, -1)
+                self.xy = 2 * (np.linspace(-1, 1, int(disk['NbMapValues']), dtype=np.float64),)
+            elif method.startswith('4POLAR') and vars[0].startswith('Calib'):
+                self.invKmat_2D = np.linalg.inv(np.array(disk['K2D'], dtype=np.float64))
+                self.invKmat_3D = np.linalg.inv(np.array(disk['K3D'], dtype=np.float64))
             else:
-                showerror("Calibration data", "Incorrect disk cone or calibration data\n Download another file", icon="error")
-                vars = (" ", 0)
+                showerror('Calibration data', 'Incorrect disk cone or calibration data\n Download another file', icon='error')
+                vars = (' ', 0)
         else:
-            vars = (" ", 0)
+            vars = (' ', 0)
         self.name = vars[0]
         self.offset_default = vars[1]
 
     def display(self, colorblind:bool=False) -> None:
         fig, axs = plt.subplots(ncols=2, figsize=(13, 8))
-        fig.canvas.manager.set_window_title("Disk Cone: " + self.name)
-        cmap = m_colorwheel if colorblind else "hsv"
-        h = axs[0].imshow(self.RhoPsi[:, :, 0], cmap=cmap, interpolation="nearest", extent=[-1, 1, -1, 1], vmin=0, vmax=180)
-        axs[0].set_title("Rho Test")
+        fig.canvas.manager.set_window_title('Disk Cone: ' + self.name)
+        cmap = m_colorwheel if colorblind else 'hsv'
+        h = axs[0].imshow(self.RhoPsi[:, :, 0], cmap=cmap, interpolation='nearest', extent=[-1, 1, -1, 1], vmin=0, vmax=180)
+        axs[0].set_title('Rho Test')
         ax_divider = make_axes_locatable(axs[0])
-        cax = ax_divider.append_axes("right", size="7%", pad="2%")
+        cax = ax_divider.append_axes('right', size='7%', pad='2%')
         fig.colorbar(h, cax=cax)
-        cmap = "viridis" if colorblind else "jet"
-        h = axs[1].imshow(self.RhoPsi[:, :, 1], cmap=cmap, interpolation="nearest", extent=[-1, 1, -1, 1], vmin=0, vmax=180)
-        axs[1].set_title("Psi Test")
+        cmap = 'viridis' if colorblind else 'jet'
+        h = axs[1].imshow(self.RhoPsi[:, :, 1], cmap=cmap, interpolation='nearest', extent=[-1, 1, -1, 1], vmin=0, vmax=180)
+        axs[1].set_title('Psi Test')
         ax_divider = make_axes_locatable(axs[1])
-        cax = ax_divider.append_axes("right", size="7%", pad="2%")
+        cax = ax_divider.append_axes('right', size='7%', pad='2%')
         fig.colorbar(h, cax=cax)
         plt.subplots_adjust(wspace=0.4)
         for ax in axs:
-            ax.set_xlabel("$B_2$")
-            ax.set_ylabel("$A_2$")
+            ax.set_xlabel('$B_2$')
+            ax.set_ylabel('$A_2$')
 
     def list(self, method:str) -> str:
-        if method == "1PF":
+        if method == '1PF':
             return [key for key in Calibration.dict_1pf.keys()]
-        elif method.startswith("4POLAR"):
+        elif method.startswith('4POLAR'):
             return [key for key in Calibration.dict_4polar.keys()]
         else:
-            return " "
+            return ' '
     
 class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
 
-    folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icons")
+    folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'icons')
 
     def __init__(self, canvas, window=None, **kwargs) -> None:
         
@@ -476,8 +476,8 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
 
         self._buttons = {}
         for text, tooltip_text, image_file, callback in self.toolitems:
-            im = os.path.join(NToolbar2PyPOLAR.folder, image_file + ".png")
-            self._buttons[text] = button = self._Button(text=text, image_file=im, toggle=callback in ["zoom", "pan"], command=getattr(self, callback))
+            im = os.path.join(NToolbar2PyPOLAR.folder, image_file + '.png')
+            self._buttons[text] = button = self._Button(text=text, image_file=im, toggle=callback in ['zoom', 'pan'], command=getattr(self, callback))
             if tooltip_text is not None:
                 ToolTip(button, text=tooltip_text)
         self._label_font = CTk.CTkFont(size=12)
@@ -548,31 +548,31 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
             image_data = np.asarray(image).copy()
             black_mask = (image_data[..., :3] == 0).all(axis=-1)
             image_data[black_mask, :3] = hex_to_rgb(fg_color)
-            return Image.fromarray(image_data, mode="RGBA")
+            return Image.fromarray(image_data, mode='RGBA')
 
         with Image.open(button._image_file) as im:
             size_image = 26
-            im = im.convert("RGBA")
-            im = _recolor_icon(im, fg_color="#00000")
+            im = im.convert('RGBA')
+            im = _recolor_icon(im, fg_color='#00000')
             image = ImageTk.PhotoImage(im.resize((size_image, size_image)), master=self)
             im = _recolor_icon(im, fg_color=orange[0])
             image_alt = ImageTk.PhotoImage(im.resize((size_image, size_image)), master=self)
             button._ntimage = image
             button._ntimage_alt = image_alt
 
-        image_kwargs = {"image": image}
-        if (isinstance(button, tk.Checkbutton) and button.cget("selectcolor") != ""):
-            image_kwargs["selectimage"] = image_alt
+        image_kwargs = {'image': image}
+        if (isinstance(button, tk.Checkbutton) and button.cget('selectcolor') != ''):
+            image_kwargs['selectimage'] = image_alt
         
         button.configure(**image_kwargs)
         
     def _Button(self, text:str, image_file:str, toggle:bool, command:Callable) -> Union[tk.Button, tk.Checkbutton]:
         size_button = 30
         if not toggle:
-            b = tk.Button(master=self, text=text, command=command, relief="flat", overrelief="flat", highlightthickness=0, height=size_button, width=size_button)
+            b = tk.Button(master=self, text=text, command=command, relief='flat', overrelief='flat', highlightthickness=0, height=size_button, width=size_button)
         else:
             var = tk.IntVar(master=self)
-            b = tk.Checkbutton(master=self, text=text, command=command, indicatoron=False, variable=var, offrelief="flat", overrelief="flat", height=size_button+2, width=size_button+2)
+            b = tk.Checkbutton(master=self, text=text, command=command, indicatoron=False, variable=var, offrelief='flat', overrelief='flat', height=size_button+2, width=size_button+2)
             b.var = var
         b._image_file = image_file
         if image_file is not None:
@@ -593,28 +593,28 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         initialdir = os.path.expanduser(mpl.rcParams['savefig.directory'])
         initialfile = self.canvas.get_default_filename()
         fname = fd.asksaveasfilename(master=self.canvas.get_tk_widget().master, title=f"Save image from '{self.window.master.master.get()}' tab", filetypes=tk_filetypes, defaultextension=defaultextension, initialdir=initialdir, initialfile=initialfile)
-        if fname in ["", ()]:
+        if fname in ['', ()]:
             return
-        if initialdir != "":
+        if initialdir != '':
             mpl.rcParams['savefig.directory'] = (os.path.dirname(str(fname)))
         try:
             self.canvas.figure.savefig(fname)
         except Exception as e:
-            showerror("Error saving file", str(e))
+            showerror('Error saving file', str(e))
 
     def set_history_buttons(self) -> None:
         state_map = {True: tk.NORMAL, False: tk.DISABLED}
         can_back = self._nav_stack._pos > 0
         can_forward = self._nav_stack._pos < len(self._nav_stack._elements) - 1
-        if "Back" in self._buttons:
+        if 'Back' in self._buttons:
             self._buttons['Back']['state'] = state_map[can_back]
-        if "Forward" in self._buttons:
+        if 'Forward' in self._buttons:
             self._buttons['Forward']['state'] = state_map[can_forward]
 
     def _mouse_event_to_message(self, event:MouseEvent) -> str:
         if event.inaxes and event.inaxes.get_navigate():
             try:
-                s = f"(x={int(event.xdata)}, y={int(event.ydata)})"
+                s = f'(x={int(event.xdata)}, y={int(event.ydata)})'
             except (ValueError, OverflowError):
                 pass
             else:
@@ -624,9 +624,9 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
                     if a is not event.inaxes.patch:
                         data = a.get_cursor_data(event)
                         if data is not None:
-                            s += f"\nI={int(np.sum(data))}"
+                            s += f'\nI={int(np.sum(data))}'
                 return s
-        return ""
+        return ''
     
 class ToolTip:
     def __init__(self, widget, *, pad=(5, 3, 5, 3), text:str='widget info', waittime=300, wraplength=250):
@@ -634,8 +634,8 @@ class ToolTip:
         self.wraplength = wraplength
         self.widget = widget
         self.text = text
-        self.widget.bind("<Enter>", self.onEnter)
-        self.widget.bind("<Leave>", self.onLeave)
+        self.widget.bind('<Enter>', self.onEnter)
+        self.widget.bind('<Leave>', self.onLeave)
         self.pad = pad
         self.id = None
         self.tw = None
@@ -685,7 +685,7 @@ class ToolTip:
         label.grid(padx=(pad[0], pad[2]), pady=(pad[1], pad[3]), sticky=tk.NSEW)
         win.grid()
         x, y = tip_pos_calculator(widget, label)
-        self.tw.wm_geometry(f"+{x}+{y}")
+        self.tw.wm_geometry(f'+{x}+{y}')
 
     def hide(self):
         tw = self.tw
@@ -694,16 +694,16 @@ class ToolTip:
         self.tw = None
 
 class ROIManager(CTk.CTkToplevel):
-    labels = ["indx", "name", "group"]
+    labels = ['indx', 'name', 'group']
     widths = [40, 250, 90]
-    button_labels = ["Commit", "Save", "Load", "Delete", "Delete All"]
-    tooltips = [" commit the changes made to the labels of ROIs (name, group and select)", " save information on ROIs as a .pyroi file", " load ROIs from a .pyroi file", " permanently deletes ROIs selected in delete column", " permamently deletes all ROIs"]
-    manager_size = lambda w, h: f"{w+40}x{h+84}"
+    button_labels = ['Commit', 'Save', 'Load', 'Delete', 'Delete All']
+    tooltips = [' commit the changes made to the labels of ROIs (name, group and select)', ' save information on ROIs as a .pyroi file', ' load ROIs from a .pyroi file', ' permanently deletes ROIs selected in delete column', ' permamently deletes all ROIs']
+    manager_size = lambda w, h: f'{w+40}x{h+84}'
     cmax = len(labels)
 
     def __init__(self, rois:list=[]) -> None:
         super().__init__()
-        self.title("ROI Manager")
+        self.title('ROI Manager')
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
@@ -712,75 +712,75 @@ class ROIManager(CTk.CTkToplevel):
         widths = ROIManager.widths + [70, 70]
         self.sheet_width = sum(widths) + 2
 
-        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f"+1200+200")
+        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+1200+200')
 
-        if sys.platform == "darwin":
-            font = ("Arial Rounded MT Bold", 14, "normal")
-            header_font = ("Arial Rounded MT Bold", 16, "bold")
-        elif sys.platform == "win32":
-            font = ("Segoe UI", 14, "normal")
-            header_font = ("Segoe UI", 16, "bold")
+        if sys.platform == 'darwin':
+            font = ('Arial Rounded MT Bold', 14, 'normal')
+            header_font = ('Arial Rounded MT Bold', 16, 'bold')
+        elif sys.platform == 'win32':
+            font = ('Segoe UI', 14, 'normal')
+            header_font = ('Segoe UI', 16, 'bold')
 
-        labels_ = ROIManager.labels + ["select", "delete"]
-        labels_[0] = "ROI"
+        labels_ = ROIManager.labels + ['select', 'delete']
+        labels_[0] = 'ROI'
         data = [[roi[label] for label in ROIManager.labels] for roi in rois]
-        self.sheet = tksheet.Sheet(self, data=data, headers=labels_, font=font, header_font=header_font, align="w", show_row_index=False, width=self.sheet_width, height=self.sheet_height(cell_height, rois), frame_bg=text_color, table_bg=gray[1], top_left_bg=gray[1], header_hidden_columns_expander_bg=gray[1], header_fg=text_color, header_bg=orange[0], header_grid_fg=gray[1], table_grid_fg=text_color, header_selected_cells_bg=orange[1], table_selected_cells_border_fg=orange[0], show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, enable_edit_cell_auto_resize=False, auto_resize_default_row_index=False, show_default_header_for_empty=False, empty_horizontal=0, empty_vertical=0, total_columns=ROIManager.cmax+2)
-        self.sheet.grid(row=0, column=0, sticky="nswe", padx=20, pady=(20, 0))
+        self.sheet = tksheet.Sheet(self, data=data, headers=labels_, font=font, header_font=header_font, align='w', show_row_index=False, width=self.sheet_width, height=self.sheet_height(cell_height, rois), frame_bg=text_color, table_bg=gray[1], top_left_bg=gray[1], header_hidden_columns_expander_bg=gray[1], header_fg=text_color, header_bg=orange[0], header_grid_fg=gray[1], table_grid_fg=text_color, header_selected_cells_bg=orange[1], table_selected_cells_border_fg=orange[0], show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, enable_edit_cell_auto_resize=False, auto_resize_default_row_index=False, show_default_header_for_empty=False, empty_horizontal=0, empty_vertical=0, total_columns=ROIManager.cmax+2)
+        self.sheet.grid(row=0, column=0, sticky='nswe', padx=20, pady=(20, 0))
         bottom_frame = CTk.CTkFrame(self)
-        bottom_frame.grid(row=1, column=0, sticky="nswe", padx=20, pady=(0, 20))
+        bottom_frame.grid(row=1, column=0, sticky='nswe', padx=20, pady=(0, 20))
         self.buttons = []
         for _, (label, tooltip) in enumerate(zip(ROIManager.button_labels, ROIManager.tooltips)):
-            button = Button(bottom_frame, text=label, anchor="center", width=80)
+            button = Button(bottom_frame, text=label, anchor='center', width=80)
             ToolTip(button, text=tooltip)
             self.buttons += [button]
-            button.grid(row=0, column=_, padx=10, pady=10, sticky="nswe")
+            button.grid(row=0, column=_, padx=10, pady=10, sticky='nswe')
         self.buttons[0].configure(width=80, fg_color=green[0], hover_color=green[1])
         self.buttons[-1].configure(fg_color=red[0], hover_color=red[1])
         self.buttons[-2].configure(fg_color=red[0], hover_color=red[1])
         self.add_elements(ROIManager.cmax)
         self.sheet.enable_bindings()
-        self.sheet.disable_bindings(["rc_insert_column", "rc_delete_column", "rc_insert_row", "rc_delete_row", "hide_columns",  "row_height_resize","row_width_resize", "column_height_resize", "column_width_resize", "edit_header", "arrowkeys"])
+        self.sheet.disable_bindings(['rc_insert_column', 'rc_delete_column', 'rc_insert_row', 'rc_delete_row', 'hide_columns',  'row_height_resize','row_width_resize', 'column_height_resize', 'column_width_resize', 'edit_header', 'arrowkeys'])
         self.sheet.default_row_height(cell_height)
         for _, width in enumerate(widths):
             self.sheet.column_width(column=_, width=width)
 
     def add_elements(self, cmax:int) -> None:
-        self.sheet.align_columns(columns=[0, cmax-1], align="center")
-        self.sheet.create_checkbox(r="all", c=cmax, checked=True, state="normal", redraw=False, check_function=None, text="")
-        self.sheet.create_checkbox(r="all", c=cmax+1, checked=False, state="normal", redraw=False, check_function=None, text="")
+        self.sheet.align_columns(columns=[0, cmax-1], align='center')
+        self.sheet.create_checkbox(r='all', c=cmax, checked=True, state='normal', redraw=False, check_function=None, text='')
+        self.sheet.create_checkbox(r='all', c=cmax+1, checked=False, state='normal', redraw=False, check_function=None, text='')
         
     def delete(self, rois:list) -> None:
-        vec = [_ for _, x in enumerate(self.sheet.get_column_data(c=-1)) if x == "True"]
+        vec = [_ for _, x in enumerate(self.sheet.get_column_data(c=-1)) if x == 'True']
         while len(vec) >= 1:
             self.sheet.delete_row(idx=vec[0])
             del rois[vec[0]]
             for _, roi in enumerate(rois):
-                roi["indx"] = _ + 1
-            self.sheet.set_column_data(0, values=tuple(roi["indx"] for roi in rois), add_rows=False)
-            vec = [_ for _, x in enumerate(self.sheet.get_column_data(c=-1)) if x == "True"]
+                roi['indx'] = _ + 1
+            self.sheet.set_column_data(0, values=tuple(roi['indx'] for roi in rois), add_rows=False)
+            vec = [_ for _, x in enumerate(self.sheet.get_column_data(c=-1)) if x == 'True']
         self.sheet.set_options(height=self.sheet_height(20, rois))
         x, y = self.winfo_x(), self.winfo_y()
-        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f"+{x}+{y}")
+        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+{x}+{y}')
     
     def delete_all(self) -> None:
         for _ in range(self.sheet.get_total_rows()):
             self.sheet.delete_row()
         self.sheet.set_options(height=self.sheet_height(20, []))
         x, y = self.winfo_x(), self.winfo_y()
-        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, [])) + f"+{x}+{y}")
+        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, [])) + f'+{x}+{y}')
 
     def get_buttons(self) -> list:
         return self.buttons
 
-    def load(self, initialdir:str="/") -> List[dict]:
+    def load(self, initialdir:str='/') -> List[dict]:
         self.delete_all()
-        filetypes = [("PyROI files", "*.pyroi")]
-        filename = fd.askopenfilename(title="Select a PyROI file", initialdir=initialdir, filetypes=filetypes)
-        with open(filename, "rb") as f:
+        filetypes = [('PyROI files', '*.pyroi')]
+        filename = fd.askopenfilename(title='Select a PyROI file', initialdir=initialdir, filetypes=filetypes)
+        with open(filename, 'rb') as f:
             rois = pickle.load(f)
         self.sheet.set_options(height=self.sheet_height(20, rois))
         x, y = self.winfo_x(), self.winfo_y()
-        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f"+{x}+{y}")
+        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+{x}+{y}')
         self.sheet.insert_rows(rows=len(rois))
         self.add_elements(len(ROIManager.labels))
         self.rois2sheet(rois)
@@ -791,16 +791,16 @@ class ROIManager(CTk.CTkToplevel):
             for jt, label in enumerate(self.labels):
                 self.sheet.set_cell_data(it, jt, value=roi[label])
 
-    def save(self, rois:List[dict]=[], filename:str="ROIs") -> None:
+    def save(self, rois:List[dict]=[], filename:str='ROIs') -> None:
         if any(rois):
             rois = self.update_rois(rois)
-            with open(filename + ".pyroi", "wb") as f:
+            with open(filename + '.pyroi', 'wb') as f:
                 pickle.dump(rois, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     def update_manager(self, rois:List[dict]) -> None:
         self.sheet.set_options(height=self.sheet_height(20, rois))
         x, y = self.winfo_x(), self.winfo_y()
-        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f"+{x}+{y}")
+        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+{x}+{y}')
         roi = rois[-1]
         self.sheet.insert_row([roi[label] for label in ROIManager.labels])
         self.sheet.create_checkbox(c=ROIManager.cmax, r=len(rois)-1, checked = True)
@@ -810,9 +810,9 @@ class ROIManager(CTk.CTkToplevel):
         if any(rois):
             data = self.sheet.get_sheet_data()
             for _, roi in enumerate(rois):
-                roi["name"] = data[_][1]
-                roi["group"] = data[_][2]
-                roi["select"] = data[_][-2]
+                roi['name'] = data[_][1]
+                roi['group'] = data[_][2]
+                roi['select'] = data[_][-2]
             return rois
         return []
     
@@ -822,7 +822,7 @@ class TabView(CTk.CTkTabview):
 
         self.configure(width=tab_width, height=tab_height, segmented_button_selected_color=orange[0], segmented_button_unselected_color=gray[1], segmented_button_selected_hover_color=orange[1], text_color=text_color, segmented_button_fg_color=gray[0], fg_color=gray[1])
         self.pack(fill=tk.BOTH, expand=True)
-        tabs = ["Intensity", "Thresholding/Mask", "Options", "Advanced", "About"]
+        tabs = ['Intensity', 'Thresholding/Mask', 'Options', 'Advanced', 'About']
         self.frame = {}
         for tab in tabs:
             self.add(tab)
