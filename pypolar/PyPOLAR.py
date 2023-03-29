@@ -64,7 +64,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
     __version__ = '2.4.4'
 
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 20, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023'}
 
     try:
         __version_date__ = dict_versions[__version__]
@@ -1634,7 +1634,7 @@ class Polarimetry(CTk.CTk):
             fig.canvas.manager.set_window_title('Intensity: ' + datastack.name)
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
-            datastack.plot_intensity(contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
+            p = datastack.plot_intensity(contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             self.add_patches(datastack, ax, fig.canvas)
             if self.edge_detection_switch.get() == 'on':
                 for contour in self.edge_contours:
@@ -1648,10 +1648,12 @@ class Polarimetry(CTk.CTk):
                         contour = np.asarray([x0 + (contour[:, 0] - x0) * cosd + (contour[:, 1] - y0) * sind, y0 - (contour[:, 0] - x0) * sind + (contour[:, 1] - y0) * cosd])
                         contour = np.swapaxes(contour, 0, 1)
                     p = ax.scatter(contour[:, 0], contour[:, 1], c=angles, cmap=cmap, s=4, vmin=0, vmax=180)
-                if self.colorbar_checkbox.get():
-                    ax_divider = make_axes_locatable(ax)
-                    cax = ax_divider.append_axes('right', size='7%', pad='2%')
-                    fig.colorbar(p, cax=cax)
+            if self.colorbar_checkbox.get():
+                ax_divider = make_axes_locatable(ax)
+                cax = ax_divider.append_axes('right', size='7%', pad='2%')
+                fig.colorbar(p, cax=cax)
+                if self.edge_detection_switch.get() == 'off':
+                    fig.axes[1].remove()
             if self.save_table[3].get():
                 suffix = '_Intensity'
                 plt.savefig(datastack.filename + suffix + self.figure_extension.get(), bbox_inches='tight')

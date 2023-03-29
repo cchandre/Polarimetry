@@ -289,13 +289,13 @@ class DataStack:
         self.vars = []
         self.added_vars = []
 
-    def plot_intensity(self, contrast:float, rotation:int=0) -> None:
+    def plot_intensity(self, contrast:float, rotation:int=0):
         ax = plt.gca()
         vmin, vmax = np.amin(self.intensity), np.amax(self.intensity)
         field = adjust(self.intensity, contrast, vmin, vmax)
         if rotation:
             field = rotate(field, rotation, reshape=False, mode='constant', cval=vmin)
-        ax.imshow(field, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
+        return ax.imshow(field, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
 
 class Variable:
     def __init__(self, name:str='', values:np.ndarray=None, datastack:DataStack=None) -> None:
