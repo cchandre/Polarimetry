@@ -773,8 +773,8 @@ class ROIManager(CTk.CTkToplevel):
     def load(self, initialdir:Path=Path.home()) -> List[dict]:
         self.delete_all()
         filetypes = [('PyROI files', '*.pyroi')]
-        filename = fd.askopenfilename(title='Select a PyROI file', initialdir=initialdir, filetypes=filetypes)
-        with open(filename, 'rb') as f:
+        file = fd.askopenfilename(title='Select a PyROI file', initialdir=initialdir, filetypes=filetypes)
+        with open(file, 'rb') as f:
             rois = pickle.load(f)
         self.sheet.set_options(height=self.sheet_height(20, rois))
         x, y = self.winfo_x(), self.winfo_y()

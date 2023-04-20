@@ -468,10 +468,10 @@ class Polarimetry(CTk.CTk):
         window.withdraw()
         filetypes = [('PNG files', '*.png')]
         initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
-        filename = fd.askopenfilename(title='Select a mask file', initialdir=initialdir, filetypes=filetypes)
+        file = fd.askopenfilename(title='Select a mask file', initialdir=initialdir, filetypes=filetypes)
         self.edge_method = 'download'
         self.edge_detection_tab()
-        self.edge_mask = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
+        self.edge_mask = cv2.imread(file, cv2.IMREAD_GRAYSCALE)
         self.compute_edges()
 
     def compute_edge_mask(self, window:CTk.CTkToplevel) -> None:
