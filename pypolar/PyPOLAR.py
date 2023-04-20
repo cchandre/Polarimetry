@@ -1698,8 +1698,9 @@ class Polarimetry(CTk.CTk):
             else:
                 file = self.stack.file.with_name(self.stack.name + suffix)
                 title = self.stack.name
+            file = file.with_suffix('.xlsx')
             if file.exists():
-                workbook = openpyxl.load_workbook(str(file.with_suffix('.xlsx')))
+                workbook = openpyxl.load_workbook(file)
             else:
                 workbook = openpyxl.Workbook()
             worksheet = workbook.active
@@ -1713,9 +1714,8 @@ class Polarimetry(CTk.CTk):
                         worksheet.append(self.return_vecexcel(datastack, roi_map, roi=roi)[0])
             else:
                 worksheet.append(self.return_vecexcel(datastack, roi_map, roi=[])[0])
-            workbook.save(str(file))
+            workbook.save(file)
         if self.extension_table[3].get():
-            file = self.stack.file.with_suffix('.gif')
             images = []
             vmin, vmax = np.amin(self.stack.values), np.amax(self.stack.values)
             for _ in range(self.stack.nangle):
@@ -1727,7 +1727,7 @@ class Polarimetry(CTk.CTk):
                     im = im[int(self.xylim[2].get()):int(self.xylim[3].get()), int(self.xylim[0].get()):int(self.xylim[1].get())]
                 im = (255 * im / vmax).astype(np.uint8)
                 images.append(Image.fromarray(im, mode='P'))
-            images[0].save(file, save_all=True, append_images=images[1:], optimize=False, duration=200, loop=0)
+            images[0].save(self.stack.file.with_suffix('.gif'), save_all=True, append_images=images[1:], optimize=False, duration=200, loop=0)
 
     def return_vecexcel(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> Tuple[List[float], List[str]]:
         mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
