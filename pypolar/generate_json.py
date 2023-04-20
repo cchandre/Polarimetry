@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 
 orange = ('#FF7F4F', '#ffb295')
@@ -12,9 +11,9 @@ font_macosx = 'Arial Rounded MT Bold'
 font_windows = 'Segoe UI'
 font_linux = 'Ubuntu'
 
-filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'polarimetry.json')
+file = Path(__file__).parent / 'polarimetry.json'
 
-if not Path(filename).is_file():
+if not file.exists():
   data = {
     'CTk': {
       'fg_color': gray[0]
@@ -142,5 +141,5 @@ if not Path(filename).is_file():
     }
   }
 
-  with open(filename, 'w') as write_file:
-      json.dump(data, write_file)
+  with file.open('w') as f:
+      json.dump(data, f)

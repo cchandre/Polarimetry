@@ -1,11 +1,9 @@
 import tkinter as tk
 from tkinter import filedialog as fd
 import customtkinter as CTk
-import os
 import sys
-from bz2 import BZ2File
-import pickle
-import _pickle as cPickle
+from pathlib import Path
+import joblib
 import copy
 import webbrowser
 import numpy as np
@@ -45,7 +43,7 @@ except ImportError:
 
 mpl.use('tkagg')
 
-CTk.set_default_color_theme(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'polarimetry.json'))
+CTk.set_default_color_theme(Path(__file__).parent / 'polarimetry.json')
 CTk.set_appearance_mode('dark')
 
 plt.rcParams['font.size'] = 16
@@ -62,14 +60,10 @@ plt.rcParams['savefig.dpi'] = 100
 plt.ion()
 
 class Polarimetry(CTk.CTk):
-    __version__ = '2.4.4'
 
+    __version__ = '2.4.5'
     dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023'}
-
-    try:
-        __version_date__ = dict_versions[__version__]
-    except:
-        __version_date__ = date.today().strftime('%B %d, %Y')    
+    __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     left_frame_width, right_frame_width = 180, 850
     height, width = 800, left_frame_width + right_frame_width
@@ -84,8 +78,8 @@ class Polarimetry(CTk.CTk):
         super().__init__()
 
 ## MAIN
-        self.base_dir = os.path.dirname(os.path.realpath(__file__))
-        image_path = os.path.join(self.base_dir, 'icons')
+        base_dir = Path(__file__).parent
+        image_path = base_dir / 'icons'
 
         delx, dely = self.winfo_screenwidth() // 10, self.winfo_screenheight() // 10
         dpi = self.winfo_fpixels('1i')
@@ -99,13 +93,9 @@ class Polarimetry(CTk.CTk):
         self.configure(fg_color=gray[0])
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
-        self.icons = {}
-        for file in os.listdir(image_path):
-            if file.endswith('.png'):
-                im = Image.open(os.path.join(image_path, file))
-                self.icons.update({os.path.splitext(file)[0]: CTk.CTkImage(dark_image=im, size=(30, 30))})
+        self.icons = {file.stem: CTk.CTkImage(dark_image=Image.open(file), size=(30, 30)) for file in image_path.glob('*.png')}
         if sys.platform == 'win32':
-            self.iconbitmap(os.path.join(self.base_dir, 'main_icon.ico'))
+            self.iconbitmap(str(base_dir / 'main_icon.ico'))
             import winreg
             EXTS = ['.pyroi', '.pyreg', '.pykl']
             TYPES = ['PyPOLAR ROI', 'PyPOLAR Registration', 'PyPOLAR Pickle']
@@ -115,7 +105,7 @@ class Polarimetry(CTk.CTk):
                     key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, EXT)
                     winreg.SetValue(key, None, winreg.REG_SZ, TYPE)
                     iconkey = winreg.CreateKey(key, 'DefaultIcon')
-                    winreg.SetValue(iconkey, None, winreg.REG_SZ, os.path.join(image_path, ICON))
+                    winreg.SetValue(iconkey, None, winreg.REG_SZ, str(image_path / ICON))
                     winreg.CloseKey(iconkey)
                     winreg.CloseKey(key)
             except WindowsError:
@@ -151,7 +141,7 @@ class Polarimetry(CTk.CTk):
         self.intensity_axis = intensity_fig.add_axes([0, 0, 1, 1])
         self.intensity_axis.set_axis_off()
         self.intensity_canvas = FigureCanvasTkAgg(intensity_fig, master=self.intensity_frame)
-        background = plt.imread(os.path.join(image_path, 'blur_circular-512.png'))
+        background = plt.imread(image_path / 'blur_circular-512.png')
         self.intensity_axis.imshow(background, cmap='gray', interpolation='bicubic', alpha=0.1)
         self.intensity_canvas.draw()
 
@@ -477,7 +467,7 @@ class Polarimetry(CTk.CTk):
     def download_edge_mask(self, window:CTk.CTkToplevel) -> None:
         window.withdraw()
         filetypes = [('PNG files', '*.png')]
-        initialdir = self.stack.folder if hasattr(self, 'stack') else '/'
+        initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
         filename = fd.askopenfilename(title='Select a mask file', initialdir=initialdir, filetypes=filetypes)
         self.edge_method = 'download'
         self.edge_detection_tab()
@@ -624,7 +614,7 @@ class Polarimetry(CTk.CTk):
             self.manager.bind('<Command-w>', lambda:on_closing(self.manager))
             buttons = self.manager.get_buttons()
             buttons[0].configure(command=lambda:commit(self.manager))
-            buttons[1].configure(command=lambda:self.manager.save(self.datastack.rois, self.datastack.filename))
+            buttons[1].configure(command=lambda:self.manager.save(self.datastack.rois, self.datastack.file))
             buttons[2].configure(command=lambda:load(self.manager))
             buttons[-1].configure(command=lambda:delete_all(self.manager))
             buttons[-2].configure(command=lambda:delete(self.manager))
@@ -681,8 +671,8 @@ class Polarimetry(CTk.CTk):
         else:
             self.options_dropdown.get_icon().configure(image=self.icons['build'])
         if option.startswith('Mask'):
-            initialdir = self.stack.folder if hasattr(self, 'stack') else '/'
-            self.maskfolder = fd.askdirectory(title='Select the directory containing masks', initialdir=initialdir)
+            initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
+            self.maskfolder = Path(fd.askdirectory(title='Select the directory containing masks', initialdir=initialdir))
             if hasattr(self, 'datastack'):
                 self.mask = self.get_mask(self.datastack)
                 self.ontab_thrsh()
@@ -701,25 +691,22 @@ class Polarimetry(CTk.CTk):
             self.manager_window.destroy()
         if value == 'Open file':
             filetypes = [('Tiff files', '*.tiff'), ('Tiff files', '*.tif')]
-            initialdir = self.stack.folder if hasattr(self, 'stack') else '/'
-            filename = fd.askopenfilename(title='Select a file', initialdir=initialdir, filetypes=filetypes)
-            if filename:
+            initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
+            file = Path(fd.askopenfilename(title='Select a file', initialdir=initialdir, filetypes=filetypes))
+            self.openfile_dropdown.get_icon().configure(image=self.icons['photo_fill'])
+            if file.suffix in ['.tiff', '.tif']:
                 self.options_dropdown.get_icon().configure(image=self.icons['build'])
-                self.openfile_dropdown.get_icon().configure(image=self.icons['photo_fill'])
                 self.options_dropdown.set_state('normal')
                 self.options_dropdown.set_values(['Thresholding (manual)', 'Mask (manual)'])
                 self.option.set('Thresholding (manual)')
                 if hasattr(self, 'mask'):
                     delattr(self, 'mask')
-                self.open_file(filename)
+                self.open_file(file)
         elif value == 'Open folder': 
-            initialdir = self.stack.folder if hasattr(self, 'stack') else '/'
-            folder = fd.askdirectory(title='Select a directory', initialdir=initialdir)
-            if folder:
-                self.openfile_dropdown.get_icon().configure(image=self.icons['folder_open'])
-                for filename in os.listdir(folder):
-                    if filename.endswith(('.tif', '.tiff')):
-                        self.filelist += [os.path.join(folder, filename)]
+            initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
+            folder = Path(fd.askdirectory(title='Select a directory', initialdir=initialdir))
+            self.openfile_dropdown.get_icon().configure(image=self.icons['folder_open'])
+            self.filelist = [file for file in sorted(folder.glob('*.tif*'))]
             self.indxlist = 0
             if any(self.filelist):
                 self.open_file(self.filelist[0])
@@ -729,16 +716,16 @@ class Polarimetry(CTk.CTk):
             else:
                 ShowInfo(message=' The folder does not contain TIFF or TIF files', image=self.icons['download_folder'], button_labels=['OK'], geometry=(340, 140))
         elif value == 'Previous analysis':
-            initialdir = self.stack.folder if hasattr(self, 'stack') else '/'
-            filename = fd.askopenfilename(title='Download a previous polarimetry analysis', initialdir=initialdir, filetypes=[('PyPOLAR pickle files', '*.pykl')])
-            if filename:
+            initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
+            file = Path(fd.askopenfilename(title='Download a previous polarimetry analysis', initialdir=initialdir, filetypes=[('PyPOLAR pickle files', '*.pykl')]))
+            self.openfile_dropdown.get_icon().configure(image=self.icons['analytics'])
+            if file.suffix == '.pykl':
                 window = ShowInfo(message=' Downloading and decompressing data...', image=self.icons['download'], geometry=(350, 80))
                 window.update()
-                with BZ2File(filename, 'rb') as f:
+                with file.open('rb') as f:
                     if hasattr(self, 'stack'):
                         delattr(self, 'stack')
-                    self.openfile_dropdown.get_icon().configure(image=self.icons['analytics'])
-                    self.datastack = cPickle.load(f)
+                    self.datastack = joblib.load(f)
                     self.method.set(self.datastack.method)
                     self.define_variable_table(self.datastack.method)
                     self.options_dropdown.set_state('disabled')
@@ -760,7 +747,7 @@ class Polarimetry(CTk.CTk):
         if len(plt.get_fignums()) and hasattr(self, 'datastack') and (not hasattr(self, 'crop_window')):
             self.crop_window = CTk.CTkToplevel(self)
             self.crop_window.title(f'Crop figures for {self.datastack.name}')
-            self.crop_window.geometry(geometry_info((300, 230)))
+            self.crop_window.geometry(geometry_info((340, 230)))
             self.crop_window.protocol('WM_DELETE_WINDOW', self.crop_on_closing)
             self.crop_window.bind('<Command-q>', lambda:self.crop_on_closing)
             self.crop_window.bind('<Command-w>', self.crop_on_closing)
@@ -773,20 +760,20 @@ class Polarimetry(CTk.CTk):
             labels = [u'\u2B62 xlim', u'\u2B63 ylim']
             positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
             for _, label in enumerate(labels):
-                Label(master=self.crop_window, text=label).grid(row=_+1, column=0, padx=(40, 0), pady=0)
+                Label(master=self.crop_window, text=label).grid(row=_+1, column=0, padx=(20, 0), pady=0)
             for var, position in zip(self.xylim, positions):
-                Entry(master=self.crop_window, textvariable=var, row=position[0], column=position[1], fg_color=gray[1])
+                Entry(master=self.crop_window, textvariable=var, row=position[0], column=position[1])
             banner = CTk.CTkFrame(self.crop_window)
-            banner.grid(row=3, column=0, columnspan=3)
-            Button(banner, text='Crop', anchor='center', command=lambda:self.crop_figures(self.crop_window), width=80, height=button_size[1], tooltip=' crop figures using the chosen axis limits').grid(row=0, column=0, padx=10, pady=20)
+            banner.grid(row=3, column=0, columnspan=3, padx=20)
+            Button(banner, text='Crop', anchor='center', command=self.crop_figures, width=80, height=button_size[1], tooltip=' crop figures using the chosen axis limits').grid(row=0, column=0, padx=10, pady=20)
             Button(banner, text='Get', anchor='center', command=self.get_axes, width=80, height=button_size[1], tooltip=' get the axis limits of the active figure').grid(row=0, column=1, padx=10, pady=20)
-            Button(banner, text='Reset', anchor='center', command=lambda:self.reset_figures(self.crop_window), width=80, height=button_size[1]).grid(row=0, column=2, padx=10, pady=20)
+            Button(banner, text='Reset', anchor='center', command=self.reset_figures, width=80, height=button_size[1]).grid(row=0, column=2, padx=10, pady=20)
 
     def crop_on_closing(self):
         self.crop_window.destroy()
         delattr(self, 'crop_window')
 
-    def crop_figures(self, window:CTk.CTkToplevel) -> None:
+    def crop_figures(self) -> None:
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
@@ -805,11 +792,11 @@ class Polarimetry(CTk.CTk):
         else:
             ShowInfo(message=' Select an active figure of the type\n Composite, Sticks or Intensity', image=self.icons['crop'], button_labels=['OK'])
 
-    def reset_figures(self, window:CTk.CTkToplevel) -> None:
+    def reset_figures(self) -> None:
         vals = [1, self.datastack.width, 1, self.datastack.height]
         for _, val in enumerate(vals):
             self.xylim[_].set(val)
-        self.crop_figures(window)
+        self.crop_figures()
 
     def clear_patches(self, ax:plt.Axes, canvas:FigureCanvasTkAgg) -> None:
         if ax.patches:
@@ -840,7 +827,7 @@ class Polarimetry(CTk.CTk):
             array = (255 * mask).astype(np.uint8)
         if np.any(array):
             data = Image.fromarray(array)
-            data.save(self.datastack.filename + '.png')
+            data.save(self.datastack.file.with_suffix('.png'))
         window.withdraw()
 
     def change_colormap(self) -> None:
@@ -1069,13 +1056,13 @@ class Polarimetry(CTk.CTk):
     def perform_registration(self, window:CTk.CTkToplevel) -> None:
         window.withdraw()
         npix = 5
-        initialdir = self.stack.folder if hasattr(self, 'stack') else '/'
-        filename = fd.askopenfilename(title='Select a beads file', initialdir=initialdir, filetypes=[('TIFF files', '*.tiff'), ('TIF files', '*.tif')])
-        beadstack = self.define_stack(filename)
+        initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
+        file = Path(fd.askopenfilename(title='Select a beads file', initialdir=initialdir, filetypes=[('TIFF files', '*.tiff'), ('TIF files', '*.tif')]))
+        beadstack = self.define_stack(file)
         self.filename_label.write('')
         dark = beadstack.compute_dark()
         intensity = np.sum((beadstack.values - dark) * (beadstack.values >= dark), axis=0)
-        whitelight = cv2.imread(os.path.join(beadstack.folder, 'Whitelight.tif'), cv2.IMREAD_GRAYSCALE)
+        whitelight = cv2.imread(str(beadstack.folder.joinpath('Whitelight.tif')), cv2.IMREAD_GRAYSCALE)
         whitelight = cv2.threshold(whitelight, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
         contours = cv2.findContours(whitelight, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
         filter = np.asarray([len(contour) >= 200 for contour in contours])
@@ -1124,16 +1111,16 @@ class Polarimetry(CTk.CTk):
         window = ShowInfo(message=' Are you okay with this registration?', button_labels=['Yes', u'Yes \u0026 Save', 'No'], image=self.icons['blur_circular'], geometry=(380, 150))
         buttons = window.get_buttons()
         buttons[0].configure(command=lambda:self.yes_registration_callback(window, fig))
-        buttons[1].configure(command=lambda:self.yes_save_registration_callback(window, fig, filename))
+        buttons[1].configure(command=lambda:self.yes_save_registration_callback(window, fig, file))
         buttons[2].configure(command=lambda:self.no_registration_callback(window, fig))
 
     def yes_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure) -> None:
         plt.close(fig)
         window.withdraw()
 
-    def yes_save_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure, filename:str) -> None:
-        with open(os.path.splitext(filename)[0] + '.pyreg', 'wb') as f:
-            pickle.dump(self.registration, f, protocol=pickle.HIGHEST_PROTOCOL)
+    def yes_save_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure, file:Path) -> None:
+        with file.with_suffix('.pyreg').open('wb') as f:
+            joblib.dump(self.registration, f)
         plt.close(fig)
         window.withdraw()
 
@@ -1145,13 +1132,13 @@ class Polarimetry(CTk.CTk):
 
     def load_registration(self, window:CTk.CTkToplevel) -> None:
         window.withdraw()
-        initialdir = self.stack.folder if hasattr(self, 'stack') else '/'
-        filename = fd.askopenfilename(title='Select a registration file (*.pyreg)', initialdir=initialdir, filetypes=[('PYREG-files', '*.pyreg')])
-        with open(filename, 'rb') as f:
-            self.registration = pickle.load(f)
+        initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
+        file = Path(fd.askopenfilename(title='Select a registration file (*.pyreg)', initialdir=initialdir, filetypes=[('PYREG-files', '*.pyreg')]))
+        with file.open('rb') as f:
+            self.registration = joblib.load(f)
 
-    def define_stack(self, filename:str) -> Stack:
-        stack_vals = cv2.imreadmulti(filename, [], cv2.IMREAD_ANYDEPTH)[1]
+    def define_stack(self, file:Path) -> Stack:
+        stack_vals = cv2.imreadmulti(str(file), [], cv2.IMREAD_ANYDEPTH)[1]
         nangle, h, w = np.asarray(stack_vals).shape
         a = np.asarray(stack_vals)
         if not np.issubdtype(a.dtype, np.integer):
@@ -1159,7 +1146,7 @@ class Polarimetry(CTk.CTk):
         else:
             stack_vals = a
         dict = {'values': stack_vals, 'height': h, 'width': w, 'nangle': nangle, 'display': '{:.0f}'}
-        stack = Stack(filename)
+        stack = Stack(file)
         for key in dict:
             setattr(stack, key, dict[key])
         self.set_dark(stack)
@@ -1170,8 +1157,8 @@ class Polarimetry(CTk.CTk):
         datastack.method = self.method.get()
         return datastack
 
-    def open_file(self, filename:str) -> None:
-        self.stack = self.define_stack(filename)
+    def open_file(self, file:Path) -> None:
+        self.stack = self.define_stack(file)
         if self.method.get().startswith('4POLAR'):
             self.stack = self.slice4polar(self.stack)
         if self.stack.nangle >= 2:
@@ -1182,8 +1169,9 @@ class Polarimetry(CTk.CTk):
         self.tabview.set('Intensity')
         self.update()
         self.compute_intensity(self.stack)
-        self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
-        self.ilow_slider.set(0)
+        if self.option.get() != 'Thresholding (auto)': 
+            self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
+            self.ilow_slider.set(0)
         self.datastack = self.define_datastack(self.stack)
         if self.option.get().startswith('Mask'):
             self.mask = self.get_mask(self.datastack)
@@ -1271,9 +1259,9 @@ class Polarimetry(CTk.CTk):
     def get_mask(self, datastack:DataStack) -> np.ndarray:
         mask = np.ones((datastack.height, datastack.width))
         if self.option.get().startswith('Mask'):
-            mask_name = os.path.join(self.maskfolder, datastack.name + '.png')
-            if os.path.isfile(mask_name):
-                im_binarized = np.asarray(Image.open(mask_name), dtype=np.float64)
+            maskfile = self.maskfolder / (datastack.name + '.png')
+            if maskfile.exists():
+                im_binarized = np.asarray(Image.open(maskfile), dtype=np.float64)
                 mask = im_binarized / np.amax(im_binarized)
             else:
                 ShowInfo(message=f' The corresponding mask for {datastack.name} could not be found\n Continuing without mask...', image=self.icons['layers_clear'], buttons_labels=['OK'])
@@ -1441,8 +1429,8 @@ class Polarimetry(CTk.CTk):
                 var.histo(mask, htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))
                 if self.save_table[2].get():
                     suffix = '_perROI_' + str(roi['indx']) if roi is not None else ''
-                    filename = datastack.filename + '_Histo' + var.name + suffix
-                    plt.savefig(filename + self.figure_extension.get(), bbox_inches='tight')
+                    file = datastack.file.with_name(datastack.name + '_Histo' + var.name + suffix)
+                    plt.savefig(file.with_suffix(self.figure_extension.get()), bbox_inches='tight')
                 if not self.show_table[2].get():
                     plt.close(fig)
 
@@ -1456,29 +1444,27 @@ class Polarimetry(CTk.CTk):
 
     def merge_histos(self):
         self.show_table[2].select()
-        initialdir = self.stack.folder if hasattr(self, 'stack') else '/'
-        folder = fd.askdirectory(title='Select a directory', initialdir=initialdir)
+        initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
+        folder = Path(fd.askdirectory(title='Select a directory', initialdir=initialdir))
         goodvars = ['Rho', 'Rho_contour', 'Psi', 'S2', 'S4', 'S_SHG', 'Eta', 'Int']
         data, vars = {}, []
-        if folder:
-            foldername = os.path.basename(folder)
-            for filename in os.listdir(folder):
-                if filename.endswith(('.mat')):
-                    tempdata = loadmat(os.path.join(folder, filename))
-                    tempvars = list(tempdata.keys())
-                    tempvars = [tempvar for tempvar in tempvars if tempvar in goodvars]
-                    for tempvar in tempvars:
-                        if (tempvar in vars):
-                            data[tempvar] = np.concatenate((data[tempvar], tempdata[tempvar]), axis=None)
-                        else:
-                            vars += [tempvar]
-                            data[tempvar] = tempdata[tempvar]
+        if folder.exists():
+            for file in folder.glob('*.mat'):
+                tempdata = loadmat(str(file))
+                tempvars = list(tempdata.keys())
+                tempvars = [tempvar for tempvar in tempvars if tempvar in goodvars]
+                for tempvar in tempvars:
+                    if (tempvar in vars):
+                        data[tempvar] = np.concatenate((data[tempvar], tempdata[tempvar]), axis=None)
+                    else:
+                        vars += [tempvar]
+                        data[tempvar] = tempdata[tempvar]
             if self.extension_table[1].get():
-                dict_ = {'polarimetry': self.method.get(), 'folder': folder}
+                dict_ = {'polarimetry': self.method.get(), 'folder': str(folder)}
                 for var in vars:
                     dict_.update({var: data[var]})
-                filename = os.path.join(folder, foldername + '_ConcatHisto.mat')
-                savemat(filename, dict_)
+                file = folder / (folder.stem + '_ConcatHisto.mat')
+                savemat(str(file), dict_)
             vars.remove('Int')
             for var in vars:
                 var_ = Variable(var, values=data[var])
@@ -1491,8 +1477,8 @@ class Polarimetry(CTk.CTk):
                         var_.histo(htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))
                         if self.save_table[2].get():
                             suffix = '(0-90)' if htype == 'polar3' else ''
-                            filename = os.path.join(folder, foldername + '_ConcatHisto' + suffix + var_.name) 
-                            plt.savefig(filename + self.figure_extension.get(), bbox_inches='tight')
+                            file = folder / (folder.stem + '_ConcatHisto' + suffix + var_.name) 
+                            plt.savefig(file.with_suffix(self.figure_extension.get()), bbox_inches='tight')
         if len(vars) == 0:
             ShowInfo(' Error in the selected folder', image=self.icons['blur_circular'], button_labels=['OK'])
 
@@ -1534,8 +1520,8 @@ class Polarimetry(CTk.CTk):
                 cax = ax_divider.append_axes('right', size='7%', pad='2%')
                 fig.colorbar(h, cax=cax)
             if self.save_table[0].get():
-                suffix = '_' + var.name + 'Composite'
-                plt.savefig(datastack.filename + suffix + self.figure_extension.get(), bbox_inches='tight')
+                file = datastack.file.with_name(datastack.name + '_' + var.name + 'Composite')
+                plt.savefig(file.with_suffix(self.figure_extension.get()), bbox_inches='tight')
             if not self.show_table[0].get():
                 plt.close(fig)
 
@@ -1622,8 +1608,8 @@ class Polarimetry(CTk.CTk):
                 cax = ax_divider.append_axes('right', size='7%', pad='2%')
                 fig.colorbar(p, cax=cax)
             if self.save_table[1].get():
-                suffix = '_' + var.name + 'Sticks'
-                plt.savefig(datastack.filename + suffix + self.figure_extension.get(), bbox_inches='tight')
+                file = datastack.file.with_name(datastack.name + '_' + var.name + 'Sticks')
+                plt.savefig(file.with_suffix(self.figure_extension.get()), bbox_inches='tight')
             if not self.show_table[1].get():
                 plt.close(fig)
 
@@ -1655,8 +1641,8 @@ class Polarimetry(CTk.CTk):
                 if self.edge_detection_switch.get() == 'off':
                     fig.axes[1].remove()
             if self.save_table[3].get():
-                suffix = '_Intensity'
-                plt.savefig(datastack.filename + suffix + self.figure_extension.get(), bbox_inches='tight')
+                file = datastack.file.with_name(datastack.name + '_Intensity')
+                plt.savefig(file.with_suffix(self.figure_extension.get()), bbox_inches='tight')
             if not self.show_table[3].get():
                 plt.close(fig)
     
@@ -1698,31 +1684,31 @@ class Polarimetry(CTk.CTk):
         else:
             self.save_mat(datastack, roi_map, roi=[])
         if self.extension_table[0].get():
-            filename = self.stack.filename + '.pykl'
+            file = self.stack.file.with_suffix('.pykl')
             datastack_ = copy.copy(datastack)
             delattr(datastack_, 'added_vars')
             for roi in datastack_.rois:
                 roi['select'] = True
             window = ShowInfo(message=' Compressing and saving data...', image=self.icons['save'], geometry=(350, 80))
             window.update()
-            with BZ2File(filename, 'wb') as f:
-                cPickle.dump(datastack_, f)
+            with file.open('wb') as f:
+                joblib.dump(datastack_, f, compress=9)
             window.withdraw()
         if self.extension_table[2].get():
-            suffix_excel = '_Stats.xlsx' if self.edge_detection_switch.get() == 'off' else '_Stats_c.xlsx'
+            suffix = '_Stats' if self.edge_detection_switch.get() == 'off' else '_Stats_c'
             if self.filelist:
-                filename = os.path.join(self.stack.folder, os.path.basename(self.stack.folder) + suffix_excel)
-                title = os.path.basename(self.stack.folder)
+                file = self.stack.folder / (self.stack.folder.stem + suffix)
+                title = self.stack.folder.stem
             else:
-                filename = self.stack.filename + suffix_excel
+                file = self.stack.file.with_name(self.stack.name + suffix)
                 title = self.stack.name
-            if os.path.exists(filename):
-                workbook = openpyxl.load_workbook(filename = filename)
+            if file.exists():
+                workbook = openpyxl.load_workbook(str(file.with_suffix('.xlsx')))
             else:
                 workbook = openpyxl.Workbook()
             worksheet = workbook.active
             worksheet.title = title
-            if not os.path.exists(filename):
+            if not file.exists():
                 title = ['File', 'ROI', 'name', 'group', 'MeanRho', 'StdRho', 'MeanDeltaRho']
                 worksheet.append(title + self.return_vecexcel(datastack, roi_map)[1])
             if self.per_roi.get():
@@ -1731,9 +1717,9 @@ class Polarimetry(CTk.CTk):
                         worksheet.append(self.return_vecexcel(datastack, roi_map, roi=roi)[0])
             else:
                 worksheet.append(self.return_vecexcel(datastack, roi_map, roi=[])[0])
-            workbook.save(filename)
+            workbook.save(str(file))
         if self.extension_table[3].get():
-            filename = self.stack.filename + '.gif'
+            file = self.stack.file.with_suffix('.gif')
             images = []
             vmin, vmax = np.amin(self.stack.values), np.amax(self.stack.values)
             for _ in range(self.stack.nangle):
@@ -1745,7 +1731,7 @@ class Polarimetry(CTk.CTk):
                     im = im[int(self.xylim[2].get()):int(self.xylim[3].get()), int(self.xylim[0].get()):int(self.xylim[1].get())]
                 im = (255 * im / vmax).astype(np.uint8)
                 images.append(Image.fromarray(im, mode='P'))
-            images[0].save(filename, save_all=True, append_images=images[1:], optimize=False, duration=200, loop=0)
+            images[0].save(file, save_all=True, append_images=images[1:], optimize=False, duration=200, loop=0)
 
     def return_vecexcel(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> Tuple[List[float], List[str]]:
         mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
@@ -1796,7 +1782,7 @@ class Polarimetry(CTk.CTk):
     def save_mat(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
         if self.extension_table[1].get():
             mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
-            dict_ = {'polarimetry': self.method.get(), 'file': datastack.filename, 'date': date.today().strftime('%B %d, %Y')}
+            dict_ = {'polarimetry': self.method.get(), 'file': str(datastack.file), 'date': date.today().strftime('%B %d, %Y')}
             for var in datastack.vars:
                 data = var.values[mask * np.isfinite(var.values)]
                 dict_.update({var.name: data})
@@ -1804,8 +1790,8 @@ class Polarimetry(CTk.CTk):
                 data = var.values[mask * np.isfinite(var.values)]
                 dict_.update({var.name: data})
             suffix = '_ROI' + str(roi['indx']) if roi else ''
-            filename = datastack.filename + suffix + '.mat'
-            savemat(filename, dict_)
+            file = datastack.file.with_name(datastack.name + suffix)
+            savemat(file.with_suffix('.mat'), dict_)
 
     def compute_roi_map(self, datastack:DataStack) -> Tuple[np.ndarray, np.ndarray]:
         shape = (datastack.height, datastack.width)
@@ -1834,7 +1820,7 @@ class Polarimetry(CTk.CTk):
             radius = np.asarray(self.registration['radius']).item()
             centers = self.registration['centers']
             homographies = self.registration['homographies']
-            stack_ = Stack(stack.filename)
+            stack_ = Stack(stack.file)
             stack_.display = stack.display
             stack_.nangle, stack_.height, stack_.width = 4, 2 * radius, 2 * radius
             stack_.values = np.zeros((stack_.nangle, stack_.height, stack_.width))

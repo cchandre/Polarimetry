@@ -1,8 +1,7 @@
 import tkinter as tk
 import customtkinter as CTk
 import tksheet
-import pathlib
-import os
+from pathlib import Path
 import sys
 import pickle
 import numpy as np
@@ -90,13 +89,13 @@ class CheckBox(CTk.CTkCheckBox):
             ToolTip(self, text=tooltip)
 
 class Entry(CTk.CTkFrame):
-    def __init__(self, master, text:str=None, textvariable:tk.StringVar=None, tooltip:str=None, state:str='normal', row:int=0, column:int=0, padx:Union[int, Tuple[int, int]]=(10, 30), pady:Union[int, Tuple[int, int]]=5, sticky:str='e', fg_color:str=gray[0], **kwargs) -> None:
+    def __init__(self, master, text:str=None, textvariable:tk.StringVar=None, tooltip:str=None, state:str='normal', row:int=0, column:int=0, padx:Union[int, Tuple[int, int]]=(10, 30), pady:Union[int, Tuple[int, int]]=5, sticky:str='e', fg_color:str=gray[0], width:int=50, **kwargs) -> None:
         super().__init__(master, **kwargs)
         self.configure(fg_color=fg_color)
         self.grid(row=row, column=column, sticky=sticky)
         if text is not None:
             Label(self, text=text, tooltip=tooltip).grid(row=0, column=0, padx=(20, 10))
-        self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=50, justify='center', state=state)
+        self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=width, justify='center', state=state)
         self.entry.grid(row=0, column=1, padx=padx, pady=pady)
 
     def get(self) -> int:
@@ -240,10 +239,10 @@ class TextBox(CTk.CTkTextbox):
 ## PyPOLAR MAIN CLASSES
 
 class Stack:
-    def __init__(self, filename) -> None:
-        self.filename = os.path.splitext(filename)[0]
-        self.folder = str(pathlib.Path(filename).parent)
-        self.name = str(pathlib.Path(filename).stem)
+    def __init__(self, file:Path) -> None:
+        self.file = file
+        self.folder = file.parent
+        self.name = file.stem
         self.height, self.width, self.nangle = 0, 0, 0
         self.display = '{:.0f}'
         self.values = []
@@ -273,8 +272,8 @@ class Stack:
         return np.mean(cell[cell != 0])
 
 class DataStack:
-    def __init__(self, stack) -> None:
-        self.filename = stack.filename
+    def __init__(self, stack:Stack) -> None:
+        self.file = stack.file
         self.folder = stack.folder
         self.name = stack.name
         self.method = ''
@@ -387,13 +386,11 @@ class ROI:
 
 class Calibration:
 
-    dict_1pf = {'no distortions': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 0), '488 nm (no distortions)': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 175), '561 nm (no distortions)': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 120), '640 nm (no distortions)': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 125), '488 nm (16/03/2020 - 12/04/2022)': ('Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0', 0), '561 nm (16/03/2020 - 12/04/2022)': ('Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0', 0), '640 nm (16/03/2020 - 12/04/2022)': ('Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0', 0), '488 nm (13/12/2019 - 15/03/2020)': ('Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0', 0), '561 nm (13/12/2019 - 15/03/2020)': ('Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0', 0), '640 nm (13/12/2019 - 15/03/2020)': ('Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0', 0), '488 nm (before 13/12/2019)': ('Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0', 0), '561 nm (before 13/12/2019)': ('Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0', 0), '640 nm (before 13/12/2019)': ('Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0', 0), 'other': (None, 0)}
+    dict_1pf = {'no distortions': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 0), '488 nm (no distortions)': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 175), '561 nm (no distortions)': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 120), '640 nm (no distortions)': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 125), '488 nm (16/03/2020 - 12/04/2022)': ('Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0', 0), '561 nm (16/03/2020 - 12/04/2022)': ('Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0', 0), '640 nm (16/03/2020 - 12/04/2022)': ('Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0', 0), '488 nm (13/12/2019 - 15/03/2020)': ('Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0', 0), '561 nm (13/12/2019 - 15/03/2020)': ('Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0', 0), '640 nm (13/12/2019 - 15/03/2020)': ('Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0', 0), '488 nm (before 13/12/2019)': ('Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0', 0), '561 nm (before 13/12/2019)': ('Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0', 0), '640 nm (before 13/12/2019)': ('Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0', 0), 'other': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 0)}
+    folder_1pf = Path(__file__).parent / 'diskcones'
 
-    folder_1pf = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'diskcones')
-
-    dict_4polar = {'Calib_20221102': ('Calib_20221102', 0), 'Calib_20221011': ('Calib_20221011', 0), 'other': (None, 0)}
-
-    folder_4polar = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'calibration')
+    dict_4polar = {'Calib_20221102': ('Calib_20221102', 0), 'Calib_20221011': ('Calib_20221011', 0), 'other': ('Calib_20221102', 0)}
+    folder_4polar = Path(__file__).parent / 'calibration'
 
     def __init__(self, method:str, label:str=None) -> None:
         if label is None:
@@ -402,18 +399,19 @@ class Calibration:
             elif method.startswith('4POLAR'):
                 label = 'Calib_20221102'
         if method == '1PF':
-            vars = Calibration.dict_1pf.get(label, (None, 0))
+            vars = Calibration.dict_1pf.get(label)
             folder = Calibration.folder_1pf
         elif method.startswith('4POLAR'):
-            vars = Calibration.dict_4polar.get(label, (None, 0))
+            vars = Calibration.dict_4polar.get(label)
             folder = Calibration.folder_4polar
         if method in ['1PF', '4POLAR 2D', '4POLAR 3D']:
             if label == 'other':
-                initialdir = self.stack.folder if hasattr(self, 'stack') else '/'
-                file = pathlib.Path(fd.askopenfilename(title='Select file', initialdir=initialdir, filetypes=[('MAT-files', '*.mat')]))
-                folder = str(file.parent)
-                vars = (str(file.stem), 0)
-            disk = loadmat(os.path.join(folder, vars[0] + '.mat'))
+                initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
+                file = Path(fd.askopenfilename(title='Select file', initialdir=initialdir, filetypes=[('MAT-files', '*.mat')]))
+                if file.stem.startswith('Disk') or file.stem.startswith('Calib'):
+                    folder = file.parent
+                    vars = (file.stem, 0)
+            disk = loadmat(str(folder / (vars[0] + '.mat')))
             if method == '1PF' and vars[0].startswith('Disk'):
                 self.RhoPsi = np.moveaxis(np.stack((np.array(disk['RoTest'], dtype=np.float64), np.array(disk['PsiTest'], dtype=np.float64))), 0, -1)
                 self.xy = 2 * (np.linspace(-1, 1, int(disk['NbMapValues']), dtype=np.float64),)
@@ -458,7 +456,7 @@ class Calibration:
     
 class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
 
-    folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'icons')
+    folder = Path(__file__).parent / 'icons'
 
     def __init__(self, canvas, window=None, **kwargs) -> None:
         
@@ -476,8 +474,8 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
 
         self._buttons = {}
         for text, tooltip_text, image_file, callback in self.toolitems:
-            im = os.path.join(NToolbar2PyPOLAR.folder, image_file + '.png')
-            self._buttons[text] = button = self._Button(text=text, image_file=im, toggle=callback in ['zoom', 'pan'], command=getattr(self, callback))
+            im = NToolbar2PyPOLAR.folder / (image_file + '.png')
+            self._buttons[text] = button = self._Button(text=text, image_file=str(im), toggle=callback in ['zoom', 'pan'], command=getattr(self, callback))
             if tooltip_text is not None:
                 ToolTip(button, text=tooltip_text)
         self._label_font = CTk.CTkFont(size=12)
@@ -590,13 +588,13 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         sorted_filetypes = ([(default_filetype, default_filetype_name)] + sorted(filetypes.items()))
         tk_filetypes = [(name, '*.%s' % ext) for ext, name in sorted_filetypes]
         defaultextension = ''
-        initialdir = os.path.expanduser(mpl.rcParams['savefig.directory'])
+        initialdir = Path(mpl.rcParams['savefig.directory']).expanduser()
         initialfile = self.canvas.get_default_filename()
         fname = fd.asksaveasfilename(master=self.canvas.get_tk_widget().master, title=f"Save image from '{self.window.master.master.get()}' tab", filetypes=tk_filetypes, defaultextension=defaultextension, initialdir=initialdir, initialfile=initialfile)
         if fname in ['', ()]:
             return
         if initialdir != '':
-            mpl.rcParams['savefig.directory'] = (os.path.dirname(str(fname)))
+            mpl.rcParams['savefig.directory'] = str(Path(fname).parent)
         try:
             self.canvas.figure.savefig(fname)
         except Exception as e:
@@ -772,7 +770,7 @@ class ROIManager(CTk.CTkToplevel):
     def get_buttons(self) -> list:
         return self.buttons
 
-    def load(self, initialdir:str='/') -> List[dict]:
+    def load(self, initialdir:Path=Path.home()) -> List[dict]:
         self.delete_all()
         filetypes = [('PyROI files', '*.pyroi')]
         filename = fd.askopenfilename(title='Select a PyROI file', initialdir=initialdir, filetypes=filetypes)
@@ -791,10 +789,10 @@ class ROIManager(CTk.CTkToplevel):
             for jt, label in enumerate(self.labels):
                 self.sheet.set_cell_data(it, jt, value=roi[label])
 
-    def save(self, rois:List[dict]=[], filename:str='ROIs') -> None:
+    def save(self, rois:List[dict]=[], file:Path=Path.home() / 'ROIs') -> None:
         if any(rois):
             rois = self.update_rois(rois)
-            with open(filename + '.pyroi', 'wb') as f:
+            with file.with_suffix('.pyroi').open('wb') as f:
                 pickle.dump(rois, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     def update_manager(self, rois:List[dict]) -> None:
