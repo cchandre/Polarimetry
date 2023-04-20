@@ -314,7 +314,7 @@ class Polarimetry(CTk.CTk):
         self.calib_dropdown.grid(row=1, column=0, padx=(0, 52), pady=10, sticky='e')
         self.calib_textbox = TextBox(master=adv['Disk cone / Calibration data'], width=250, height=50, state='disabled', fg_color=gray[0])
         self.calib_textbox.grid(row=3, column=0, pady=10)
-        self.polar_dropdown = OptionMenu(master=adv['Disk cone / Calibration data'], width=button_size[0], height=button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state='disabled', text_color_disabled=gray[0], tooltip=' 4POLAR: select the distribution of polarizations (0,45,90,135) among quadrants clockwise\n Upper Left (UL), Upper Right (UR), Lower Right (LR), Lower Left (LL)')
+        self.polar_dropdown = OptionMenu(master=adv['Disk cone / Calibration data'], width=button_size[0], height=button_size[1], dynamic_resizing=False, state='disabled', text_color_disabled=gray[0], tooltip=' 4POLAR: select the distribution of polarizations (0,45,90,135) among quadrants clockwise\n Upper Left (UL), Upper Right (UR), Lower Right (LR), Lower Left (LL)')
         angles = [0, 45, 90, 135]
         self.dict_polar = {}
         for p in list(permutations([0, 1, 2, 3])):
@@ -360,7 +360,7 @@ class Polarimetry(CTk.CTk):
         Button(banner, image=self.icons['GitHub'], command=lambda:self.openweb(Polarimetry.url_github), tooltip=' visit the PyPOLAR GitHub page').pack(side=tk.LEFT, padx=40)
         Button(banner, image=self.icons['contact_support'], command=lambda:self.openweb(Polarimetry.url_github + '/blob/master/README.md'), tooltip=' visit the online help').pack(side=tk.LEFT, padx=40)
         about_textbox = TextBox(master=self.tabview.tab('About'), width=780, height=500)
-        about_textbox.write(f'Version: {Polarimetry.__version__} ({Polarimetry.__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n PyPOLAR is based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  PyPOLAR was created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV,\n Matplotlib, openpyxl, tksheet, colorcet \n\n\n  PyPOLAR uses Material Design icons by Google')
+        about_textbox.write(f'Version: {Polarimetry.__version__} ({Polarimetry.__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n PyPOLAR is based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  PyPOLAR was created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV,\n Matplotlib, openpyxl, tksheet, colorcet, joblib \n\n\n  PyPOLAR uses Material Design icons by Google')
         about_textbox.grid(row=1, column=0, padx=30)
         self.startup()
 
@@ -601,7 +601,7 @@ class Polarimetry(CTk.CTk):
 
         def load(manager:ROIManager) -> None:
             if hasattr(self, 'datastack'):
-                self.datastack.rois = manager.load(initialdir=self.stack.folder if hasattr(self, 'stack') else '/')
+                self.datastack.rois = manager.load(initialdir=self.stack.folder if hasattr(self, 'stack') else Path.home())
                 self.ontab_intensity()
                 self.ontab_thrsh()
         if not hasattr(self, 'manager'):
@@ -864,9 +864,6 @@ class Polarimetry(CTk.CTk):
         self.offset_angle.set(str(self.CD.offset_default))
         self.calib_textbox.write(self.CD.name)
 
-    def polar_dropdown_callback(self, label:str) -> None:
-        self.order = self.dict_polar.get(label)
-
     def show_individual_fit_callback(self) -> None:
         if not self.method.get().endswith('4POLAR') and hasattr(self, 'datastack'):
             figs = list(map(plt.figure, plt.get_fignums()))
@@ -1021,7 +1018,6 @@ class Polarimetry(CTk.CTk):
             self.calib_dropdown.configure(state='disabled')
         if method.startswith('4POLAR'):
             self.polar_dropdown.configure(state='normal')
-            self.order = self.dict_polar[self.polar_dropdown.get()]
             window = ShowInfo(message='\n Perform: Select a beads file (*.tif)\n\n Load: Select a registration file (*.pyreg)\n\n Registration is performed with Whitelight.tif \n   which should be in the same folder as the beads file', image=self.icons['blur_circular'], button_labels=['Perform', 'Load', 'Cancel'], geometry=(420, 240))
             buttons = window.get_buttons()
             buttons[0].configure(command=lambda:self.perform_registration(window))
@@ -1831,8 +1827,9 @@ class Polarimetry(CTk.CTk):
                 ims += [stack.values[0, yi:yf, xi:xf].reshape((stack_.height, stack_.width))]
             ims_reg = [ims[0]]
             ims_reg += [cv2.warpPerspective(im, homography, (stack_.width, stack_.height)) for im, homography in zip(ims[1:], homographies)]
+            order = self.dict_polar[self.polar_dropdown.get()]
             for it in range(stack_.nangle):
-                stack_.values[self.order[it]] = ims_reg[it]
+                stack_.values[order[it]] = ims_reg[it]
             return stack_
         else:
             ShowInfo(message=' No registration', image=self.icons['blur_circular'], button_labels=['OK'], fontsize=16)
