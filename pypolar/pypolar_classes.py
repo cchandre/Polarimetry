@@ -249,18 +249,13 @@ class Stack:
         else:
             return intensity
         
-    def compute_dark(self) -> int:
-        SizeCell = 20
-        NCellHeight = int(np.floor(self.height / SizeCell))
-        NCellWidth = int(np.floor(self.width / SizeCell))
-        cropIm = self.values[:, :SizeCell * NCellHeight, :SizeCell * NCellWidth]
-        cropIm = np.moveaxis(cropIm, 0, -1)
-        ImCG = np.asarray(np.split(np.asarray(np.split(cropIm, NCellWidth, axis=1)), NCellHeight, axis=1))
-        cell = ImCG[..., 0]
-        mImCG = np.mean(cell, axis=(2, 3), where=cell!=0)
-        IndI, IndJ = np.where(mImCG == np.amin(mImCG))
-        cell = ImCG[IndI, IndJ, ...]
-        return np.mean(cell[cell != 0])
+    def compute_dark(self, size_cell:int=20) -> int:
+        n_height, n_width = int(np.floor(self.height / size_cell)), int(np.floor(self.width / size_cell))
+        crop_im = np.moveaxis(self.values[:, :size_cell * n_height, :size_cell * n_width], 0, -1)
+        im_cg = np.asarray(np.split(np.asarray(np.split(crop_im, n_width, axis=1)), n_height, axis=1))
+        m_im_cg = np.mean(im_cg[..., 0], axis=(2, 3), where=im_cg[..., 0]!=0)
+        ind_i, ind_j = np.unravel_index(np.argmin(m_im_cg), m_im_cg.shape)
+        return np.mean(im_cg[ind_i, ind_j, ...], where=im_cg[ind_i, ind_j, ...]!=0)
 
 class DataStack:
     def __init__(self, stack:Stack) -> None:

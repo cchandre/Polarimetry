@@ -1850,12 +1850,12 @@ class Polarimetry(CTk.CTk):
             a0 = np.mean(field, axis=0)
             a0[a0 == 0] = np.nan
             a2 = 2 * np.mean(field * e2, axis=0)
-            field_fit = a0[np.newaxis, :, :] + (a2[np.newaxis, :, :] * e2.conj()).real
+            field_fit = a0[np.newaxis] + (a2[np.newaxis] * e2.conj()).real
             a2 = divide_ext(a2, a0)
             if self.method.get() in ['CARS', 'SRS', 'SHG', '2PF']:
                 e4 = e2**2
                 a4 = 2 * np.mean(field * e4, axis=0)
-                field_fit += (a4[np.newaxis, :, :] * e4.conj()).real
+                field_fit += (a4[np.newaxis] * e4.conj()).real
                 a4 = divide_ext(a4, a0)
             chi2 = np.mean(np.divide((field - field_fit)**2, field_fit, where=np.all((field_fit!=0, np.isfinite(field_fit)), axis=0)), axis=0)
             mask *= (chi2 <= chi2threshold) * (chi2 > 0)
