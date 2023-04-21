@@ -93,7 +93,7 @@ class Polarimetry(CTk.CTk):
         self.configure(fg_color=gray[0])
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
-        self.icons = {file.stem: CTk.CTkImage(dark_image=Image.open(file), size=(30, 30)) for file in image_path.glob('*.png')}
+        self.icons = {file.stem: CTk.CTkImage(dark_image=Image.open(file).resize((60, 60)), size=(30, 30)) for file in image_path.glob('*.png')}
         if sys.platform == 'win32':
             self.iconbitmap(str(base_dir / 'main_icon.ico'))
             import winreg
