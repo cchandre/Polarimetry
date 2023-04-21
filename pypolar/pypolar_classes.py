@@ -21,7 +21,7 @@ from colorcet import m_colorwheel
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.backend_bases import NavigationToolbar2, _Mode, MouseEvent
 from typing import Callable, List, Tuple, Union
-from generate_json import orange, red, green, gray, text_color
+from generate_json import font_macosx, font_windows, orange, red, green, gray, text_color
 
 tab_width, tab_height = 810, 830
 button_size = (160, 40)
@@ -164,17 +164,15 @@ class SpinBox(CTk.CTkFrame):
 
     def add_button_callback(self) -> None:
         value = int(self.entry.get()) + self.step_size
-        value = value if value <= self.to_ else self.to_
         self.entry.delete(0, 'end')
-        self.entry.insert(0, value)
+        self.entry.insert(0, value if value <= self.to_ else self.to_)
         if self.command is not None:
             self.command()
 
     def subtract_button_callback(self) -> None:
         value = int(self.entry.get()) - self.step_size
-        value = value if value >= self.from_ else self.from_
         self.entry.delete(0, 'end')
-        self.entry.insert(0, value)
+        self.entry.insert(0, value if value >= self.from_ else self.from_)
         if self.command is not None:
             self.command()
         
@@ -185,12 +183,8 @@ class SpinBox(CTk.CTkFrame):
         return int(self.entry.get())
 
     def set(self, value:int) -> None:
-        if value <= self.from_:
-            value = self.from_
-        elif value >= self.to_:
-            value = self.to_
         self.entry.delete(0, 'end')
-        self.entry.insert(0, str(value))
+        self.entry.insert(0, str(sorted([self.from_, value, self.to_])[1]))
 
 class ShowInfo(CTk.CTkToplevel):
     def __init__(self, message:str='', image:CTk.CTkImage=None, button_labels:List[str]=[], geometry:tuple=(300, 150), fontsize:int=13) -> None:
@@ -262,13 +256,10 @@ class Stack:
         cropIm = self.values[:, :SizeCell * NCellHeight, :SizeCell * NCellWidth]
         cropIm = np.moveaxis(cropIm, 0, -1)
         ImCG = np.asarray(np.split(np.asarray(np.split(cropIm, NCellWidth, axis=1)), NCellHeight, axis=1))
-        mImCG = np.zeros((NCellHeight, NCellWidth))
-        for it in range(NCellHeight):
-            for jt in range(NCellWidth):
-                cell = ImCG[it, jt, :, :, 0]
-                mImCG[it, jt] = np.mean(cell[cell != 0])
+        cell = ImCG[..., 0]
+        mImCG = np.mean(cell, axis=(2, 3), where=cell!=0)
         IndI, IndJ = np.where(mImCG == np.amin(mImCG))
-        cell = ImCG[IndI, IndJ, :, :, :]
+        cell = ImCG[IndI, IndJ, ...]
         return np.mean(cell[cell != 0])
 
 class DataStack:
@@ -713,11 +704,11 @@ class ROIManager(CTk.CTkToplevel):
         self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+1200+200')
 
         if sys.platform == 'darwin':
-            font = ('Arial Rounded MT Bold', 14, 'normal')
-            header_font = ('Arial Rounded MT Bold', 16, 'bold')
+            font = (font_macosx, 14, 'normal')
+            header_font = (font_macosx, 16, 'bold')
         elif sys.platform == 'win32':
-            font = ('Segoe UI', 14, 'normal')
-            header_font = ('Segoe UI', 16, 'bold')
+            font = (font_windows, 14, 'normal')
+            header_font = (font_windows, 16, 'bold')
 
         labels_ = ROIManager.labels + ['select', 'delete']
         labels_[0] = 'ROI'

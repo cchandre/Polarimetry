@@ -544,27 +544,21 @@ class Polarimetry(CTk.CTk):
         self.polarization_button.configure(image=self.icons[self.polar_dir.get()])
 
     def contrast_thrsh_slider_callback(self, value:float) -> None:
-        if value <= 0.001:
-            self.contrast_thrsh_slider.set(0.001)
+        self.contrast_thrsh_slider.set(0.01 if value <= 0.01 else value)
         self.ontab_thrsh()
 
     def contrast_intensity_slider_callback(self, value:float) -> None:
-        if value <= 0.001:
-            self.contrast_intensity_slider.set(0.001)
+        self.contrast_intensity_slider.set(0.01 if value <= 0.01 else value)
         self.ontab_intensity()
 
     def contrast_intensity_button_callback(self) -> None:
-        if self.contrast_intensity_slider.get() <= 0.5:
-            self.contrast_intensity_slider.set(0.5)
-        else:
-            self.contrast_intensity_slider.set(1)
+        value = self.contrast_intensity_slider.get()
+        self.contrast_intensity_slider.set(0.5 if value <= 0.5 else 1)
         self.ontab_intensity()
 
     def contrast_thrsh_button_callback(self) -> None:
-        if self.contrast_thrsh_slider.get() <= 0.5:
-            self.contrast_thrsh_slider.set(0.5)
-        else:
-            self.contrast_thrsh_slider.set(1)
+        value = self.contrast_thrsh_slider.get()
+        self.contrast_thrsh_slider.set(0.5 if value <= 0.5 else 1)
         self.ontab_thrsh(update=True)
 
     def roimanager_callback(self) -> None:
@@ -679,6 +673,7 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_frame.update()
 
     def open_file_callback(self, value:str) -> None:
+        initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
         if hasattr(self, 'manager'):
             self.manager.destroy()
             delattr(self, 'manager')
@@ -691,7 +686,6 @@ class Polarimetry(CTk.CTk):
             self.manager_window.destroy()
         if value == 'Open file':
             filetypes = [('Tiff files', '*.tiff'), ('Tiff files', '*.tif')]
-            initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
             file = Path(fd.askopenfilename(title='Select a file', initialdir=initialdir, filetypes=filetypes))
             self.openfile_dropdown.get_icon().configure(image=self.icons['photo_fill'])
             if file.suffix in ['.tiff', '.tif']:
@@ -703,7 +697,6 @@ class Polarimetry(CTk.CTk):
                     delattr(self, 'mask')
                 self.open_file(file)
         elif value == 'Open folder': 
-            initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
             folder = Path(fd.askdirectory(title='Select a directory', initialdir=initialdir))
             self.openfile_dropdown.get_icon().configure(image=self.icons['folder_open'])
             self.filelist = [file for file in sorted(folder.glob('*.tif*'))]
@@ -716,7 +709,6 @@ class Polarimetry(CTk.CTk):
             else:
                 ShowInfo(message=' The folder does not contain TIFF or TIF files', image=self.icons['download_folder'], button_labels=['OK'], geometry=(340, 140))
         elif value == 'Previous analysis':
-            initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
             file = Path(fd.askopenfilename(title='Download a previous polarimetry analysis', initialdir=initialdir, filetypes=[('PyPOLAR pickle files', '*.pykl')]))
             self.openfile_dropdown.get_icon().configure(image=self.icons['analytics'])
             if file.suffix == '.pykl':
@@ -1058,7 +1050,7 @@ class Polarimetry(CTk.CTk):
         self.filename_label.write('')
         dark = beadstack.compute_dark()
         intensity = np.sum((beadstack.values - dark) * (beadstack.values >= dark), axis=0)
-        whitelight = cv2.imread(str(beadstack.folder.joinpath('Whitelight.tif')), cv2.IMREAD_GRAYSCALE)
+        whitelight = cv2.imread(str(beadstack.folder / 'Whitelight.tif'), cv2.IMREAD_GRAYSCALE)
         whitelight = cv2.threshold(whitelight, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
         contours = cv2.findContours(whitelight, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
         filter = np.asarray([len(contour) >= 200 for contour in contours])
@@ -1335,8 +1327,7 @@ class Polarimetry(CTk.CTk):
             self.ontab_intensity(update=False)
 
     def transparency_slider_callback(self, value:float) -> None:
-        if value <= 0.001:
-            self.transparency_slider.set(0.001)
+        self.transparency_slider.set(0.001 if value <= 0.001 else value)
         self.ontab_thrsh()
 
     def ontab_intensity(self, update:bool=True) -> None:
