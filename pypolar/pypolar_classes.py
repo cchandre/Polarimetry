@@ -385,11 +385,11 @@ class Calibration:
             elif method.startswith('4POLAR'):
                 label = 'Calib_20221102'
         if method == '1PF':
-            vars = Calibration.dict_1pf.get(label)
-            folder = Calibration.folder_1pf
+            vars = type(self).dict_1pf.get(label)
+            folder = type(self).folder_1pf
         elif method.startswith('4POLAR'):
-            vars = Calibration.dict_4polar.get(label)
-            folder = Calibration.folder_4polar
+            vars = type(self).dict_4polar.get(label)
+            folder = type(self).folder_4polar
         if method in ['1PF', '4POLAR 2D', '4POLAR 3D']:
             if label == 'other':
                 initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
@@ -434,9 +434,9 @@ class Calibration:
 
     def list(self, method:str) -> str:
         if method == '1PF':
-            return [key for key in Calibration.dict_1pf.keys()]
+            return [key for key in type(self).dict_1pf.keys()]
         elif method.startswith('4POLAR'):
-            return [key for key in Calibration.dict_4polar.keys()]
+            return [key for key in type(self).dict_4polar.keys()]
         else:
             return ' '
     
@@ -613,7 +613,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         return ''
     
 class ToolTip:
-    def __init__(self, widget, *, pad=(5, 3, 5, 3), text:str='widget info', waittime=300, wraplength=250):
+    def __init__(self, widget, *, pad=(5, 3, 5, 3), text:str='widget info', waittime:int=300, wraplength:int=250) -> None:
         self.waittime = waittime  
         self.wraplength = wraplength
         self.widget = widget
@@ -624,24 +624,24 @@ class ToolTip:
         self.id = None
         self.tw = None
 
-    def onEnter(self, event=None):
+    def onEnter(self, event=None) -> None:
         self.schedule()
 
-    def onLeave(self, event=None):
+    def onLeave(self, event=None) -> None:
         self.unschedule()
         self.hide()
 
-    def schedule(self):
+    def schedule(self) -> None:
         self.unschedule()
         self.id = self.widget.after(self.waittime, self.show)
 
-    def unschedule(self):
+    def unschedule(self) -> None:
         id_ = self.id
         self.id = None
         if id_:
             self.widget.after_cancel(id_)
 
-    def show(self):
+    def show(self) -> None:
         def tip_pos_calculator(widget, label, *, tip_delta=(10, 5), pad=(5, 3, 5, 3)):
             s_width, s_height = widget.winfo_screenwidth(), widget.winfo_screenheight()
             width, height = (pad[0] + label.winfo_reqwidth() + pad[2], pad[1] + label.winfo_reqheight() + pad[3])
@@ -671,7 +671,7 @@ class ToolTip:
         x, y = tip_pos_calculator(widget, label)
         self.tw.wm_geometry(f'+{x}+{y}')
 
-    def hide(self):
+    def hide(self) -> None:
         tw = self.tw
         if tw:
             tw.destroy()
@@ -693,10 +693,10 @@ class ROIManager(CTk.CTkToplevel):
 
         cell_height = 20
         self.sheet_height = lambda cell_h, rois_: 20 + (cell_h + 3) * (len(rois_) + 1)
-        widths = ROIManager.widths + [70, 70]
+        widths = type(self).widths + [70, 70]
         self.sheet_width = sum(widths) + 2
 
-        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+1200+200')
+        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+1200+200')
 
         if sys.platform == 'darwin':
             font = (font_macosx, 14, 'normal')
@@ -705,15 +705,15 @@ class ROIManager(CTk.CTkToplevel):
             font = (font_windows, 14, 'normal')
             header_font = (font_windows, 16, 'bold')
 
-        labels_ = ROIManager.labels + ['select', 'delete']
+        labels_ = type(self).labels + ['select', 'delete']
         labels_[0] = 'ROI'
-        data = [[roi[label] for label in ROIManager.labels] for roi in rois]
-        self.sheet = tksheet.Sheet(self, data=data, headers=labels_, font=font, header_font=header_font, align='w', show_row_index=False, width=self.sheet_width, height=self.sheet_height(cell_height, rois), frame_bg=text_color, table_bg=gray[1], top_left_bg=gray[1], header_hidden_columns_expander_bg=gray[1], header_fg=text_color, header_bg=orange[0], header_grid_fg=gray[1], table_grid_fg=text_color, header_selected_cells_bg=orange[1], table_selected_cells_border_fg=orange[0], show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, enable_edit_cell_auto_resize=False, auto_resize_default_row_index=False, show_default_header_for_empty=False, empty_horizontal=0, empty_vertical=0, total_columns=ROIManager.cmax+2)
+        data = [[roi[label] for label in type(self).labels] for roi in rois]
+        self.sheet = tksheet.Sheet(self, data=data, headers=labels_, font=font, header_font=header_font, align='w', show_row_index=False, width=self.sheet_width, height=self.sheet_height(cell_height, rois), frame_bg=text_color, table_bg=gray[1], top_left_bg=gray[1], header_hidden_columns_expander_bg=gray[1], header_fg=text_color, header_bg=orange[0], header_grid_fg=gray[1], table_grid_fg=text_color, header_selected_cells_bg=orange[1], table_selected_cells_border_fg=orange[0], show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, enable_edit_cell_auto_resize=False, auto_resize_default_row_index=False, show_default_header_for_empty=False, empty_horizontal=0, empty_vertical=0, total_columns=type(self).cmax+2)
         self.sheet.grid(row=0, column=0, sticky='nswe', padx=20, pady=(20, 0))
         bottom_frame = CTk.CTkFrame(self)
         bottom_frame.grid(row=1, column=0, sticky='nswe', padx=20, pady=(0, 20))
         self.buttons = []
-        for _, (label, tooltip) in enumerate(zip(ROIManager.button_labels, ROIManager.tooltips)):
+        for _, (label, tooltip) in enumerate(zip(type(self).button_labels, type(self).tooltips)):
             button = Button(bottom_frame, text=label, anchor='center', width=80)
             ToolTip(button, text=tooltip)
             self.buttons += [button]
@@ -721,7 +721,7 @@ class ROIManager(CTk.CTkToplevel):
         self.buttons[0].configure(width=80, fg_color=green[0], hover_color=green[1])
         self.buttons[-1].configure(fg_color=red[0], hover_color=red[1])
         self.buttons[-2].configure(fg_color=red[0], hover_color=red[1])
-        self.add_elements(ROIManager.cmax)
+        self.add_elements(type(self).cmax)
         self.sheet.enable_bindings()
         self.sheet.disable_bindings(['rc_insert_column', 'rc_delete_column', 'rc_insert_row', 'rc_delete_row', 'hide_columns',  'row_height_resize','row_width_resize', 'column_height_resize', 'column_width_resize', 'edit_header', 'arrowkeys'])
         self.sheet.default_row_height(cell_height)
@@ -744,14 +744,14 @@ class ROIManager(CTk.CTkToplevel):
             vec = [_ for _, x in enumerate(self.sheet.get_column_data(c=-1)) if x == 'True']
         self.sheet.set_options(height=self.sheet_height(20, rois))
         x, y = self.winfo_x(), self.winfo_y()
-        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+{x}+{y}')
+        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+{x}+{y}')
     
     def delete_all(self) -> None:
         for _ in range(self.sheet.get_total_rows()):
             self.sheet.delete_row()
         self.sheet.set_options(height=self.sheet_height(20, []))
         x, y = self.winfo_x(), self.winfo_y()
-        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, [])) + f'+{x}+{y}')
+        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(20, [])) + f'+{x}+{y}')
 
     def get_buttons(self) -> list:
         return self.buttons
@@ -764,9 +764,9 @@ class ROIManager(CTk.CTkToplevel):
             rois = pickle.load(f)
         self.sheet.set_options(height=self.sheet_height(20, rois))
         x, y = self.winfo_x(), self.winfo_y()
-        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+{x}+{y}')
+        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+{x}+{y}')
         self.sheet.insert_rows(rows=len(rois))
-        self.add_elements(len(ROIManager.labels))
+        self.add_elements(len(type(self).labels))
         self.rois2sheet(rois)
         return rois
 
@@ -784,11 +784,11 @@ class ROIManager(CTk.CTkToplevel):
     def update_manager(self, rois:List[dict]) -> None:
         self.sheet.set_options(height=self.sheet_height(20, rois))
         x, y = self.winfo_x(), self.winfo_y()
-        self.geometry(ROIManager.manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+{x}+{y}')
+        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+{x}+{y}')
         roi = rois[-1]
-        self.sheet.insert_row([roi[label] for label in ROIManager.labels])
-        self.sheet.create_checkbox(c=ROIManager.cmax, r=len(rois)-1, checked = True)
-        self.sheet.create_checkbox(c=ROIManager.cmax+1, r=len(rois)-1, checked = False)
+        self.sheet.insert_row([roi[label] for label in type(self).labels])
+        self.sheet.create_checkbox(c=type(self).cmax, r=len(rois)-1, checked = True)
+        self.sheet.create_checkbox(c=type(self).cmax+1, r=len(rois)-1, checked = False)
 
     def update_rois(self, rois:List[dict]=[]) -> List[dict]:
         if any(rois):

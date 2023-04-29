@@ -83,9 +83,9 @@ class Polarimetry(CTk.CTk):
 
         delx, dely = self.winfo_screenwidth() // 10, self.winfo_screenheight() // 10
         dpi = self.winfo_fpixels('1i')
-        self.figsize = (Polarimetry.figsize[0] / dpi, Polarimetry.figsize[1] / dpi)
+        self.figsize = (type(self).figsize[0] / dpi, type(self).figsize[1] / dpi)
         self.title('Polarimetry Analysis')
-        self.geometry(f'{Polarimetry.width}x{Polarimetry.height}+{delx}+{dely}')
+        self.geometry(f'{type(self).width}x{type(self).height}+{delx}+{dely}')
         self.protocol('WM_DELETE_WINDOW', self.on_closing)
         self.bind('<Command-q>', self.on_closing)
         self.bind('<Command-w>', self.on_closing)
@@ -112,9 +112,9 @@ class Polarimetry(CTk.CTk):
                 pass
 
 ## DEFINE FRAMES
-        left_frame = CTk.CTkFrame(master=self, width=Polarimetry.left_frame_width, corner_radius=0, fg_color=gray[0])
+        left_frame = CTk.CTkFrame(master=self, width=type(self).left_frame_width, corner_radius=0, fg_color=gray[0])
         left_frame.grid(row=0, column=0, sticky='nsew')
-        right_frame = CTk.CTkFrame(master=self, width=Polarimetry.right_frame_width, corner_radius=0, fg_color=gray[1])
+        right_frame = CTk.CTkFrame(master=self, width=type(self).right_frame_width, corner_radius=0, fg_color=gray[1])
         right_frame.grid(row=0, column=1, sticky='nsew')
         self.tabview = TabView(right_frame)
 
@@ -132,10 +132,10 @@ class Polarimetry(CTk.CTk):
         Button(left_frame, text='Close figures', command=lambda:plt.close('all'), image=self.icons['close'], fg_color=red[0], hover_color=red[1], tooltip=' close all open figures').pack(padx=20, pady=20)
 
 ## RIGHT FRAME: INTENSITY
-        bottomframe = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent', height=40, width=Polarimetry.axes_size[1])
+        bottomframe = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent', height=40, width=type(self).axes_size[1])
         bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=20)
 
-        self.intensity_frame = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent', height=Polarimetry.axes_size[0], width=Polarimetry.axes_size[1])
+        self.intensity_frame = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent', height=type(self).axes_size[0], width=type(self).axes_size[1])
         self.intensity_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         intensity_fig = Figure(figsize=(self.intensity_frame.winfo_width() / dpi, self.intensity_frame.winfo_height() / dpi), facecolor=gray[1])
         self.intensity_axis = intensity_fig.add_axes([0, 0, 1, 1])
@@ -147,7 +147,7 @@ class Polarimetry(CTk.CTk):
 
         NToolbar2PyPOLAR(canvas=self.intensity_canvas, window=self.intensity_frame)
 
-        banner = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent', height=Polarimetry.axes_size[0], width=40)
+        banner = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent', height=type(self).axes_size[0], width=40)
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         Button(banner, image=self.icons['contrast'], command=self.contrast_intensity_button_callback, tooltip=' adjust contrast\n - the chosen contrast will be the one used\n for the intensity images in figures\n - the contrast changes the intensity value displayed in the navigation toolbar\n - the chosen contrast does not affect the analysis').pack(side=tk.TOP, padx=20, pady=(20, 0))
         self.contrast_intensity_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation='vertical', command=self.contrast_intensity_slider_callback)
@@ -172,10 +172,10 @@ class Polarimetry(CTk.CTk):
         Label(master=sliderframe, fg_color='transparent', text='Stack', tooltip=' slider at T for the total intensity, otherwise scroll through the images of the stack').grid(row=1, column=1, sticky='e')
         
 ## RIGHT FRAME: THRSH
-        bottomframe = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent', height=40, width=Polarimetry.axes_size[1])
+        bottomframe = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent', height=40, width=type(self).axes_size[1])
         bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=20)
 
-        self.thrsh_frame = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent', height=Polarimetry.axes_size[0], width=Polarimetry.axes_size[1])
+        self.thrsh_frame = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent', height=type(self).axes_size[0], width=type(self).axes_size[1])
         self.thrsh_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.thrsh_axis_facecolor = gray[1]
         self.thrsh_fig = Figure(figsize=(self.thrsh_frame.winfo_width() / dpi, self.thrsh_frame.winfo_height() / dpi), facecolor=self.thrsh_axis_facecolor)
@@ -188,7 +188,7 @@ class Polarimetry(CTk.CTk):
 
         self.thrsh_toolbar = NToolbar2PyPOLAR(canvas=self.thrsh_canvas, window=self.thrsh_frame)
 
-        banner = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent', height=Polarimetry.axes_size[0], width=40)
+        banner = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent', height=type(self).axes_size[0], width=40)
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         Button(banner, image=self.icons['contrast'], command=self.contrast_thrsh_button_callback, tooltip=' adjust contrast\n - the contrast changes the intensity value displayed in the navigation toolbar\n - the chosen contrast does not affect the analysis').pack(side=tk.TOP, padx=20, pady=(20, 0))
         self.contrast_thrsh_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation='vertical', command=self.contrast_thrsh_slider_callback)
@@ -355,12 +355,12 @@ class Polarimetry(CTk.CTk):
 ## RIGHT FRAME: ABOUT
         banner = CTk.CTkFrame(master=self.tabview.tab('About'), fg_color=gray[1])
         banner.grid(row=0, column=0, pady=20, sticky='w')
-        Button(banner, image=self.icons['web'], command=lambda:self.openweb(Polarimetry.url_fresnel), tooltip=' visit the polarimetry website').pack(side=tk.LEFT, padx=40)
+        Button(banner, image=self.icons['web'], command=lambda:self.openweb(type(self).url_fresnel), tooltip=' visit the polarimetry website').pack(side=tk.LEFT, padx=40)
         Button(banner, image=self.icons['mail'], command=self.send_email, tooltip=' send an email to report bugs and/or send suggestions').pack(side=tk.LEFT, padx=40)
-        Button(banner, image=self.icons['GitHub'], command=lambda:self.openweb(Polarimetry.url_github), tooltip=' visit the PyPOLAR GitHub page').pack(side=tk.LEFT, padx=40)
-        Button(banner, image=self.icons['contact_support'], command=lambda:self.openweb(Polarimetry.url_github + '/blob/master/README.md'), tooltip=' visit the online help').pack(side=tk.LEFT, padx=40)
+        Button(banner, image=self.icons['GitHub'], command=lambda:self.openweb(type(self).url_github), tooltip=' visit the PyPOLAR GitHub page').pack(side=tk.LEFT, padx=40)
+        Button(banner, image=self.icons['contact_support'], command=lambda:self.openweb(type(self).url_github + '/blob/master/README.md'), tooltip=' visit the online help').pack(side=tk.LEFT, padx=40)
         about_textbox = TextBox(master=self.tabview.tab('About'), width=780, height=500)
-        about_textbox.write(f'Version: {Polarimetry.__version__} ({Polarimetry.__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n PyPOLAR is based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  PyPOLAR was created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV,\n Matplotlib, openpyxl, tksheet, colorcet, joblib \n\n\n  PyPOLAR uses Material Design icons by Google')
+        about_textbox.write(f'Version: {type(self).__version__} ({type(self).__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n PyPOLAR is based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  PyPOLAR was created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV,\n Matplotlib, openpyxl, tksheet, colorcet, joblib \n\n\n  PyPOLAR uses Material Design icons by Google')
         about_textbox.grid(row=1, column=0, padx=30)
         self.startup()
 
@@ -434,7 +434,7 @@ class Polarimetry(CTk.CTk):
         webbrowser.open(url)
 
     def send_email(self) -> None:
-        webbrowser.open('mailto:?to=' + Polarimetry.email + '&subject=[Polarimetry Analysis] question', new=1)
+        webbrowser.open('mailto:?to=' + type(self).email + '&subject=[Polarimetry Analysis] question', new=1)
 
     def on_click_tab(self) -> None:
         if self.tabview.get() != 'About':
