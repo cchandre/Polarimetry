@@ -677,15 +677,12 @@ class Polarimetry(CTk.CTk):
     def open_file_callback(self, value:str) -> None:
         initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
         if hasattr(self, 'manager'):
-            self.manager.destroy()
-            delattr(self, 'manager')
+            self.manager.delete_all()
         self.edge_detection_switch.deselect()
         self.filelist = []
         if hasattr(self, 'edge_contours'):
             delattr(self, 'edge_contours')
             self.tabview.delete('Edge Detection')
-        if hasattr(self, 'manager_window'):
-            self.manager_window.destroy()
         if value == 'Open file':
             filetypes = [('Tiff files', '*.tiff'), ('Tiff files', '*.tif')]
             file = Path(fd.askopenfilename(title='Select a file', initialdir=initialdir, filetypes=filetypes))
