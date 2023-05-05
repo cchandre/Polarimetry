@@ -62,7 +62,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.4.5'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'April 26, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 5, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     left_frame_width, right_frame_width = 180, 850
@@ -621,6 +621,8 @@ class Polarimetry(CTk.CTk):
                 if (fig.type in ['Composite', 'Sticks', 'Intensity']) and (self.datastack.name in fs):
                     fig.axes[0].axis(self.add_axes_checkbox.get())
                     fig.canvas.draw()
+                elif fig.type == 'Histogram':
+                    fig.axes[0].tick_params(labelcolor='k' if self.add_axes_checkbox.get() else 'w')
 
     def colorbar_on_all_figures(self) -> None:
         figs = list(map(plt.figure, plt.get_fignums()))

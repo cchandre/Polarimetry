@@ -392,8 +392,7 @@ class Calibration:
             folder = type(self).folder_4polar
         if method in ['1PF', '4POLAR 2D', '4POLAR 3D']:
             if label == 'other':
-                initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
-                file = Path(fd.askopenfilename(title='Select file', initialdir=initialdir, filetypes=[('MAT-files', '*.mat')]))
+                file = Path(fd.askopenfilename(title='Select file', initialdir=Path.home(), filetypes=[('MAT-files', '*.mat')]))
                 if file.stem.startswith('Disk') or file.stem.startswith('Calib'):
                     folder = file.parent
                     vars = (file.stem, 0)
