@@ -62,7 +62,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.4.5'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 5, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     left_frame_width, right_frame_width = 180, 850
@@ -1415,8 +1415,8 @@ class Polarimetry(CTk.CTk):
                 var.histo(mask, htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))
                 if self.save_table[2].get():
                     suffix = '_perROI_' + str(roi['indx']) if roi is not None else ''
-                    file = datastack.file.with_name(datastack.name + '_Histo' + var.name + suffix)
-                    plt.savefig(file.with_suffix(self.figure_extension.get()), bbox_inches='tight')
+                    file = datastack.file.with_name(datastack.name + '_Histo' + var.name + suffix + self.figure_extension.get())
+                    plt.savefig(file, bbox_inches='tight')
                 if not self.show_table[2].get():
                     plt.close(fig)
 
@@ -1463,8 +1463,8 @@ class Polarimetry(CTk.CTk):
                         var_.histo(htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))
                         if self.save_table[2].get():
                             suffix = '(0-90)' if htype == 'polar3' else ''
-                            file = folder / (folder.stem + '_ConcatHisto' + suffix + var_.name) 
-                            plt.savefig(file.with_suffix(self.figure_extension.get()), bbox_inches='tight')
+                            file = folder / (folder.stem + '_ConcatHisto' + suffix + var_.name  + self.figure_extension.get()) 
+                            plt.savefig(file, bbox_inches='tight')
         if len(vars) == 0:
             ShowInfo(' Error in the selected folder', image=self.icons['blur_circular'], button_labels=['OK'])
 
@@ -1506,8 +1506,8 @@ class Polarimetry(CTk.CTk):
                 cax = ax_divider.append_axes('right', size='7%', pad='2%')
                 fig.colorbar(h, cax=cax)
             if self.save_table[0].get():
-                file = datastack.file.with_name(datastack.name + '_' + var.name + 'Composite')
-                plt.savefig(file.with_suffix(self.figure_extension.get()), bbox_inches='tight')
+                file = datastack.file.with_name(datastack.name + '_' + var.name + 'Composite' + self.figure_extension.get())
+                plt.savefig(file, bbox_inches='tight')
             if not self.show_table[0].get():
                 plt.close(fig)
 
@@ -1594,8 +1594,8 @@ class Polarimetry(CTk.CTk):
                 cax = ax_divider.append_axes('right', size='7%', pad='2%')
                 fig.colorbar(p, cax=cax)
             if self.save_table[1].get():
-                file = datastack.file.with_name(datastack.name + '_' + var.name + 'Sticks')
-                plt.savefig(file.with_suffix(self.figure_extension.get()), bbox_inches='tight')
+                file = datastack.file.with_name(datastack.name + '_' + var.name + 'Sticks' + self.figure_extension.get())
+                plt.savefig(file, bbox_inches='tight')
             if not self.show_table[1].get():
                 plt.close(fig)
 
@@ -1627,8 +1627,8 @@ class Polarimetry(CTk.CTk):
                 if self.edge_detection_switch.get() == 'off':
                     fig.axes[1].remove()
             if self.save_table[3].get():
-                file = datastack.file.with_name(datastack.name + '_Intensity')
-                plt.savefig(file.with_suffix(self.figure_extension.get()), bbox_inches='tight')
+                file = datastack.file.with_name(datastack.name + '_Intensity' + self.figure_extension.get())
+                plt.savefig(file, bbox_inches='tight')
             if not self.show_table[3].get():
                 plt.close(fig)
     
@@ -1776,8 +1776,8 @@ class Polarimetry(CTk.CTk):
                 data = var.values[mask * np.isfinite(var.values)]
                 dict_.update({var.name: data})
             suffix = '_ROI' + str(roi['indx']) if roi else ''
-            file = datastack.file.with_name(datastack.name + suffix)
-            savemat(file.with_suffix('.mat'), dict_)
+            file = datastack.file.with_name(datastack.name + suffix + '.mat')
+            savemat(file, dict_)
 
     def compute_roi_map(self, datastack:DataStack) -> Tuple[np.ndarray, np.ndarray]:
         shape = (datastack.height, datastack.width)
