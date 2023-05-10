@@ -1681,14 +1681,13 @@ class Polarimetry(CTk.CTk):
                 joblib.dump(datastack_, f, compress=9)
             window.withdraw()
         if self.extension_table[2].get():
-            suffix = '_Stats' if self.edge_detection_switch.get() == 'off' else '_Stats_c'
+            suffix = '_Stats.xlsx' if self.edge_detection_switch.get() == 'off' else '_Stats_c.xlsx'
             if self.filelist:
                 file = self.stack.folder / (self.stack.folder.stem + suffix)
                 title = self.stack.folder.stem
             else:
                 file = self.stack.file.with_name(self.stack.name + suffix)
                 title = self.stack.name
-            file = file.with_suffix('.xlsx')
             if file.exists():
                 workbook = openpyxl.load_workbook(file)
             else:
@@ -1710,7 +1709,7 @@ class Polarimetry(CTk.CTk):
             vmin, vmax = np.amin(self.stack.values), np.amax(self.stack.values)
             for _ in range(self.stack.nangle):
                 field = self.stack.values[_]
-                im = adjust(field, self.contrast_intensity_slider.get(), vmin, vmax)
+                im = adjust(field, self.contrast_intensity_slider.get(), vmin, vmax, sharpen=False)
                 if int(self.rotation[1].get()) != 0:
                     im = rotate(im, int(self.rotation[1].get()), reshape=False, mode='constant', cval=vmin)
                 if hasattr(self, 'xylim'):
