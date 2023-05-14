@@ -179,6 +179,7 @@ This option is used to improve the quality of the stack if the signal is too wea
 
 * `Stick (deg)`: (editable) value of the angle (in degrees) to arbitrarily rotate the sticks (following the above-mentioned convention: positive=counter-clockwise, negative=clockwise)
 * `Figure (deg)`: (editable) value of the angle (in degrees) to arbitrarily rotate the entire figure (following the above-mentioned convention: positive=counter-clockwise, negative=clockwise)
+* `Reference (deg)`: (editable) value of the angle (in degrees) with respect to which &rho; is normalized
 
 #### Intensity removal
 
