@@ -61,7 +61,7 @@ plt.ion()
 
 class Polarimetry(CTk.CTk):
 
-    __version__ = '2.4.5'
+    __version__ = '2.5'
     dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
@@ -330,14 +330,17 @@ class Polarimetry(CTk.CTk):
             self.bin_spinboxes[_].grid(row=_+1, column=0, padx=(30, 10), pady=10, sticky='e')
             Label(master=adv['Binning'], text='\n' + labels[_] + '\n', tooltip=' height and width of the bin used for data binning').grid(row=_+1, column=1, padx=(10, 60), pady=0, sticky='w')
 
-        labels = ['Stick (deg)', 'Figure (deg)']
-        self.rotation = [tk.StringVar(value='0'), tk.StringVar(value='0')]
+        labels = ['Stick (deg)', 'Figure (deg)', 'Reference (deg)']
+        self.rotation = [tk.StringVar(value='0'), tk.StringVar(value='0'), tk.StringVar(value='0')]
         for _ in range(len(labels)):
-            label = Label(adv['Rotation'], text='\n' + labels[_] + '\n', tooltip=' positive value for counter-clockwise rotation\n negative value for clockwise rotation').grid(row=_+1, column=1, padx=(0, 10), sticky='w')
+            tooltip = ' positive value for counter-clockwise rotation\n negative value for clockwise rotation'
+            if _ == 2:
+                tooltip = u'Normalize \u03C1 with respect to this angle'
+            Label(adv['Rotation'], text='\n' + labels[_] + '\n', tooltip=tooltip).grid(row=_+1, column=1, padx=(0, 10), sticky='w')
             entry = CTk.CTkEntry(adv['Rotation'], textvariable=self.rotation[_], width=50, justify='center')
             entry.grid(row=_+1, column=0, padx=20, sticky='e')
             entry.bind('<Return>', command=self.rotation_callback)
-        Label(master=adv['Rotation'], text=' ', height=5).grid(row=3, column=0, pady=5)
+        Label(master=adv['Rotation'], text=' ', height=5).grid(row=4, column=0, pady=5)
 
         self.noise = [tk.StringVar(value='1'), tk.StringVar(value='3'), tk.StringVar(value='3')]
         labels = ['Bin width', 'Bin height']
@@ -522,6 +525,7 @@ class Polarimetry(CTk.CTk):
             field = cv2.GaussianBlur(field, (5, 5), 0)
             edges = cv2.Canny(image=field, threshold1=float(self.canny_thrsh[0].get()), threshold2=float(self.canny_thrsh[1].get()))
             contours = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)[0]
+            #print(contours[0].shape)
         elif self.edge_method == 'draw':
             hroi = ROI()
             self.__cid1 = self.thrsh_canvas.mpl_connect('motion_notify_event', lambda event: self.add_roi_motion_notify_callback(event, hroi))
@@ -1431,7 +1435,7 @@ class Polarimetry(CTk.CTk):
                 suffix = 'for ROI ' + str(roi['indx']) if roi is not None else ''
                 fig.canvas.manager.set_window_title(var.name + ' Histogram ' + suffix + ': ' + self.datastack.name)
                 mask = (roi_map == roi['indx']) if roi is not None else (roi_map == 1)
-                var.histo(mask, htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))
+                var.histo(mask, htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()), reference=float(self.rotation[2].get()))
                 if self.save_table[2].get():
                     suffix = '_perROI_' + str(roi['indx']) if roi is not None else ''
                     file = datastack.file.with_name(datastack.name + '_Histo' + var.name + suffix + self.figure_extension.get())
@@ -1519,7 +1523,7 @@ class Polarimetry(CTk.CTk):
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
             datastack.plot_intensity(contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
-            h = var.imshow(vmin, vmax, colorblind=self.colorblind_checkbox.get(), rotation=int(self.rotation[1].get()))
+            h = var.imshow(vmin, vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), reference=float(self.rotation[2].get()))
             if self.colorbar_checkbox.get():
                 ax_divider = make_axes_locatable(ax)
                 cax = ax_divider.append_axes('right', size='7%', pad='2%')
@@ -1585,7 +1589,7 @@ class Polarimetry(CTk.CTk):
         Y, X = np.mgrid[:datastack.height:int(self.pixelsperstick_spinboxes[1].get()), :datastack.width:int(self.pixelsperstick_spinboxes[0].get())]
         X, Y = X[np.isfinite(data_)], Y[np.isfinite(data_)]
         data_, rho_ = data_[np.isfinite(data_)], rho_[np.isfinite(data_)]
-        stick_colors = np.mod(2 * (data_ + float(self.rotation[1].get())), 360) / 2 if var.name == 'Rho' else data_
+        stick_colors = np.mod(2 * (data_ + float(self.rotation[1].get()) - float(self.rotation[2].get())), 360) / 2 if var.name == 'Rho' else data_
         cosd, sind = np.cos(np.deg2rad(rho_)), np.sin(np.deg2rad(rho_))
         vertices = np.array([[X + l * cosd + w * sind, X - l * cosd + w * sind, X - l * cosd - w * sind, X + l * cosd - w * sind], [Y - l * sind + w * cosd, Y + l * sind + w * cosd, Y + l * sind - w * cosd, Y - l * sind - w * cosd]])
         if float(self.rotation[1].get()) != 0:
