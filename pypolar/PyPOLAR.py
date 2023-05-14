@@ -1745,7 +1745,7 @@ class Polarimetry(CTk.CTk):
         mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
         ilow = float(roi['ILow']) if roi else float(self.ilow.get())
         rho = datastack.vars[0].values
-        data_vals = np.mod(2 * (rho[mask * np.isfinite(rho)] + float(self.rotation[1].get())), 360) / 2
+        data_vals = np.mod(2 * (rho[mask * np.isfinite(rho)] + float(self.rotation[1].get()) - float(self.rotation[2].get())), 360) / 2
         n = data_vals.size
         meandata = circularmean(data_vals)
         deltarho = wrapto180(2 * (data_vals - meandata)) / 2
@@ -1783,8 +1783,8 @@ class Polarimetry(CTk.CTk):
         if self.method.get().startswith('4POLAR'):
             title += ['4POLAR angles']
             results += [self.polar_dropdown.get()]
-        title += ['dark', 'offset', 'polarization', 'bin width', 'bin height']
-        results += [float(self.dark.get()), float(self.offset_angle.get()), self.polar_dir.get(), self.bin_spinboxes[0].get(), self.bin_spinboxes[1].get()]
+        title += ['dark', 'offset', 'polarization', 'bin width', 'bin height', 'reference angle']
+        results += [float(self.dark.get()), float(self.offset_angle.get()), self.polar_dir.get(), self.bin_spinboxes[0].get(), self.bin_spinboxes[1].get(), float(self.rotation[2])]
         return results, title
 
     def save_mat(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
