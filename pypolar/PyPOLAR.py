@@ -445,11 +445,12 @@ class Polarimetry(CTk.CTk):
     def edge_detection_callback(self) -> None:
         if hasattr(self, 'stack'):
             if self.edge_detection_switch.get() == 'on':
-                window = ShowInfo(message=' Mask for edge detection', image=self.icons['multiline_chart'], button_labels=['Download', 'Compute', 'Cancel'], geometry=(370, 140), fontsize=16)
+                window = ShowInfo(message=' Mask for edge detection', image=self.icons['multiline_chart'], button_labels=['Download', 'Compute', 'Draw', 'Cancel'], geometry=(470, 140), fontsize=16)
                 buttons = window.get_buttons()
                 buttons[0].configure(command=lambda:self.download_edge_mask(window))
                 buttons[1].configure(command=lambda:self.compute_edge_mask(window))
-                buttons[2].configure(command=lambda:self.delete_edge_mask(window))
+                buttons[2].configure(command=lambda:self.draw_edge_mask(window))
+                buttons[3].configure(command=lambda:self.delete_edge_mask(window))
             elif self.edge_detection_switch.get() == 'off':
                 if hasattr(self, 'edge_contours'):
                     delattr(self, 'edge_contours')
@@ -478,6 +479,13 @@ class Polarimetry(CTk.CTk):
         window.withdraw()
         if hasattr(self, 'stack'):
             self.edge_method = 'compute'
+            self.edge_detection_tab()
+            self.compute_edges()
+        
+    def draw_edge_mask(self, window:CTk.CTkToplevel) -> None:
+        window.withdraw()
+        if hasattr(self, 'stack'):
+            self.edge_method = 'draw'
             self.edge_detection_tab()
             self.compute_edges()
 
@@ -514,6 +522,11 @@ class Polarimetry(CTk.CTk):
             field = cv2.GaussianBlur(field, (5, 5), 0)
             edges = cv2.Canny(image=field, threshold1=float(self.canny_thrsh[0].get()), threshold2=float(self.canny_thrsh[1].get()))
             contours = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)[0]
+        elif self.edge_method == 'draw':
+            hroi = ROI()
+            self.__cid1 = self.thrsh_canvas.mpl_connect('motion_notify_event', lambda event: self.add_roi_motion_notify_callback(event, hroi))
+            self.__cid2 = self.thrsh_canvas.mpl_connect('button_press_event', lambda event: self.add_roi_button_press_callback(event, hroi, isroi=False))
+            contours = [[hroi.x, hroi.y]]
         elif self.edge_method == 'download':
             contours = cv2.findContours(self.edge_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)[0]
         filter = np.asarray([len(contour) >= int(self.canny_thrsh[2].get()) for contour in contours])
@@ -1216,13 +1229,17 @@ class Polarimetry(CTk.CTk):
                     self.thrsh_axis.add_line(roi.lines[-1])     
                 self.thrsh_canvas.mpl_disconnect(self.__cid1)
                 self.thrsh_canvas.mpl_disconnect(self.__cid2)
-                self.thrsh_canvas.draw()
                 if isroi:
                     window = ShowInfo(message=' Add ROI?', image=self.icons['roi'], button_labels=['Yes', 'No'], fontsize=16)
                     buttons = window.get_buttons()
                     buttons[0].configure(command=lambda:self.yes_add_roi_callback(window, roi))
                     buttons[1].configure(command=lambda:self.no_add_roi_callback(window, roi))
                     self.add_roi_button.configure(fg_color=orange[0])
+                else:
+                    for line in roi.lines:
+                        line.remove()
+                    roi.lines = []
+                self.thrsh_canvas.draw()
 
     def yes_add_roi_callback(self, window:CTk.CTkToplevel, roi:ROI) -> None:
         vertices = np.asarray([roi.x, roi.y])
