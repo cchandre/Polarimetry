@@ -1192,7 +1192,7 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_axis.add_line(roi.lines[-1])
                 self.thrsh_canvas.draw()
 
-    def add_roi_button_press_callback(self, event:MouseEvent, roi:ROI) -> None:
+    def add_roi_button_press_callback(self, event:MouseEvent, roi:ROI, isroi:bool=True) -> None:
         if event.inaxes == self.thrsh_axis:
             x, y = event.xdata, event.ydata
             if (event.button == 1 or event.button == 3) and not event.dblclick:
@@ -1211,16 +1211,18 @@ class Polarimetry(CTk.CTk):
                     self.thrsh_axis.add_line(roi.lines[-1])
                     self.thrsh_canvas.draw()
             elif ((event.button == 1 or event.button == 3) and event.dblclick) and roi.lines:
-                roi.lines += [plt.Line2D([roi.previous_point[0], roi.start_point[0]], [roi.previous_point[1], roi.start_point[1]], marker='o', color='w')]
-                self.thrsh_axis.add_line(roi.lines[-1])
+                if isroi:
+                    roi.lines += [plt.Line2D([roi.previous_point[0], roi.start_point[0]], [roi.previous_point[1], roi.start_point[1]], marker='o', color='w')]
+                    self.thrsh_axis.add_line(roi.lines[-1])     
                 self.thrsh_canvas.mpl_disconnect(self.__cid1)
                 self.thrsh_canvas.mpl_disconnect(self.__cid2)
                 self.thrsh_canvas.draw()
-                window = ShowInfo(message=' Add ROI?', image=self.icons['roi'], button_labels=['Yes', 'No'], fontsize=16)
-                buttons = window.get_buttons()
-                buttons[0].configure(command=lambda:self.yes_add_roi_callback(window, roi))
-                buttons[1].configure(command=lambda:self.no_add_roi_callback(window, roi))
-                self.add_roi_button.configure(fg_color=orange[0])
+                if isroi:
+                    window = ShowInfo(message=' Add ROI?', image=self.icons['roi'], button_labels=['Yes', 'No'], fontsize=16)
+                    buttons = window.get_buttons()
+                    buttons[0].configure(command=lambda:self.yes_add_roi_callback(window, roi))
+                    buttons[1].configure(command=lambda:self.no_add_roi_callback(window, roi))
+                    self.add_roi_button.configure(fg_color=orange[0])
 
     def yes_add_roi_callback(self, window:CTk.CTkToplevel, roi:ROI) -> None:
         vertices = np.asarray([roi.x, roi.y])
