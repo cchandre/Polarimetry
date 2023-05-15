@@ -314,7 +314,7 @@ class Variable:
 
     def histo(self, mask:np.ndarray=None, htype:str='normal', vmin:float=0, vmax:float=180, colorblind:bool=False, rotation:float=0, nbins:int=60) -> None:
         data_vals = self.values[mask * np.isfinite(self.values)] if mask is not None else self.values[np.isfinite(self.values)]
-        if self.name == 'Rho':
+        if self.name in ['Rho', 'Rho_angle']:
             data_vals = np.mod(2 * (data_vals + rotation), 360) / 2   
         vmin_, vmax_ = (0, 90) if htype == 'polar3' else (vmin, vmax)
         norm = mpl.colors.Normalize(vmin_, vmax_)

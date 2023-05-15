@@ -1572,12 +1572,7 @@ class Polarimetry(CTk.CTk):
         Y, X = np.mgrid[:datastack.height:int(self.pixelsperstick_spinboxes[1].get()), :datastack.width:int(self.pixelsperstick_spinboxes[0].get())]
         X, Y = X[np.isfinite(data_)], Y[np.isfinite(data_)]
         data_, rho_ = data_[np.isfinite(data_)], rho_[np.isfinite(data_)]
-        if var.name == 'Rho':
-            stick_colors = np.mod(2 * (data_ + float(self.rotation[1].get())), 360) / 2
-        elif var.name == 'Rho_angle':
-            stick_colors = np.mod(2 * (data_ - float(self.rotation[2].get())), 360) / 2
-        else: 
-            data_
+        stick_colors = np.mod(2 * (data_ + float(self.rotation[1].get())), 360) / 2 if var.name in ['Rho', 'Rho_angle'] else data_
         cosd, sind = np.cos(np.deg2rad(rho_)), np.sin(np.deg2rad(rho_))
         vertices = np.array([[X + l * cosd + w * sind, X - l * cosd + w * sind, X - l * cosd - w * sind, X + l * cosd - w * sind], [Y - l * sind + w * cosd, Y + l * sind + w * cosd, Y + l * sind - w * cosd, Y - l * sind - w * cosd]])
         if float(self.rotation[1].get()) != 0:
@@ -1733,7 +1728,7 @@ class Polarimetry(CTk.CTk):
         mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
         ilow = float(roi['ILow']) if roi else float(self.ilow.get())
         rho = datastack.vars[0].values
-        data_vals = np.mod(2 * (rho[mask * np.isfinite(rho)] + float(self.rotation[1].get()) - float(self.rotation[2].get())), 360) / 2
+        data_vals = np.mod(2 * (rho[mask * np.isfinite(rho)] + float(self.rotation[1].get())), 360) / 2
         n = data_vals.size
         meandata = circularmean(data_vals)
         deltarho = wrapto180(2 * (data_vals - meandata)) / 2
@@ -1756,7 +1751,7 @@ class Polarimetry(CTk.CTk):
             deltarho = wrapto180(2 * (data_vals - meandata)) / 2
             results += [meandata, np.std(deltarho), np.mean(deltarho)]
         for var in datastack.vars[1:]:
-            if var.name not in ['Rho_contour', 'Rho_angle']:
+            if var.name != 'Rho_contour':
                 data_vals = var.values[mask * np.isfinite(rho)]
                 meandata = np.mean(data_vals)
                 title += ['Mean' + var.name, 'Std' + var.name]
@@ -1772,7 +1767,7 @@ class Polarimetry(CTk.CTk):
             title += ['4POLAR angles']
             results += [self.polar_dropdown.get()]
         title += ['dark', 'offset', 'polarization', 'bin width', 'bin height', 'reference angle']
-        results += [float(self.dark.get()), float(self.offset_angle.get()), self.polar_dir.get(), self.bin_spinboxes[0].get(), self.bin_spinboxes[1].get(), float(self.rotation[2])]
+        results += [float(self.dark.get()), float(self.offset_angle.get()), self.polar_dir.get(), self.bin_spinboxes[0].get(), self.bin_spinboxes[1].get(), float(self.rotation[2].get())]
         return results, title
 
     def save_mat(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
