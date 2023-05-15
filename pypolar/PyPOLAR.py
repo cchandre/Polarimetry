@@ -1421,7 +1421,8 @@ class Polarimetry(CTk.CTk):
                 var.histo(mask, htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))
                 if self.save_table[2].get():
                     suffix = '_perROI_' + str(roi['indx']) if roi is not None else ''
-                    file = datastack.file.with_name(datastack.name + '_Histo' + var.name + suffix + self.figure_extension.get())
+                    histo = '(0-90)' if htype == 'polar3' else ''
+                    file = datastack.file.with_name(datastack.name + '_Histo' + histo + var.name + suffix + self.figure_extension.get())
                     plt.savefig(file, bbox_inches='tight')
                 if not self.show_table[2].get():
                     plt.close(fig)
