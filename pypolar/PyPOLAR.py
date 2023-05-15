@@ -448,12 +448,11 @@ class Polarimetry(CTk.CTk):
     def edge_detection_callback(self) -> None:
         if hasattr(self, 'stack'):
             if self.edge_detection_switch.get() == 'on':
-                window = ShowInfo(message=' Mask for edge detection', image=self.icons['multiline_chart'], button_labels=['Download', 'Compute', 'Draw', 'Cancel'], geometry=(470, 140), fontsize=16)
+                window = ShowInfo(message=' Mask for edge detection', image=self.icons['multiline_chart'], button_labels=['Download', 'Compute', 'Cancel'], geometry=(370, 140), fontsize=16)
                 buttons = window.get_buttons()
                 buttons[0].configure(command=lambda:self.download_edge_mask(window))
                 buttons[1].configure(command=lambda:self.compute_edge_mask(window))
-                buttons[2].configure(command=lambda:self.draw_edge_mask(window))
-                buttons[3].configure(command=lambda:self.delete_edge_mask(window))
+                buttons[2].configure(command=lambda:self.delete_edge_mask(window))
             elif self.edge_detection_switch.get() == 'off':
                 if hasattr(self, 'edge_contours'):
                     delattr(self, 'edge_contours')
@@ -482,13 +481,6 @@ class Polarimetry(CTk.CTk):
         window.withdraw()
         if hasattr(self, 'stack'):
             self.edge_method = 'compute'
-            self.edge_detection_tab()
-            self.compute_edges()
-        
-    def draw_edge_mask(self, window:CTk.CTkToplevel) -> None:
-        window.withdraw()
-        if hasattr(self, 'stack'):
-            self.edge_method = 'draw'
             self.edge_detection_tab()
             self.compute_edges()
 
@@ -524,22 +516,19 @@ class Polarimetry(CTk.CTk):
             field = (field / np.amax(field) * 255).astype(np.uint8)
             field = cv2.GaussianBlur(field, (5, 5), 0)
             edges = cv2.Canny(image=field, threshold1=float(self.canny_thrsh[0].get()), threshold2=float(self.canny_thrsh[1].get()))
-            contours = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)[0]
-            #print(contours[0].shape)
-        elif self.edge_method == 'draw':
-            hroi = ROI()
-            self.__cid1 = self.thrsh_canvas.mpl_connect('motion_notify_event', lambda event: self.add_roi_motion_notify_callback(event, hroi))
-            self.__cid2 = self.thrsh_canvas.mpl_connect('button_press_event', lambda event: self.add_roi_button_press_callback(event, hroi, isroi=False))
-            contours = [[hroi.x, hroi.y]]
+            self.edge_contours = self.smooth_contours(cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)[0])
+            self.ontab_thrsh()
         elif self.edge_method == 'download':
-            contours = cv2.findContours(self.edge_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)[0]
-        filter = np.asarray([len(contour) >= int(self.canny_thrsh[2].get()) for contour in contours])
-        self.edge_contours = [self.smooth_edge(contour.reshape((-1, 2))) for (contour, val) in zip(contours, filter) if val]
-        self.ontab_thrsh()
+            self.edge_contours = self.smooth_contours(cv2.findContours(self.edge_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)[0])
+            self.ontab_thrsh()
 
-    def smooth_edge(self, edge:np.ndarray) -> np.ndarray:
+    def smooth_contours(self, contours:List) -> List:
         window_length = int(self.canny_thrsh[3].get())
-        return savgol_filter(edge, window_length=window_length, polyorder=3, mode='nearest', axis=0)
+        edge_contours = []
+        for contour in contours:
+            if (len(contour) >= int(self.canny_thrsh[2].get())):
+                edge_contours += [savgol_filter(contour.reshape((-1, 2)), window_length=window_length, polyorder=3, mode='nearest', axis=0)]
+        return edge_contours
     
     def define_rho_ct(self, contours:List[np.ndarray]) -> np.ndarray:
         rho_ct = np.nan * np.ones_like(self.stack.intensity)
@@ -1048,7 +1037,7 @@ class Polarimetry(CTk.CTk):
                         vmin, vmax = self.get_variable(_)[1:]
                         p.set_clim([vmin, vmax])
                         ax.add_collection(p)
-            if (fig.type == 'Sticks') and (fig.var == 'Rho_contour') and (self.datastack.name in fs):
+            if (fig.type == 'Sticks') and (fig.var in ['Rho_contour', 'Rho_angle']) and (self.datastack.name in fs):
                 ax = fig.axes[0]
                 for collection in ax.collections:
                     collection.remove()
@@ -1209,7 +1198,7 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_axis.add_line(roi.lines[-1])
                 self.thrsh_canvas.draw()
 
-    def add_roi_button_press_callback(self, event:MouseEvent, roi:ROI, isroi:bool=True) -> None:
+    def add_roi_button_press_callback(self, event:MouseEvent, roi:ROI) -> None:
         if event.inaxes == self.thrsh_axis:
             x, y = event.xdata, event.ydata
             if (event.button == 1 or event.button == 3) and not event.dblclick:
@@ -1228,22 +1217,16 @@ class Polarimetry(CTk.CTk):
                     self.thrsh_axis.add_line(roi.lines[-1])
                     self.thrsh_canvas.draw()
             elif ((event.button == 1 or event.button == 3) and event.dblclick) and roi.lines:
-                if isroi:
-                    roi.lines += [plt.Line2D([roi.previous_point[0], roi.start_point[0]], [roi.previous_point[1], roi.start_point[1]], marker='o', color='w')]
-                    self.thrsh_axis.add_line(roi.lines[-1])     
+                roi.lines += [plt.Line2D([roi.previous_point[0], roi.start_point[0]], [roi.previous_point[1], roi.start_point[1]], marker='o', color='w')]
+                self.thrsh_axis.add_line(roi.lines[-1])     
+                window = ShowInfo(message=' Add ROI?', image=self.icons['roi'], button_labels=['Yes', 'No'], fontsize=16)
+                buttons = window.get_buttons()
+                buttons[0].configure(command=lambda:self.yes_add_roi_callback(window, roi))
+                buttons[1].configure(command=lambda:self.no_add_roi_callback(window, roi))
+                self.add_roi_button.configure(fg_color=orange[0])
+                self.thrsh_canvas.draw()
                 self.thrsh_canvas.mpl_disconnect(self.__cid1)
                 self.thrsh_canvas.mpl_disconnect(self.__cid2)
-                if isroi:
-                    window = ShowInfo(message=' Add ROI?', image=self.icons['roi'], button_labels=['Yes', 'No'], fontsize=16)
-                    buttons = window.get_buttons()
-                    buttons[0].configure(command=lambda:self.yes_add_roi_callback(window, roi))
-                    buttons[1].configure(command=lambda:self.no_add_roi_callback(window, roi))
-                    self.add_roi_button.configure(fg_color=orange[0])
-                else:
-                    for line in roi.lines:
-                        line.remove()
-                    roi.lines = []
-                self.thrsh_canvas.draw()
 
     def yes_add_roi_callback(self, window:CTk.CTkToplevel, roi:ROI) -> None:
         vertices = np.asarray([roi.x, roi.y])
@@ -1435,7 +1418,7 @@ class Polarimetry(CTk.CTk):
                 suffix = 'for ROI ' + str(roi['indx']) if roi is not None else ''
                 fig.canvas.manager.set_window_title(var.name + ' Histogram ' + suffix + ': ' + self.datastack.name)
                 mask = (roi_map == roi['indx']) if roi is not None else (roi_map == 1)
-                var.histo(mask, htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()), reference=float(self.rotation[2].get()))
+                var.histo(mask, htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))
                 if self.save_table[2].get():
                     suffix = '_perROI_' + str(roi['indx']) if roi is not None else ''
                     file = datastack.file.with_name(datastack.name + '_Histo' + var.name + suffix + self.figure_extension.get())
@@ -1455,7 +1438,7 @@ class Polarimetry(CTk.CTk):
         self.show_table[2].select()
         initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
         folder = Path(fd.askdirectory(title='Select a directory', initialdir=initialdir))
-        goodvars = ['Rho', 'Rho_contour', 'Psi', 'S2', 'S4', 'S_SHG', 'Eta', 'Int']
+        goodvars = ['Rho', 'Rho_contour', 'Rho_angle', 'Psi', 'S2', 'S4', 'S_SHG', 'Eta', 'Int']
         data, vars = {}, []
         if folder.exists():
             for file in folder.glob('*.mat'):
@@ -1523,7 +1506,7 @@ class Polarimetry(CTk.CTk):
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
             datastack.plot_intensity(contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
-            h = var.imshow(vmin, vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), reference=float(self.rotation[2].get()))
+            h = var.imshow(vmin, vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()))
             if self.colorbar_checkbox.get():
                 ax_divider = make_axes_locatable(ax)
                 cax = ax_divider.append_axes('right', size='7%', pad='2%')
@@ -1589,7 +1572,12 @@ class Polarimetry(CTk.CTk):
         Y, X = np.mgrid[:datastack.height:int(self.pixelsperstick_spinboxes[1].get()), :datastack.width:int(self.pixelsperstick_spinboxes[0].get())]
         X, Y = X[np.isfinite(data_)], Y[np.isfinite(data_)]
         data_, rho_ = data_[np.isfinite(data_)], rho_[np.isfinite(data_)]
-        stick_colors = np.mod(2 * (data_ + float(self.rotation[1].get()) - float(self.rotation[2].get())), 360) / 2 if var.name == 'Rho' else data_
+        if var.name == 'Rho':
+            stick_colors = np.mod(2 * (data_ + float(self.rotation[1].get())), 360) / 2
+        elif var.name == 'Rho_angle':
+            stick_colors = np.mod(2 * (data_ - float(self.rotation[2].get())), 360) / 2
+        else: 
+            data_
         cosd, sind = np.cos(np.deg2rad(rho_)), np.sin(np.deg2rad(rho_))
         vertices = np.array([[X + l * cosd + w * sind, X - l * cosd + w * sind, X - l * cosd - w * sind, X + l * cosd - w * sind], [Y - l * sind + w * cosd, Y + l * sind + w * cosd, Y + l * sind - w * cosd, Y - l * sind - w * cosd]])
         if float(self.rotation[1].get()) != 0:
@@ -1768,7 +1756,7 @@ class Polarimetry(CTk.CTk):
             deltarho = wrapto180(2 * (data_vals - meandata)) / 2
             results += [meandata, np.std(deltarho), np.mean(deltarho)]
         for var in datastack.vars[1:]:
-            if var.name != 'Rho_contour':
+            if var.name not in ['Rho_contour', 'Rho_angle']:
                 data_vals = var.values[mask * np.isfinite(rho)]
                 meandata = np.mean(data_vals)
                 title += ['Mean' + var.name, 'Std' + var.name]
@@ -1956,6 +1944,10 @@ class Polarimetry(CTk.CTk):
             filter = np.isfinite(rho_.values) * np.isfinite(vals)
             rho_ct.values[filter] = np.mod(2 * (rho_.values[filter] - vals[filter]), 360) / 2
             datastack.vars += [rho_ct]
+        if float(self.rotation[2].get()):
+            rho_a = Variable('Rho_angle', datastack=datastack)
+            rho_a.values = np.mod(2 * (rho_.values - float(self.rotation[2].get())), 360) / 2
+            datastack.vars += [rho_a]
         if not self.method.get().startswith('4POLAR'):
             field[:, np.logical_not(mask)] = np.nan
             field_fit[:, np.logical_not(mask)] = np.nan

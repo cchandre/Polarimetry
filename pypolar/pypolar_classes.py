@@ -289,6 +289,7 @@ class Variable:
     def __init__(self, name:str='', values:np.ndarray=None, datastack:DataStack=None) -> None:
         var = {'Rho': [0, ['polar1'], r'$\rho$', ['hsv', m_colorwheel]], 
                 'Rho_contour': [10, ['polar1', 'polar3'], r'$\rho_c$', ['hsv', m_colorwheel]],
+                'Rho_angle': [10, ['polar1', 'polar3'], r'$\rho_a$', ['hsv', m_colorwheel]],
                 'Psi': [1, ['normal'], '$\psi$', ['jet', 'viridis']],
                 'Eta': [2, ['polar2'], '$\eta$', ['plasma', 'plasma']],
                 'S2': [1, ['normal'], '$S_2$', ['jet', 'viridis']],
@@ -301,20 +302,20 @@ class Variable:
         self.type_histo = var[1] if var is not None else ['normal']
         self.colormap = var[3] if var is not None else ['jet', 'viridis']
 
-    def imshow(self, vmin:float, vmax:float, colorblind:bool=False, rotation:float=0, reference:float=0) -> mpl.image.AxesImage:
+    def imshow(self, vmin:float, vmax:float, colorblind:bool=False, rotation:float=0) -> mpl.image.AxesImage:
         ax = plt.gca()
         field = self.values.copy()
         if self.name == 'Rho':
-                field = np.mod(2 * (field + rotation - reference), 360) / 2
+                field = np.mod(2 * (field + rotation), 360) / 2
         if rotation:
             field = rotate(field, rotation, reshape=False, order=0, mode='constant')
             field[field == 0] = np.nan
         return ax.imshow(field, vmin=vmin, vmax=vmax, cmap=self.colormap[int(colorblind)], interpolation='nearest')
 
-    def histo(self, mask:np.ndarray=None, htype:str='normal', vmin:float=0, vmax:float=180, colorblind:bool=False, rotation:float=0, nbins:int=60, reference:float=0) -> None:
+    def histo(self, mask:np.ndarray=None, htype:str='normal', vmin:float=0, vmax:float=180, colorblind:bool=False, rotation:float=0, nbins:int=60) -> None:
         data_vals = self.values[mask * np.isfinite(self.values)] if mask is not None else self.values[np.isfinite(self.values)]
         if self.name == 'Rho':
-            data_vals = np.mod(2 * (data_vals + rotation - reference), 360) / 2
+            data_vals = np.mod(2 * (data_vals + rotation), 360) / 2   
         vmin_, vmax_ = (0, 90) if htype == 'polar3' else (vmin, vmax)
         norm = mpl.colors.Normalize(vmin_, vmax_)
         cmap = self.colormap[int(colorblind)]
