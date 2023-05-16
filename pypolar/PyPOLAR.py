@@ -145,7 +145,7 @@ class Polarimetry(CTk.CTk):
         self.intensity_axis.imshow(background, cmap='gray', interpolation='bicubic', alpha=0.1)
         self.intensity_canvas.draw()
 
-        NToolbar2PyPOLAR(canvas=self.intensity_canvas, window=self.intensity_frame)
+        self.intensity_toolbar = NToolbar2PyPOLAR(canvas=self.intensity_canvas, window=self.intensity_frame)
 
         banner = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent', height=type(self).axes_size[0], width=40)
         banner.pack(side=tk.RIGHT, fill=tk.Y)
@@ -929,6 +929,8 @@ class Polarimetry(CTk.CTk):
 
     def compute_angle(self) -> None:
         if hasattr(self, 'stack'):
+            self.intensity_toolbar.mode = _Mode.NONE
+            self.intensity_toolbar._update_buttons_checked()
             self.tabview.set('Intensity')
             self.compute_angle_button.configure(fg_color=orange[1])
             hroi = ROI()
