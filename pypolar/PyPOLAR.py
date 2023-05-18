@@ -62,7 +62,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.5'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 16, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 18, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     left_frame_width, right_frame_width = 180, 850
@@ -335,11 +335,14 @@ class Polarimetry(CTk.CTk):
         for _ in range(len(labels)):
             tooltip = ' positive value for counter-clockwise rotation\n negative value for clockwise rotation'
             if _ == 2:
-                tooltip = u'Normalize \u03C1 with respect to this angle'
+                tooltip = u' normalize \u03C1 with respect to this angle\n -if combined with figure rotation, reference angle is determined in the rotated figure'
             Label(adv['Rotation'], text='\n' + labels[_] + '\n', tooltip=tooltip).grid(row=_+1, column=1, padx=(0, 10), sticky='w')
             entry = CTk.CTkEntry(adv['Rotation'], textvariable=self.rotation[_], width=50, justify='center')
             entry.grid(row=_+1, column=0, padx=20, sticky='e')
-            entry.bind('<Return>', command=self.rotation_callback)
+            if _ != 1:
+                entry.bind('<Return>', command=self.rotation_callback)
+            elif _ == 1:
+                entry.bind('<Return>', command=self.rotation1_callback)
         Label(master=adv['Rotation'], text=' ', height=5).grid(row=4, column=0, pady=5)
 
         self.noise = [tk.StringVar(value='1'), tk.StringVar(value='3'), tk.StringVar(value='3')]
@@ -1331,6 +1334,11 @@ class Polarimetry(CTk.CTk):
 
     def rotation_callback(self, event:tk.Event) -> None:
         if event:
+            self.ontab_intensity(update=False)
+
+    def rotation1_callback(self, event:tk.Event) -> None:
+        if event:
+            self.rotation[2].set('0')
             self.ontab_intensity(update=False)
 
     def transparency_slider_callback(self, value:float) -> None:
