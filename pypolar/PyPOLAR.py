@@ -62,7 +62,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.5'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 18, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 22, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     left_frame_width, right_frame_width = 180, 850
@@ -574,6 +574,7 @@ class Polarimetry(CTk.CTk):
 
         def on_closing(manager:ROIManager) -> None:
             if hasattr(self, 'datastack'):
+                self.datastack.rois = manager.update_rois(self.datastack.rois)
                 for roi in self.datastack.rois:
                     roi['select'] = True
                 self.ontab_intensity()
@@ -581,12 +582,10 @@ class Polarimetry(CTk.CTk):
             manager.destroy()
             delattr(self, 'manager')
 
-        def commit(manager:ROIManager) -> None:
-            if hasattr(self, 'datastack'):
-                if any(self.datastack.rois):
-                    self.datastack.rois = manager.update_rois(self.datastack.rois)
-                    self.ontab_intensity()
-                    self.ontab_thrsh()
+        def on_edit(manager:ROIManager, rois, event=None) -> None:
+            rois = manager.update_rois(rois)
+            self.ontab_intensity()
+            self.ontab_thrsh()
 
         def delete(manager:ROIManager) -> None:
             if hasattr(self, 'datastack'):
@@ -616,11 +615,11 @@ class Polarimetry(CTk.CTk):
             self.manager.bind('<Command-q>', lambda:on_closing(self.manager))
             self.manager.bind('<Command-w>', lambda:on_closing(self.manager))
             buttons = self.manager.get_buttons()
-            buttons[0].configure(command=lambda:commit(self.manager))
-            buttons[1].configure(command=lambda:self.manager.save(self.datastack.rois, self.datastack.file))
-            buttons[2].configure(command=lambda:load(self.manager))
+            buttons[0].configure(command=lambda:self.manager.save(self.datastack.rois, self.datastack.file))
+            buttons[1].configure(command=lambda:load(self.manager))
             buttons[-1].configure(command=lambda:delete_all(self.manager))
             buttons[-2].configure(command=lambda:delete(self.manager))
+            self.manager.sheet.extra_bindings("edit_cell", func=lambda _:on_edit(self.manager, self.datastack.rois, _))
 
     def add_axes_on_all_figures(self) -> None:
         figs = list(map(plt.figure, plt.get_fignums()))
