@@ -723,16 +723,17 @@ class ROIManager(CTk.CTkToplevel):
             self.buttons += [button]
             button.grid(row=0, column=_, padx=10, pady=10, sticky='nswe')
         self.buttons[-1].configure(fg_color=red[0], hover_color=red[1])
-        self.add_elements(type(self).cmax)
+        self.add_elements(type(self).cmax, rois)
         self.sheet.enable_bindings()
         self.sheet.disable_bindings(['rc_insert_column', 'rc_delete_column', 'rc_insert_row', 'rc_delete_row', 'hide_columns',  'row_height_resize','row_width_resize', 'column_height_resize', 'column_width_resize', 'edit_header', 'arrowkeys'])
         self.sheet.default_row_height(cell_height)
         for _, width in enumerate(widths):
             self.sheet.column_width(column=_, width=width)
 
-    def add_elements(self, cmax:int) -> None:
+    def add_elements(self, cmax:int, rois) -> None:
         self.sheet.align_columns(columns=[0, cmax-1], align='center')
-        self.sheet.create_checkbox(r='all', c=cmax, checked=True, state='normal', redraw=False, check_function=None, text='')
+        for _, roi in enumerate(rois):
+            self.sheet.create_checkbox(r=_, c=cmax, checked=roi['select'], state='normal', redraw=False, check_function=None, text='')
         self.sheet.create_checkbox(r='all', c=cmax+1, checked=False, state='normal', redraw=False, check_function=None, text='')
         
     def delete(self, rois:list) -> None:
@@ -768,7 +769,7 @@ class ROIManager(CTk.CTkToplevel):
         x, y = self.winfo_x(), self.winfo_y()
         self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+{x}+{y}')
         self.sheet.insert_rows(rows=len(rois))
-        self.add_elements(len(type(self).labels))
+        self.add_elements(len(type(self).labels), rois)
         self.rois2sheet(rois)
         return rois
 
@@ -789,7 +790,7 @@ class ROIManager(CTk.CTkToplevel):
         self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+{x}+{y}')
         roi = rois[-1]
         self.sheet.insert_row([roi[label] for label in type(self).labels])
-        self.sheet.create_checkbox(c=type(self).cmax, r=len(rois)-1, checked = True)
+        self.sheet.create_checkbox(c=type(self).cmax, r=len(rois)-1, checked = roi['select'])
         self.sheet.create_checkbox(c=type(self).cmax+1, r=len(rois)-1, checked = False)
 
     def update_rois(self, rois:List[dict]=[]) -> List[dict]:
