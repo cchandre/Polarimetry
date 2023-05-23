@@ -78,7 +78,7 @@ ___
  - `group `: to be entered by the user as a tag of the specicif group the ROI belongs to; it will be saved in the MS Excel.
  - `select`: select the ROIs to be considered in the analysis.
  - `delete`: select the ROIs to be permanently deleted (then click the button `Delete` to actually delete them and update the table and images).
- - Button `Commit`: click this button to commit the changes made to the labels of the ROIs (names, groups and selection).
+ - (for versions < 2.5) Button `Commit`: click this button to commit the changes made to the labels of the ROIs (names, groups and selection).
  - Button `Save`: save the information on all the ROIs as a binary `.pyroi` file.
  - Button `Load`: load the ROIs from a binary `.pyroi` file.
  - Button `Delete`: permanently deletes all the ROIs selected in `delete`; ROIs are renumbered in the ROI Manager and in the intensity and thresholding/mask images.
