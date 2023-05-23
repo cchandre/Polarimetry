@@ -688,7 +688,7 @@ class ROIManager(CTk.CTkToplevel):
     manager_size = lambda w, h: f'{w+40}x{h+84}'
     cmax = len(labels)
 
-    def __init__(self, rois:list=[]) -> None:
+    def __init__(self, rois:list=[], button_images:list=[]) -> None:
         super().__init__()
         self.title('ROI Manager')
         self.grid_columnconfigure(1, weight=1)
@@ -711,19 +711,18 @@ class ROIManager(CTk.CTkToplevel):
         labels_ = type(self).labels + ['select', 'delete']
         labels_[0] = 'ROI'
         data = [[roi[label] for label in type(self).labels] for roi in rois]
-        self.sheet = tksheet.Sheet(self, data=data, headers=labels_, font=font, header_font=header_font, align='w', show_row_index=False, width=self.sheet_width, height=self.sheet_height(cell_height, rois), frame_bg=text_color, table_bg=gray[1], top_left_bg=gray[1], header_hidden_columns_expander_bg=gray[1], header_fg=text_color, header_bg=orange[0], header_grid_fg=gray[1], table_grid_fg=text_color, header_selected_cells_bg=orange[1], table_selected_cells_border_fg=orange[0], show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, enable_edit_cell_auto_resize=False, auto_resize_default_row_index=False, show_default_header_for_empty=False, empty_horizontal=0, empty_vertical=0, total_columns=type(self).cmax+2)
+        self.sheet = tksheet.Sheet(self, data=data, headers=labels_, font=font, header_font=header_font, align='w', show_row_index=False, width=self.sheet_width, height=self.sheet_height(cell_height, rois), frame_bg=text_color, table_bg=gray[0], top_left_bg=gray[0], header_hidden_columns_expander_bg=gray[0], header_fg=text_color, header_bg=orange[0], header_grid_fg=gray[0], table_grid_fg=text_color, header_selected_cells_bg=orange[1], table_selected_cells_border_fg=orange[0], show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, enable_edit_cell_auto_resize=False, auto_resize_default_row_index=False, show_default_header_for_empty=False, empty_horizontal=0, empty_vertical=0, total_columns=type(self).cmax+2)
         self.sheet.set_options(edit_cell_validation=False)
         self.sheet.grid(row=0, column=0, sticky='nswe', padx=20, pady=(20, 0))
         bottom_frame = CTk.CTkFrame(self)
         bottom_frame.grid(row=1, column=0, sticky='nswe', padx=20, pady=(0, 20))
         self.buttons = []
-        for _, (label, tooltip) in enumerate(zip(type(self).button_labels, type(self).tooltips)):
-            button = Button(bottom_frame, text=label, anchor='center', width=80)
+        for _, (label, tooltip, image) in enumerate(zip(type(self).button_labels, type(self).tooltips, button_images)):
+            button = Button(bottom_frame, text=label, width=110, image=image)
             ToolTip(button, text=tooltip)
             self.buttons += [button]
             button.grid(row=0, column=_, padx=10, pady=10, sticky='nswe')
         self.buttons[-1].configure(fg_color=red[0], hover_color=red[1])
-        self.buttons[-2].configure(fg_color=red[0], hover_color=red[1])
         self.add_elements(type(self).cmax)
         self.sheet.enable_bindings()
         self.sheet.disable_bindings(['rc_insert_column', 'rc_delete_column', 'rc_insert_row', 'rc_delete_row', 'hide_columns',  'row_height_resize','row_width_resize', 'column_height_resize', 'column_width_resize', 'edit_header', 'arrowkeys'])

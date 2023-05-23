@@ -607,10 +607,11 @@ class Polarimetry(CTk.CTk):
                 self.ontab_intensity()
                 self.ontab_thrsh()
         if not hasattr(self, 'manager'):
+            button_images = [self.icons['save'], self.icons['download'], self.icons['delete'], self.icons['delete_forever']]
             if hasattr(self, 'datastack'):
-                self.manager = ROIManager(rois=self.datastack.rois)
+                self.manager = ROIManager(rois=self.datastack.rois, button_images=button_images)
             else:
-                self.manager = ROIManager(rois=[])
+                self.manager = ROIManager(rois=[], button_images=button_images)
             self.manager.protocol('WM_DELETE_WINDOW', lambda:on_closing(self.manager))
             self.manager.bind('<Command-q>', lambda:on_closing(self.manager))
             self.manager.bind('<Command-w>', lambda:on_closing(self.manager))
