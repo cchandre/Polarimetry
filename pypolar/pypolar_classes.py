@@ -725,7 +725,7 @@ class ROIManager(CTk.CTkToplevel):
         self.buttons[-1].configure(fg_color=red[0], hover_color=red[1])
         self.add_elements(type(self).cmax, rois)
         self.sheet.enable_bindings()
-        self.sheet.disable_bindings(['rc_insert_column', 'rc_delete_column', 'rc_insert_row', 'rc_delete_row', 'hide_columns',  'row_height_resize','row_width_resize', 'column_height_resize', 'column_width_resize', 'edit_header', 'arrowkeys'])
+        self.sheet.disable_bindings(['rc_insert_column', 'rc_delete_column', 'rc_insert_row', 'rc_delete_row', 'hide_columns', 'row_height_resize','row_width_resize', 'column_height_resize', 'column_width_resize', 'edit_header', 'arrowkeys'])
         self.sheet.default_row_height(cell_height)
         for _, width in enumerate(widths):
             self.sheet.column_width(column=_, width=width)
@@ -735,6 +735,7 @@ class ROIManager(CTk.CTkToplevel):
         for _, roi in enumerate(rois):
             self.sheet.create_checkbox(r=_, c=cmax, checked=roi['select'], state='normal', redraw=False, check_function=None, text='')
         self.sheet.create_checkbox(r='all', c=cmax+1, checked=False, state='normal', redraw=False, check_function=None, text='')
+        self.sheet.highlight_columns(columns=[cmax, cmax+1], fg=orange[0], highlight_header=False)
         
     def delete(self, rois:list) -> None:
         vec = [_ for _, x in enumerate(self.sheet.get_column_data(c=-1)) if x == 'True']
