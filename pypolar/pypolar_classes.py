@@ -753,7 +753,7 @@ class ROIManager(CTk.CTkToplevel):
     def delete_all(self) -> None:
         for _ in range(self.sheet.get_total_rows()):
             self.sheet.delete_row()
-        self.sheet.set_options(height=self.sheet_height(20, []))
+        self.sheet.set_options(height=self.sheet_height(self.cell_height, []))
         x, y = self.winfo_x(), self.winfo_y()
         self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, [])) + f'+{x}+{y}')
 
