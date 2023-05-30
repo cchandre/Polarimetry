@@ -687,19 +687,19 @@ class ROIManager(CTk.CTkToplevel):
     tooltips = [' save information on ROIs as a .pyroi file', ' load ROIs from a .pyroi file', ' permanently deletes ROIs selected in delete column', ' permamently deletes all ROIs']
     manager_size = lambda w, h: f'{w+40}x{h+84}'
     cmax = len(labels)
+    cell_height = 25
 
     def __init__(self, rois:list=[], button_images:list=[]) -> None:
         super().__init__()
         self.title('ROI Manager')
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
-
-        cell_height = 22
-        self.sheet_height = lambda cell_h, rois_: 20 + (cell_h + 2) * (len(rois_) + 1)
+        
+        self.sheet_height = lambda cell_h, rois_: self.cell_height + (cell_h + 2) * (len(rois_) + 1)
         widths = type(self).widths + [70, 70]
         self.sheet_width = sum(widths) + 2
 
-        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+1200+200')
+        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, rois)) + f'+1200+200')
 
         if sys.platform == 'darwin':
             font = (font_macosx, 14, 'normal')
@@ -711,7 +711,7 @@ class ROIManager(CTk.CTkToplevel):
         labels_ = type(self).labels + ['select', 'delete']
         labels_[0] = 'ROI'
         data = [[roi[label] for label in type(self).labels] for roi in rois]
-        self.sheet = tksheet.Sheet(self, data=data, headers=labels_, font=font, header_font=header_font, align='w', show_row_index=False, width=self.sheet_width, height=self.sheet_height(cell_height, rois), frame_bg=text_color, table_bg=gray[0], top_left_bg=text_color, header_hidden_columns_expander_bg=gray[0], header_fg=text_color, header_bg=gray[0], outline_thickness=0, header_border_fg=text_color, header_grid_fg=text_color, table_grid_fg=text_color, header_selected_cells_bg=gray[1], table_selected_cells_border_fg=orange[0], show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, enable_edit_cell_auto_resize=False, auto_resize_default_row_index=False, show_default_header_for_empty=False, empty_horizontal=0, empty_vertical=0, total_columns=type(self).cmax+2)
+        self.sheet = tksheet.Sheet(self, data=data, headers=labels_, font=font, header_font=header_font, align='w', show_row_index=False, width=self.sheet_width, height=self.sheet_height(self.cell_height, rois), frame_bg=text_color, table_bg=gray[0], top_left_bg=text_color, header_hidden_columns_expander_bg=gray[0], header_fg=text_color, header_bg=gray[0], outline_thickness=0, header_border_fg=text_color, header_grid_fg=text_color, table_grid_fg=text_color, header_selected_cells_bg=gray[1], table_selected_cells_border_fg=orange[0], show_x_scrollbar=False, show_y_scrollbar=False, show_top_left=False, enable_edit_cell_auto_resize=False, auto_resize_default_row_index=False, show_default_header_for_empty=False, empty_horizontal=0, empty_vertical=0, total_columns=type(self).cmax+2)
         self.sheet.set_options(edit_cell_validation=False)
         self.sheet.grid(row=0, column=0, sticky='nswe', padx=20, pady=(20, 0))
         bottom_frame = CTk.CTkFrame(self)
@@ -726,7 +726,7 @@ class ROIManager(CTk.CTkToplevel):
         self.add_elements(type(self).cmax, rois)
         self.sheet.enable_bindings()
         self.sheet.disable_bindings(['rc_insert_column', 'rc_delete_column', 'rc_insert_row', 'rc_delete_row', 'hide_columns', 'row_height_resize','row_width_resize', 'column_height_resize', 'column_width_resize', 'edit_header', 'arrowkeys'])
-        self.sheet.default_row_height(cell_height)
+        self.sheet.default_row_height(self.cell_height)
         for _, width in enumerate(widths):
             self.sheet.column_width(column=_, width=width)
 
@@ -746,16 +746,16 @@ class ROIManager(CTk.CTkToplevel):
                 roi['indx'] = _ + 1
             self.sheet.set_column_data(0, values=tuple(roi['indx'] for roi in rois), add_rows=False)
             vec = [_ for _, x in enumerate(self.sheet.get_column_data(c=-1)) if x == 'True']
-        self.sheet.set_options(height=self.sheet_height(20, rois))
+        self.sheet.set_options(height=self.sheet_height(self.cell_height, rois))
         x, y = self.winfo_x(), self.winfo_y()
-        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+{x}+{y}')
+        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, rois)) + f'+{x}+{y}')
     
     def delete_all(self) -> None:
         for _ in range(self.sheet.get_total_rows()):
             self.sheet.delete_row()
         self.sheet.set_options(height=self.sheet_height(20, []))
         x, y = self.winfo_x(), self.winfo_y()
-        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(20, [])) + f'+{x}+{y}')
+        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, [])) + f'+{x}+{y}')
 
     def get_buttons(self) -> list:
         return self.buttons
@@ -766,9 +766,9 @@ class ROIManager(CTk.CTkToplevel):
         file = fd.askopenfilename(title='Select a PyROI file', initialdir=initialdir, filetypes=filetypes)
         with open(file, 'rb') as f:
             rois = pickle.load(f)
-        self.sheet.set_options(height=self.sheet_height(20, rois))
+        self.sheet.set_options(height=self.sheet_height(self.cell_height, rois))
         x, y = self.winfo_x(), self.winfo_y()
-        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+{x}+{y}')
+        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, rois)) + f'+{x}+{y}')
         self.sheet.insert_rows(rows=len(rois))
         self.add_elements(len(type(self).labels), rois)
         self.rois2sheet(rois)
@@ -786,9 +786,9 @@ class ROIManager(CTk.CTkToplevel):
                 pickle.dump(rois, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     def update_manager(self, rois:List[dict]) -> None:
-        self.sheet.set_options(height=self.sheet_height(20, rois))
+        self.sheet.set_options(height=self.sheet_height(self.cell_height, rois))
         x, y = self.winfo_x(), self.winfo_y()
-        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(20, rois)) + f'+{x}+{y}')
+        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, rois)) + f'+{x}+{y}')
         roi = rois[-1]
         self.sheet.insert_row([roi[label] for label in type(self).labels])
         self.sheet.create_checkbox(c=type(self).cmax, r=len(rois)-1, checked = roi['select'])
