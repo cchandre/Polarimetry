@@ -1883,10 +1883,11 @@ class Polarimetry(CTk.CTk):
             a0[a0 == 0] = np.nan
         elif self.method.get() == '4POLAR 2D':
             mat = np.einsum('ij,jmn->imn', self.CD.invKmat_2D, field)
-            s = mat[0] + mat[1] + mat[2]
+            s = mat[0] + mat[1]
             pxy = divide_ext(mat[0] - mat[1], s).reshape(shape)
-            puv = divide_ext(2 * mat[3], s).reshape(shape)
-            lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
+            puv = divide_ext(2 * mat[2], s).reshape(shape)
+            p2d = np.sqrt(puv**2 + pxy**2)
+            lam = (1 - p2d) / (3 - p2d)
             a0 = np.mean(field, axis=0) / 4
             a0[a0 == 0] = np.nan
         rho_ = Variable('Rho', datastack=datastack)
@@ -1927,7 +1928,7 @@ class Polarimetry(CTk.CTk):
             eta_.values[mask] = np.rad2deg(np.arccos(np.sqrt((pzz[mask] - lam[mask]) / (1 - 3 * lam[mask]))))
             datastack.vars = [rho_, psi_, eta_]
         elif self.method.get() == '4POLAR 2D':
-            mask *= (lam < 1/3) * (lam > 0)
+            mask *= (lam < 3/8) * (lam > 0)
             rho_.values[mask] = 0.5 * np.rad2deg(np.arctan2(puv[mask], pxy[mask]))
             rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
             psi_ = Variable('Psi', datastack=datastack)

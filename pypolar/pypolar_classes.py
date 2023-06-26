@@ -379,15 +379,10 @@ class Calibration:
     dict_1pf = {'no distortions': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 0), '488 nm (no distortions)': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 175), '561 nm (no distortions)': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 120), '640 nm (no distortions)': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 125), '488 nm (16/03/2020 - 12/04/2022)': ('Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0', 0), '561 nm (16/03/2020 - 12/04/2022)': ('Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0', 0), '640 nm (16/03/2020 - 12/04/2022)': ('Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0', 0), '488 nm (13/12/2019 - 15/03/2020)': ('Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0', 0), '561 nm (13/12/2019 - 15/03/2020)': ('Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0', 0), '640 nm (13/12/2019 - 15/03/2020)': ('Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0', 0), '488 nm (before 13/12/2019)': ('Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0', 0), '561 nm (before 13/12/2019)': ('Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0', 0), '640 nm (before 13/12/2019)': ('Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0', 0), 'other': ('Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 0)}
     folder_1pf = Path(__file__).parent / 'diskcones'
 
-    dict_4polar = {'Calib_20221102': ('Calib_20221102', 0), 'Calib_20221011': ('Calib_20221011', 0), 'other': ('Calib_20221102', 0)}
+    dict_4polar = {'no distortions': ('Calib_th', 0), 'Calib_20221102': ('Calib_20221102', 0), 'Calib_20221011': ('Calib_20221011', 0), 'other': ('Calib_th', 0)}
     folder_4polar = Path(__file__).parent / 'calibration'
 
-    def __init__(self, method:str, label:str=None) -> None:
-        if label is None:
-            if method == '1PF':
-                label = 'no distortions'
-            elif method.startswith('4POLAR'):
-                label = 'Calib_20221102'
+    def __init__(self, method:str, label:str='no distortions') -> None:
         if method == '1PF':
             vars = type(self).dict_1pf.get(label)
             folder = type(self).folder_1pf
@@ -405,8 +400,8 @@ class Calibration:
                 self.RhoPsi = np.moveaxis(np.stack((np.array(disk['RoTest'], dtype=np.float64), np.array(disk['PsiTest'], dtype=np.float64))), 0, -1)
                 self.xy = 2 * (np.linspace(-1, 1, int(disk['NbMapValues']), dtype=np.float64),)
             elif method.startswith('4POLAR') and vars[0].startswith('Calib'):
-                self.invKmat_2D = np.linalg.inv(np.array(disk['K2D'], dtype=np.float64))
-                self.invKmat_3D = np.linalg.inv(np.array(disk['K3D'], dtype=np.float64))
+                self.invKmat_2D = np.linalg.pinv(np.array(disk['K2D'], dtype=np.float64))
+                self.invKmat_3D = np.linalg.pinv(np.array(disk['K3D'], dtype=np.float64))
             else:
                 showerror('Calibration data', 'Incorrect disk cone or calibration data\n Download another file', icon='error')
                 vars = (' ', 0)
