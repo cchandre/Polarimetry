@@ -1810,8 +1810,6 @@ class Polarimetry(CTk.CTk):
             roi_ilow_map = np.ones(shape, dtype=np.float64) * np.float64(self.ilow.get())
             self.per_roi.deselect()
         mask = self.get_mask(datastack)
-        if self.edge_detection_switch.get() == 'on' and self.edge_method == 'download':
-            mask *= self.edge_mask
         mask *= (datastack.intensity >= roi_ilow_map) * (roi_map > 0)
         return roi_map, (mask != 0)
 
