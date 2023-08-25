@@ -62,7 +62,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.5.1'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.1': 'August 22, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.1': 'August 25, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     left_frame_width, right_frame_width = 180, 850
@@ -451,7 +451,7 @@ class Polarimetry(CTk.CTk):
     def edge_detection_callback(self) -> None:
         if hasattr(self, 'stack'):
             if self.edge_detection_switch.get() == 'on':
-                window = ShowInfo(message=' Mask for edge detection', image=self.icons['multiline_chart'], button_labels=['Download', 'Compute', 'Cancel'], geometry=(370, 140), fontsize=16)
+                window = ShowInfo(message=' Image for edge detection', image=self.icons['multiline_chart'], button_labels=['Download', 'Compute', 'Cancel'], geometry=(370, 140), fontsize=16)
                 buttons = window.get_buttons()
                 buttons[0].configure(command=lambda:self.download_edge_mask(window))
                 buttons[1].configure(command=lambda:self.compute_edge_mask(window))
