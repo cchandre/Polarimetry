@@ -62,7 +62,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.5.1'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.1': 'August 29, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.1': 'September 1, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     left_frame_width, right_frame_width = 180, 850
@@ -125,7 +125,7 @@ class Polarimetry(CTk.CTk):
         self.openfile_dropdown = DropDown(left_frame, values=['Open file', 'Open folder', 'Previous analysis'], image=self.icons['download_file'], command=self.open_file_callback)
         self.option = tk.StringVar()
         self.options_dropdown = DropDown(left_frame, values=['Thresholding (manual)', 'Mask (manual)'], image=self.icons['build'], variable=self.option, state='disabled', command=self.options_dropdown_callback, tooltip=' select the method of analysis\n - intensity thresholding or segmentation mask for single file analysis (manual) or batch processing (auto)\n - the mask has to be binary and in PNG format and have the same file name as the respective polarimetry data file')
-        self.add_roi_button = Button(left_frame, text='Add ROI', image=self.icons['roi'], command=self.add_roi_callback, tooltip=' add a region of interest: polygon (left button), freehand (right button)')
+        self.add_roi_button = Button(left_frame, text='Add ROI', image=self.icons['roi'], command=self.add_roi_callback, tooltip=' add a region of interest: polygon (left button), freeform (right button)')
         self.add_roi_button.pack(padx=20, pady=20)
         self.analysis_button = Button(left_frame, text='Analysis', command=self.analysis_callback, image=self.icons['play'], fg_color=green[0], hover_color=green[1], tooltip=' perform polarimetry analysis')
         self.analysis_button.pack(padx=20, pady=20)
