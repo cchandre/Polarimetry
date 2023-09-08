@@ -62,7 +62,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.5.1'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.1': 'September 1, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.1': 'September 8, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     left_frame_width, right_frame_width = 180, 850
@@ -745,7 +745,7 @@ class Polarimetry(CTk.CTk):
         if len(plt.get_fignums()) and hasattr(self, 'datastack') and (not hasattr(self, 'crop_window')):
             self.crop_window = CTk.CTkToplevel(self)
             self.crop_window.title(f'Crop figures for {self.datastack.name}')
-            self.crop_window.geometry(geometry_info((340, 230)))
+            self.crop_window.geometry(geometry_info((440, 230)))
             self.crop_window.protocol('WM_DELETE_WINDOW', self.crop_on_closing)
             self.crop_window.bind('<Command-q>', lambda:self.crop_on_closing)
             self.crop_window.bind('<Command-w>', self.crop_on_closing)
@@ -765,7 +765,8 @@ class Polarimetry(CTk.CTk):
             banner.grid(row=3, column=0, columnspan=3, padx=20)
             Button(banner, text='Crop', anchor='center', command=self.crop_figures, width=80, height=button_size[1], tooltip=' crop figures using the chosen axis limits').grid(row=0, column=0, padx=10, pady=20)
             Button(banner, text='Get', anchor='center', command=self.get_axes, width=80, height=button_size[1], tooltip=' get the axis limits of the active figure').grid(row=0, column=1, padx=10, pady=20)
-            Button(banner, text='Reset', anchor='center', command=self.reset_figures, width=80, height=button_size[1]).grid(row=0, column=2, padx=10, pady=20)
+            Button(banner, text='Create ROI', anchor='center', command=self.createROIfromcrop, width=80, height=button_size[1], tooltip=' create a rectangular ROI with the limits defined above').grid(row=0, column=2, padx=10, pady=20)
+            Button(banner, text='Reset', anchor='center', command=self.reset_figures, width=80, height=button_size[1]).grid(row=0, column=3, padx=10, pady=20)
 
     def crop_on_closing(self):
         self.crop_window.destroy()
@@ -789,6 +790,18 @@ class Polarimetry(CTk.CTk):
             self.xylim[3].set(int(ax.get_ylim()[0]))
         else:
             ShowInfo(message=' Select an active figure of the type\n Composite, Sticks or Intensity', image=self.icons['crop'], button_labels=['OK'])
+
+    def createROIfromcrop(self) -> None:
+        roix = [int(self.xylim[0].get()), int(self.xylim[1].get()), int(self.xylim[1].get()), int(self.xylim[0].get())]
+        roiy = [int(self.xylim[3].get()), int(self.xylim[3].get()), int(self.xylim[2].get()), int(self.xylim[2].get())]
+        vertices = np.asarray([roix, roiy])
+        indx = self.datastack.rois[-1]['indx'] + 1 if self.datastack.rois else 1
+        self.datastack.rois += [{'indx': indx, 'label': (roix[0], roiy[0]), 'vertices': vertices, 'ILow': self.ilow.get(), 'name': '', 'group': '', 'select': True}]
+        self.thrsh_canvas.draw()
+        self.ontab_intensity()
+        self.ontab_thrsh()
+        if hasattr(self, 'manager'):
+            self.manager.update_manager(self.datastack.rois)
 
     def reset_figures(self) -> None:
         vals = [1, self.datastack.width, 1, self.datastack.height]
