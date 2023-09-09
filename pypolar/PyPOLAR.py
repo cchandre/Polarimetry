@@ -62,7 +62,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.5.1'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.1': 'September 8, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.1': 'September 9, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     left_frame_width, right_frame_width = 180, 850
@@ -744,7 +744,7 @@ class Polarimetry(CTk.CTk):
     def crop_figures_callback(self) -> None:
         if len(plt.get_fignums()) and hasattr(self, 'datastack') and (not hasattr(self, 'crop_window')):
             self.crop_window = CTk.CTkToplevel(self)
-            self.crop_window.title(f'Crop figures for {self.datastack.name}')
+            self.crop_window.title('Crop Manager')
             self.crop_window.geometry(geometry_info((440, 230)))
             self.crop_window.protocol('WM_DELETE_WINDOW', self.crop_on_closing)
             self.crop_window.bind('<Command-q>', lambda:self.crop_on_closing)
@@ -792,11 +792,17 @@ class Polarimetry(CTk.CTk):
             ShowInfo(message=' Select an active figure of the type\n Composite, Sticks or Intensity', image=self.icons['crop'], button_labels=['OK'])
 
     def createROIfromcrop(self) -> None:
-        roix = [int(self.xylim[0].get()), int(self.xylim[1].get()), int(self.xylim[1].get()), int(self.xylim[0].get())]
-        roiy = [int(self.xylim[3].get()), int(self.xylim[3].get()), int(self.xylim[2].get()), int(self.xylim[2].get())]
-        vertices = np.asarray([roix, roiy])
+        roix = np.asarray([int(self.xylim[0].get()), int(self.xylim[1].get()), int(self.xylim[1].get()), int(self.xylim[0].get())])
+        roiy = np.asarray([int(self.xylim[3].get()), int(self.xylim[3].get()), int(self.xylim[2].get()), int(self.xylim[2].get())])
+        if (float(self.rotation[1].get()) != 0) :
+            theta = -np.deg2rad(float(self.rotation[1].get()))
+            cosd, sind = np.cos(theta), np.sin(theta)
+            x0, y0 = self.datastack.width / 2, self.datastack.height / 2
+            vertices = np.asarray([x0 + (roix - x0) * cosd + (roiy - y0) * sind, y0 - (roix - x0) * sind + (roiy - y0) * cosd])
+        else:
+            vertices = np.asarray([roix, roiy])
         indx = self.datastack.rois[-1]['indx'] + 1 if self.datastack.rois else 1
-        self.datastack.rois += [{'indx': indx, 'label': (roix[0], roiy[0]), 'vertices': vertices, 'ILow': self.ilow.get(), 'name': '', 'group': '', 'select': True}]
+        self.datastack.rois += [{'indx': indx, 'label': (vertices[0][0], vertices[1][0]), 'vertices': vertices, 'ILow': self.ilow.get(), 'name': '', 'group': '', 'select': True}]
         self.thrsh_canvas.draw()
         self.ontab_intensity()
         self.ontab_thrsh()
