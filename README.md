@@ -121,7 +121,7 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
   
   * Spiiner for the number of bins used in histogrames (default=60). 
 
-  * Button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/crop.png" alt=" " width="30"/>: click and enter the x-range and y-range for cropping figures; the values are also the ones used in the saved animated gif (see `Save output`). 
+  * Button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/crop.png" alt=" " width="30"/>: click to open the Crop Manager. Enter the x-range (xlim) and y-range (ylim) and then click `Crop` for cropping figures; or click `Get` to get the x-range and y-range of the active figure; click on 'Create ROI' to create a rectangular ROI with the set limit on the active figure; the values are also the ones used in the saved animated gif (see `Save output`). Click on `Reset` to go back to the original x-range and y-range.
   
 #### Miscellaneous tools
 * Button <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/query_stats.png" alt=" " width="30"/>: Click this button to visualize the accuracy of the fitting per pixel. The selection of the pixel is done on the composite figure of &rho;. 
