@@ -132,7 +132,7 @@ Check the boxes in the Show column for the figure types to be displayed, and in 
 
 #### Save output
 
-  The `Save output` table lists the saving options: `Data (.pykl)` for saving data as a compressed pickle file (to download as `Previous analysis` in the download selection), `Data (.mat)` for saving the values of the variables for each pixel used in the analysis as a MATLAB `.mat` file, `Mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and `Movie (.gif)` for an animated gif file of the stack.
+  The `Save output` table lists the saving options: `Data (.pykl)` for saving data as a compressed pickle file (to download as `Previous analysis` in the download selection), `Data (.mat)` for saving the values of the variables for each pixel used in the analysis as a MATLAB `.mat` file, `Mean values (.xlsx)` for saving the mean values of the variables in a MS Excel file, and `Movie (.gif)` for an animated gif file of the stack or a region of the stack. Use the Crop Manager to define a selected region of the stack.
   Using the option menu `Figures`, select the format of the figures to be saved (as selected in the Figures table for the variables selected in the Variables table). Possible formats are `.pdf` (default), `.png`, `.jpeg` and `.tif`. 
 
  * <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/icons/delete_forever.png" alt=" " width="30"/> reinitializes the `Show/Save` and `Variable` tables.
