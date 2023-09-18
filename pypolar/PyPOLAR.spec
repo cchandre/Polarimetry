@@ -114,6 +114,17 @@ if sys.platform == 'darwin':
                 },
             },
             {
+                "UTTypeIdentifier": "fr.cnrs.fresnel.pypolar-pykl",
+                "UTTypeDescription": "PyPOLAR Pickle",
+                "UTTypeIconFile": "icons/pykl.icns",
+                "UTTypeConformsTo": ["public.data"],
+                "UTTypeReferenceURL": "https://www.fresnel.fr/polarimetry",
+                "UTTypeTagSpecification": {
+                    "public.filename-extension": "pykl",
+                    "public.mime-type": "data/pypolar-pykl",
+                },
+            },
+            {
                 "UTTypeIdentifier": "fr.cnrs.fresnel.pypolar-pyfig",
                 "UTTypeDescription": "PyPOLAR Figure",
                 "UTTypeIconFile": "icons/pyfig.icns",
@@ -123,6 +134,5 @@ if sys.platform == 'darwin':
                     "public.filename-extension": "pyfig",
                     "public.mime-type": "data/pypolar-pyfig",
                 },
-            },
-            ],
+            },],
             })
