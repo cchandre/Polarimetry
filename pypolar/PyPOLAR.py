@@ -4,6 +4,7 @@ import customtkinter as CTk
 import sys
 from pathlib import Path
 import joblib
+import pickle
 import copy
 import webbrowser
 import numpy as np
@@ -61,8 +62,8 @@ plt.ion()
 
 class Polarimetry(CTk.CTk):
 
-    __version__ = '2.5.1'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.1': 'September 9, 2023'}
+    __version__ = '2.5.2'
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.2': 'September 18, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     left_frame_width, right_frame_width = 180, 850
@@ -97,9 +98,9 @@ class Polarimetry(CTk.CTk):
         if sys.platform == 'win32':
             self.iconbitmap(str(base_dir / 'main_icon.ico'))
             import winreg
-            EXTS = ['.pyroi', '.pyreg', '.pykl']
-            TYPES = ['PyPOLAR ROI', 'PyPOLAR Registration', 'PyPOLAR Pickle']
-            ICONS = ['pyroi.ico', 'pyreg.ico', 'pykl.ico']
+            EXTS = ['.pyroi', '.pyreg', '.pykl', '.pyfig']
+            TYPES = ['PyPOLAR ROI', 'PyPOLAR Registration', 'PyPOLAR Pickle', 'PyPOLAR Figure']
+            ICONS = ['pyroi.ico', 'pyreg.ico', 'pykl.ico', 'pyfig.ico']
             try:
                 for EXT, TYPE, ICON in zip(EXTS, TYPES, ICONS):
                     key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, EXT)
@@ -122,7 +123,7 @@ class Polarimetry(CTk.CTk):
         Button(left_frame, text=' PyPOLAR', image=self.icons['blur_circular'], command=self.on_click_tab, tooltip=' - select a polarimetry method\n - download a .tiff file or a folder or a previous analysis (.pykl)\n - select an option of analysis\n - select one or several regions of interest (ROI)\n - click on Analysis', hover=False, fg_color='transparent', font=CTk.CTkFont(size=24)).pack(padx=20, pady=(10, 40))
         self.method = tk.StringVar()
         DropDown(left_frame, values=['1PF', 'CARS', 'SRS', 'SHG', '2PF', '4POLAR 2D', '4POLAR 3D'], image=self.icons['microscope'], command=self.method_dropdown_callback, variable=self.method, tooltip=' - 1PF: one-photon fluorescence\n - CARS: coherent anti-Stokes Raman scattering\n - SRS: stimulated Raman scattering\n - SHG: second-harmonic generation\n - 2PF: two-photon fluorescence\n - 4POLAR 2D: 2D 4POLAR fluorescence (not yet implemented)\n - 4POLAR 3D: 3D 4POLAR fluorescence')
-        self.openfile_dropdown = DropDown(left_frame, values=['Open file', 'Open folder', 'Previous analysis'], image=self.icons['download_file'], command=self.open_file_callback)
+        self.openfile_dropdown = DropDown(left_frame, values=['Open file', 'Open folder', 'Previous analysis', 'Previous figure'], image=self.icons['download_file'], command=self.open_file_callback)
         self.option = tk.StringVar()
         self.options_dropdown = DropDown(left_frame, values=['Thresholding (manual)', 'Mask (manual)'], image=self.icons['build'], variable=self.option, state='disabled', command=self.options_dropdown_callback, tooltip=' select the method of analysis\n - intensity thresholding or segmentation mask for single file analysis (manual) or batch processing (auto)\n - the mask has to be binary and in PNG format and have the same file name as the respective polarimetry data file')
         self.add_roi_button = Button(left_frame, text='Add ROI', image=self.icons['roi'], command=self.add_roi_callback, tooltip=' add a region of interest: polygon (left button), freeform (right button)')
@@ -267,7 +268,7 @@ class Polarimetry(CTk.CTk):
         save_ext.grid(row=2, column=1, padx=20, pady=(20, 90), sticky='sw')
         Label(save_ext, text='Figures', anchor='w').grid(row=1, column=0, padx=(40, 0), sticky='w')
         self.figure_extension = tk.StringVar(value='.pdf')
-        self.figure_extension_optionmenu = OptionMenu(save_ext, width=60, height=20, variable=self.figure_extension, values=['.pdf', '.png', '.jpeg', '.tif'], state='disabled', fg_color=gray[0], button_color=gray[0], text_color_disabled=gray[1], button_hover_color=gray[0], anchor='e', tooltip=' select the file type for the saved figures')
+        self.figure_extension_optionmenu = OptionMenu(save_ext, width=60, height=20, variable=self.figure_extension, values=['.pdf', '.png', '.jpeg', '.tif', '.pyfig'], state='disabled', fg_color=gray[0], button_color=gray[0], text_color_disabled=gray[1], button_hover_color=gray[0], anchor='e', tooltip=' select the file type for the saved figures')
         self.figure_extension_optionmenu.grid(row=1, column=1)
         labels = ['Data (.pykl)', 'Data (.mat)', 'Mean values (.xlsx)', 'Movie (.gif)']
         self.extension_table = [CheckBox(save_ext) for _ in range(len(labels))]
@@ -737,6 +738,12 @@ class Polarimetry(CTk.CTk):
                     self.filename_label.write(self.datastack.name)
                     self.ontab_intensity(update=False)
                 window.withdraw()
+        elif value == 'Previous figure':
+            file = Path(fd.askopenfilename(title='Download a previous polarimetry figure', initialdir=initialdir, filetypes=[('PyPOLAR pickle figure', '*.pyfig')]))
+            self.openfile_dropdown.get_icon().configure(image=self.icons['analytics'])
+            if file.suffix == '.pyfig':
+                fig = pickle.load(open(file, 'rb'))
+                fig.show()
         if hasattr(self, 'stack'):
             self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
             self.ontab_thrsh(update=False)
@@ -1451,7 +1458,10 @@ class Polarimetry(CTk.CTk):
                     suffix = '_perROI_' + str(roi['indx']) if roi is not None else ''
                     histo = '(0-90)' if htype == 'polar3' else ''
                     file = datastack.file.with_name(datastack.name + '_Histo' + histo + var.name + suffix + self.figure_extension.get())
-                    plt.savefig(file, bbox_inches='tight')
+                    if self.figure_extension.get() in ['.pdf', '.png', '.jpeg', '.tif']:
+                        plt.savefig(file, bbox_inches='tight')
+                    elif self.figure_extension.get() == '.pyfig':
+                        pickle.dump(fig, open(file, 'wb'))
                 if not self.show_table[2].get():
                     plt.close(fig)
 
@@ -1499,7 +1509,10 @@ class Polarimetry(CTk.CTk):
                         if self.save_table[2].get():
                             suffix = '(0-90)' if htype == 'polar3' else ''
                             file = folder / (folder.stem + '_ConcatHisto' + suffix + var_.name  + self.figure_extension.get()) 
-                            plt.savefig(file, bbox_inches='tight')
+                            if self.figure_extension.get() in ['.pdf', '.png', '.jpeg', '.tif']:
+                                plt.savefig(file, bbox_inches='tight')
+                            elif self.figure_extension.get() == '.pyfig':
+                                pickle.dump(fig, open(file, 'wb'))
         if len(vars) == 0:
             ShowInfo(' Error in the selected folder', image=self.icons['blur_circular'], button_labels=['OK'])
 
@@ -1542,7 +1555,10 @@ class Polarimetry(CTk.CTk):
                 fig.colorbar(h, cax=cax)
             if self.save_table[0].get():
                 file = datastack.file.with_name(datastack.name + '_' + var.name + 'Composite' + self.figure_extension.get())
-                plt.savefig(file, bbox_inches='tight')
+                if self.figure_extension.get() in ['.pdf', '.png', '.jpeg', '.tif']:
+                    plt.savefig(file, bbox_inches='tight')
+                elif self.figure_extension.get() == '.pyfig':
+                    pickle.dump(fig, open(file, 'wb'))
             if not self.show_table[0].get():
                 plt.close(fig)
 
@@ -1630,7 +1646,10 @@ class Polarimetry(CTk.CTk):
                 fig.colorbar(p, cax=cax)
             if self.save_table[1].get():
                 file = datastack.file.with_name(datastack.name + '_' + var.name + 'Sticks' + self.figure_extension.get())
-                plt.savefig(file, bbox_inches='tight')
+                if self.figure_extension.get() in ['.pdf', '.png', '.jpeg', '.tif']:
+                    plt.savefig(file, bbox_inches='tight')
+                elif self.figure_extension.get() == '.pyfig':
+                    pickle.dump(fig, open(file, 'wb'))
             if not self.show_table[1].get():
                 plt.close(fig)
 
@@ -1663,7 +1682,10 @@ class Polarimetry(CTk.CTk):
                     fig.axes[1].remove()
             if self.save_table[3].get():
                 file = datastack.file.with_name(datastack.name + '_Intensity' + self.figure_extension.get())
-                plt.savefig(file, bbox_inches='tight')
+                if self.figure_extension.get() in ['.pdf', '.png', '.jpeg', '.tif']:
+                    plt.savefig(file, bbox_inches='tight')
+                elif self.figure_extension.get() == '.pyfig':
+                    pickle.dump(fig, open(file, 'wb'))
             if not self.show_table[3].get():
                 plt.close(fig)
     

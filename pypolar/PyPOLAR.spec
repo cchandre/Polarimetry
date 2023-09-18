@@ -19,7 +19,7 @@ Possible issues:
 
 import sys
 
-__version__ = "2.5.1"
+__version__ = "2.5.2"
 
 block_cipher = None
 
@@ -114,14 +114,15 @@ if sys.platform == 'darwin':
                 },
             },
             {
-                "UTTypeIdentifier": "fr.cnrs.fresnel.pypolar-pykl",
-                "UTTypeDescription": "PyPOLAR Pickle",
-                "UTTypeIconFile": "icons/pykl.icns",
+                "UTTypeIdentifier": "fr.cnrs.fresnel.pypolar-pyfig",
+                "UTTypeDescription": "PyPOLAR Figure",
+                "UTTypeIconFile": "icons/pyfig.icns",
                 "UTTypeConformsTo": ["public.data"],
                 "UTTypeReferenceURL": "https://www.fresnel.fr/polarimetry",
                 "UTTypeTagSpecification": {
-                    "public.filename-extension": "pykl",
-                    "public.mime-type": "data/pypolar-pykl",
+                    "public.filename-extension": "pyfig",
+                    "public.mime-type": "data/pypolar-pyfig",
                 },
-            },],
+            },
+            ],
             })
