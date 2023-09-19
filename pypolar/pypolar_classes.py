@@ -463,7 +463,11 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
             self._buttons[text] = button = self._Button(text=text, image_file=str(im), toggle=callback in ['zoom', 'pan'], command=getattr(self, callback))
             if tooltip_text is not None:
                 ToolTip(button, text=tooltip_text)
-        self._label_font = CTk.CTkFont(size=12)
+                
+        if sys.platform == 'darwin':
+            self._label_font = CTk.CTkFont(family=font_macosx, size=11, weight='normal')
+        elif sys.platform == 'win32':
+            self._label_font = CTk.CTkFont(family=font_windows, size=13, weight='normal')
 
         label = tk.Label(master=self, font=self._label_font, text='\N{NO-BREAK SPACE}\n\N{NO-BREAK SPACE}')
         label.pack(side=tk.RIGHT)
@@ -663,7 +667,10 @@ class ToolTip:
         self.tw = tk.Toplevel(widget)
         self.tw.wm_overrideredirect(True)
         win = tk.Frame(self.tw, borderwidth=0)
-        label_font = CTk.CTkFont(size=11)
+        if sys.platform == 'darwin':
+            label_font = CTk.CTkFont(family=font_macosx, size=11, weight='normal')
+        elif sys.platform == 'win32':
+            label_font = CTk.CTkFont(family=font_windows, size=13, weight='normal')
         label = tk.Label(win, text=self.text, font=label_font, justify=tk.LEFT, relief=tk.SOLID, borderwidth=0, wraplength=self.wraplength)
         label.grid(padx=(pad[0], pad[2]), pady=(pad[1], pad[3]), sticky=tk.NSEW)
         win.grid()
