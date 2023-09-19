@@ -115,6 +115,7 @@ class DropDown(CTk.CTkFrame):
         super().__init__(master, **kwargs)
         self.configure(bg_color=orange[0], background_corner_colors=[gray[0], gray[0], gray[0], gray[0]])
         self.icon = Button(self, image=image, tooltip=tooltip, hover=False)
+        self.variable = variable
         self.icon.pack(side=tk.LEFT)
         self.option_menu = CTk.CTkOptionMenu(self, values=values, width=button_size[0]-button_size[1], height=button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state)
         self.option_menu.pack(side=tk.LEFT)

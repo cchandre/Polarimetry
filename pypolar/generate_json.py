@@ -28,6 +28,12 @@ if not file.exists():
       'top_fg_color': gray[0],
       'border_color': gray[1]
     },
+    'CTkScrollableFrame': {
+      'corner_radius': 6,
+      'border_width': 0,
+      'fg_color': gray[1],
+      'label_fg_color': text_color
+    },
     'CTkButton': {
       'corner_radius': 6,
       'border_width': 0,
@@ -64,7 +70,7 @@ if not file.exists():
       'corner_radius': 1000,
       'border_width': 3,
       'button_length': 0,
-      'fg_Color': gray[1],
+      'fg_color': gray[1],
       'progress_color': orange[1],
       'button_color': orange[0],
       'button_hover_color': orange[1],

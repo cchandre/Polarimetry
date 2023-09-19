@@ -115,7 +115,7 @@ class Polarimetry(CTk.CTk):
 ## DEFINE FRAMES
         left_frame = CTk.CTkFrame(master=self, width=type(self).left_frame_width, corner_radius=0, fg_color=gray[0])
         left_frame.grid(row=0, column=0, sticky='nsew')
-        right_frame = CTk.CTkFrame(master=self, width=type(self).right_frame_width, corner_radius=0, fg_color=gray[1])
+        right_frame = CTk.CTkScrollableFrame(master=self, width=type(self).right_frame_width, corner_radius=0, fg_color=gray[1])
         right_frame.grid(row=0, column=1, sticky='nsew')
         self.tabview = TabView(right_frame)
 
@@ -123,7 +123,8 @@ class Polarimetry(CTk.CTk):
         Button(left_frame, text=' PyPOLAR', image=self.icons['blur_circular'], command=self.on_click_tab, tooltip=' - select a polarimetry method\n - download a .tiff file or a folder or a previous analysis (.pykl)\n - select an option of analysis\n - select one or several regions of interest (ROI)\n - click on Analysis', hover=False, fg_color='transparent', font=CTk.CTkFont(size=24)).pack(padx=20, pady=(10, 40))
         self.method = tk.StringVar()
         DropDown(left_frame, values=['1PF', 'CARS', 'SRS', 'SHG', '2PF', '4POLAR 2D', '4POLAR 3D'], image=self.icons['microscope'], command=self.method_dropdown_callback, variable=self.method, tooltip=' - 1PF: one-photon fluorescence\n - CARS: coherent anti-Stokes Raman scattering\n - SRS: stimulated Raman scattering\n - SHG: second-harmonic generation\n - 2PF: two-photon fluorescence\n - 4POLAR 2D: 2D 4POLAR fluorescence (not yet implemented)\n - 4POLAR 3D: 3D 4POLAR fluorescence')
-        self.openfile_dropdown = DropDown(left_frame, values=['Open file', 'Open folder', 'Open analysis', 'Open figure'], image=self.icons['download_file'], command=self.open_file_callback, tooltip=' - open a file (.tif or .tiff stack file)\n - open a folder containing .tif or .tiff stack files\n - open a previous analysis (.pykl file saved from a previous PyPOLAR analysis)\n - open figure (.pyfig file saved from a previous analysis)')
+        self.openfile_dropdown_value = tk.StringVar()
+        self.openfile_dropdown = DropDown(left_frame, values=['Open file', 'Open folder', 'Open analysis', 'Open figure'], image=self.icons['download_file'], variable=self.openfile_dropdown_value, command=self.open_file_callback, tooltip=' - open a file (.tif or .tiff stack file)\n - open a folder containing .tif or .tiff stack files\n - open a previous analysis (.pykl file saved from a previous PyPOLAR analysis)\n - open figure (.pyfig file saved from a previous analysis)')
         self.option = tk.StringVar()
         self.options_dropdown = DropDown(left_frame, values=['Thresholding (manual)', 'Mask (manual)'], image=self.icons['build'], variable=self.option, state='disabled', command=self.options_dropdown_callback, tooltip=' select the method of analysis\n - intensity thresholding or segmentation mask for single file analysis (manual) or batch processing (auto)\n - the mask has to be binary and in PNG format and have the same file name as the respective polarimetry data file')
         self.add_roi_button = Button(left_frame, text='Add ROI', image=self.icons['roi'], command=self.add_roi_callback, tooltip=' add a region of interest: polygon (left button), freeform (right button)')
@@ -374,6 +375,7 @@ class Polarimetry(CTk.CTk):
     def startup(self) -> None:
         self.method.set('1PF')
         self.option.set('Thresholding (manual)')
+        self.openfile_dropdown_value.set('Open file')
         self.define_variable_table('1PF')
         self.CD = Calibration('1PF')
         self.calib_dropdown.configure(values=self.CD.list('1PF'))
@@ -715,7 +717,7 @@ class Polarimetry(CTk.CTk):
                 self.option.set('Thresholding (manual)')
             else:
                 ShowInfo(message=' The folder does not contain TIFF or TIF files', image=self.icons['download_folder'], button_labels=['OK'], geometry=(340, 140))
-        elif value == 'Previous analysis':
+        elif value == 'Open analysis':
             file = Path(fd.askopenfilename(title='Download a previous polarimetry analysis', initialdir=initialdir, filetypes=[('PyPOLAR pickle files', '*.pykl')]))
             self.openfile_dropdown.get_icon().configure(image=self.icons['analytics'])
             if file.suffix == '.pykl':
@@ -728,7 +730,7 @@ class Polarimetry(CTk.CTk):
                     self.method.set(self.datastack.method)
                     self.define_variable_table(self.datastack.method)
                     self.options_dropdown.set_state('disabled')
-                    self.option.set('Previous analysis')
+                    self.option.set('Open analysis')
                     self.intensity_axis.clear()
                     self.intensity_axis.set_axis_off()
                     self.intensity_canvas.draw()
@@ -738,18 +740,19 @@ class Polarimetry(CTk.CTk):
                     self.filename_label.write(self.datastack.name)
                     self.ontab_intensity(update=False)
                 window.withdraw()
-        elif value == 'Previous figure':
+        elif value == 'Open figure':
             file = Path(fd.askopenfilename(title='Download a previous polarimetry figure', initialdir=initialdir, filetypes=[('PyPOLAR pickle figure', '*.pyfig')]))
             self.openfile_dropdown.get_icon().configure(image=self.icons['analytics'])
             if file.suffix == '.pyfig':
                 fig = pickle.load(open(file, 'rb'))
+                fig.canvas.manager.set_window_title(fig.var + ' ' + fig.type)
                 fig.show()
         if hasattr(self, 'stack'):
             self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
             self.ontab_thrsh(update=False)
 
     def crop_figures_callback(self) -> None:
-        if len(plt.get_fignums()) and hasattr(self, 'datastack') and (not hasattr(self, 'crop_window')):
+        if len(plt.get_fignums()) and (not hasattr(self, 'crop_window')):
             self.crop_window = CTk.CTkToplevel(self)
             self.crop_window.title('Crop Manager')
             self.crop_window.geometry(geometry_info((440, 230)))
@@ -759,7 +762,10 @@ class Polarimetry(CTk.CTk):
             Label(self.crop_window, text='  define xlim and ylim', image=self.icons['crop'], compound='left', font=CTk.CTkFont(size=16), width=250).grid(row=0, column=0, columnspan=3, padx=30, pady=20)
             if not hasattr(self, 'xylim'):
                 self.xylim = []
-                vals = [1, self.datastack.width, 1, self.datastack.height]
+                if hasattr(self, 'datastack'):
+                    vals = [1, self.datastack.width, 1, self.datastack.height]
+                else:
+                    vals = ['', '', '', '']
                 for val in vals:
                     self.xylim += [tk.StringVar(value=str(val))]
             labels = [u'\u2B62 xlim', u'\u2B63 ylim']
@@ -783,7 +789,8 @@ class Polarimetry(CTk.CTk):
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
-            if (fig.type in ['Sticks', 'Composite', 'Intensity']) and (self.datastack.name in fs):
+            valid = (self.datastack.name in fs) if hasattr(self, 'datastack') else False
+            if (fig.type in ['Sticks', 'Composite', 'Intensity']) and (valid or self.openfile_dropdown_value.get()=='Open figure'):
                 fig.axes[0].set_xlim((int(self.xylim[0].get()), int(self.xylim[1].get())))
                 fig.axes[0].set_ylim((int(self.xylim[3].get()), int(self.xylim[2].get())))
 
@@ -799,28 +806,30 @@ class Polarimetry(CTk.CTk):
             ShowInfo(message=' Select an active figure of the type\n Composite, Sticks or Intensity', image=self.icons['crop'], button_labels=['OK'])
 
     def createROIfromcrop(self) -> None:
-        roix = np.asarray([int(self.xylim[0].get()), int(self.xylim[1].get()), int(self.xylim[1].get()), int(self.xylim[0].get())])
-        roiy = np.asarray([int(self.xylim[3].get()), int(self.xylim[3].get()), int(self.xylim[2].get()), int(self.xylim[2].get())])
-        if (float(self.rotation[1].get()) != 0) :
-            theta = -np.deg2rad(float(self.rotation[1].get()))
-            cosd, sind = np.cos(theta), np.sin(theta)
-            x0, y0 = self.datastack.width / 2, self.datastack.height / 2
-            vertices = np.asarray([x0 + (roix - x0) * cosd + (roiy - y0) * sind, y0 - (roix - x0) * sind + (roiy - y0) * cosd])
-        else:
-            vertices = np.asarray([roix, roiy])
-        indx = self.datastack.rois[-1]['indx'] + 1 if self.datastack.rois else 1
-        self.datastack.rois += [{'indx': indx, 'label': (vertices[0][0], vertices[1][0]), 'vertices': vertices, 'ILow': self.ilow.get(), 'name': '', 'group': '', 'select': True}]
-        self.thrsh_canvas.draw()
-        self.ontab_intensity()
-        self.ontab_thrsh()
-        if hasattr(self, 'manager'):
-            self.manager.update_manager(self.datastack.rois)
+        if hasattr(self, 'datastack'):
+            roix = np.asarray([int(self.xylim[0].get()), int(self.xylim[1].get()), int(self.xylim[1].get()), int(self.xylim[0].get())])
+            roiy = np.asarray([int(self.xylim[3].get()), int(self.xylim[3].get()), int(self.xylim[2].get()), int(self.xylim[2].get())])
+            if (float(self.rotation[1].get()) != 0) :
+                theta = -np.deg2rad(float(self.rotation[1].get()))
+                cosd, sind = np.cos(theta), np.sin(theta)
+                x0, y0 = self.datastack.width / 2, self.datastack.height / 2
+                vertices = np.asarray([x0 + (roix - x0) * cosd + (roiy - y0) * sind, y0 - (roix - x0) * sind + (roiy - y0) * cosd])
+            else:
+                vertices = np.asarray([roix, roiy])
+            indx = self.datastack.rois[-1]['indx'] + 1 if self.datastack.rois else 1
+            self.datastack.rois += [{'indx': indx, 'label': (vertices[0][0], vertices[1][0]), 'vertices': vertices, 'ILow': self.ilow.get(), 'name': '', 'group': '', 'select': True}]
+            self.thrsh_canvas.draw()
+            self.ontab_intensity()
+            self.ontab_thrsh()
+            if hasattr(self, 'manager'):
+                self.manager.update_manager(self.datastack.rois)
 
     def reset_figures(self) -> None:
-        vals = [1, self.datastack.width, 1, self.datastack.height]
-        for _, val in enumerate(vals):
-            self.xylim[_].set(val)
-        self.crop_figures()
+        if hasattr(self, 'datastack'):
+            vals = [1, self.datastack.width, 1, self.datastack.height]
+            for _, val in enumerate(vals):
+                self.xylim[_].set(val)
+            self.crop_figures()
 
     def clear_patches(self, ax:plt.Axes, canvas:FigureCanvasTkAgg) -> None:
         if ax.patches:
@@ -1292,7 +1301,7 @@ class Polarimetry(CTk.CTk):
         return mask
 
     def analysis_callback(self) -> None:
-        if self.option.get() == 'Previous analysis':
+        if self.option.get() == 'Open analysis':
             self.analysis_button.configure(image=self.icons['pause'])
             self.plot_data(self.datastack)
             self.analysis_button.configure(image=self.icons['play'])
