@@ -467,7 +467,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         if sys.platform == 'darwin':
             self._label_font = CTk.CTkFont(family=font_macosx, size=11, weight='normal')
         elif sys.platform == 'win32':
-            self._label_font = CTk.CTkFont(family=font_windows, size=13, weight='normal')
+            self._label_font = CTk.CTkFont(family=font_windows, size=13, weight='bold')
 
         label = tk.Label(master=self, font=self._label_font, text='\N{NO-BREAK SPACE}\n\N{NO-BREAK SPACE}')
         label.pack(side=tk.RIGHT)
@@ -670,7 +670,7 @@ class ToolTip:
         if sys.platform == 'darwin':
             label_font = CTk.CTkFont(family=font_macosx, size=11, weight='normal')
         elif sys.platform == 'win32':
-            label_font = CTk.CTkFont(family=font_windows, size=13, weight='normal')
+            label_font = CTk.CTkFont(family=font_windows, size=13, weight='bold')
         label = tk.Label(win, text=self.text, font=label_font, justify=tk.LEFT, relief=tk.SOLID, borderwidth=0, wraplength=self.wraplength)
         label.grid(padx=(pad[0], pad[2]), pady=(pad[1], pad[3]), sticky=tk.NSEW)
         win.grid()

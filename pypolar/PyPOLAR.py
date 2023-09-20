@@ -63,7 +63,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.5.2'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.2': 'September 19, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.2': 'September 20, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     left_frame_width, right_frame_width = 180, 850
@@ -96,6 +96,7 @@ class Polarimetry(CTk.CTk):
         self.grid_columnconfigure(1, weight=1)
         self.icons = {file.stem: CTk.CTkImage(dark_image=Image.open(file).resize((60, 60)), size=(30, 30)) for file in image_path.glob('*.png')}
         if sys.platform == 'win32':
+            CTk.deactivate_automatic_dpi_awareness()
             self.iconbitmap(str(base_dir / 'main_icon.ico'))
             import winreg
             EXTS = ['.pyroi', '.pyreg', '.pykl', '.pyfig']
@@ -113,9 +114,9 @@ class Polarimetry(CTk.CTk):
                 pass
 
 ## DEFINE FRAMES
-        left_frame = CTk.CTkFrame(master=self, width=type(self).left_frame_width, corner_radius=0, fg_color=gray[0])
+        left_frame = CTk.CTkScrollableFrame(master=self, width=type(self).left_frame_width + 25, corner_radius=0, fg_color=gray[0],scrollbar_button_color=gray[0], scrollbar_button_hover_color=gray[0])
         left_frame.grid(row=0, column=0, sticky='nsew')
-        right_frame = CTk.CTkScrollableFrame(master=self, width=type(self).right_frame_width, corner_radius=0, fg_color=gray[1])
+        right_frame = CTk.CTkScrollableFrame(master=self, width=type(self).right_frame_width, corner_radius=0, fg_color=gray[1], scrollbar_button_color=gray[1])
         right_frame.grid(row=0, column=1, sticky='nsew')
         self.tabview = TabView(right_frame)
 
