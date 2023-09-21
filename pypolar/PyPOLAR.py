@@ -63,7 +63,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.5.2'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.2': 'September 20, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.2': 'September 21, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     left_frame_width, right_frame_width = 180, 850
@@ -121,7 +121,7 @@ class Polarimetry(CTk.CTk):
         self.tabview = TabView(right_frame)
 
 ## LEFT FRAME
-        Button(left_frame, text=' PyPOLAR', image=self.icons['blur_circular'], command=self.on_click_tab, tooltip=' - select a polarimetry method\n - download a .tiff file or a folder or a previous analysis (.pykl)\n - select an option of analysis\n - select one or several regions of interest (ROI)\n - click on Analysis', hover=False, fg_color='transparent', font=CTk.CTkFont(size=24)).pack(padx=20, pady=(10, 40))
+        Button(left_frame, text=' PyPOLAR', image=self.icons['blur_circular'], command=self.on_click_tab, tooltip=' - select a polarimetry method\n - download a .tiff stack file, a folder, a PyPOLAR analysis (.pykl) or a PyPOLAR figure (.pyfig)\n - for a .tiff file or folder, select an option of analysis\n - select one or several regions of interest (ROI)\n - click on Analysis', hover=False, fg_color='transparent', font=CTk.CTkFont(size=24)).pack(padx=20, pady=(10, 40))
         self.method = tk.StringVar()
         DropDown(left_frame, values=['1PF', 'CARS', 'SRS', 'SHG', '2PF', '4POLAR 2D', '4POLAR 3D'], image=self.icons['microscope'], command=self.method_dropdown_callback, variable=self.method, tooltip=' - 1PF: one-photon fluorescence\n - CARS: coherent anti-Stokes Raman scattering\n - SRS: stimulated Raman scattering\n - SHG: second-harmonic generation\n - 2PF: two-photon fluorescence\n - 4POLAR 2D: 2D 4POLAR fluorescence (not yet implemented)\n - 4POLAR 3D: 3D 4POLAR fluorescence')
         self.openfile_dropdown_value = tk.StringVar()
@@ -628,19 +628,19 @@ class Polarimetry(CTk.CTk):
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
-            if hasattr(self, 'datastack'):
-                if (fig.type in ['Composite', 'Sticks', 'Intensity']) and (self.datastack.name in fs):
+            if (fig.type in ['Composite', 'Sticks', 'Intensity']):
+                if (hasattr(self, 'datastack')  and (self.datastack.name in fs)) or self.openfile_dropdown_value.get() == 'Open figure':
                     fig.axes[0].axis(self.add_axes_checkbox.get())
                     fig.canvas.draw()
-                elif fig.type == 'Histogram':
-                    fig.axes[0].tick_params(labelcolor='k' if self.add_axes_checkbox.get() else 'w')
+            elif fig.type == 'Histogram' and (hasattr(self, 'datastack') and self.datastack.name in fs):
+                fig.axes[0].tick_params(labelcolor='k' if self.add_axes_checkbox.get() else 'w')
 
     def colorbar_on_all_figures(self) -> None:
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
-            if hasattr(self, 'datastack'):
-                if (fig.type in ['Composite', 'Sticks', 'Intensity']) and (self.datastack.name in fs):
+            if (fig.type in ['Composite', 'Sticks', 'Intensity']) :
+                if (hasattr(self, 'datastack') and (self.datastack.name in fs)) or self.openfile_dropdown_value.get() == 'Open figure':
                     if self.colorbar_checkbox.get():
                         ax_divider = make_axes_locatable(fig.axes[0])
                         cax = ax_divider.append_axes('right', size='7%', pad='2%')
@@ -653,6 +653,8 @@ class Polarimetry(CTk.CTk):
                     else:
                         if len(fig.axes) >= 2:
                             fig.axes[1].remove()
+                if self.openfile_dropdown_value.get() == 'Open figure':
+                    plt.show()
 
     def colorblind_on_all_figures(self) -> None:
             figs = list(map(plt.figure, plt.get_fignums()))
@@ -743,7 +745,7 @@ class Polarimetry(CTk.CTk):
                 window.withdraw()
         elif value == 'Open figure':
             file = Path(fd.askopenfilename(title='Download a previous polarimetry figure', initialdir=initialdir, filetypes=[('PyPOLAR pickle figure', '*.pyfig')]))
-            self.openfile_dropdown.get_icon().configure(image=self.icons['analytics'])
+            self.openfile_dropdown.get_icon().configure(image=self.icons['imagesmode'])
             if file.suffix == '.pyfig':
                 fig = pickle.load(open(file, 'rb'))
                 fig.canvas.manager.set_window_title(fig.var + ' ' + fig.type)
@@ -765,8 +767,9 @@ class Polarimetry(CTk.CTk):
                 self.xylim = []
                 if hasattr(self, 'datastack'):
                     vals = [1, self.datastack.width, 1, self.datastack.height]
-                else:
-                    vals = ['', '', '', '']
+                elif self.openfile_dropdown_value.get() == 'Open figure':
+                    fig = plt.gcf()
+                    vals = [1, fig.width, 1, fig.height]
                 for val in vals:
                     self.xylim += [tk.StringVar(value=str(val))]
             labels = [u'\u2B62 xlim', u'\u2B63 ylim']
@@ -794,6 +797,8 @@ class Polarimetry(CTk.CTk):
             if (fig.type in ['Sticks', 'Composite', 'Intensity']) and (valid or self.openfile_dropdown_value.get()=='Open figure'):
                 fig.axes[0].set_xlim((int(self.xylim[0].get()), int(self.xylim[1].get())))
                 fig.axes[0].set_ylim((int(self.xylim[3].get()), int(self.xylim[2].get())))
+                if self.openfile_dropdown_value.get()=='Open figure':
+                    plt.show()
 
     def get_axes(self) -> None:
         fig = plt.gcf()
@@ -828,6 +833,12 @@ class Polarimetry(CTk.CTk):
     def reset_figures(self) -> None:
         if hasattr(self, 'datastack'):
             vals = [1, self.datastack.width, 1, self.datastack.height]
+            for _, val in enumerate(vals):
+                self.xylim[_].set(val)
+            self.crop_figures()
+        if self.openfile_dropdown_value.get() == 'Open figure':
+            fig = plt.gcf()
+            vals = [1, fig.width, 1, fig.height]
             for _, val in enumerate(vals):
                 self.xylim[_].set(val)
             self.crop_figures()
@@ -1553,7 +1564,7 @@ class Polarimetry(CTk.CTk):
         display, vmin, vmax = self.get_variable(var.indx % 10)
         if display and (self.show_table[0].get() or self.save_table[0].get()):
             fig = plt.figure(figsize=self.figsize)
-            fig.type, fig.var = 'Composite', var.name
+            fig.type, fig.var, fig.width, fig.height = 'Composite', var.name, datastack.width, datastack.height
             fig.canvas.manager.set_window_title(var.name + ' Composite: ' + datastack.name)
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
@@ -1639,7 +1650,7 @@ class Polarimetry(CTk.CTk):
         display, vmin, vmax = self.get_variable(var.indx % 10)
         if display and (self.show_table[1].get() or self.save_table[1].get()):
             fig = plt.figure(figsize=self.figsize)
-            fig.type, fig.var = 'Sticks', var.name
+            fig.type, fig.var, fig.width, fig.height = 'Sticks', var.name, datastack.width, datastack.height
             fig.canvas.manager.set_window_title(var.name + ' Sticks: ' + datastack.name)
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
@@ -1660,7 +1671,7 @@ class Polarimetry(CTk.CTk):
     def plot_intensity(self, datastack:DataStack) -> None:
         if self.show_table[3].get() or self.save_table[3].get():
             fig = plt.figure(figsize=self.figsize)
-            fig.type, fig.var = 'Intensity', None
+            fig.type, fig.var, fig.width, fig.height = 'Intensity', None, datastack.width, datastack.height
             fig.canvas.manager.set_window_title('Intensity: ' + datastack.name)
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
