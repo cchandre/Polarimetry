@@ -23,7 +23,7 @@ from matplotlib.backend_bases import NavigationToolbar2, _Mode, MouseEvent
 from typing import Callable, List, Tuple, Union
 from generate_json import font_macosx, font_windows, orange, red, green, gray, text_color
 
-tab_width, tab_height = 810, 830
+tab_width, tab_height = 750, 750
 button_size = (160, 40)
 
 ## PyPOLAR USEFUL FUNCTIONS

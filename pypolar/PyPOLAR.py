@@ -67,8 +67,8 @@ class Polarimetry(CTk.CTk):
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     left_width, right_width = 205, 800
-    height, width = 800, left_width + right_width
-    axes_size = (450, 450)
+    height, width = 750, left_width + right_width
+    axes_size = (410, 410)
     figsize = (450, 450)
 
     url_github = 'https://github.com/cchandre/Polarimetry'
@@ -136,7 +136,7 @@ class Polarimetry(CTk.CTk):
 
 ## RIGHT FRAME: INTENSITY
         bottomframe = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
-        bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=(0, 60))
+        bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=0)
 
         self.intensity_frame = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
         self.intensity_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -176,7 +176,7 @@ class Polarimetry(CTk.CTk):
         
 ## RIGHT FRAME: THRSH
         bottomframe = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
-        bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=(0, 60))
+        bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=0)
 
         self.thrsh_frame = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
         self.thrsh_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -215,7 +215,7 @@ class Polarimetry(CTk.CTk):
         entry.bind('<Return>', command=self.ilow2slider_callback)
         entry.grid(row=1, column=1, padx=(0, 20))
         Label(master=bottomframe, text='Transparency', tooltip=' use slider to adjust the transparency of the background image').grid(row=1, column=2, padx=(10, 0))
-        self.edge_detection_switch = Switch(master=bottomframe, text='Edge detection', fg_color=gray[0], onvalue='on', offvalue='off', command=self.edge_detection_callback, tooltip=' switch on to determine the edges of the thresholded image and compute orientations with respect to the edges')
+        self.edge_detection_switch = Switch(master=bottomframe, text='Edge', fg_color=gray[0], onvalue='on', offvalue='off', command=self.edge_detection_callback, tooltip=' switch on to determine the edges of the thresholded image and compute orientations with respect to the edges')
         self.edge_detection_switch.grid(row=0, column=3, padx=(50, 0))
 
 ## RIGHT FRAME: OPTIONS
