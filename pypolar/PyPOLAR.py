@@ -66,9 +66,9 @@ class Polarimetry(CTk.CTk):
     dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.2': 'September 22, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
-    left_width, right_width = 205, 800
+    left_width, right_width = 205, 750
     height, width = 750, left_width + right_width
-    axes_size = (410, 410)
+    axes_size = (440, 440)
     figsize = (450, 450)
 
     url_github = 'https://github.com/cchandre/Polarimetry'
@@ -152,16 +152,16 @@ class Polarimetry(CTk.CTk):
 
         banner = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
         banner.pack(side=tk.RIGHT, fill=tk.Y)
-        Button(banner, image=self.icons['contrast'], command=self.contrast_intensity_button_callback, tooltip=' adjust contrast\n - the chosen contrast will be the one used\n for the intensity images in figures\n - the contrast changes the intensity value displayed in the navigation toolbar\n - the chosen contrast does not affect the analysis').pack(side=tk.TOP, padx=20, pady=(20, 0))
+        Button(banner, image=self.icons['contrast'], command=self.contrast_intensity_button_callback, tooltip=' adjust contrast\n - the chosen contrast will be the one used\n for the intensity images in figures\n - the contrast changes the intensity value displayed in the navigation toolbar\n - the chosen contrast does not affect the analysis').pack(side=tk.TOP, padx=10, pady=(20, 0))
         self.contrast_intensity_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation='vertical', command=self.contrast_intensity_slider_callback)
         self.contrast_intensity_slider.set(1)
-        self.contrast_intensity_slider.pack(padx=20, pady=(0, 20))
+        self.contrast_intensity_slider.pack(padx=10, pady=(0, 20))
         self.compute_angle_button = Button(banner, image=self.icons['square'], command=self.compute_angle, tooltip=' left click to trace a line segment\n and determine its length and angle')
-        self.compute_angle_button.pack(padx=20, pady=20)
+        self.compute_angle_button.pack(padx=10, pady=20)
         self.pixel_size = tk.StringVar(value='0')
         entry = CTk.CTkEntry(banner, textvariable=self.pixel_size, border_color=gray[0], width=50, justify='center')
         ToolTip(entry, text=' enter the pixel size in nm')
-        entry.pack(padx=20, pady=0)
+        entry.pack(padx=10, pady=0)
        
         self.filename_label = TextBox(master=bottomframe, width=300, height=50, tooltip=' name of file currently analyzed')
         self.filename_label.pack(side=tk.LEFT)
@@ -193,15 +193,15 @@ class Polarimetry(CTk.CTk):
 
         banner = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
         banner.pack(side=tk.RIGHT, fill=tk.Y)
-        Button(banner, image=self.icons['contrast'], command=self.contrast_thrsh_button_callback, tooltip=' adjust contrast\n - the contrast changes the intensity value displayed in the navigation toolbar\n - the chosen contrast does not affect the analysis').pack(side=tk.TOP, padx=20, pady=(20, 0))
+        Button(banner, image=self.icons['contrast'], command=self.contrast_thrsh_button_callback, tooltip=' adjust contrast\n - the contrast changes the intensity value displayed in the navigation toolbar\n - the chosen contrast does not affect the analysis').pack(side=tk.TOP, padx=10, pady=(20, 0))
         self.contrast_thrsh_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation='vertical', command=self.contrast_thrsh_slider_callback)
         self.contrast_thrsh_slider.set(1)
-        self.contrast_thrsh_slider.pack(padx=20, pady=(0, 20))
-        Button(banner, image=self.icons['palette'], command=self.change_colormap, tooltip=" change the colormap used for thresholding ('hot' or 'gray')").pack(padx=20, pady=10)
+        self.contrast_thrsh_slider.pack(padx=10, pady=(0, 20))
+        Button(banner, image=self.icons['palette'], command=self.change_colormap, tooltip=" change the colormap used for thresholding ('hot' or 'gray')").pack(padx=10, pady=10)
         self.no_background_button = Button(banner, image=self.icons['photo_fill'], command=self.no_background, tooltip=' change background to enhance visibility')
-        self.no_background_button.pack(padx=20, pady=10)
-        Button(banner, image=self.icons['open_in_new'], command=self.export_mask, tooltip=' export mask as .png').pack(padx=20, pady=10)
-        Button(banner, image=self.icons['format_list'], command=self.roimanager_callback, tooltip=' open ROI Manager').pack(padx=20, pady=10)
+        self.no_background_button.pack(padx=10, pady=10)
+        Button(banner, image=self.icons['open_in_new'], command=self.export_mask, tooltip=' export mask as .png').pack(padx=10, pady=10)
+        Button(banner, image=self.icons['format_list'], command=self.roimanager_callback, tooltip=' open ROI Manager').pack(padx=10, pady=10)
 
         self.ilow = tk.StringVar(value='0')
         self.ilow_slider = CTk.CTkSlider(master=bottomframe, from_=0, to=1, command=self.ilow_slider_callback)
@@ -346,7 +346,7 @@ class Polarimetry(CTk.CTk):
                 entry.bind('<Return>', command=self.rotation_callback)
             elif _ == 1:
                 entry.bind('<Return>', command=self.rotation1_callback)
-        Label(master=adv['Rotation'], text=' ', height=5).grid(row=4, column=0, pady=5)
+        Label(master=adv['Rotation'], text=' ', height=5).grid(row=4, column=0)
 
         self.noise = [tk.StringVar(value='1'), tk.StringVar(value='3'), tk.StringVar(value='3')]
         labels = ['Bin width', 'Bin height']
@@ -359,7 +359,7 @@ class Polarimetry(CTk.CTk):
         Label(adv['Intensity removal'], text='\nFactor\n', tooltip=' fraction of the mean intensity value to be substracted\n value between 0 and 1').grid(row=4, column=1, padx=10, sticky='w')
         self.intensity_removal_label = Label(master=adv['Intensity removal'], text='Removed intensity value = 0')
         self.intensity_removal_label.grid(row=5, column=0, columnspan=2, padx=(40, 10), pady=(0, 0), sticky='w')
-        Label(master=adv['Intensity removal'], text=' ', height=5).grid(row=6, column=0, pady=5)
+        Label(master=adv['Intensity removal'], text=' ', height=5).grid(row=6, column=0)
 
 ## RIGHT FRAME: ABOUT
         banner = CTk.CTkFrame(master=self.tabview.tab('About'), fg_color=gray[1])
