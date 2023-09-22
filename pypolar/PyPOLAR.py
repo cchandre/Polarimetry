@@ -63,12 +63,12 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.5.2'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.2': 'September 21, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.2': 'September 22, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
-    left_frame_width, right_frame_width = 180, 850
-    height, width = 800, left_frame_width + right_frame_width
-    axes_size = (680, 680)
+    left_width, right_width = 205, 800
+    height, width = 800, left_width + right_width
+    axes_size = (450, 450)
     figsize = (450, 450)
 
     url_github = 'https://github.com/cchandre/Polarimetry'
@@ -114,9 +114,9 @@ class Polarimetry(CTk.CTk):
                 pass
 
 ## DEFINE FRAMES
-        left_frame = CTk.CTkScrollableFrame(master=self, width=type(self).left_frame_width + 25, corner_radius=0, fg_color=gray[0],scrollbar_button_color=gray[0], scrollbar_button_hover_color=gray[0])
+        left_frame = CTk.CTkScrollableFrame(master=self, corner_radius=0, fg_color=gray[0],scrollbar_button_color=gray[0], scrollbar_button_hover_color=gray[0])
         left_frame.grid(row=0, column=0, sticky='nsew')
-        right_frame = CTk.CTkScrollableFrame(master=self, width=type(self).right_frame_width, corner_radius=0, fg_color=gray[1], scrollbar_button_color=gray[1])
+        right_frame = CTk.CTkScrollableFrame(master=self, corner_radius=0, fg_color=gray[1], scrollbar_button_color=gray[1])
         right_frame.grid(row=0, column=1, sticky='nsew')
         self.tabview = TabView(right_frame)
 
@@ -135,12 +135,12 @@ class Polarimetry(CTk.CTk):
         Button(left_frame, text='Close figures', command=lambda:plt.close('all'), image=self.icons['close'], fg_color=red[0], hover_color=red[1], tooltip=' close all open figures').pack(padx=20, pady=20)
 
 ## RIGHT FRAME: INTENSITY
-        bottomframe = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent', height=40, width=type(self).axes_size[1])
-        bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=20)
+        bottomframe = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
+        bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=(0, 60))
 
-        self.intensity_frame = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent', height=type(self).axes_size[0], width=type(self).axes_size[1])
+        self.intensity_frame = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
         self.intensity_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        intensity_fig = Figure(figsize=(self.intensity_frame.winfo_width() / dpi, self.intensity_frame.winfo_height() / dpi), facecolor=gray[1])
+        intensity_fig = Figure(figsize=(type(self).axes_size[0] / dpi, type(self).axes_size[1] / dpi), facecolor=gray[1])
         self.intensity_axis = intensity_fig.add_axes([0, 0, 1, 1])
         self.intensity_axis.set_axis_off()
         self.intensity_canvas = FigureCanvasTkAgg(intensity_fig, master=self.intensity_frame)
@@ -150,7 +150,7 @@ class Polarimetry(CTk.CTk):
 
         self.intensity_toolbar = NToolbar2PyPOLAR(canvas=self.intensity_canvas, window=self.intensity_frame)
 
-        banner = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent', height=type(self).axes_size[0], width=40)
+        banner = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         Button(banner, image=self.icons['contrast'], command=self.contrast_intensity_button_callback, tooltip=' adjust contrast\n - the chosen contrast will be the one used\n for the intensity images in figures\n - the contrast changes the intensity value displayed in the navigation toolbar\n - the chosen contrast does not affect the analysis').pack(side=tk.TOP, padx=20, pady=(20, 0))
         self.contrast_intensity_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation='vertical', command=self.contrast_intensity_slider_callback)
@@ -175,13 +175,13 @@ class Polarimetry(CTk.CTk):
         Label(master=sliderframe, fg_color='transparent', text='Stack', tooltip=' slider at T for the total intensity, otherwise scroll through the images of the stack').grid(row=1, column=1, sticky='e')
         
 ## RIGHT FRAME: THRSH
-        bottomframe = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent', height=40, width=type(self).axes_size[1])
-        bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=20)
+        bottomframe = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
+        bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=(0, 60))
 
-        self.thrsh_frame = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent', height=type(self).axes_size[0], width=type(self).axes_size[1])
+        self.thrsh_frame = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
         self.thrsh_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.thrsh_axis_facecolor = gray[1]
-        self.thrsh_fig = Figure(figsize=(self.thrsh_frame.winfo_width() / dpi, self.thrsh_frame.winfo_height() / dpi), facecolor=self.thrsh_axis_facecolor)
+        self.thrsh_fig = Figure(figsize=(type(self).axes_size[0] / dpi, type(self).axes_size[1] / dpi), facecolor=self.thrsh_axis_facecolor)
         self.thrsh_axis = self.thrsh_fig.add_axes([0, 0, 1, 1])
         self.thrsh_axis.set_axis_off()
         self.thrsh_axis.set_facecolor(self.thrsh_axis_facecolor)
@@ -191,7 +191,7 @@ class Polarimetry(CTk.CTk):
 
         self.thrsh_toolbar = NToolbar2PyPOLAR(canvas=self.thrsh_canvas, window=self.thrsh_frame)
 
-        banner = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent', height=type(self).axes_size[0], width=40)
+        banner = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
         banner.pack(side=tk.RIGHT, fill=tk.Y)
         Button(banner, image=self.icons['contrast'], command=self.contrast_thrsh_button_callback, tooltip=' adjust contrast\n - the contrast changes the intensity value displayed in the navigation toolbar\n - the chosen contrast does not affect the analysis').pack(side=tk.TOP, padx=20, pady=(20, 0))
         self.contrast_thrsh_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation='vertical', command=self.contrast_thrsh_slider_callback)
