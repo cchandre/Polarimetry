@@ -813,6 +813,7 @@ class Polarimetry(CTk.CTk):
 
     def createROIfromcrop(self) -> None:
         if hasattr(self, 'datastack'):
+            self.get_axes()
             roix = np.asarray([int(self.xylim[0].get()), int(self.xylim[1].get()), int(self.xylim[1].get()), int(self.xylim[0].get())])
             roiy = np.asarray([int(self.xylim[3].get()), int(self.xylim[3].get()), int(self.xylim[2].get()), int(self.xylim[2].get())])
             if (float(self.rotation[1].get()) != 0) :
