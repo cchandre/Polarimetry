@@ -369,7 +369,7 @@ class Polarimetry(CTk.CTk):
         Button(banner, image=self.icons['GitHub'], command=lambda:self.openweb(type(self).url_github), tooltip=' visit the PyPOLAR GitHub page').pack(side=tk.LEFT, padx=40)
         Button(banner, image=self.icons['contact_support'], command=lambda:self.openweb(type(self).url_github + '/blob/master/README.md'), tooltip=' visit the online help').pack(side=tk.LEFT, padx=40)
         about_textbox = TextBox(master=self.tabview.tab('About'), width=780, height=500)
-        about_textbox.write(f'Version: {type(self).__version__} ({type(self).__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n PyPOLAR is based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  PyPOLAR was created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV,\n Matplotlib, openpyxl, tksheet, colorcet, joblib \n\n\n  PyPOLAR uses Material Design icons by Google')
+        about_textbox.write(f'Version: {type(self).__version__} ({type(self).__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n PyPOLAR is based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  PyPOLAR was created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV\n scikit-image, Matplotlib, openpyxl, tksheet, colorcet, joblib \n\n\n  PyPOLAR uses Material Design icons by Google')
         about_textbox.grid(row=1, column=0, padx=30)
         self.startup()
 
@@ -426,11 +426,8 @@ class Polarimetry(CTk.CTk):
 
     def click_save_output(self) -> None:
         vec = [val.get() for val in self.save_table]
-        if any(vec) == 1:
-            self.figure_extension_optionmenu.configure(state='normal')
-        else:
-            self.figure_extension_optionmenu.configure(state='disabled')
-
+        self.figure_extension_optionmenu.configure(state='normal' if any(vec)==1 else 'disabled')
+        
     def on_closing(self) -> None:
         plt.close('all') 
         self.destroy()
@@ -444,13 +441,10 @@ class Polarimetry(CTk.CTk):
         webbrowser.open(url)
 
     def send_email(self) -> None:
-        webbrowser.open('mailto:?to=' + type(self).email + '&subject=[Polarimetry Analysis] question', new=1)
+        webbrowser.open('mailto:?to=' + type(self).email + '&subject=[PyPOLAR] question', new=1)
 
     def on_click_tab(self) -> None:
-        if self.tabview.get() != 'About':
-            self.tabview.set('About')
-        else:
-            self.tabview.set('Intensity')
+        self.tabview.set('About' if self.tabview.get()!='About' else 'Intensity')
 
     def edge_detection_callback(self) -> None:
         if hasattr(self, 'stack'):
@@ -570,8 +564,7 @@ class Polarimetry(CTk.CTk):
         self.ontab_intensity()
 
     def contrast_thrsh_button_callback(self) -> None:
-        value = self.contrast_thrsh_slider.get()
-        self.contrast_thrsh_slider.set(0.5 if value <= 0.5 else 1)
+        self.contrast_thrsh_slider.set(0.5 if self.contrast_thrsh_slider.get() <= 0.5 else 1)
         self.ontab_thrsh(update=True)
 
     def roimanager_callback(self) -> None:
@@ -608,12 +601,10 @@ class Polarimetry(CTk.CTk):
                 self.datastack.rois = manager.load(initialdir=self.stack.folder if hasattr(self, 'stack') else Path.home())
                 self.ontab_intensity()
                 self.ontab_thrsh()
+
         if not hasattr(self, 'manager'):
             button_images = [self.icons['save'], self.icons['download'], self.icons['delete'], self.icons['delete_forever']]
-            if hasattr(self, 'datastack'):
-                self.manager = ROIManager(rois=self.datastack.rois, button_images=button_images)
-            else:
-                self.manager = ROIManager(rois=[], button_images=button_images)
+            self.manager = ROIManager(rois=self.datastack.rois if hasattr(self, 'datastack') else [], button_images=button_images)
             self.manager.protocol('WM_DELETE_WINDOW', lambda:on_closing(self.manager))
             self.manager.bind('<Command-q>', lambda:on_closing(self.manager))
             self.manager.bind('<Command-w>', lambda:on_closing(self.manager))
@@ -675,10 +666,7 @@ class Polarimetry(CTk.CTk):
                     fig.axes[1].images[0].set_cmap('jet' if not self.colorblind_checkbox.get() else 'viridis')
 
     def options_dropdown_callback(self, option:str) -> None:
-        if option.endswith('(auto)'):
-            self.options_dropdown.get_icon().configure(image=self.icons['build_fill'])
-        else:
-            self.options_dropdown.get_icon().configure(image=self.icons['build'])
+        self.options_dropdown.get_icon().configure(image=self.icons['build_fill'] if option.endswith('(auto)') else self.icons['build'])
         if option.startswith('Mask'):
             initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
             self.maskfolder = Path(fd.askdirectory(title='Select the directory containing masks', initialdir=initialdir))
@@ -764,14 +752,12 @@ class Polarimetry(CTk.CTk):
             self.crop_window.bind('<Command-w>', self.crop_on_closing)
             Label(self.crop_window, text='  define xlim and ylim', image=self.icons['crop'], compound='left', font=CTk.CTkFont(size=16), width=250).grid(row=0, column=0, columnspan=3, padx=30, pady=20)
             if not hasattr(self, 'xylim'):
-                self.xylim = []
                 if hasattr(self, 'datastack'):
                     vals = [1, self.datastack.width, 1, self.datastack.height]
                 elif self.openfile_dropdown_value.get() == 'Open figure':
                     fig = plt.gcf()
                     vals = [1, fig.width, 1, fig.height]
-                for val in vals:
-                    self.xylim += [tk.StringVar(value=str(val))]
+                self.xylim = [tk.StringVar(value=str(val)) for val in vals]
             labels = [u'\u2B62 xlim', u'\u2B63 ylim']
             positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
             for _, label in enumerate(labels):
@@ -834,12 +820,10 @@ class Polarimetry(CTk.CTk):
     def reset_figures(self) -> None:
         if hasattr(self, 'datastack'):
             vals = [1, self.datastack.width, 1, self.datastack.height]
-            for _, val in enumerate(vals):
-                self.xylim[_].set(val)
-            self.crop_figures()
-        if self.openfile_dropdown_value.get() == 'Open figure':
+        elif self.openfile_dropdown_value.get() == 'Open figure':
             fig = plt.gcf()
             vals = [1, fig.width, 1, fig.height]
+        if hasattr(self, 'datastack') or self.openfile_dropdown_value.get() == 'Open figure':
             for _, val in enumerate(vals):
                 self.xylim[_].set(val)
             self.crop_figures()
