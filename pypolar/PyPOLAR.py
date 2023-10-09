@@ -382,7 +382,7 @@ class Polarimetry(CTk.CTk):
         self.calib_dropdown.configure(values=self.CD.list('1PF'))
         self.calib_dropdown.set(self.CD.list('1PF')[0])
         self.calib_textbox.write(self.CD.name)
-        self.polar_dropdown.set('UL90-UR0-LR45-LL135')
+        self.polar_dropdown.set('UL0-UR90-LR45-LL135')
         self.thrsh_colormap = 'hot'
         self.tabview.set('Intensity')
         self.filename_label.focus()
