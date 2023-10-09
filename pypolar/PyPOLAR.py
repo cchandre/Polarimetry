@@ -1114,7 +1114,7 @@ class Polarimetry(CTk.CTk):
             thresh = cv2.threshold(im, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
             ims += [im * thresh]
         height, width = ims[0].shape
-        sift=cv2.SIFT_create(500)
+        sift=cv2.SIFT_create()
         keypoints0 = sift.detect(ims[0], None)
         points0 = np.asarray([kp.pt for kp in keypoints0])
         homographies, ims_ = [], [ims[0]]
