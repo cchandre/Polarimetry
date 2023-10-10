@@ -390,21 +390,31 @@ class Calibration:
         elif method.startswith('4POLAR'):
             vars = type(self).dict_4polar.get(label)
             folder = type(self).folder_4polar
-        if method in ['1PF', '4POLAR 2D', '4POLAR 3D']:
+        if method == '1PF':
             if label == 'other':
                 file = Path(fd.askopenfilename(title='Select file', initialdir=Path.home(), filetypes=[('MAT-files', '*.mat')]))
-                if file.stem.startswith('Disk') or file.stem.startswith('Calib'):
+                if file.stem.startswith('Disk'):
                     folder = file.parent
                     vars = (file.stem, 0)
             disk = loadmat(str(folder / (vars[0] + '.mat')))
-            if method == '1PF' and vars[0].startswith('Disk'):
+            if vars[0].startswith('Disk'):
                 self.RhoPsi = np.moveaxis(np.stack((np.array(disk['RoTest'], dtype=np.float64), np.array(disk['PsiTest'], dtype=np.float64))), 0, -1)
                 self.xy = 2 * (np.linspace(-1, 1, int(disk['NbMapValues']), dtype=np.float64),)
-            elif method.startswith('4POLAR') and vars[0].startswith('Calib'):
-                self.invKmat_2D = np.linalg.pinv(np.array(disk['K2D'], dtype=np.float64))
-                self.invKmat_3D = np.linalg.pinv(np.array(disk['K3D'], dtype=np.float64))
             else:
-                showerror('Calibration data', 'Incorrect disk cone or calibration data\n Download another file', icon='error')
+                showerror('Calibration data', 'Incorrect disk cone\n Download another file', icon='error')
+                vars = (' ', 0)
+        elif method.startswith('4POLAR'):
+            if label == 'other':
+                file = Path(fd.askopenfilename(title='Select file', initialdir=Path.home(), filetypes=[('TXT-files', '*.txt')]))
+                if file.stem.startswith('Calib'):
+                    folder = file.parent
+                    vars = (file.stem, 0)
+            if method == '4POLAR 2D' and vars[0].startswith('Calib'):
+                self.invKmat = np.linalg.pinv(np.genfromtxt(str(folder / (vars[0] + '_2D.txt')), dtype=np.float64))
+            elif method == '4POLAR 3D' and vars[0].startswith('Calib'):
+                self.invKmat = np.linalg.pinv(np.genfromtxt(str(folder / (vars[0] + '_3D.txt')), dtype=np.float64))
+            else:
+                showerror('Calibration data', 'Incorrect calibration data\n Download another file', icon='error')
                 vars = (' ', 0)
         else:
             vars = (' ', 0)

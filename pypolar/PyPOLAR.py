@@ -1910,7 +1910,7 @@ class Polarimetry(CTk.CTk):
             chi2 = np.mean(np.divide((field - field_fit)**2, field_fit, where=np.all((field_fit!=0, np.isfinite(field_fit)), axis=0)), axis=0)
             mask *= (chi2 <= chi2threshold) * (chi2 > 0)
         elif self.method.get() == '4POLAR 3D':
-            mat = np.einsum('ij,jmn->imn', self.CD.invKmat_3D, field)
+            mat = np.einsum('ij,jmn->imn', self.CD.invKmat, field)
             s = mat[0] + mat[1] + mat[2]
             pxy = divide_ext(mat[0] - mat[1], s).reshape(shape)
             puv = divide_ext(2 * mat[3], s).reshape(shape)
@@ -1919,7 +1919,7 @@ class Polarimetry(CTk.CTk):
             a0 = np.mean(field, axis=0) / 4
             a0[a0 == 0] = np.nan
         elif self.method.get() == '4POLAR 2D':
-            mat = np.einsum('ij,jmn->imn', self.CD.invKmat_2D, field)
+            mat = np.einsum('ij,jmn->imn', self.CD.invKmat, field)
             s = mat[0] + mat[1]
             pxy = divide_ext(mat[0] - mat[1], s).reshape(shape)
             puv = divide_ext(2 * mat[2], s).reshape(shape)
