@@ -1143,7 +1143,7 @@ class Polarimetry(CTk.CTk):
             buttons[1].configure(command=lambda:self.yes_save_registration_callback(window, fig, file))
             buttons[2].configure(command=lambda:self.no_registration_callback(window, fig))
         except:
-            window = ShowInfo(message='\n The registration was not successful. Try again. \n\n Perform: Select a beads file (*.tif)\n\n Load: Select a registration file (*.pyreg)\n\n Registration is performed with Whitelight.tif \n   which should be in the same folder as the beads file', image=self.icons['blur_circular'], button_labels=['Perform', 'Load', 'Cancel'], geometry=(420, 240))
+            window = ShowInfo(message='\n The registration was not successful. Try again. \n\n Perform: Select a beads file (*.tif)\n\n Load: Select a registration file (*.pyreg)\n\n Registration is performed with Whitelight.tif \n   which should be in the same folder as the beads file', image=self.icons['blur_circular'], button_labels=['Perform', 'Load', 'Cancel'], geometry=(420, 260))
             buttons = window.get_buttons()
             buttons[0].configure(command=lambda:self.perform_registration(window))
             buttons[1].configure(command=lambda:self.load_registration(window))
