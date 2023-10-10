@@ -1114,33 +1114,40 @@ class Polarimetry(CTk.CTk):
             thresh = cv2.threshold(im, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
             ims += [im * thresh]
         height, width = ims[0].shape
-        sift=cv2.SIFT_create()
-        keypoints0 = sift.detect(ims[0], None)
-        points0 = np.asarray([kp.pt for kp in keypoints0])
-        homographies, ims_ = [], [ims[0]]
-        for im in ims[1:]:
-            keypoints = sift.detect(im, None)
-            points = np.asarray([kp.pt for kp in keypoints])
-            p, p0 = find_matches(points, points0)
-            homography = cv2.findHomography(p, p0, cv2.RANSAC)[0]
-            homographies += [homography]
-            ims_ += [cv2.warpPerspective(im, homography, (width, height))]
-        reg_ims = [cv2.merge([_, ims[0], _]) for _ in ims_]
-        fig, axs = plt.subplots(2, 2)
-        fig.type, fig.var = 'Calibration', None
-        fig.canvas.manager.set_window_title('Quality of calibration: ' + beadstack.name)
-        reg_ims[2:4] = reg_ims[3:1:-1]
-        titles = ['UL', 'UR', 'LL', 'LR']
-        for im, title, ax in zip(reg_ims, titles, axs.ravel()):
-            ax.imshow(im)
-            ax.set_title(title)
-            ax.set_axis_off()
-        self.registration = {'name_beads': beadstack.name, 'radius': radius, 'centers': centers, 'homographies': homographies}
-        window = ShowInfo(message=' Are you okay with this registration?', button_labels=['Yes', u'Yes \u0026 Save', 'No'], image=self.icons['blur_circular'], geometry=(380, 150))
-        buttons = window.get_buttons()
-        buttons[0].configure(command=lambda:self.yes_registration_callback(window, fig))
-        buttons[1].configure(command=lambda:self.yes_save_registration_callback(window, fig, file))
-        buttons[2].configure(command=lambda:self.no_registration_callback(window, fig))
+        try:
+            sift=cv2.SIFT_create()
+            keypoints0 = sift.detect(ims[0], None)
+            points0 = np.asarray([kp.pt for kp in keypoints0])
+            homographies, ims_ = [], [ims[0]]
+            for im in ims[1:]:
+                keypoints = sift.detect(im, None)
+                points = np.asarray([kp.pt for kp in keypoints])
+                p, p0 = find_matches(points, points0)
+                homography = cv2.findHomography(p, p0, cv2.RANSAC)[0]
+                homographies += [homography]
+                ims_ += [cv2.warpPerspective(im, homography, (width, height))]
+            reg_ims = [cv2.merge([_, ims[0], _]) for _ in ims_]
+            fig, axs = plt.subplots(2, 2)
+            fig.type, fig.var = 'Calibration', None
+            fig.canvas.manager.set_window_title('Quality of calibration: ' + beadstack.name)
+            reg_ims[2:4] = reg_ims[3:1:-1]
+            titles = ['UL', 'UR', 'LL', 'LR']
+            for im, title, ax in zip(reg_ims, titles, axs.ravel()):
+                ax.imshow(im)
+                ax.set_title(title)
+                ax.set_axis_off()
+            self.registration = {'name_beads': beadstack.name, 'radius': radius, 'centers': centers, 'homographies': homographies}
+            window = ShowInfo(message=' Are you okay with this registration?', button_labels=['Yes', u'Yes \u0026 Save', 'No'], image=self.icons['blur_circular'], geometry=(380, 150))
+            buttons = window.get_buttons()
+            buttons[0].configure(command=lambda:self.yes_registration_callback(window, fig))
+            buttons[1].configure(command=lambda:self.yes_save_registration_callback(window, fig, file))
+            buttons[2].configure(command=lambda:self.no_registration_callback(window, fig))
+        except:
+            window = ShowInfo(message='\n The registration was not successful. Try again. \n\n Perform: Select a beads file (*.tif)\n\n Load: Select a registration file (*.pyreg)\n\n Registration is performed with Whitelight.tif \n   which should be in the same folder as the beads file', image=self.icons['blur_circular'], button_labels=['Perform', 'Load', 'Cancel'], geometry=(420, 240))
+            buttons = window.get_buttons()
+            buttons[0].configure(command=lambda:self.perform_registration(window))
+            buttons[1].configure(command=lambda:self.load_registration(window))
+            buttons[2].configure(command=lambda:window.withdraw())
 
     def yes_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure) -> None:
         plt.close(fig)
