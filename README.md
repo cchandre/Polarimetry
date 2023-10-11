@@ -40,8 +40,8 @@ ___
          - Open the beads image file with [Fiji](https://imagej.net/software/fiji/).
          - Adjust the brightness/contrast settings (Tab Image > Adjust > Brightness/Contrast) to visualize the four quadrants that contain the beads. You can manually set the intensity range with the "Set" button of the brightness/contrast window if needed.
          - Using the *Oval* selection tool, draw a circle over the upper left quadrant; use shift to make the selection circular.
-         - When satisfied with the position and size of the circular selection, right-click on the selection and select "create mask". A new window will open with the respective selection as a black circle.
-         - Go back to the beads image file, click on the circular selection and displace it to the next quadrant; resize if needed to fit the quadrant. Right-click and "create mask" as before to add this second circular selection to the mask image.
+         - When satisfied with the position and size of the circular selection, right-click on the selection and select "Create Mask". A new window will open with the respective selection as a black circle.
+         - Go back to the beads image file, click on the circular selection and displace it to the next quadrant; resize if needed to fit the quadrant. Right-click and "Create Mask" as before to add this second circular selection to the mask image.
          - Proceed in the same way for the two last quadrants.
          - Once done invert the LUT of the image to have white circles in a black background (Tab Image > Lookup Tables > Invert LUT). Save the mask as "Whitelight.tif".
       An example of Fiji-built Whitelight is given below:
