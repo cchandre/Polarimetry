@@ -24,7 +24,7 @@ __version__ = "2.5.3"
 block_cipher = None
 
 DATA_FILES = [("icons/*.png", "icons/"), ("polarimetry.json", "."), ("pypolar_classes.py", "."), ("generate_json.py", ".")]
-BINARY_FILES = [("calibration/*.mat", "calibration/"), ("diskcones/*.mat", "diskcones/")]
+BINARY_FILES = [("calibration/*.txt", "calibration/"), ("diskcones/*.mat", "diskcones/")]
 
 if sys.platform == "darwin":
     CTK_PATH = "/Users/cchandre/opt/anaconda3/envs/polarimetry_env/lib/python3.8/site-packages/customtkinter/"
