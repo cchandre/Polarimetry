@@ -186,7 +186,6 @@ class Polarimetry(CTk.CTk):
         Button(banner, image=self.icons['open_in_new'], command=self.export_mask, tooltip=' export mask as .png').grid(row=4, column=0, padx=10, pady=10)
         Button(banner, image=self.icons['format_list'], command=self.roimanager_callback, tooltip=' open ROI Manager').grid(row=4, column=0, padx=10, pady=10)
 
-        self.tabview.tab('Thresholding/Mask').columnconfigure(0, weight=1)
         self.thrsh_axis_facecolor = gray[1]
         self.thrsh_fig = Figure(figsize=(type(self).axes_size[0] / dpi, type(self).axes_size[1] / dpi), facecolor=self.thrsh_axis_facecolor)
         self.thrsh_axis = self.thrsh_fig.add_axes([0, 0, 1, 1])
@@ -220,10 +219,13 @@ class Polarimetry(CTk.CTk):
 
 ## RIGHT FRAME: OPTIONS
         left_color = left_frame.cget('fg_color')
-        self.tabview.tab('Options').columnconfigure((0, 1), weight=1)
         dict_frame = {'fg_color': left_color}
 
-        show_save = CTk.CTkFrame(master=self.tabview.tab('Options'), **dict_frame)
+        scrollable_frame = CTk.CTkScrollableFrame(master=self.tabview.tab('Options'), fg_color='transparent', scrollbar_fg_color='transparent', scrollbar_button_color=right_frame.cget('fg_color'), scrollbar_button_hover_color=left_color)
+        scrollable_frame.columnconfigure((0, 1), weight=1)
+        scrollable_frame.pack(side=CTk.LEFT, fill=CTk.BOTH, expand=True)
+        
+        show_save = CTk.CTkFrame(master=scrollable_frame, **dict_frame)
         show_save.grid(row=0, column=0, padx=0, pady=0)
         show_save.columnconfigure(0, weight=1)
         Label(master=show_save, text='Figures\n', width=250, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=3, padx=20, pady=(10, 0), sticky="n")
@@ -242,7 +244,7 @@ class Polarimetry(CTk.CTk):
         self.show_table[-1].grid(row=len(labels)+2, column=1, pady=(0, 10), padx=10, sticky='n')
         self.save_table[-1].grid(row=len(labels)+2, column=2, pady=(0, 10), padx=(10, 20), sticky='n')
 
-        preferences = CTk.CTkFrame(master=self.tabview.tab('Options'), **dict_frame)
+        preferences = CTk.CTkFrame(master=scrollable_frame, **dict_frame)
         preferences.grid(row=1, column=0, rowspan=3, padx=0, pady=(20, 0), sticky="n")
         Label(master=preferences, text='Preferences\n', width=250, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=2, padx=20, pady=(10, 0), sticky='n')
         self.add_axes_checkbox = CheckBox(preferences, text='\nAxes on figures\n', command=self.add_axes_on_all_figures)
@@ -263,17 +265,17 @@ class Polarimetry(CTk.CTk):
         Label(master=preferences, text=' bins for histograms', anchor='w', tooltip=' controls the number of bins used in histograms').grid(row=6, column=1, padx=(0, 20), pady=10, sticky='w')
         Button(preferences, image=self.icons['crop'], command=self.crop_figures_callback, tooltip=' click button to define region and crop figures').grid(row=7, column=0, columnspan=2, pady=(0, 10))
         
-        self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab('Options'), **dict_frame)
+        self.variable_table_frame = CTk.CTkFrame(master=scrollable_frame, **dict_frame)
         self.variable_table_frame.grid(row=0, column=1, padx=0, pady=0, sticky="n")
 
-        banner = CTk.CTkFrame(master=self.tabview.tab('Options'), fg_color=gray[1])
+        banner = CTk.CTkFrame(master=scrollable_frame, fg_color=gray[1])
         banner.grid(row=1, column=1, padx=40, pady=(10, 0), sticky="n")
         Button(banner, image=self.icons['query_stats'], command=self.show_individual_fit_callback, tooltip=' show an individual fit\n - zoom into the region of interest in the Rho composite\n - click this button\n - select a pixel with the crosshair on the Rho composite then click').grid(row=0, column=0, padx=(0, 20), pady=0)
         Button(banner, image=self.icons['merge'], command=self.merge_histos, tooltip=' concatenate histograms\n - choose variables in the Variables table\n - click button to select the folder containing the .mat files').grid(row=0, column=1, padx=20, pady=0)
         self.per_roi = CheckBox(banner, text='per ROI', command=self.per_roi_callback, border_color=gray[0], tooltip=' show and save data/figures separately for each region of interest')
         self.per_roi.grid(row=0, column=2, padx=20, pady=0)
 
-        save_ext = CTk.CTkFrame(master=self.tabview.tab('Options'), **dict_frame)
+        save_ext = CTk.CTkFrame(master=scrollable_frame, **dict_frame)
         Label(master=save_ext, text='Save output\n', width=250, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=2, padx=(20, 20), pady=(10, 0), sticky="n")
         save_ext.grid(row=2, column=1, padx=0, pady=(10, 0), sticky="n")
         Label(save_ext, text='Figures', anchor='w').grid(row=1, column=0, padx=(40, 0), sticky='w')
@@ -288,16 +290,21 @@ class Polarimetry(CTk.CTk):
         Label(master=save_ext, text=labels[-1], anchor='w').grid(row=len(labels)+1, column=0, padx=(40, 0), pady=(0, 10), sticky='w')
         self.extension_table[len(labels)-1].grid(row=len(labels)+1, column=1, pady=(0, 10), padx=0)    
 
-        Button(self.tabview.tab('Options'), image=self.icons['delete_forever'], command=self.initialize_tables, tooltip=' reinitialize Figures, Save output and Variables tables').grid(row=3, column=1, padx=40, pady=(10, 0), sticky="n")
+        Button(scrollable_frame, image=self.icons['delete_forever'], command=self.initialize_tables, tooltip=' reinitialize Figures, Save output and Variables tables').grid(row=3, column=1, padx=40, pady=(10, 0), sticky="n")
 
 ## RIGHT FRAME: ADV
-        self.tabview.tab('Advanced').columnconfigure((0, 1, 2), weight=1)
+
+        scrollable_frame = CTk.CTkScrollableFrame(master=self.tabview.tab('Advanced'), fg_color='transparent', scrollbar_fg_color='transparent', scrollbar_button_color=right_frame.cget('fg_color'), scrollbar_button_hover_color=left_color)
+        scrollable_frame.columnconfigure((0, 1), weight=1)
+        scrollable_frame.pack(side=CTk.LEFT, fill=CTk.BOTH, expand=True)
+
+        scrollable_frame.columnconfigure((0, 1, 2), weight=1)
         adv_elts = ['Dark', 'Binning', 'Polarization', 'Rotation', 'Disk cone / Calibration data', 'Intensity removal']
         adv_loc = [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]
         columnspan = [1, 2, 1, 2, 1, 2]
         adv = {}
         for loc, elt, cspan in zip(adv_loc, adv_elts, columnspan):
-            adv.update({elt: CTk.CTkFrame(master=self.tabview.tab('Advanced'), **dict_frame)})
+            adv.update({elt: CTk.CTkFrame(master=scrollable_frame, **dict_frame)})
             adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=10, sticky="n")
             Label(master=adv[elt], text=elt + '\n', width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=cspan, padx=20, pady=(10, 0), sticky="n")
 
@@ -310,7 +317,6 @@ class Polarimetry(CTk.CTk):
         self.calculated_dark_label = Label(master=adv['Dark'], text='Calculated dark value = 0')
         self.calculated_dark_label.grid(row=2, column=0, sticky='w', padx=40, pady=(0, 10))
         
-
         self.offset_angle_switch = CTk.CTkSwitch(master=adv['Polarization'], text='', command=self.offset_angle_switch_callback, onvalue='on', offvalue='off', width=50)
         self.offset_angle_switch.grid(row=0, column=0, padx=20, pady=10, sticky='ne')
         self.offset_angle = CTk.StringVar(value='0')
