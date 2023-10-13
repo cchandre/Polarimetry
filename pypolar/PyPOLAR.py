@@ -1,6 +1,6 @@
-import tkinter as tk
-from tkinter import filedialog as fd
 import customtkinter as CTk
+from tkinter import Event as tkEvent
+from tkinter import filedialog as fd
 import sys
 from pathlib import Path
 import joblib
@@ -62,8 +62,8 @@ plt.ion()
 
 class Polarimetry(CTk.CTk):
 
-    __version__ = '2.5.3'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023'}
+    __version__ = '2.6'
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 13, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     left_width, right_width = 205, 750
@@ -92,8 +92,6 @@ class Polarimetry(CTk.CTk):
         self.bind('<Command-w>', self.on_closing)
         self.createcommand('tk::mac::Quit', self.on_closing)
         self.configure(fg_color=gray[0])
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
         self.icons = {file.stem: CTk.CTkImage(dark_image=Image.open(file).resize((60, 60)), size=(30, 30)) for file in image_path.glob('*.png')}
         if sys.platform == 'win32':
             CTk.deactivate_automatic_dpi_awareness()
@@ -114,203 +112,214 @@ class Polarimetry(CTk.CTk):
                 pass
 
 ## DEFINE FRAMES
-        left_frame = CTk.CTkScrollableFrame(master=self, corner_radius=0, fg_color=gray[0],scrollbar_button_color=gray[0], scrollbar_button_hover_color=gray[0])
-        left_frame.grid(row=0, column=0, sticky='nsew')
-        right_frame = CTk.CTkScrollableFrame(master=self, corner_radius=0, fg_color=gray[1], scrollbar_button_color=gray[1])
-        right_frame.grid(row=0, column=1, sticky='nsew')
+        left_frame = CTk.CTkFrame(master=self, corner_radius=0, fg_color=gray[0])
+        left_frame.pack(side=CTk.LEFT, fill=CTk.Y, expand=False)
+        right_frame = CTk.CTkFrame(master=self, corner_radius=0, fg_color=gray[1])
+        right_frame.pack(side=CTk.RIGHT, fill=CTk.BOTH, expand=True)
         self.tabview = TabView(right_frame)
 
 ## LEFT FRAME
-        Button(left_frame, text=' PyPOLAR', image=self.icons['blur_circular'], command=self.on_click_tab, tooltip=' - select a polarimetry method\n - download a .tiff stack file, a folder, a PyPOLAR analysis (.pykl) or a PyPOLAR figure (.pyfig)\n - for a .tiff file or folder, select an option of analysis\n - select one or several regions of interest (ROI)\n - click on Analysis', hover=False, fg_color='transparent', font=CTk.CTkFont(size=24)).pack(padx=20, pady=(10, 40))
-        self.method = tk.StringVar()
-        DropDown(left_frame, values=['1PF', 'CARS', 'SRS', 'SHG', '2PF', '4POLAR 2D', '4POLAR 3D'], image=self.icons['microscope'], command=self.method_dropdown_callback, variable=self.method, tooltip=' - 1PF: one-photon fluorescence\n - CARS: coherent anti-Stokes Raman scattering\n - SRS: stimulated Raman scattering\n - SHG: second-harmonic generation\n - 2PF: two-photon fluorescence\n - 4POLAR 2D: 2D 4POLAR fluorescence (not yet implemented)\n - 4POLAR 3D: 3D 4POLAR fluorescence')
-        self.openfile_dropdown_value = tk.StringVar()
+        dict_left_frame = {'column': 0, 'padx': 20, 'pady': 20}
+        Button(left_frame, text=' PyPOLAR', image=self.icons['blur_circular'], command=self.on_click_tab, tooltip=' - select a polarimetry method\n - download a .tiff stack file, a folder, a PyPOLAR analysis (.pykl) or a PyPOLAR figure (.pyfig)\n - for a .tiff file or folder, select an option of analysis\n - select one or several regions of interest (ROI)\n - click on Analysis', hover=False, fg_color='transparent', font=CTk.CTkFont(size=24)).grid(row=0, column=0, padx=20, pady=(10, 40))
+        self.method = CTk.StringVar()
+        DropDown(left_frame, values=['1PF', 'CARS', 'SRS', 'SHG', '2PF', '4POLAR 2D', '4POLAR 3D'], image=self.icons['microscope'], command=self.method_dropdown_callback, variable=self.method, tooltip=' - 1PF: one-photon fluorescence\n - CARS: coherent anti-Stokes Raman scattering\n - SRS: stimulated Raman scattering\n - SHG: second-harmonic generation\n - 2PF: two-photon fluorescence\n - 4POLAR 2D: 2D 4POLAR fluorescence (not yet implemented)\n - 4POLAR 3D: 3D 4POLAR fluorescence').grid(row=1, **dict_left_frame)
+        self.openfile_dropdown_value = CTk.StringVar()
         self.openfile_dropdown = DropDown(left_frame, values=['Open file', 'Open folder', 'Open analysis', 'Open figure'], image=self.icons['download_file'], variable=self.openfile_dropdown_value, command=self.open_file_callback, tooltip=' - open a file (.tif or .tiff stack file)\n - open a folder containing .tif or .tiff stack files\n - open a previous analysis (.pykl file saved from a previous PyPOLAR analysis)\n - open figure (.pyfig file saved from a previous analysis)')
-        self.option = tk.StringVar()
+        self.openfile_dropdown.grid(row=2, **dict_left_frame)
+        self.option = CTk.StringVar()
         self.options_dropdown = DropDown(left_frame, values=['Thresholding (manual)', 'Mask (manual)'], image=self.icons['build'], variable=self.option, state='disabled', command=self.options_dropdown_callback, tooltip=' select the method of analysis\n - intensity thresholding or segmentation mask for single file analysis (manual) or batch processing (auto)\n - the mask has to be binary and in PNG format and have the same file name as the respective polarimetry data file')
+        self.options_dropdown.grid(row=3, **dict_left_frame)
         self.add_roi_button = Button(left_frame, text='Add ROI', image=self.icons['roi'], command=self.add_roi_callback, tooltip=' add a region of interest: polygon (left button), freeform (right button)')
-        self.add_roi_button.pack(padx=20, pady=20)
+        self.add_roi_button.grid(row=4, **dict_left_frame)
         self.analysis_button = Button(left_frame, text='Analysis', command=self.analysis_callback, image=self.icons['play'], fg_color=green[0], hover_color=green[1], tooltip=' perform polarimetry analysis')
-        self.analysis_button.pack(padx=20, pady=20)
-        Button(left_frame, text='Close figures', command=lambda:plt.close('all'), image=self.icons['close'], fg_color=red[0], hover_color=red[1], tooltip=' close all open figures').pack(padx=20, pady=20)
+        self.analysis_button.grid(row=5, **dict_left_frame)
+        Button(left_frame, text='Close figures', command=lambda:plt.close('all'), image=self.icons['close'], fg_color=red[0], hover_color=red[1], tooltip=' close all open figures').grid(row=6, **dict_left_frame)
 
 ## RIGHT FRAME: INTENSITY
-        bottomframe = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
-        bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=0)
-
-        self.intensity_frame = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
-        self.intensity_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        banner = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
+        banner.pack(side=CTk.RIGHT, fill=CTk.Y, expand=False)
+        Button(banner, image=self.icons['contrast'], command=self.contrast_intensity_button_callback, tooltip=' adjust contrast\n - the chosen contrast will be the one used\n for the intensity images in figures\n - the contrast changes the intensity value displayed in the navigation toolbar\n - the chosen contrast does not affect the analysis').grid(row=0, column=0, padx=10, pady=(20, 0))
+        self.contrast_intensity_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation='vertical', command=self.contrast_intensity_slider_callback)
+        self.contrast_intensity_slider.set(1)
+        self.contrast_intensity_slider.grid(row=1, column=0, padx=10, pady=(0, 20))
+        self.compute_angle_button = Button(banner, image=self.icons['square'], command=self.compute_angle, tooltip=' left click to trace a line segment\n and determine its length and angle')
+        self.compute_angle_button.grid(row=2, column=0, padx=10, pady=20)
+        self.pixel_size = CTk.StringVar(value='0')
+        entry = CTk.CTkEntry(banner, textvariable=self.pixel_size, border_color=gray[0], width=50, justify='center')
+        ToolTip(entry, text=' enter the pixel size in nm')
+        entry.grid(row=3, column=0, padx=10, pady=0)
+        
         intensity_fig = Figure(figsize=(type(self).axes_size[0] / dpi, type(self).axes_size[1] / dpi), facecolor=gray[1])
         self.intensity_axis = intensity_fig.add_axes([0, 0, 1, 1])
         self.intensity_axis.set_axis_off()
-        self.intensity_canvas = FigureCanvasTkAgg(intensity_fig, master=self.intensity_frame)
         background = plt.imread(image_path / 'blur_circular-512.png')
         self.intensity_axis.imshow(background, cmap='gray', interpolation='bicubic', alpha=0.1)
+        self.intensity_canvas = FigureCanvasTkAgg(intensity_fig, master=self.tabview.tab('Intensity'))
         self.intensity_canvas.draw()
+        self.intensity_toolbar = NToolbar2PyPOLAR(canvas=self.intensity_canvas, window=self.tabview.tab('Intensity'))
+        self.intensity_canvas.get_tk_widget().pack(side=CTk.TOP, fill=CTk.BOTH, expand=True)
+        self.intensity_toolbar.pack(side=CTk.TOP, fill=CTk.X)
 
-        self.intensity_toolbar = NToolbar2PyPOLAR(canvas=self.intensity_canvas, window=self.intensity_frame)
-
-        banner = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
-        banner.pack(side=tk.RIGHT, fill=tk.Y)
-        Button(banner, image=self.icons['contrast'], command=self.contrast_intensity_button_callback, tooltip=' adjust contrast\n - the chosen contrast will be the one used\n for the intensity images in figures\n - the contrast changes the intensity value displayed in the navigation toolbar\n - the chosen contrast does not affect the analysis').pack(side=tk.TOP, padx=10, pady=(20, 0))
-        self.contrast_intensity_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation='vertical', command=self.contrast_intensity_slider_callback)
-        self.contrast_intensity_slider.set(1)
-        self.contrast_intensity_slider.pack(padx=10, pady=(0, 20))
-        self.compute_angle_button = Button(banner, image=self.icons['square'], command=self.compute_angle, tooltip=' left click to trace a line segment\n and determine its length and angle')
-        self.compute_angle_button.pack(padx=10, pady=20)
-        self.pixel_size = tk.StringVar(value='0')
-        entry = CTk.CTkEntry(banner, textvariable=self.pixel_size, border_color=gray[0], width=50, justify='center')
-        ToolTip(entry, text=' enter the pixel size in nm')
-        entry.pack(padx=10, pady=0)
-       
+        bottomframe = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
+        bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=False)
         self.filename_label = TextBox(master=bottomframe, width=300, height=50, tooltip=' name of file currently analyzed')
-        self.filename_label.pack(side=tk.LEFT)
+        self.filename_label.grid(row=0, column=0, sticky="sw")
         sliderframe = CTk.CTkFrame(master=bottomframe, fg_color='transparent', width=200)
-        sliderframe.pack(side=tk.LEFT, padx=80)
+        sliderframe.grid(row=0, column=1, sticky="se", padx=0)
         self.stack_slider = CTk.CTkSlider(master=sliderframe, from_=0, to=18, number_of_steps=18, command=self.stack_slider_callback, state='disabled')
         self.stack_slider.set(0)
-        self.stack_slider.grid(row=0, column=0, columnspan=2)
+        self.stack_slider.grid(row=0, column=0, columnspan=2, sticky="e")
         self.stack_slider_label = Label(master=sliderframe, text='T', tooltip=' slider at T for the total intensity, otherwise scroll through the images of the stack')
         self.stack_slider_label.grid(row=1, column=0, sticky='w')
         Label(master=sliderframe, fg_color='transparent', text='Stack', tooltip=' slider at T for the total intensity, otherwise scroll through the images of the stack').grid(row=1, column=1, sticky='e')
         
 ## RIGHT FRAME: THRSH
-        bottomframe = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
-        bottomframe.pack(side=tk.BOTTOM, fill=tk.X, pady=0)
+        banner = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
+        banner.pack(side=CTk.RIGHT, fill=CTk.Y, expand=False)
+        Button(banner, image=self.icons['contrast'], command=self.contrast_thrsh_button_callback, tooltip=' adjust contrast\n - the contrast changes the intensity value displayed in the navigation toolbar\n - the chosen contrast does not affect the analysis').grid(row=0, column=0, padx=10, pady=(20, 0))
+        self.contrast_thrsh_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation='vertical', command=self.contrast_thrsh_slider_callback)
+        self.contrast_thrsh_slider.set(1)
+        self.contrast_thrsh_slider.grid(row=1, column=0, padx=10, pady=(0, 20))
+        Button(banner, image=self.icons['palette'], command=self.change_colormap, tooltip=" change the colormap used for thresholding ('hot' or 'gray')").grid(row=2, column=0, padx=10, pady=10)
+        self.no_background_button = Button(banner, image=self.icons['photo_fill'], command=self.no_background, tooltip=' change background to enhance visibility')
+        self.no_background_button.grid(row=3, column=0, padx=10, pady=10)
+        Button(banner, image=self.icons['open_in_new'], command=self.export_mask, tooltip=' export mask as .png').grid(row=4, column=0, padx=10, pady=10)
+        Button(banner, image=self.icons['format_list'], command=self.roimanager_callback, tooltip=' open ROI Manager').grid(row=4, column=0, padx=10, pady=10)
 
-        self.thrsh_frame = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
-        self.thrsh_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.tabview.tab('Thresholding/Mask').columnconfigure(0, weight=1)
         self.thrsh_axis_facecolor = gray[1]
         self.thrsh_fig = Figure(figsize=(type(self).axes_size[0] / dpi, type(self).axes_size[1] / dpi), facecolor=self.thrsh_axis_facecolor)
         self.thrsh_axis = self.thrsh_fig.add_axes([0, 0, 1, 1])
         self.thrsh_axis.set_axis_off()
         self.thrsh_axis.set_facecolor(self.thrsh_axis_facecolor)
-        self.thrsh_canvas = FigureCanvasTkAgg(self.thrsh_fig, master=self.thrsh_frame)
+        self.thrsh_canvas = FigureCanvasTkAgg(self.thrsh_fig, master=self.tabview.tab('Thresholding/Mask'))
         self.thrsh_axis.imshow(background, cmap='gray', interpolation='bicubic', alpha=0.1)
         self.thrsh_canvas.draw()
+        self.thrsh_toolbar = NToolbar2PyPOLAR(canvas=self.thrsh_canvas, window=self.tabview.tab('Thresholding/Mask'))
+        self.thrsh_canvas.get_tk_widget().pack(side=CTk.TOP, fill=CTk.BOTH, expand=True)
+        self.thrsh_toolbar.pack(side=CTk.TOP, fill=CTk.X)
 
-        self.thrsh_toolbar = NToolbar2PyPOLAR(canvas=self.thrsh_canvas, window=self.thrsh_frame)
-
-        banner = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
-        banner.pack(side=tk.RIGHT, fill=tk.Y)
-        Button(banner, image=self.icons['contrast'], command=self.contrast_thrsh_button_callback, tooltip=' adjust contrast\n - the contrast changes the intensity value displayed in the navigation toolbar\n - the chosen contrast does not affect the analysis').pack(side=tk.TOP, padx=10, pady=(20, 0))
-        self.contrast_thrsh_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation='vertical', command=self.contrast_thrsh_slider_callback)
-        self.contrast_thrsh_slider.set(1)
-        self.contrast_thrsh_slider.pack(padx=10, pady=(0, 20))
-        Button(banner, image=self.icons['palette'], command=self.change_colormap, tooltip=" change the colormap used for thresholding ('hot' or 'gray')").pack(padx=10, pady=10)
-        self.no_background_button = Button(banner, image=self.icons['photo_fill'], command=self.no_background, tooltip=' change background to enhance visibility')
-        self.no_background_button.pack(padx=10, pady=10)
-        Button(banner, image=self.icons['open_in_new'], command=self.export_mask, tooltip=' export mask as .png').pack(padx=10, pady=10)
-        Button(banner, image=self.icons['format_list'], command=self.roimanager_callback, tooltip=' open ROI Manager').pack(padx=10, pady=10)
-
-        self.ilow = tk.StringVar(value='0')
+        bottomframe = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
+        bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=False)
+        self.ilow = CTk.StringVar(value='0')
         self.ilow_slider = CTk.CTkSlider(master=bottomframe, from_=0, to=1, command=self.ilow_slider_callback)
         self.ilow_slider.set(0)
-        self.ilow_slider.grid(row=0, column=0, columnspan=2, padx=20, pady=0)
+        self.ilow_slider.grid(row=0, column=0, padx=20, pady=0, sticky="sw")
         self.transparency_slider = CTk.CTkSlider(master=bottomframe, from_=0, to=1, command=self.transparency_slider_callback)
         self.transparency_slider.set(0)
-        self.transparency_slider.grid(row=0, column=2, padx=(100, 20), pady=0)
-        Label(master=bottomframe, text='Ilow', anchor='e', tooltip= ' intensity value used for thresholding\n - use the slider or enter the value manually').grid(row=1, column=0)
-        entry = CTk.CTkEntry(master=bottomframe, width=100, textvariable=self.ilow, border_color=gray[1], justify=tk.LEFT)
+        self.transparency_slider.grid(row=0, column=1, padx=(50, 20), pady=0, sticky="sw")
+        ilow_frame = CTk.CTkFrame(master=bottomframe, fg_color='transparent')
+        ilow_frame.grid(row=1, column=0, sticky="sw")
+        Label(master=ilow_frame, text='Ilow', anchor='w', tooltip= ' intensity value used for thresholding\n - use the slider or enter the value manually').grid(row=0, column=0, padx=20, sticky="sw")
+        entry = CTk.CTkEntry(master=ilow_frame, width=100, textvariable=self.ilow, border_color=gray[1], justify=CTk.LEFT)
         entry.bind('<Return>', command=self.ilow2slider_callback)
-        entry.grid(row=1, column=1, padx=(0, 20))
-        Label(master=bottomframe, text='Transparency', tooltip=' use slider to adjust the transparency of the background image').grid(row=1, column=2, padx=(10, 0))
+        entry.grid(row=0, column=1, padx=(0, 20), sticky="se")
+        Label(master=bottomframe, text='Transparency', tooltip=' use slider to adjust the transparency of the background image').grid(row=1, column=1, padx=50, sticky="sw")
         self.edge_detection_switch = Switch(master=bottomframe, text='Edge', fg_color=gray[0], onvalue='on', offvalue='off', command=self.edge_detection_callback, tooltip=' switch on to determine the edges of the thresholded image and compute orientations with respect to the edges')
-        self.edge_detection_switch.grid(row=0, column=3, padx=(50, 0))
+        self.edge_detection_switch.grid(row=0, column=2, padx=30, sticky="se")
 
 ## RIGHT FRAME: OPTIONS
-        show_save = CTk.CTkFrame(master=self.tabview.tab('Options'), fg_color=left_frame.cget('fg_color'))
-        show_save.grid(row=0, column=0, padx=20, pady=10, sticky='nw')
-        Label(master=show_save, text='\nFigures\n', font=CTk.CTkFont(size=16), width=250).grid(row=0, column=0, columnspan=3, padx=20, pady=0)
-        Label(master=show_save, text='Show', width=30, anchor='w').grid(row=1, column=1, padx=(0, 30), pady=(0, 10))
-        Label(master=show_save, text='Save', width=30, anchor='w').grid(row=1, column=2, padx=(0, 20), pady=(0, 10))
+        left_color = left_frame.cget('fg_color')
+        self.tabview.tab('Options').columnconfigure((0, 1), weight=1)
+        dict_frame = {'fg_color': left_color}
+
+        show_save = CTk.CTkFrame(master=self.tabview.tab('Options'), **dict_frame)
+        show_save.grid(row=0, column=0, padx=0, pady=0)
+        show_save.columnconfigure(0, weight=1)
+        Label(master=show_save, text='Figures\n', width=250, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=3, padx=20, pady=(10, 0), sticky="n")
+        Label(master=show_save, text='Show', width=30, anchor='w').grid(row=1, column=1, padx=(0, 30), pady=0, sticky="n")
+        Label(master=show_save, text='Save', width=30, anchor='w').grid(row=1, column=2, padx=(0, 20), pady=0, sticky="n")
         labels = ['Composite', 'Sticks', 'Histogram', 'Intensity']
         self.show_table = [CheckBox(show_save) for _ in range(len(labels))]
         self.save_table = [CheckBox(show_save) for _ in range(len(labels))]
-        for _ in range(len(labels)):
-            Label(master=show_save, text=labels[_], anchor='w', width=80, height=30).grid(row=_+2, column=0, padx=(20, 0))
+        for _ in range(len(labels)-1):
+            Label(master=show_save, text=labels[_], anchor='w', width=80, height=30).grid(row=_+2, column=0, padx=(20, 0), sticky="n")
             self.save_table[_].configure(command=self.click_save_output)
-            self.show_table[_].grid(row=_+2, column=1, pady=0, padx=10, sticky='ew')
-            self.save_table[_].grid(row=_+2, column=2, pady=0, padx=(10, 20))
-        Label(master=show_save, text=' ').grid(row=len(labels)+2, column=0, padx=0, pady=0)
+            self.show_table[_].grid(row=_+2, column=1, pady=0, padx=10, sticky='n')
+            self.save_table[_].grid(row=_+2, column=2, pady=0, padx=(10, 20), sticky='n')
+        Label(master=show_save, text=labels[-1], anchor='w', width=80, height=30).grid(row=len(labels)+2, column=0, padx=(20, 0), pady=(0, 10), sticky="n")
+        self.save_table[_].configure(command=self.click_save_output)    
+        self.show_table[-1].grid(row=len(labels)+2, column=1, pady=(0, 10), padx=10, sticky='n')
+        self.save_table[-1].grid(row=len(labels)+2, column=2, pady=(0, 10), padx=(10, 20), sticky='n')
 
-        preferences = CTk.CTkFrame(master=self.tabview.tab('Options'), fg_color=left_frame.cget('fg_color'))
-        preferences.grid(row=2, column=0, padx=20, pady=10)
-        Label(master=preferences, text='\nPreferences\n', font=CTk.CTkFont(size=16), width=250).grid(row=0, column=0, columnspan=2, padx=20, pady=0, sticky='nw')
-        self.add_axes_checkbox = CheckBox(preferences, text='\n Axes on figures\n', command=self.add_axes_on_all_figures)
+        preferences = CTk.CTkFrame(master=self.tabview.tab('Options'), **dict_frame)
+        preferences.grid(row=1, column=0, rowspan=3, padx=0, pady=(20, 0), sticky="n")
+        Label(master=preferences, text='Preferences\n', width=250, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=2, padx=20, pady=(10, 0), sticky='n')
+        self.add_axes_checkbox = CheckBox(preferences, text='\nAxes on figures\n', command=self.add_axes_on_all_figures)
         self.add_axes_checkbox.select()
-        self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=40, pady=(0, 0), sticky='ew')
-        self.colorbar_checkbox = CheckBox(preferences, text='\n Colorbar on figures\n', command=self.colorbar_on_all_figures)
+        self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=40, pady=0, sticky='ew')
+        self.colorbar_checkbox = CheckBox(preferences, text='\nColorbar on figures\n', command=self.colorbar_on_all_figures)
         self.colorbar_checkbox.select()
-        self.colorbar_checkbox.grid(row=2, column=0, columnspan=2, padx=40, pady=(0, 0), sticky='ew')
-        self.colorblind_checkbox = CheckBox(preferences, text='\n Colorblind-friendly\n', command=self.colorblind_on_all_figures)
+        self.colorbar_checkbox.grid(row=2, column=0, columnspan=2, padx=40, pady=0, sticky='ew')
+        self.colorblind_checkbox = CheckBox(preferences, text='\nColorblind-friendly\n', command=self.colorblind_on_all_figures)
         self.colorblind_checkbox.grid(row=3, column=0, columnspan=2, padx=40, pady=(0, 10), sticky='ew')
         labels = [' pixels per stick (horizontal)', ' pixels per stick (vertical)']
         self.pixelsperstick_spinboxes = [SpinBox(master=preferences, command=self.pixelsperstick_spinbox_callback) for it in range(2)]
         for _ in range(2):
-            self.pixelsperstick_spinboxes[_].grid(row=_+4, column=0, padx=(20, 0), pady=(0, 20))
-            Label(master=preferences, text=labels[_], anchor='w', tooltip=' controls the density of sticks to be plotted').grid(row=_+4, column=1, padx=(0, 20), pady=(0, 20), sticky='w')
-        self.histo_nbins = tk.StringVar(value='60')
-        SpinBox(master=preferences, from_=10, to_=90, step_size=10, textvariable=self.histo_nbins).grid(row=6, column=0, padx=(20, 0), pady=(0, 20))
-        Label(master=preferences, text=' bins for histograms', anchor='w', tooltip=' controls the number of bins used in histograms').grid(row=6, column=1, padx=(0, 20), pady=(0, 20), sticky='w')
-        Button(preferences, image=self.icons['crop'], command=self.crop_figures_callback, tooltip=' click button to define region and crop figures').grid(row=7, column=0, columnspan=2, padx=125, pady=(0, 20), sticky='w')
+            self.pixelsperstick_spinboxes[_].grid(row=_+4, column=0, padx=(20, 0), pady=10)
+            Label(master=preferences, text=labels[_], anchor='w', tooltip=' controls the density of sticks to be plotted').grid(row=_+4, column=1, padx=(0, 20), pady=10, sticky='w')
+        self.histo_nbins = CTk.StringVar(value='60')
+        SpinBox(master=preferences, from_=10, to_=90, step_size=10, textvariable=self.histo_nbins).grid(row=6, column=0, padx=(20, 0), pady=10)
+        Label(master=preferences, text=' bins for histograms', anchor='w', tooltip=' controls the number of bins used in histograms').grid(row=6, column=1, padx=(0, 20), pady=10, sticky='w')
+        Button(preferences, image=self.icons['crop'], command=self.crop_figures_callback, tooltip=' click button to define region and crop figures').grid(row=7, column=0, columnspan=2, pady=(0, 10))
         
-        self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab('Options'), width=300)
-        self.variable_table_frame.grid(row=0, column=1, padx=20, pady=10, sticky='nw')
+        self.variable_table_frame = CTk.CTkFrame(master=self.tabview.tab('Options'), **dict_frame)
+        self.variable_table_frame.grid(row=0, column=1, padx=0, pady=0, sticky="n")
 
         banner = CTk.CTkFrame(master=self.tabview.tab('Options'), fg_color=gray[1])
-        banner.grid(row=2, column=1, padx=20, pady=10, sticky='nw')
+        banner.grid(row=1, column=1, padx=40, pady=(10, 0), sticky="n")
         Button(banner, image=self.icons['query_stats'], command=self.show_individual_fit_callback, tooltip=' show an individual fit\n - zoom into the region of interest in the Rho composite\n - click this button\n - select a pixel with the crosshair on the Rho composite then click').grid(row=0, column=0, padx=(0, 20), pady=0)
         Button(banner, image=self.icons['merge'], command=self.merge_histos, tooltip=' concatenate histograms\n - choose variables in the Variables table\n - click button to select the folder containing the .mat files').grid(row=0, column=1, padx=20, pady=0)
         self.per_roi = CheckBox(banner, text='per ROI', command=self.per_roi_callback, border_color=gray[0], tooltip=' show and save data/figures separately for each region of interest')
         self.per_roi.grid(row=0, column=2, padx=20, pady=0)
 
-        save_ext = CTk.CTkFrame(master=self.tabview.tab('Options'), fg_color=left_frame.cget('fg_color'))
-        Label(master=save_ext, text='\nSave output\n', font=CTk.CTkFont(size=16), width=230).grid(row=0, column=0, columnspan=2, padx=(20, 20), pady=(0, 0))
-        save_ext.grid(row=2, column=1, padx=20, pady=(20, 90), sticky='sw')
+        save_ext = CTk.CTkFrame(master=self.tabview.tab('Options'), **dict_frame)
+        Label(master=save_ext, text='Save output\n', width=250, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=2, padx=(20, 20), pady=(10, 0), sticky="n")
+        save_ext.grid(row=2, column=1, padx=0, pady=(10, 0), sticky="n")
         Label(save_ext, text='Figures', anchor='w').grid(row=1, column=0, padx=(40, 0), sticky='w')
-        self.figure_extension = tk.StringVar(value='.pdf')
+        self.figure_extension = CTk.StringVar(value='.pdf')
         self.figure_extension_optionmenu = OptionMenu(save_ext, width=60, height=20, variable=self.figure_extension, values=['.pdf', '.png', '.jpeg', '.tif', '.pyfig'], state='disabled', fg_color=gray[0], button_color=gray[0], text_color_disabled=gray[1], button_hover_color=gray[0], anchor='e', tooltip=' select the file type for the saved figures')
-        self.figure_extension_optionmenu.grid(row=1, column=1)
+        self.figure_extension_optionmenu.grid(row=1, column=1, padx=(0, 10))
         labels = ['Data (.pykl)', 'Data (.mat)', 'Mean values (.xlsx)', 'Movie (.gif)']
         self.extension_table = [CheckBox(save_ext) for _ in range(len(labels))]
-        for _ in range(len(labels)):
+        for _ in range(len(labels)-1):
             Label(master=save_ext, text=labels[_], anchor='w').grid(row=_+2, column=0, padx=(40, 0), sticky='w')
-            self.extension_table[_].grid(row=_+2, column=1, pady=0, padx=(0,0))
-        Label(master=save_ext, text=' ').grid(row=len(labels)+2, column=0)
+            self.extension_table[_].grid(row=_+2, column=1, pady=0, padx=0)
+        Label(master=save_ext, text=labels[-1], anchor='w').grid(row=len(labels)+1, column=0, padx=(40, 0), pady=(0, 10), sticky='w')
+        self.extension_table[len(labels)-1].grid(row=len(labels)+1, column=1, pady=(0, 10), padx=0)    
 
-        Button(self.tabview.tab('Options'), image=self.icons['delete_forever'], command=self.initialize_tables, tooltip=' reinitialize Figures, Save output and Variables tables').grid(row=2, column=1, padx=20, pady=30, sticky='sw')
+        Button(self.tabview.tab('Options'), image=self.icons['delete_forever'], command=self.initialize_tables, tooltip=' reinitialize Figures, Save output and Variables tables').grid(row=3, column=1, padx=40, pady=(10, 0), sticky="n")
 
 ## RIGHT FRAME: ADV
+        self.tabview.tab('Advanced').columnconfigure((0, 1, 2), weight=1)
         adv_elts = ['Dark', 'Binning', 'Polarization', 'Rotation', 'Disk cone / Calibration data', 'Intensity removal']
         adv_loc = [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]
         columnspan = [1, 2, 1, 2, 1, 2]
         adv = {}
         for loc, elt, cspan in zip(adv_loc, adv_elts, columnspan):
-            adv.update({elt: CTk.CTkFrame(
-            master=self.tabview.tab('Advanced'), fg_color=left_frame.cget('fg_color'))})
-            adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=10, sticky='nw')
-            Label(master=adv[elt], text=elt + '\n', width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=cspan, padx=20, pady=(10,0))
+            adv.update({elt: CTk.CTkFrame(master=self.tabview.tab('Advanced'), **dict_frame)})
+            adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=10, sticky="n")
+            Label(master=adv[elt], text=elt + '\n', width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=cspan, padx=20, pady=(10, 0), sticky="n")
 
         self.dark_switch = CTk.CTkSwitch(master=adv['Dark'], text='', command=self.dark_switch_callback, onvalue='on', offvalue='off', width=50)
         self.dark_switch.grid(row=0, column=0, padx=20, pady=10, sticky='ne')
-        self.calculated_dark_label = Label(master=adv['Dark'], text='Calculated dark value = 0')
-        self.calculated_dark_label.grid(row=2, column=0, sticky='w', padx=40)
-        self.dark = tk.StringVar()
-        self.dark_entry = Entry(adv['Dark'], text='Used dark value', textvariable=self.dark, row=1, column=0, tooltip=' for 1PF, use a dark value greater than 480\n - raw images correspond to a dark value 0')
+        self.dark = CTk.StringVar()
+        self.dark_entry = Entry(adv['Dark'], text='Used dark value', textvariable=self.dark, row=1, column=0, sticky="nw", padx=40, tooltip=' for 1PF, use a dark value greater than 480\n - raw images correspond to a dark value 0')
         self.dark_entry.bind('<Return>', command=self.intensity_callback)
-        self.dark_entry.set_state('disabled')
-        Label(master=adv['Dark'], text=' ', height=5).grid(row=3, column=0, pady=5)
+        self.dark_entry.set_state('disabled')       
+        self.calculated_dark_label = Label(master=adv['Dark'], text='Calculated dark value = 0')
+        self.calculated_dark_label.grid(row=2, column=0, sticky='w', padx=40, pady=(0, 10))
+        
 
         self.offset_angle_switch = CTk.CTkSwitch(master=adv['Polarization'], text='', command=self.offset_angle_switch_callback, onvalue='on', offvalue='off', width=50)
         self.offset_angle_switch.grid(row=0, column=0, padx=20, pady=10, sticky='ne')
-        self.offset_angle = tk.StringVar(value='0')
-        self.offset_angle_entry = Entry(adv['Polarization'], text='\nOffset angle (deg)\n', textvariable=self.offset_angle, row=1)
+        self.offset_angle = CTk.StringVar(value='0')
+        self.offset_angle_entry = Entry(adv['Polarization'], text='\nOffset angle (deg)\n', textvariable=self.offset_angle, row=1, sticky="nw", padx=40)
         self.offset_angle_entry.set_state('disabled')
         Label(master=adv['Polarization'], text=' ').grid(row=2, column=0)
-        self.polar_dir = tk.StringVar(value='clockwise')
+        self.polar_dir = CTk.StringVar(value='clockwise')
         self.polarization_button = Button(adv['Polarization'], image=self.icons[self.polar_dir.get()], command=self.change_polarization_direction, tooltip=' change polarization direction')
-        self.polarization_button.grid(row=2, column=0, pady=10)
+        self.polarization_button.grid(row=2, column=0, pady=(0, 10))
 
         Button(adv['Disk cone / Calibration data'], image=self.icons['photo'], command=self.diskcone_display, tooltip=' display the selected disk cone (for 1PF)').grid(row=1, column=0, padx=(52, 0), pady=10, sticky='w')
         self.calib_dropdown = OptionMenu(master=adv['Disk cone / Calibration data'], values='', width=button_size[0]-button_size[1], height=button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback, tooltip=' 1PF: select disk cone depending on wavelength and acquisition date\n 4POLAR: select .mat file containing the calibration data')
@@ -334,7 +343,7 @@ class Polarimetry(CTk.CTk):
             Label(master=adv['Binning'], text='\n' + labels[_] + '\n', tooltip=' height and width of the bin used for data binning').grid(row=_+1, column=1, padx=(10, 60), pady=0, sticky='w')
 
         labels = ['Stick (deg)', 'Figure (deg)', 'Reference (deg)']
-        self.rotation = [tk.StringVar(value='0'), tk.StringVar(value='0'), tk.StringVar(value='0')]
+        self.rotation = [CTk.StringVar(value='0'), CTk.StringVar(value='0'), CTk.StringVar(value='0')]
         for _ in range(len(labels)):
             tooltip = ' positive value for counter-clockwise rotation\n negative value for clockwise rotation'
             if _ == 2:
@@ -348,7 +357,7 @@ class Polarimetry(CTk.CTk):
                 entry.bind('<Return>', command=self.rotation1_callback)
         Label(master=adv['Rotation'], text=' ', height=5).grid(row=4, column=0)
 
-        self.noise = [tk.StringVar(value='1'), tk.StringVar(value='3'), tk.StringVar(value='3')]
+        self.noise = [CTk.StringVar(value='1'), CTk.StringVar(value='3'), CTk.StringVar(value='3')]
         labels = ['Bin width', 'Bin height']
         for _ in range(2):
             SpinBox(adv['Intensity removal'], from_=3, to_=19, step_size=2, textvariable=self.noise[_+1]).grid(row=_+1, column=0, padx=(30, 10), pady=10, sticky='e')
@@ -362,15 +371,14 @@ class Polarimetry(CTk.CTk):
         Label(master=adv['Intensity removal'], text=' ', height=5).grid(row=6, column=0)
 
 ## RIGHT FRAME: ABOUT
-        banner = CTk.CTkFrame(master=self.tabview.tab('About'), fg_color=gray[1])
-        banner.grid(row=0, column=0, pady=20, sticky='w')
-        Button(banner, image=self.icons['web'], command=lambda:self.openweb(type(self).url_fresnel), tooltip=' visit the polarimetry website').pack(side=tk.LEFT, padx=40)
-        Button(banner, image=self.icons['mail'], command=self.send_email, tooltip=' send an email to report bugs and/or send suggestions').pack(side=tk.LEFT, padx=40)
-        Button(banner, image=self.icons['GitHub'], command=lambda:self.openweb(type(self).url_github), tooltip=' visit the PyPOLAR GitHub page').pack(side=tk.LEFT, padx=40)
-        Button(banner, image=self.icons['contact_support'], command=lambda:self.openweb(type(self).url_github + '/blob/master/README.md'), tooltip=' visit the online help').pack(side=tk.LEFT, padx=40)
-        about_textbox = TextBox(master=self.tabview.tab('About'), width=780, height=500)
-        about_textbox.write(f'Version: {type(self).__version__} ({type(self).__version_date__}) \n\n\n Website: www.fresnel.fr/polarimetry/ \n\n\n Source code available at github.com/cchandre/Polarimetry \n\n\n\n PyPOLAR is based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     cristel.chandre@cnrs.fr  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  PyPOLAR was created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV\n scikit-image, Matplotlib, openpyxl, tksheet, colorcet, joblib \n\n\n  PyPOLAR uses Material Design icons by Google')
-        about_textbox.grid(row=1, column=0, padx=30)
+        dict_buttons = {'row': 0, 'padx': 20, 'pady': 20, 'sticky': "nw"}
+        Button(self.tabview.tab('About'), image=self.icons['web'], command=lambda:self.openweb(type(self).url_fresnel), tooltip=' visit the polarimetry website').grid(column=0, **dict_buttons)
+        Button(self.tabview.tab('About'), image=self.icons['mail'], command=self.send_email, tooltip=' send an email to report bugs and/or send suggestions').grid(column=1, **dict_buttons)
+        Button(self.tabview.tab('About'), image=self.icons['GitHub'], command=lambda:self.openweb(type(self).url_github), tooltip=' visit the PyPOLAR GitHub page').grid(column=2, **dict_buttons)
+        Button(self.tabview.tab('About'), image=self.icons['contact_support'], command=lambda:self.openweb(type(self).url_github + '/blob/master/README.md'), tooltip=' visit the online help').grid(column=3, **dict_buttons)
+        about_textbox = TextBox(master=self.tabview.tab('About'), width=600, height=500, wrap='word')
+        about_textbox.write(f'Version: {type(self).__version__} ({type(self).__version_date__}) \n\n\n Website: {self.url_fresnel} \n\n\n Source code available at {self.url_github} \n\n\n\n PyPOLAR is based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     {self.email}  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  PyPOLAR was created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV, scikit-image, Matplotlib, openpyxl, tksheet, colorcet, joblib \n\n\n  PyPOLAR uses Material Design icons by Google')
+        about_textbox.grid(row=1, column=0, columnspan=4, padx=30, sticky="n")
         self.startup()
 
     def startup(self) -> None:
@@ -497,19 +505,19 @@ class Polarimetry(CTk.CTk):
             Label(master=adv[elt], text=elt + '\n', width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, padx=20, pady=(10,0))
         params = ['Low threshold', 'High threshold', 'Length', 'Smoothing window']
         tooltips = [' hysteresis thresholding values: edges with intensity gradients\n below this value are not edges and discarded ', ' hysteresis thresholding values: edges with intensity gradients\n larger than this value are sure to be edges', ' minimum length for a contour (in pixels)', ' number of pixels in the window used for smoothing contours (in pixels)']
-        self.canny_thrsh = [tk.StringVar(value='60'), tk.StringVar(value='100'), tk.StringVar(value='100'), tk.StringVar(value='20')]
+        self.canny_thrsh = [CTk.StringVar(value='60'), CTk.StringVar(value='100'), CTk.StringVar(value='100'), CTk.StringVar(value='20')]
         for _, (param, tooltip) in enumerate(zip(params, tooltips)):
             entry = Entry(adv['Edge detection'], text=param, textvariable=self.canny_thrsh[_], row=_+1, tooltip=tooltip)
             entry.bind('<Return>', command=self.compute_edges)
         Label(master=adv['Edge detection'], text=' ').grid(row=5, column=0)
         params = ['Distance from contour', 'Layer width']
         tooltips = [' width of the region to be analyzed (in pixels)', ' distance from contour of the region to be analyzed (in pixels)']
-        self.layer_params = [tk.StringVar(value='0'), tk.StringVar(value='10')]
+        self.layer_params = [CTk.StringVar(value='0'), CTk.StringVar(value='10')]
         for _, (param, tooltip) in enumerate(zip(params, tooltips)):
             Entry(adv['Layer'], text=param, textvariable=self.layer_params[_], row=_+1, tooltip=tooltip)
         Label(master=adv['Layer'], text=' ').grid(row=3, column=0)
 
-    def compute_edges(self, event:tk.Event=None) -> None:
+    def compute_edges(self, event:tkEvent=None) -> None:
         if self.edge_method == 'compute':
             field = self.stack.intensity.copy()
             thrsh = float(self.ilow.get())
@@ -673,7 +681,7 @@ class Polarimetry(CTk.CTk):
             if hasattr(self, 'datastack'):
                 self.mask = self.get_mask(self.datastack)
                 self.ontab_thrsh()
-                self.thrsh_frame.update()
+                self.tabview.tab('Thresholding/Mask').update()
 
     def open_file_callback(self, value:str) -> None:
         initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
@@ -757,7 +765,7 @@ class Polarimetry(CTk.CTk):
                 elif self.openfile_dropdown_value.get() == 'Open figure':
                     fig = plt.gcf()
                     vals = [1, fig.width, 1, fig.height]
-                self.xylim = [tk.StringVar(value=str(val)) for val in vals]
+                self.xylim = [CTk.StringVar(value=str(val)) for val in vals]
             labels = [u'\u2B62 xlim', u'\u2B63 ylim']
             positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
             for _, label in enumerate(labels):
@@ -1010,7 +1018,7 @@ class Polarimetry(CTk.CTk):
         self.initialize_tables()
         self.clear_frame(self.variable_table_frame)
         self.variable_table_frame.configure(fg_color=gray[0])
-        Label(master=self.variable_table_frame, text='\nVariables\n', width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=4, padx=(20, 20), pady=0)
+        Label(master=self.variable_table_frame, text='Variables\n', width=250, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=4, padx=(20, 20), pady=(10, 0))
         self.variable_table_switch = CTk.CTkSwitch(master=self.variable_table_frame, text='', command=self.variable_table_switch_callback, onvalue='on', offvalue='off', width=50)
         self.variable_table_switch.grid(row=1, column=0, padx=(20, 0), sticky='w')
         labels = ['Min', 'Max']
@@ -1029,9 +1037,9 @@ class Polarimetry(CTk.CTk):
             variables = ['\u03C1', '\u03C8', '\u03B7']
             vals = [(0, 180), (40, 180), (0, 90)]
         self.variable_entries = []
-        self.variable_min = [tk.StringVar() for _ in range(len(variables))]
-        self.variable_max = [tk.StringVar() for _ in range(len(variables))]
-        self.variable_display = [tk.IntVar(value=0) for _ in range(len(variables))]
+        self.variable_min = [CTk.StringVar() for _ in range(len(variables))]
+        self.variable_max = [CTk.StringVar() for _ in range(len(variables))]
+        self.variable_display = [CTk.IntVar(value=0) for _ in range(len(variables))]
         for _, (var, val) in enumerate(zip(variables, vals)):
             self.variable_min[_].set(str(val[0]))
             self.variable_max[_].set(str(val[1]))
@@ -1212,8 +1220,8 @@ class Polarimetry(CTk.CTk):
             self.mask = self.get_mask(self.datastack)
         self.ontab_intensity(update=False)
         self.ontab_thrsh(update=False)
-        self.intensity_frame.update()
-        self.thrsh_frame.update()
+        self.tabview.tab('Intensity').update()
+        self.tabview.tab('Thresholding/Mask').update()
 
     def add_roi_callback(self) -> None:
         if hasattr(self, 'stack'):
@@ -1351,14 +1359,14 @@ class Polarimetry(CTk.CTk):
                 self.compute_edges()
             self.ontab_thrsh()
 
-    def ilow2slider_callback(self, event:tk.Event) -> None:
+    def ilow2slider_callback(self, event:tkEvent) -> None:
         if event and hasattr(self, 'datastack'):
             self.ilow_slider.set(float(self.ilow.get()) / float(np.amax(self.datastack.intensity)))
             if hasattr(self, 'edge_contours'):
                 self.compute_edges()
             self.ontab_thrsh()
 
-    def intensity_callback(self, event:tk.Event) -> None:
+    def intensity_callback(self, event:tkEvent) -> None:
         if event and hasattr(self, 'stack'):
             if (self.method.get() == '1PF') and (float(self.dark.get()) < 480):
                 self.dark.set(self.stack.display.format(self.calculated_dark))
@@ -1369,11 +1377,11 @@ class Polarimetry(CTk.CTk):
             self.ontab_intensity(update=False)
             self.ontab_thrsh(update=False)
 
-    def rotation_callback(self, event:tk.Event) -> None:
+    def rotation_callback(self, event:tkEvent) -> None:
         if event:
             self.ontab_intensity(update=False)
 
-    def rotation1_callback(self, event:tk.Event) -> None:
+    def rotation1_callback(self, event:tkEvent) -> None:
         if event:
             self.rotation[2].set('0')
             self.ontab_intensity(update=False)
@@ -1400,7 +1408,7 @@ class Polarimetry(CTk.CTk):
                 self.intensity_axis.clear()
                 self.intensity_axis.set_axis_off()
                 self.intensity_im = self.intensity_axis.imshow(field_im, cmap='gray', interpolation='nearest')
-                self.intensity_frame.update()
+                self.tabview.tab('Intensity').update()
             self.intensity_im.set_clim(vmin, vmax)
             self.clear_patches(self.intensity_axis, self.intensity_canvas)
             if hasattr(self, 'datastack'):
@@ -1424,7 +1432,7 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_axis.clear()
                 self.thrsh_axis.set_axis_off()
                 self.thrsh_im = self.thrsh_axis.imshow(field_im, cmap=self.thrsh_colormap, alpha=alphadata, interpolation='nearest')
-                self.thrsh_frame.update()
+                self.tabview.tab('Thresholding/Mask').update()
             self.thrsh_im.set_clim(vmin, vmax)
             self.clear_patches(self.thrsh_axis, self.thrsh_fig.canvas)
             if hasattr(self, 'plot_edges'):

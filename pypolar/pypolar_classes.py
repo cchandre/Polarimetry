@@ -23,7 +23,6 @@ from matplotlib.backend_bases import NavigationToolbar2, _Mode, MouseEvent
 from typing import Callable, List, Tuple, Union
 from generate_json import font_macosx, font_windows, orange, red, green, gray, text_color
 
-tab_width, tab_height = 750, 750
 button_size = (160, 40)
 
 ## PyPOLAR USEFUL FUNCTIONS
@@ -95,11 +94,11 @@ class Entry(CTk.CTkFrame):
     def __init__(self, master, text:str=None, textvariable:tk.StringVar=None, tooltip:str=None, state:str='normal', row:int=0, column:int=0, padx:Union[int, Tuple[int, int]]=(10, 30), pady:Union[int, Tuple[int, int]]=5, sticky:str='e', fg_color:str=gray[0], width:int=50, **kwargs) -> None:
         super().__init__(master, **kwargs)
         self.configure(fg_color=fg_color)
-        self.grid(row=row, column=column, sticky=sticky)
+        self.grid(row=row, column=column, sticky=sticky, padx=padx, pady=pady)
         if text is not None:
-            Label(self, text=text, tooltip=tooltip).grid(row=0, column=0, padx=(20, 10))
+            Label(self, text=text, tooltip=tooltip).grid(row=0, column=0, padx=(0, 10))
         self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=width, justify='center', state=state)
-        self.entry.grid(row=0, column=1, padx=padx, pady=pady)
+        self.entry.grid(row=0, column=1)
 
     def get(self) -> int:
         return int(self.entry.get())
@@ -114,12 +113,11 @@ class DropDown(CTk.CTkFrame):
     def __init__(self, master, values:List[str]=[], image:CTk.CTkImage=None, tooltip:str=None, command:Callable=None, variable:tk.StringVar=None, state:str='normal', **kwargs):
         super().__init__(master, **kwargs)
         self.configure(bg_color=orange[0], background_corner_colors=[gray[0], gray[0], gray[0], gray[0]])
-        self.icon = Button(self, image=image, tooltip=tooltip, hover=False)
         self.variable = variable
-        self.icon.pack(side=tk.LEFT)
-        self.option_menu = CTk.CTkOptionMenu(self, values=values, width=button_size[0]-button_size[1], height=button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state)
-        self.option_menu.pack(side=tk.LEFT)
-        self.pack(padx=20, pady=20)
+        self.icon = Button(self, image=image, tooltip=tooltip, hover=False, width=button_size[1])
+        self.icon.grid(row=0, column=0)
+        self.option_menu = CTk.CTkOptionMenu(self, values=values, width=button_size[0]-button_size[1]-5, height=button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state)
+        self.option_menu.grid(row=0, column=1)
 
     def set_state(self, state:str) -> None:
         self.option_menu.configure(state=state)
@@ -491,7 +489,6 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         for button in self.winfo_children():
             button.config(background=gray[1])
         self.pack(side=tk.BOTTOM, fill=tk.X)
-        canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipadx=0, ipady=0)
 
     def _update_buttons_checked(self) -> None:
         for text, mode in [('Zoom', _Mode.ZOOM), ('Pan', _Mode.PAN)]:
@@ -820,10 +817,8 @@ class ROIManager(CTk.CTkToplevel):
 class TabView(CTk.CTkTabview):
     def __init__(self, master, **kwargs) -> None:
         super().__init__(master, **kwargs)
-
-        self.configure(width=tab_width, height=tab_height, segmented_button_selected_color=orange[0], segmented_button_unselected_color=gray[1], segmented_button_selected_hover_color=orange[1], text_color=text_color, segmented_button_fg_color=gray[0], fg_color=gray[1])
-        self.pack(fill=tk.BOTH, expand=True)
+        self.configure(segmented_button_selected_color=orange[0], segmented_button_unselected_color=gray[1], segmented_button_selected_hover_color=orange[1], text_color=text_color, segmented_button_fg_color=gray[0], fg_color=gray[1])
         tabs = ['Intensity', 'Thresholding/Mask', 'Options', 'Advanced', 'About']
-        self.frame = {}
         for tab in tabs:
             self.add(tab)
+        self.pack(fill=tk.BOTH, expand=True)
