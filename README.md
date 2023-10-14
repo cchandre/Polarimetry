@@ -11,8 +11,9 @@ Website: [www.fresnel.fr/polarimetry](https://www.fresnel.fr/polarimetry)
 ![Platform](https://img.shields.io/badge/platform-macOS|Windows-orange)
 ![License](https://img.shields.io/badge/license-BSD-lightgray)
 
-<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/PyPOLAR_layout.png" alt=" " width="400"/>
+<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/PyPOLAR_layout.png" alt=" " width="400"/>  
 
+The code was compiled with Python 3.8.16 with the packages listed in [requirements.txt](https://github.com/cchandre/Polarimetry/blob/master/pypolar/requirements.txt), and the app was created using [PyInstaller](https://pyinstaller.org/) 5.7.0.
 ___
 ##  Manual
 
