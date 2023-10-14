@@ -161,7 +161,7 @@ class Polarimetry(CTk.CTk):
         self.intensity_toolbar.pack(side=CTk.TOP, fill=CTk.X)
 
         bottomframe = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
-        bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=True)
+        bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=True, pady=5)
         self.filename_label = TextBox(master=bottomframe, width=300, height=50, tooltip=' name of file currently analyzed')
         self.filename_label.pack(side=CTk.LEFT, padx=30)
         sliderframe = CTk.CTkFrame(master=bottomframe, fg_color='transparent', width=200)
@@ -199,14 +199,14 @@ class Polarimetry(CTk.CTk):
         self.thrsh_toolbar.pack(side=CTk.TOP, fill=CTk.X)
 
         bottomframe = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
-        bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=True)
+        bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=False, pady=5)
         ilow_frame = CTk.CTkFrame(master=bottomframe, fg_color='transparent')
         ilow_frame.pack(side=CTk.LEFT, padx=30)
         self.ilow = CTk.StringVar(value='0')
         self.ilow_slider = CTk.CTkSlider(master=ilow_frame, from_=0, to=1, command=self.ilow_slider_callback)
         self.ilow_slider.set(0)
         self.ilow_slider.grid(row=0, column=0, columnspan=2, sticky="sw")
-        Label(master=ilow_frame, text='Ilow', anchor='w', tooltip= ' intensity value used for thresholding\n - use the slider or enter the value manually').grid(row=1, column=0, padx=20, sticky="sw")
+        Label(master=ilow_frame, text='Ilow\n', anchor='w', tooltip= ' intensity value used for thresholding\n - use the slider or enter the value manually').grid(row=1, column=0, padx=20, sticky="sw")
         entry = CTk.CTkEntry(master=ilow_frame, textvariable=self.ilow, border_color=gray[1], width=100, justify=CTk.LEFT)
         entry.bind('<Return>', command=self.ilow2slider_callback)
         entry.grid(row=1, column=1, sticky="se")
@@ -215,8 +215,8 @@ class Polarimetry(CTk.CTk):
         self.transparency_slider = CTk.CTkSlider(master=transparency_frame, from_=0, to=1, command=self.transparency_slider_callback)
         self.transparency_slider.set(0)
         self.transparency_slider.grid(row=0, column=0)
-        Label(master=transparency_frame, text='Transparency', tooltip=' use slider to adjust the transparency of the background image').grid(row=1, column=0, padx=20, sticky="sw")
-        self.edge_detection_switch = Switch(master=bottomframe, text='Edge', fg_color=gray[0], onvalue='on', offvalue='off', command=self.edge_detection_callback, tooltip=' switch on to determine the edges of the thresholded image and compute orientations with respect to the edges')
+        Label(master=transparency_frame, text='Transparency\n', tooltip=' use slider to adjust the transparency of the background image').grid(row=1, column=0, padx=20, sticky="sw")
+        self.edge_detection_switch = Switch(master=bottomframe, text='\nEdge\n', fg_color=gray[0], onvalue='on', offvalue='off', command=self.edge_detection_callback, tooltip=' switch on to determine the edges of the thresholded image and compute orientations with respect to the edges')
         self.edge_detection_switch.pack(side=CTk.RIGHT)
 
 ## RIGHT FRAME: OPTIONS
@@ -1241,6 +1241,8 @@ class Polarimetry(CTk.CTk):
             self.__cid2 = self.thrsh_canvas.mpl_connect('button_press_event', lambda event: self.add_roi_button_press_callback(event, hroi))
 
     def add_roi_motion_notify_callback(self, event:MouseEvent, roi:ROI) -> None:
+        self.thrsh_toolbar.mode = _Mode.NONE
+        self.thrsh_toolbar._update_buttons_checked()
         if event.inaxes == self.thrsh_axis:
             x, y = event.xdata, event.ydata
             if (event.button is None or event.button == 1) and roi.lines:
