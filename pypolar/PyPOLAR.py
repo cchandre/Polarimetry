@@ -161,7 +161,7 @@ class Polarimetry(CTk.CTk):
         self.intensity_toolbar.pack(side=CTk.TOP, fill=CTk.X)
 
         bottomframe = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
-        bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=True, pady=5)
+        bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=False, pady=5)
         self.filename_label = TextBox(master=bottomframe, width=300, height=50, tooltip=' name of file currently analyzed')
         self.filename_label.pack(side=CTk.LEFT, padx=30)
         sliderframe = CTk.CTkFrame(master=bottomframe, fg_color='transparent', width=200)
