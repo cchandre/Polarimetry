@@ -19,7 +19,7 @@ Possible issues:
 
 import sys
 
-__version__ = "2.5.3"
+__version__ = "2.6"
 
 block_cipher = None
 
