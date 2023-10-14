@@ -63,7 +63,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.6'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 13, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 14, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     left_width, right_width = 205, 750
@@ -161,11 +161,11 @@ class Polarimetry(CTk.CTk):
         self.intensity_toolbar.pack(side=CTk.TOP, fill=CTk.X)
 
         bottomframe = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
-        bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=False)
+        bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=True)
         self.filename_label = TextBox(master=bottomframe, width=300, height=50, tooltip=' name of file currently analyzed')
-        self.filename_label.grid(row=0, column=0, sticky="sw")
+        self.filename_label.pack(side=CTk.LEFT, padx=30)
         sliderframe = CTk.CTkFrame(master=bottomframe, fg_color='transparent', width=200)
-        sliderframe.grid(row=0, column=1, sticky="se", padx=0)
+        sliderframe.pack(side=CTk.RIGHT)
         self.stack_slider = CTk.CTkSlider(master=sliderframe, from_=0, to=18, number_of_steps=18, command=self.stack_slider_callback, state='disabled')
         self.stack_slider.set(0)
         self.stack_slider.grid(row=0, column=0, columnspan=2, sticky="e")
@@ -199,28 +199,29 @@ class Polarimetry(CTk.CTk):
         self.thrsh_toolbar.pack(side=CTk.TOP, fill=CTk.X)
 
         bottomframe = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
-        bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=False)
-        self.ilow = CTk.StringVar(value='0')
-        self.ilow_slider = CTk.CTkSlider(master=bottomframe, from_=0, to=1, command=self.ilow_slider_callback)
-        self.ilow_slider.set(0)
-        self.ilow_slider.grid(row=0, column=0, padx=20, pady=0, sticky="sw")
-        self.transparency_slider = CTk.CTkSlider(master=bottomframe, from_=0, to=1, command=self.transparency_slider_callback)
-        self.transparency_slider.set(0)
-        self.transparency_slider.grid(row=0, column=1, padx=(50, 20), pady=0, sticky="sw")
+        bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=True)
         ilow_frame = CTk.CTkFrame(master=bottomframe, fg_color='transparent')
-        ilow_frame.grid(row=1, column=0, sticky="sw")
-        Label(master=ilow_frame, text='Ilow', anchor='w', tooltip= ' intensity value used for thresholding\n - use the slider or enter the value manually').grid(row=0, column=0, padx=20, sticky="sw")
-        entry = CTk.CTkEntry(master=ilow_frame, width=100, textvariable=self.ilow, border_color=gray[1], justify=CTk.LEFT)
+        ilow_frame.pack(side=CTk.LEFT, padx=30)
+        self.ilow = CTk.StringVar(value='0')
+        self.ilow_slider = CTk.CTkSlider(master=ilow_frame, from_=0, to=1, command=self.ilow_slider_callback)
+        self.ilow_slider.set(0)
+        self.ilow_slider.grid(row=0, column=0, columnspan=2, sticky="sw")
+        Label(master=ilow_frame, text='Ilow', anchor='w', tooltip= ' intensity value used for thresholding\n - use the slider or enter the value manually').grid(row=1, column=0, padx=20, sticky="sw")
+        entry = CTk.CTkEntry(master=ilow_frame, textvariable=self.ilow, border_color=gray[1], width=100, justify=CTk.LEFT)
         entry.bind('<Return>', command=self.ilow2slider_callback)
-        entry.grid(row=0, column=1, padx=(0, 20), sticky="se")
-        Label(master=bottomframe, text='Transparency', tooltip=' use slider to adjust the transparency of the background image').grid(row=1, column=1, padx=50, sticky="sw")
+        entry.grid(row=1, column=1, sticky="se")
+        transparency_frame = CTk.CTkFrame(master=bottomframe, fg_color='transparent')
+        transparency_frame.pack(side=CTk.LEFT, padx=(50, 0))
+        self.transparency_slider = CTk.CTkSlider(master=transparency_frame, from_=0, to=1, command=self.transparency_slider_callback)
+        self.transparency_slider.set(0)
+        self.transparency_slider.grid(row=0, column=0)
+        Label(master=transparency_frame, text='Transparency', tooltip=' use slider to adjust the transparency of the background image').grid(row=1, column=0, padx=20, sticky="sw")
         self.edge_detection_switch = Switch(master=bottomframe, text='Edge', fg_color=gray[0], onvalue='on', offvalue='off', command=self.edge_detection_callback, tooltip=' switch on to determine the edges of the thresholded image and compute orientations with respect to the edges')
-        self.edge_detection_switch.grid(row=0, column=2, padx=30, sticky="se")
+        self.edge_detection_switch.pack(side=CTk.RIGHT)
 
 ## RIGHT FRAME: OPTIONS
         left_color = left_frame.cget('fg_color')
         dict_frame = {'fg_color': left_color}
-
         scrollable_frame = CTk.CTkScrollableFrame(master=self.tabview.tab('Options'), fg_color='transparent', scrollbar_fg_color='transparent', scrollbar_button_color=right_frame.cget('fg_color'), scrollbar_button_hover_color=left_color)
         scrollable_frame.columnconfigure((0, 1), weight=1)
         scrollable_frame.pack(side=CTk.LEFT, fill=CTk.BOTH, expand=True)
@@ -229,20 +230,20 @@ class Polarimetry(CTk.CTk):
         show_save.grid(row=0, column=0, padx=0, pady=0)
         show_save.columnconfigure(0, weight=1)
         Label(master=show_save, text='Figures\n', width=250, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=3, padx=20, pady=(10, 0), sticky="n")
-        Label(master=show_save, text='Show', width=30, anchor='w').grid(row=1, column=1, padx=(0, 30), pady=0, sticky="n")
-        Label(master=show_save, text='Save', width=30, anchor='w').grid(row=1, column=2, padx=(0, 20), pady=0, sticky="n")
+        Label(master=show_save, text='Show', width=30, anchor='w').grid(row=1, column=1, padx=(10, 20), pady=0, sticky="n")
+        Label(master=show_save, text='Save', width=30, anchor='w').grid(row=1, column=2, padx=(0, 50), pady=0, sticky="n")
         labels = ['Composite', 'Sticks', 'Histogram', 'Intensity']
         self.show_table = [CheckBox(show_save) for _ in range(len(labels))]
         self.save_table = [CheckBox(show_save) for _ in range(len(labels))]
         for _ in range(len(labels)-1):
-            Label(master=show_save, text=labels[_], anchor='w', width=80, height=30).grid(row=_+2, column=0, padx=(20, 0), sticky="n")
+            Label(master=show_save, text=labels[_], anchor='w', width=80, height=30).grid(row=_+2, column=0, padx=(30, 0), sticky="n")
             self.save_table[_].configure(command=self.click_save_output)
-            self.show_table[_].grid(row=_+2, column=1, pady=0, padx=10, sticky='n')
-            self.save_table[_].grid(row=_+2, column=2, pady=0, padx=(10, 20), sticky='n')
-        Label(master=show_save, text=labels[-1], anchor='w', width=80, height=30).grid(row=len(labels)+2, column=0, padx=(20, 0), pady=(0, 10), sticky="n")
+            self.show_table[_].grid(row=_+2, column=1, pady=0, padx=(0, 10), sticky='n')
+            self.save_table[_].grid(row=_+2, column=2, pady=0, padx=(0, 50), sticky='n')
+        Label(master=show_save, text=labels[-1], anchor='w', width=80, height=30).grid(row=len(labels)+2, column=0, padx=(30, 0), pady=(0, 10), sticky="n")
         self.save_table[_].configure(command=self.click_save_output)    
-        self.show_table[-1].grid(row=len(labels)+2, column=1, pady=(0, 10), padx=10, sticky='n')
-        self.save_table[-1].grid(row=len(labels)+2, column=2, pady=(0, 10), padx=(10, 20), sticky='n')
+        self.show_table[-1].grid(row=len(labels)+2, column=1, pady=(0, 10), padx=(0, 10), sticky='n')
+        self.save_table[-1].grid(row=len(labels)+2, column=2, pady=(0, 10), padx=(0, 50), sticky='n')
 
         preferences = CTk.CTkFrame(master=scrollable_frame, **dict_frame)
         preferences.grid(row=1, column=0, rowspan=3, padx=0, pady=(20, 0), sticky="n")
@@ -293,7 +294,6 @@ class Polarimetry(CTk.CTk):
         Button(scrollable_frame, image=self.icons['delete_forever'], command=self.initialize_tables, tooltip=' reinitialize Figures, Save output and Variables tables').grid(row=3, column=1, padx=40, pady=(10, 0), sticky="n")
 
 ## RIGHT FRAME: ADV
-
         scrollable_frame = CTk.CTkScrollableFrame(master=self.tabview.tab('Advanced'), fg_color='transparent', scrollbar_fg_color='transparent', scrollbar_button_color=right_frame.cget('fg_color'), scrollbar_button_hover_color=left_color)
         scrollable_frame.columnconfigure((0, 1), weight=1)
         scrollable_frame.pack(side=CTk.LEFT, fill=CTk.BOTH, expand=True)

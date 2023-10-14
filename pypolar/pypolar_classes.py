@@ -21,7 +21,7 @@ from colorcet import m_colorwheel
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.backend_bases import NavigationToolbar2, _Mode, MouseEvent
 from typing import Callable, List, Tuple, Union
-from generate_json import font_macosx, font_windows, orange, red, green, gray, text_color
+from generate_json import font_macosx, font_windows, orange, red, gray, text_color
 
 button_size = (160, 40)
 
