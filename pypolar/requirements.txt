@@ -1,0 +1,12 @@
+colorcet==3.0.1
+customtkinter==5.2.0
+joblib==1.2.0
+matplotlib==3.6.2
+numpy==1.23.5
+opencv-python==4.6.0.66
+openpyxl==3.0.9
+pillow==9.3.0
+scikit-image==0.19.3
+scipy==1.10.0
+tksheet==6.2.5
+
