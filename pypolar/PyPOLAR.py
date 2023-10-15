@@ -1612,7 +1612,7 @@ class Polarimetry(CTk.CTk):
                         if var.name != 'Rho':
                             title += var.latex + ' = ' + '{:.2f}'.format(var.values[y, x]) + ', '
                     titles = [title[:-2]]
-                    titles += ['$\\chi_2$ = ' + '{:.2f}'.format(self.datastack.chi2[y, x]) + ',   $I$ =  ' + self.datastack.display.format(self.datastack.intensity[y, x])]
+                    titles += ['$\chi_2$ = ' + '{:.2f}'.format(self.datastack.chi2[y, x]) + ',   $I$ =  ' + self.datastack.display.format(self.datastack.intensity[y, x])]
                     ylabels = ['counts', 'residuals']
                     axs[0].plot(indx, signal, '*', indx, signal_fit, 'r-', lw=2)
                     axs[1].plot(indx, signal - signal_fit, '+', indx, 2 * np.sqrt(signal_fit), 'r-', indx, -2 * np.sqrt(signal_fit), 'r-', lw=2)
@@ -1628,7 +1628,7 @@ class Polarimetry(CTk.CTk):
                         ax_.set_xticks(indx[::2], minor=True)
                         ax_.set_title(title, fontsize=16)
                         secax = ax_.secondary_xaxis('top', functions=(indx2alpha, alpha2indx))
-                        secax.set_xlabel(r'$\\alpha$')
+                        secax.set_xlabel(r'$\alpha$')
                     plt.subplots_adjust(hspace=0.9)
             canvas.mpl_disconnect(self.__cid1)
             canvas.mpl_disconnect(self.__cid2)
