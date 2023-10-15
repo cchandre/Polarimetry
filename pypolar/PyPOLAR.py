@@ -115,7 +115,7 @@ class Polarimetry(CTk.CTk):
                 pass
 
 ## DEFINE FRAMES
-        left_frame = CTk.CTkFrame(master=self, corner_radius=0, fg_color=gray[0])
+        left_frame = CTk.CTkScrollableFrame(master=self, corner_radius=0, fg_color=gray[0], scrollbar_button_color=gray[0], scrollbar_button_hover_color=gray[0])
         left_frame.pack(side=CTk.LEFT, fill=CTk.Y, expand=False)
         right_frame = CTk.CTkFrame(master=self, corner_radius=0, fg_color=gray[1])
         right_frame.pack(side=CTk.RIGHT, fill=CTk.BOTH, expand=True)
@@ -165,9 +165,9 @@ class Polarimetry(CTk.CTk):
 
         bottomframe = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
         bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=False, pady=5)
-        self.filename_label = TextBox(master=bottomframe, width=300, height=50, tooltip=' name of file currently analyzed')
+        self.filename_label = TextBox(master=bottomframe, width=200, height=50, tooltip=' name of file currently analyzed')
         self.filename_label.pack(side=CTk.LEFT, padx=(30, 0))
-        sliderframe = CTk.CTkFrame(master=bottomframe, fg_color='transparent', width=200)
+        sliderframe = CTk.CTkFrame(master=bottomframe, fg_color='transparent')
         sliderframe.pack(side=CTk.RIGHT)
         self.stack_slider = CTk.CTkSlider(master=sliderframe, from_=0, to=18, number_of_steps=18, width=self.length_slider, command=self.stack_slider_callback, state='disabled')
         self.stack_slider.set(0)
@@ -204,7 +204,7 @@ class Polarimetry(CTk.CTk):
         bottomframe = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
         bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=False, pady=5)
         ilow_frame = CTk.CTkFrame(master=bottomframe, fg_color='transparent')
-        ilow_frame.pack(side=CTk.LEFT, padx=30)
+        ilow_frame.pack(side=CTk.LEFT, padx=(30, 0))
         self.ilow = CTk.StringVar(value='0')
         self.ilow_slider = CTk.CTkSlider(master=ilow_frame, from_=0, to=1, width=self.length_slider, command=self.ilow_slider_callback)
         self.ilow_slider.set(0)
@@ -214,7 +214,7 @@ class Polarimetry(CTk.CTk):
         entry.bind('<Return>', command=self.ilow2slider_callback)
         entry.grid(row=1, column=1, sticky="se")
         transparency_frame = CTk.CTkFrame(master=bottomframe, fg_color='transparent')
-        transparency_frame.pack(side=CTk.LEFT, padx=(50, 0))
+        transparency_frame.pack(side=CTk.LEFT, padx=(30, 0))
         self.transparency_slider = CTk.CTkSlider(master=transparency_frame, from_=0, to=1, width=self.length_slider, command=self.transparency_slider_callback)
         self.transparency_slider.set(0)
         self.transparency_slider.grid(row=0, column=0)
