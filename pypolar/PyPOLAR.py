@@ -66,9 +66,9 @@ class Polarimetry(CTk.CTk):
     dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 15, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
-    left_width, right_width = 205, 700
-    height, width = 700, left_width + right_width
-    axes_size = (400, 400)
+    ratio_app = 3 / 4
+    ratio_fig = 3 / 5
+    left_width = 205
     figsize = (450, 450)
 
     url_github = 'https://github.com/cchandre/Polarimetry'
@@ -82,11 +82,13 @@ class Polarimetry(CTk.CTk):
         base_dir = Path(__file__).parent
         image_path = base_dir / 'icons'
 
+        height = int(self.ratio_app * self.winfo_screenheight())
+        width = height + self.left_width
         delx, dely = self.winfo_screenwidth() // 10, self.winfo_screenheight() // 10
         dpi = self.winfo_fpixels('1i')
         self.figsize = (type(self).figsize[0] / dpi, type(self).figsize[1] / dpi)
         self.title('Polarimetry Analysis')
-        self.geometry(f'{type(self).width}x{type(self).height}+{delx}+{dely}')
+        self.geometry(f'{width}x{height}+{delx}+{dely}')
         self.protocol('WM_DELETE_WINDOW', self.on_closing)
         self.bind('<Command-q>', self.on_closing)
         self.bind('<Command-w>', self.on_closing)
@@ -149,7 +151,7 @@ class Polarimetry(CTk.CTk):
         ToolTip(entry, text=' enter the pixel size in nm')
         entry.grid(row=3, column=0, padx=10, pady=0)
         
-        intensity_fig = Figure(figsize=(type(self).axes_size[0] / dpi, type(self).axes_size[1] / dpi), facecolor=gray[1])
+        intensity_fig = Figure(figsize=(self.ratio_fig / dpi, self.ratio_fig / dpi), facecolor=gray[1])
         self.intensity_axis = intensity_fig.add_axes([0, 0, 1, 1])
         self.intensity_axis.set_axis_off()
         background = plt.imread(image_path / 'blur_circular-512.png')
@@ -187,7 +189,7 @@ class Polarimetry(CTk.CTk):
         Button(banner, image=self.icons['format_list'], command=self.roimanager_callback, tooltip=' open ROI Manager').grid(row=4, column=0, padx=10, pady=10)
 
         self.thrsh_axis_facecolor = gray[1]
-        self.thrsh_fig = Figure(figsize=(type(self).axes_size[0] / dpi, type(self).axes_size[1] / dpi), facecolor=self.thrsh_axis_facecolor)
+        self.thrsh_fig = Figure(figsize=(self.ratio_fig / dpi, self.ratio_fig / dpi), facecolor=self.thrsh_axis_facecolor)
         self.thrsh_axis = self.thrsh_fig.add_axes([0, 0, 1, 1])
         self.thrsh_axis.set_axis_off()
         self.thrsh_axis.set_facecolor(self.thrsh_axis_facecolor)
