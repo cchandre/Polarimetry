@@ -70,6 +70,7 @@ class Polarimetry(CTk.CTk):
     ratio_fig = 3 / 5
     left_width = 205
     figsize = (450, 450)
+    length_slider = 150
 
     url_github = 'https://github.com/cchandre/Polarimetry'
     url_fresnel = 'https://www.fresnel.fr/polarimetry'
@@ -141,7 +142,7 @@ class Polarimetry(CTk.CTk):
         banner = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
         banner.pack(side=CTk.RIGHT, fill=CTk.Y, expand=False)
         Button(banner, image=self.icons['contrast'], command=self.contrast_intensity_button_callback, tooltip=' adjust contrast\n - the chosen contrast will be the one used\n for the intensity images in figures\n - the contrast changes the intensity value displayed in the navigation toolbar\n - the chosen contrast does not affect the analysis').grid(row=0, column=0, padx=10, pady=(20, 0))
-        self.contrast_intensity_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation='vertical', command=self.contrast_intensity_slider_callback)
+        self.contrast_intensity_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation='vertical', height=self.length_slider, command=self.contrast_intensity_slider_callback)
         self.contrast_intensity_slider.set(1)
         self.contrast_intensity_slider.grid(row=1, column=0, padx=10, pady=(0, 20))
         self.compute_angle_button = Button(banner, image=self.icons['square'], command=self.compute_angle, tooltip=' left click to trace a line segment\n and determine its length and angle')
@@ -165,10 +166,10 @@ class Polarimetry(CTk.CTk):
         bottomframe = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
         bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=False, pady=5)
         self.filename_label = TextBox(master=bottomframe, width=300, height=50, tooltip=' name of file currently analyzed')
-        self.filename_label.pack(side=CTk.LEFT, padx=30)
+        self.filename_label.pack(side=CTk.LEFT, padx=(30, 0))
         sliderframe = CTk.CTkFrame(master=bottomframe, fg_color='transparent', width=200)
         sliderframe.pack(side=CTk.RIGHT)
-        self.stack_slider = CTk.CTkSlider(master=sliderframe, from_=0, to=18, number_of_steps=18, command=self.stack_slider_callback, state='disabled')
+        self.stack_slider = CTk.CTkSlider(master=sliderframe, from_=0, to=18, number_of_steps=18, width=self.length_slider, command=self.stack_slider_callback, state='disabled')
         self.stack_slider.set(0)
         self.stack_slider.grid(row=0, column=0, columnspan=2, sticky="e")
         self.stack_slider_label = Label(master=sliderframe, text='T', tooltip=' slider at T for the total intensity, otherwise scroll through the images of the stack')
@@ -179,7 +180,7 @@ class Polarimetry(CTk.CTk):
         banner = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
         banner.pack(side=CTk.RIGHT, fill=CTk.Y, expand=False)
         Button(banner, image=self.icons['contrast'], command=self.contrast_thrsh_button_callback, tooltip=' adjust contrast\n - the contrast changes the intensity value displayed in the navigation toolbar\n - the chosen contrast does not affect the analysis').grid(row=0, column=0, padx=10, pady=(20, 0))
-        self.contrast_thrsh_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation='vertical', command=self.contrast_thrsh_slider_callback)
+        self.contrast_thrsh_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation='vertical', height=self.length_slider, command=self.contrast_thrsh_slider_callback)
         self.contrast_thrsh_slider.set(1)
         self.contrast_thrsh_slider.grid(row=1, column=0, padx=10, pady=(0, 20))
         Button(banner, image=self.icons['palette'], command=self.change_colormap, tooltip=" change the colormap used for thresholding ('hot' or 'gray')").grid(row=2, column=0, padx=10, pady=10)
@@ -205,7 +206,7 @@ class Polarimetry(CTk.CTk):
         ilow_frame = CTk.CTkFrame(master=bottomframe, fg_color='transparent')
         ilow_frame.pack(side=CTk.LEFT, padx=30)
         self.ilow = CTk.StringVar(value='0')
-        self.ilow_slider = CTk.CTkSlider(master=ilow_frame, from_=0, to=1, command=self.ilow_slider_callback)
+        self.ilow_slider = CTk.CTkSlider(master=ilow_frame, from_=0, to=1, width=self.length_slider, command=self.ilow_slider_callback)
         self.ilow_slider.set(0)
         self.ilow_slider.grid(row=0, column=0, columnspan=2, sticky="sw")
         Label(master=ilow_frame, text='Ilow\n', anchor='w', tooltip= ' intensity value used for thresholding\n - use the slider or enter the value manually').grid(row=1, column=0, padx=20, sticky="sw")
@@ -214,7 +215,7 @@ class Polarimetry(CTk.CTk):
         entry.grid(row=1, column=1, sticky="se")
         transparency_frame = CTk.CTkFrame(master=bottomframe, fg_color='transparent')
         transparency_frame.pack(side=CTk.LEFT, padx=(50, 0))
-        self.transparency_slider = CTk.CTkSlider(master=transparency_frame, from_=0, to=1, command=self.transparency_slider_callback)
+        self.transparency_slider = CTk.CTkSlider(master=transparency_frame, from_=0, to=1, width=self.length_slider, command=self.transparency_slider_callback)
         self.transparency_slider.set(0)
         self.transparency_slider.grid(row=0, column=0)
         Label(master=transparency_frame, text='Transparency\n', tooltip=' use slider to adjust the transparency of the background image').grid(row=1, column=0, padx=20, sticky="sw")
