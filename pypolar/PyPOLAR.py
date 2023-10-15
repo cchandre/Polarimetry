@@ -63,12 +63,12 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.6'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 14, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 15, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
-    left_width, right_width = 205, 750
-    height, width = 750, left_width + right_width
-    axes_size = (440, 440)
+    left_width, right_width = 205, 700
+    height, width = 700, left_width + right_width
+    axes_size = (400, 400)
     figsize = (450, 450)
 
     url_github = 'https://github.com/cchandre/Polarimetry'
@@ -305,7 +305,7 @@ class Polarimetry(CTk.CTk):
         adv = {}
         for loc, elt, cspan in zip(adv_loc, adv_elts, columnspan):
             adv.update({elt: CTk.CTkFrame(master=scrollable_frame, **dict_frame)})
-            adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=10, sticky="n")
+            adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=(0, 20), sticky="n")
             Label(master=adv[elt], text=elt + '\n', width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, columnspan=cspan, padx=20, pady=(10, 0), sticky="n")
 
         self.dark_switch = CTk.CTkSwitch(master=adv['Dark'], text='', command=self.dark_switch_callback, onvalue='on', offvalue='off', width=50)
@@ -345,7 +345,7 @@ class Polarimetry(CTk.CTk):
         self.bin_spinboxes = [SpinBox(adv['Binning'], command=lambda:self.intensity_callback(event=1)) for _ in range(2)]
         for _ in range(2):
             self.bin_spinboxes[_].bind('<Return>', command=self.intensity_callback)
-            self.bin_spinboxes[_].grid(row=_+1, column=0, padx=(30, 10), pady=10, sticky='e')
+            self.bin_spinboxes[_].grid(row=_+1, column=0, padx=(30, 10), pady=0, sticky='e')
             Label(master=adv['Binning'], text='\n' + labels[_] + '\n', tooltip=' height and width of the bin used for data binning').grid(row=_+1, column=1, padx=(10, 60), pady=0, sticky='w')
 
         labels = ['Stick (deg)', 'Figure (deg)', 'Reference (deg)']
@@ -354,26 +354,25 @@ class Polarimetry(CTk.CTk):
             tooltip = ' positive value for counter-clockwise rotation\n negative value for clockwise rotation'
             if _ == 2:
                 tooltip = u' normalize \u03C1 with respect to this angle\n -if combined with figure rotation, reference angle is determined in the rotated figure'
-            Label(adv['Rotation'], text='\n' + labels[_] + '\n', tooltip=tooltip).grid(row=_+1, column=1, padx=(0, 10), sticky='w')
+            Label(adv['Rotation'], text=labels[_] + '\n', tooltip=tooltip).grid(row=_+1, column=1, padx=(0, 10), pady=(6, 3), sticky='nw')
             entry = CTk.CTkEntry(adv['Rotation'], textvariable=self.rotation[_], width=50, justify='center')
-            entry.grid(row=_+1, column=0, padx=20, sticky='e')
+            entry.grid(row=_+1, column=0, padx=20, pady=0, sticky='e')
             if _ != 1:
                 entry.bind('<Return>', command=self.rotation_callback)
             elif _ == 1:
                 entry.bind('<Return>', command=self.rotation1_callback)
-        Label(master=adv['Rotation'], text=' ', height=5).grid(row=4, column=0)
 
         self.noise = [CTk.StringVar(value='1'), CTk.StringVar(value='3'), CTk.StringVar(value='3')]
         labels = ['Bin width', 'Bin height']
         for _ in range(2):
-            SpinBox(adv['Intensity removal'], from_=3, to_=19, step_size=2, textvariable=self.noise[_+1]).grid(row=_+1, column=0, padx=(30, 10), pady=10, sticky='e')
+            SpinBox(adv['Intensity removal'], from_=3, to_=19, step_size=2, textvariable=self.noise[_+1]).grid(row=_+1, column=0, padx=(30, 10), pady=5, sticky='e')
             Label(master=adv['Intensity removal'], text='\n' + labels[_] + '\n', tooltip=' height and width of the bin used for intensity removal').grid(row=_+1, column=1, padx=(10, 60), pady=0, sticky='w')
         Label(master=adv['Intensity removal'], text='\nPick center of bin\n', tooltip=' pick center of the bin used for intensity removal').grid(row=3, column=1, padx=10, pady=0, sticky='w')
-        Button(adv['Intensity removal'], image=self.icons['removal'], command=lambda:self.click_callback(self.intensity_axis, self.intensity_canvas, 'click background'), tooltip=' click button and select a point on the intensity image').grid(row=3, column=0, pady=10, padx=25, sticky='e')
+        Button(adv['Intensity removal'], image=self.icons['removal'], command=lambda:self.click_callback(self.intensity_axis, self.intensity_canvas, 'click background'), tooltip=' click button and select a point on the intensity image').grid(row=3, column=0, pady=5, padx=25, sticky='e')
         CTk.CTkEntry(adv['Intensity removal'], textvariable=self.noise[0], width=50, justify='center').grid(row=4, column=0, sticky='e', padx=23)
         Label(adv['Intensity removal'], text='\nFactor\n', tooltip=' fraction of the mean intensity value to be substracted\n value between 0 and 1').grid(row=4, column=1, padx=10, sticky='w')
         self.intensity_removal_label = Label(master=adv['Intensity removal'], text='Removed intensity value = 0')
-        self.intensity_removal_label.grid(row=5, column=0, columnspan=2, padx=(40, 10), pady=(0, 0), sticky='w')
+        self.intensity_removal_label.grid(row=5, column=0, columnspan=2, padx=(40, 10), pady=0, sticky='w')
         Label(master=adv['Intensity removal'], text=' ', height=5).grid(row=6, column=0)
 
 ## RIGHT FRAME: ABOUT
@@ -1610,7 +1609,7 @@ class Polarimetry(CTk.CTk):
                         if var.name != 'Rho':
                             title += var.latex + ' = ' + '{:.2f}'.format(var.values[y, x]) + ', '
                     titles = [title[:-2]]
-                    titles += ['$\chi_2$ = ' + '{:.2f}'.format(self.datastack.chi2[y, x]) + ',   $I$ =  ' + self.datastack.display.format(self.datastack.intensity[y, x])]
+                    titles += ['$\\chi_2$ = ' + '{:.2f}'.format(self.datastack.chi2[y, x]) + ',   $I$ =  ' + self.datastack.display.format(self.datastack.intensity[y, x])]
                     ylabels = ['counts', 'residuals']
                     axs[0].plot(indx, signal, '*', indx, signal_fit, 'r-', lw=2)
                     axs[1].plot(indx, signal - signal_fit, '+', indx, 2 * np.sqrt(signal_fit), 'r-', indx, -2 * np.sqrt(signal_fit), 'r-', lw=2)
@@ -1626,7 +1625,7 @@ class Polarimetry(CTk.CTk):
                         ax_.set_xticks(indx[::2], minor=True)
                         ax_.set_title(title, fontsize=16)
                         secax = ax_.secondary_xaxis('top', functions=(indx2alpha, alpha2indx))
-                        secax.set_xlabel(r'$\alpha$')
+                        secax.set_xlabel(r'$\\alpha$')
                     plt.subplots_adjust(hspace=0.9)
             canvas.mpl_disconnect(self.__cid1)
             canvas.mpl_disconnect(self.__cid2)

@@ -289,11 +289,11 @@ class Variable:
         var = {'Rho': [0, ['polar1'], r'$\rho$', ['hsv', m_colorwheel]], 
                 'Rho_contour': [10, ['polar1', 'polar3'], r'$\rho_c$', ['hsv', m_colorwheel]],
                 'Rho_angle': [10, ['polar1', 'polar3'], r'$\rho_a$', ['hsv', m_colorwheel]],
-                'Psi': [1, ['normal'], '$\psi$', ['jet', 'viridis']],
-                'Eta': [2, ['polar2'], '$\eta$', ['plasma', 'plasma']],
+                'Psi': [1, ['normal'], '$\\psi$', ['jet', 'viridis']],
+                'Eta': [2, ['polar2'], '$\\eta$', ['plasma', 'plasma']],
                 'S2': [1, ['normal'], '$S_2$', ['jet', 'viridis']],
                 'S4': [2, ['normal'], '$S_4$', ['jet', 'viridis']],
-                'S_SHG': [1, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis']]}.get(name)
+                'S_SHG': [1, ['normal'], '$S_\\mathrm{SHG}$', ['jet', 'viridis']]}.get(name)
         self.indx = var[0] if var is not None else 0
         self.name = name
         self.latex = var[2] if var is not None else ''
@@ -331,7 +331,7 @@ class Variable:
                 patch.set_edgecolor('k')
             ax.set_xlim((vmin_, vmax_))
             ax.set_xlabel(self.latex, fontsize=20)
-            text = self.latex + ' = ' + '{:.2f}'.format(np.mean(data_vals)) + ' $\pm$ ' '{:.2f}'.format(np.std(data_vals))
+            text = self.latex + ' = ' + '{:.2f}'.format(np.mean(data_vals)) + ' $\\pm$ ' '{:.2f}'.format(np.std(data_vals))
             ax.annotate(text, xy=(0.3, 1.05), xycoords='axes fraction', fontsize=14)
         elif htype.startswith('polar'):
             ax = plt.subplot(projection='polar')
@@ -358,7 +358,7 @@ class Variable:
             ax.set_rticks(np.floor(np.linspace(0, np.max(distribution), 3) / num) * num)
             ax.set_thetamin(vmin_)
             ax.set_thetamax(vmax_)
-            text = self.latex + ' = ' + '{:.2f}'.format(meandata) + ' $\pm$ ' '{:.2f}'.format(std)
+            text = self.latex + ' = ' + '{:.2f}'.format(meandata) + ' $\\pm$ ' '{:.2f}'.format(std)
             if htype == 'polar1':
                 ax.annotate(text, xy=(0.3, 0.95), xycoords='axes fraction', fontsize=14)
             else:
