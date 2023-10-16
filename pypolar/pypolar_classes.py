@@ -18,6 +18,8 @@ from tkinter import filedialog as fd
 from tkinter.messagebox import showerror
 from scipy.io import loadmat
 from colorcet import m_colorwheel
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.backends.backend_pdf
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.backend_bases import NavigationToolbar2, _Mode, MouseEvent
 from typing import Callable, List, Tuple, Union
@@ -276,8 +278,7 @@ class DataStack:
         self.vars = []
         self.added_vars = []
 
-    def plot_intensity(self, contrast:float, rotation:int=0):
-        ax = plt.gca()
+    def plot_intensity(self, ax, contrast:float, rotation:int=0):
         vmin, vmax = np.amin(self.intensity), np.amax(self.intensity)
         field = adjust(self.intensity, contrast, vmin, vmax)
         if rotation:
@@ -586,7 +587,8 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         defaultextension = ''
         initialdir = Path(mpl.rcParams['savefig.directory']).expanduser()
         initialfile = self.canvas.get_default_filename()
-        fname = fd.asksaveasfilename(master=self.canvas.get_tk_widget().master, title=f"Save image from '{self.window.master.master.get()}' tab", filetypes=tk_filetypes, defaultextension=defaultextension, initialdir=initialdir, initialfile=initialfile)
+        title = f"Save image from '{self.window.master.get()}' tab" if self.window is not None else "Save image"
+        fname = fd.asksaveasfilename(master=self.canvas.get_tk_widget().master, title=title, filetypes=tk_filetypes, defaultextension=defaultextension, initialdir=initialdir, initialfile=initialfile)
         if fname in ['', ()]:
             return
         if initialdir != '':
@@ -621,6 +623,14 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
                             s += f'\nI={int(np.sum(data))}'
                 return s
         return ''
+    
+class PyPOLARfigure:
+    def __init__(self, fig, master=None):
+        self.canvas = FigureCanvasTkAgg(fig, master=master)
+        self.canvas.draw()
+        self.toolbar = NToolbar2PyPOLAR(canvas=self.canvas, window=master)
+        self.canvas.get_tk_widget().pack(side=CTk.TOP, fill=CTk.BOTH, expand=True)
+        self.toolbar.pack(side=CTk.TOP, fill=CTk.X)
     
 class ToolTip:
     def __init__(self, widget, *, pad=(5, 3, 5, 3), text:str='widget info', waittime:int=300, wraplength:int=250) -> None:

@@ -29,7 +29,7 @@ from itertools import permutations, chain
 from datetime import date
 import copy
 from typing import List, Tuple, Union
-from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, NToolbar2PyPOLAR, ROIManager, TabView, ToolTip
+from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, NToolbar2PyPOLAR, PyPOLARfigure, ROIManager, TabView, ToolTip
 from pypolar_classes import Button, CheckBox, Entry, DropDown, Label, OptionMenu, SpinBox, ShowInfo, Switch, TextBox
 from pypolar_classes import adjust, angle_edge, circularmean, divide_ext, find_matches, wrapto180
 from pypolar_classes import button_size, geometry_info
@@ -63,7 +63,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.6'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 15, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -157,11 +157,7 @@ class Polarimetry(CTk.CTk):
         self.intensity_axis.set_axis_off()
         background = plt.imread(image_path / 'blur_circular-512.png')
         self.intensity_axis.imshow(background, cmap='gray', interpolation='bicubic', alpha=0.1)
-        self.intensity_canvas = FigureCanvasTkAgg(intensity_fig, master=self.tabview.tab('Intensity'))
-        self.intensity_canvas.draw()
-        self.intensity_toolbar = NToolbar2PyPOLAR(canvas=self.intensity_canvas, window=self.tabview.tab('Intensity'))
-        self.intensity_canvas.get_tk_widget().pack(side=CTk.TOP, fill=CTk.BOTH, expand=True)
-        self.intensity_toolbar.pack(side=CTk.TOP, fill=CTk.X)
+        self.intensity_pyfig = PyPOLARfigure(intensity_fig, master=self.tabview.tab('Intensity'))
 
         bottomframe = CTk.CTkFrame(master=self.tabview.tab('Intensity'), fg_color='transparent')
         bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=False, pady=5)
@@ -194,12 +190,8 @@ class Polarimetry(CTk.CTk):
         self.thrsh_axis = self.thrsh_fig.add_axes([0, 0, 1, 1])
         self.thrsh_axis.set_axis_off()
         self.thrsh_axis.set_facecolor(self.thrsh_axis_facecolor)
-        self.thrsh_canvas = FigureCanvasTkAgg(self.thrsh_fig, master=self.tabview.tab('Thresholding/Mask'))
         self.thrsh_axis.imshow(background, cmap='gray', interpolation='bicubic', alpha=0.1)
-        self.thrsh_canvas.draw()
-        self.thrsh_toolbar = NToolbar2PyPOLAR(canvas=self.thrsh_canvas, window=self.tabview.tab('Thresholding/Mask'))
-        self.thrsh_canvas.get_tk_widget().pack(side=CTk.TOP, fill=CTk.BOTH, expand=True)
-        self.thrsh_toolbar.pack(side=CTk.TOP, fill=CTk.X)
+        self.thrsh_pyfig = PyPOLARfigure(self.thrsh_fig, master=self.tabview.tab('Thresholding/Mask'))
 
         bottomframe = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
         bottomframe.pack(side=CTk.BOTTOM, fill=CTk.X, expand=False, pady=5)
@@ -371,7 +363,7 @@ class Polarimetry(CTk.CTk):
             SpinBox(adv['Intensity removal'], from_=3, to_=19, step_size=2, textvariable=self.noise[_+1]).grid(row=_+1, column=0, padx=(30, 10), pady=5, sticky='e')
             Label(master=adv['Intensity removal'], text='\n' + labels[_] + '\n', tooltip=' height and width of the bin used for intensity removal').grid(row=_+1, column=1, padx=(10, 60), pady=0, sticky='w')
         Label(master=adv['Intensity removal'], text='\nPick center of bin\n', tooltip=' pick center of the bin used for intensity removal').grid(row=3, column=1, padx=10, pady=0, sticky='w')
-        Button(adv['Intensity removal'], image=self.icons['removal'], command=lambda:self.click_callback(self.intensity_axis, self.intensity_canvas, 'click background'), tooltip=' click button and select a point on the intensity image').grid(row=3, column=0, pady=5, padx=25, sticky='e')
+        Button(adv['Intensity removal'], image=self.icons['removal'], command=lambda:self.click_callback(self.intensity_axis, self.intensity_pyfig.canvas, 'click background'), tooltip=' click button and select a point on the intensity image').grid(row=3, column=0, pady=5, padx=25, sticky='e')
         CTk.CTkEntry(adv['Intensity removal'], textvariable=self.noise[0], width=50, justify='center').grid(row=4, column=0, sticky='e', padx=23)
         Label(adv['Intensity removal'], text='\nFactor\n', tooltip=' fraction of the mean intensity value to be substracted\n value between 0 and 1').grid(row=4, column=1, padx=10, sticky='w')
         self.intensity_removal_label = Label(master=adv['Intensity removal'], text='Removed intensity value = 0')
@@ -740,10 +732,10 @@ class Polarimetry(CTk.CTk):
                     self.option.set('Open analysis')
                     self.intensity_axis.clear()
                     self.intensity_axis.set_axis_off()
-                    self.intensity_canvas.draw()
+                    self.intensity_pyfig.canvas.draw()
                     self.thrsh_axis.clear()
                     self.thrsh_axis.set_axis_off()
-                    self.thrsh_canvas.draw()
+                    self.thrsh_pyfig.canvas.draw()
                     self.filename_label.write(self.datastack.name)
                     self.ontab_intensity(update=False)
                 window.withdraw()
@@ -827,7 +819,7 @@ class Polarimetry(CTk.CTk):
                 vertices = np.asarray([roix, roiy])
             indx = self.datastack.rois[-1]['indx'] + 1 if self.datastack.rois else 1
             self.datastack.rois += [{'indx': indx, 'label': (vertices[0][0], vertices[1][0]), 'vertices': vertices, 'ILow': self.ilow.get(), 'name': '', 'group': '', 'select': True}]
-            self.thrsh_canvas.draw()
+            self.thrsh_pyfig.canvas.draw()
             self.ontab_intensity()
             self.ontab_thrsh()
             if hasattr(self, 'manager'):
@@ -888,7 +880,7 @@ class Polarimetry(CTk.CTk):
             else:
                 self.thrsh_fig.patch.set_facecolor('k')
                 self.no_background_button.configure(image=self.icons['photo'])
-            self.thrsh_canvas.draw()
+            self.thrsh_pyfig.canvas.draw()
 
     def offset_angle_switch_callback(self) -> None:
         self.offset_angle_entry.set_state('normal' if self.offset_angle_switch.get() == 'on' else 'disabled')
@@ -978,20 +970,20 @@ class Polarimetry(CTk.CTk):
 
     def compute_angle(self) -> None:
         if hasattr(self, 'stack'):
-            self.intensity_toolbar.mode = _Mode.NONE
-            self.intensity_toolbar._update_buttons_checked()
+            self.intensity_pyfig.toolbar.mode = _Mode.NONE
+            self.intensity_pyfig.toolbar._update_buttons_checked()
             self.tabview.set('Intensity')
             self.compute_angle_button.configure(fg_color=orange[1])
             hroi = ROI()
-            self.__cid1 = self.intensity_canvas.mpl_connect('motion_notify_event', lambda event: self.compute_angle_motion_notify_callback(event, hroi))
-            self.__cid2 = self.intensity_canvas.mpl_connect('button_press_event', lambda event: self.compute_angle_button_press_callback(event, hroi))
+            self.__cid1 = self.intensity_pyfig.canvas.mpl_connect('motion_notify_event', lambda event: self.compute_angle_motion_notify_callback(event, hroi))
+            self.__cid2 = self.intensity_pyfig.canvas.mpl_connect('button_press_event', lambda event: self.compute_angle_button_press_callback(event, hroi))
 
     def compute_angle_motion_notify_callback(self, event:MouseEvent, roi:ROI) -> None:
         if event.inaxes == self.intensity_axis:
             x, y = event.xdata, event.ydata
             if ((event.button is None or event.button == 1) and roi.lines):
                 roi.lines[-1].set_data([roi.previous_point[0], x], [roi.previous_point[1], y])
-                self.intensity_canvas.draw()
+                self.intensity_pyfig.canvas.draw()
 
     def compute_angle_button_press_callback(self, event:MouseEvent, roi:ROI) -> None:
         if event.inaxes == self.intensity_axis:
@@ -1002,14 +994,14 @@ class Polarimetry(CTk.CTk):
                     roi.start_point = [x, y]
                     roi.previous_point = roi.start_point
                     self.intensity_axis.add_line(roi.lines[0])
-                    self.intensity_canvas.draw()
+                    self.intensity_pyfig.canvas.draw()
                 else:
                     roi.lines += [plt.Line2D([roi.previous_point[0], x], [roi.previous_point[1], y], lw=3, color='w')]
                     roi.previous_point = [x, y]
                     self.intensity_axis.add_line(roi.lines[-1])
-                    self.intensity_canvas.draw()
-                    self.intensity_canvas.mpl_disconnect(self.__cid1)
-                    self.intensity_canvas.mpl_disconnect(self.__cid2)
+                    self.intensity_pyfig.canvas.draw()
+                    self.intensity_pyfig.canvas.mpl_disconnect(self.__cid1)
+                    self.intensity_pyfig.canvas.mpl_disconnect(self.__cid2)
                     slope = 180 - np.rad2deg(np.arctan((roi.previous_point[1] - roi.start_point[1]) / (roi.previous_point[0] - roi.start_point[0])))
                     slope = np.mod(2 * slope, 360) / 2
                     dist = np.sqrt(((np.asarray(roi.previous_point) - np.asarray(roi.start_point))**2).sum())
@@ -1019,7 +1011,7 @@ class Polarimetry(CTk.CTk):
                     ShowInfo(message=message, image=self.icons['square'], button_labels = ['OK'], fontsize=14)
                     for line in roi.lines:
                         line.remove()
-                    self.intensity_canvas.draw()
+                    self.intensity_pyfig.canvas.draw()
                     self.compute_angle_button.configure(fg_color=orange[0])
 
     def define_variable_table(self, method:str) -> None:
@@ -1233,30 +1225,30 @@ class Polarimetry(CTk.CTk):
 
     def add_roi_callback(self) -> None:
         if hasattr(self, 'stack'):
-            self.thrsh_toolbar.mode = _Mode.NONE
-            self.thrsh_toolbar._update_buttons_checked()
+            self.thrsh_pyfig.toolbar.mode = _Mode.NONE
+            self.thrsh_pyfig.toolbar._update_buttons_checked()
             self.tabview.set('Thresholding/Mask')
             self.update()
             self.add_roi_button.configure(fg_color=orange[1])
             hroi = ROI()
-            self.__cid1 = self.thrsh_canvas.mpl_connect('motion_notify_event', lambda event: self.add_roi_motion_notify_callback(event, hroi))
-            self.__cid2 = self.thrsh_canvas.mpl_connect('button_press_event', lambda event: self.add_roi_button_press_callback(event, hroi))
+            self.__cid1 = self.thrsh_pyfig.canvas.mpl_connect('motion_notify_event', lambda event: self.add_roi_motion_notify_callback(event, hroi))
+            self.__cid2 = self.thrsh_pyfig.canvas.mpl_connect('button_press_event', lambda event: self.add_roi_button_press_callback(event, hroi))
 
     def add_roi_motion_notify_callback(self, event:MouseEvent, roi:ROI) -> None:
-        self.thrsh_toolbar.mode = _Mode.NONE
-        self.thrsh_toolbar._update_buttons_checked()
+        self.thrsh_pyfig.toolbar.mode = _Mode.NONE
+        self.thrsh_pyfig.toolbar._update_buttons_checked()
         if event.inaxes == self.thrsh_axis:
             x, y = event.xdata, event.ydata
             if (event.button is None or event.button == 1) and roi.lines:
                 roi.lines[-1].set_data([roi.previous_point[0], x], [roi.previous_point[1], y])
-                self.thrsh_canvas.draw()
+                self.thrsh_pyfig.canvas.draw()
             elif event.button == 3 and roi.lines:
                 roi.lines += [plt.Line2D([roi.previous_point[0], x], [roi.previous_point[1], y], color='w')]
                 roi.previous_point = [x, y]
                 roi.x.append(x)
                 roi.y.append(y)
                 self.thrsh_axis.add_line(roi.lines[-1])
-                self.thrsh_canvas.draw()
+                self.thrsh_pyfig.canvas.draw()
 
     def add_roi_button_press_callback(self, event:MouseEvent, roi:ROI) -> None:
         if event.inaxes == self.thrsh_axis:
@@ -1268,14 +1260,14 @@ class Polarimetry(CTk.CTk):
                     roi.previous_point = roi.start_point
                     roi.x, roi.y = [x], [y]
                     self.thrsh_axis.add_line(roi.lines[0])
-                    self.thrsh_canvas.draw()
+                    self.thrsh_pyfig.canvas.draw()
                 else:
                     roi.lines += [plt.Line2D([roi.previous_point[0], x], [roi.previous_point[1], y], marker='o', color='w')]
                     roi.previous_point = [x, y]
                     roi.x.append(x)
                     roi.y.append(y)
                     self.thrsh_axis.add_line(roi.lines[-1])
-                    self.thrsh_canvas.draw()
+                    self.thrsh_pyfig.canvas.draw()
             elif ((event.button == 1 or event.button == 3) and event.dblclick) and roi.lines:
                 roi.lines += [plt.Line2D([roi.previous_point[0], roi.start_point[0]], [roi.previous_point[1], roi.start_point[1]], marker='o', color='w')]
                 self.thrsh_axis.add_line(roi.lines[-1])     
@@ -1284,9 +1276,9 @@ class Polarimetry(CTk.CTk):
                 buttons[0].configure(command=lambda:self.yes_add_roi_callback(window, roi))
                 buttons[1].configure(command=lambda:self.no_add_roi_callback(window, roi))
                 self.add_roi_button.configure(fg_color=orange[0])
-                self.thrsh_canvas.draw()
-                self.thrsh_canvas.mpl_disconnect(self.__cid1)
-                self.thrsh_canvas.mpl_disconnect(self.__cid2)
+                self.thrsh_pyfig.canvas.draw()
+                self.thrsh_pyfig.canvas.mpl_disconnect(self.__cid1)
+                self.thrsh_pyfig.canvas.mpl_disconnect(self.__cid2)
 
     def yes_add_roi_callback(self, window:CTk.CTkToplevel, roi:ROI) -> None:
         vertices = np.asarray([roi.x, roi.y])
@@ -1296,7 +1288,7 @@ class Polarimetry(CTk.CTk):
         for line in roi.lines:
             line.remove()
         roi.lines = []
-        self.thrsh_canvas.draw()
+        self.thrsh_pyfig.canvas.draw()
         self.ontab_intensity()
         self.ontab_thrsh()
         if hasattr(self, 'manager'):
@@ -1307,7 +1299,7 @@ class Polarimetry(CTk.CTk):
         for line in roi.lines:
             line.remove()
         roi.lines = []
-        self.thrsh_canvas.draw()
+        self.thrsh_pyfig.canvas.draw()
 
     def get_mask(self, datastack:DataStack) -> np.ndarray:
         mask = np.ones((datastack.height, datastack.width))
@@ -1420,10 +1412,10 @@ class Polarimetry(CTk.CTk):
                 self.intensity_im = self.intensity_axis.imshow(field_im, cmap='gray', interpolation='nearest')
                 self.tabview.tab('Intensity').update()
             self.intensity_im.set_clim(vmin, vmax)
-            self.clear_patches(self.intensity_axis, self.intensity_canvas)
+            self.clear_patches(self.intensity_axis, self.intensity_pyfig.canvas)
             if hasattr(self, 'datastack'):
-                self.add_patches(self.datastack, self.intensity_axis, self.intensity_canvas)
-            self.intensity_canvas.draw()
+                self.add_patches(self.datastack, self.intensity_axis, self.intensity_pyfig.canvas)
+            self.intensity_pyfig.canvas.draw()
 
     def ontab_thrsh(self, update:bool=True) -> None:
         if hasattr(self, 'stack'):
@@ -1455,7 +1447,7 @@ class Polarimetry(CTk.CTk):
                 self.plot_edges = []
                 for contour in self.edge_contours:
                     self.plot_edges += [self.thrsh_axis.plot(contour[:, 0], contour[:, 1], 'b-', lw=1)]
-            self.thrsh_canvas.draw()
+            self.thrsh_pyfig.canvas.draw()
 
     def compute_intensity(self, stack:Stack) -> None:
         dark = float(self.dark.get())
@@ -1578,7 +1570,7 @@ class Polarimetry(CTk.CTk):
             fig.canvas.manager.set_window_title(var.name + ' Composite: ' + datastack.name)
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
-            datastack.plot_intensity(contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
+            datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             h = var.imshow(vmin, vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()))
             if self.colorbar_checkbox.get():
                 ax_divider = make_axes_locatable(ax)
@@ -1664,7 +1656,7 @@ class Polarimetry(CTk.CTk):
             fig.canvas.manager.set_window_title(var.name + ' Sticks: ' + datastack.name)
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
-            datastack.plot_intensity(contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
+            datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             p = self.get_sticks(var, datastack)
             p.set_clim([vmin, vmax])
             ax.add_collection(p)
@@ -1685,7 +1677,7 @@ class Polarimetry(CTk.CTk):
             fig.canvas.manager.set_window_title('Intensity: ' + datastack.name)
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
-            p = datastack.plot_intensity(contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
+            p = datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             self.add_patches(datastack, ax, fig.canvas)
             if self.edge_detection_switch.get() == 'on':
                 for contour in self.edge_contours:
