@@ -94,7 +94,8 @@ ___
  - Button `Save`: save the information on all the ROIs as a binary `.pyroi` file.
  - Button `Load`: load the ROIs from a binary `.pyroi` file.
  - Button `Delete`: permanently deletes all the ROIs selected in `delete`; ROIs are renumbered in the ROI Manager and in the intensity and thresholding/mask images.
- - Button `Delete All`: permamently deletes all the ROIs in the list.
+
+ Use the toggle header to select or deselect all ROIs. 
      
 #### Edge detection switch
 
