@@ -595,14 +595,6 @@ class Polarimetry(CTk.CTk):
                 self.ontab_intensity()
                 self.ontab_thrsh()
 
-        def delete_all(manager:ROIManager) -> None:
-            if hasattr(self, 'datastack'):
-                if any(self.datastack.rois):
-                    self.datastack.rois = []
-                    manager.delete_all()
-                    self.ontab_intensity()
-                    self.ontab_thrsh()
-
         def load(manager:ROIManager) -> None:
             if hasattr(self, 'datastack'):
                 self.datastack.rois = manager.load(initialdir=self.stack.folder if hasattr(self, 'stack') else Path.home())
@@ -610,7 +602,7 @@ class Polarimetry(CTk.CTk):
                 self.ontab_thrsh()
 
         if not hasattr(self, 'manager'):
-            button_images = [self.icons['save'], self.icons['download'], self.icons['delete'], self.icons['delete_forever']]
+            button_images = [self.icons['save'], self.icons['download'], self.icons['delete']]
             self.manager = ROIManager(rois=self.datastack.rois if hasattr(self, 'datastack') else [], button_images=button_images)
             self.manager.protocol('WM_DELETE_WINDOW', lambda:on_closing(self.manager))
             self.manager.bind('<Command-q>', lambda:on_closing(self.manager))
@@ -618,8 +610,7 @@ class Polarimetry(CTk.CTk):
             buttons = self.manager.get_buttons()
             buttons[0].configure(command=lambda:self.manager.save(self.datastack.rois, self.datastack.file))
             buttons[1].configure(command=lambda:load(self.manager))
-            buttons[-1].configure(command=lambda:delete_all(self.manager))
-            buttons[-2].configure(command=lambda:delete(self.manager))
+            buttons[2].configure(command=lambda:delete(self.manager))
             self.manager.sheet.extra_bindings("edit_cell", func=lambda _:on_edit(self.manager, self.datastack.rois, _))
             self.manager.sheet.extra_bindings("edit_header", func=lambda _:on_edit(self.manager, self.datastack.rois, _))
 
@@ -686,7 +677,7 @@ class Polarimetry(CTk.CTk):
     def open_file_callback(self, value:str) -> None:
         initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
         if hasattr(self, 'manager'):
-            self.manager.delete_all()
+            self.manager.delete_manager()
         self.edge_detection_switch.deselect()
         self.filelist = []
         if hasattr(self, 'edge_contours'):

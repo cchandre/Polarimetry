@@ -703,8 +703,8 @@ class ToolTip:
 class ROIManager(CTk.CTkToplevel):
     labels = ['indx', 'name', 'group']
     widths = [40, 250, 90]
-    button_labels = ['Save', 'Load', 'Delete', 'Delete All']
-    tooltips = [' save information on ROIs as a .pyroi file', ' load ROIs from a .pyroi file', ' permanently deletes ROIs selected in delete column', ' permamently deletes all ROIs']
+    button_labels = ['Save', 'Load', 'Delete']
+    tooltips = [' save information on ROIs as a .pyroi file', ' load ROIs from a .pyroi file', ' permanently deletes ROIs selected in delete column']
     manager_size = lambda w, h: f'{w+40}x{h+84}'
     cmax = len(labels)
     cell_height = 25
@@ -742,7 +742,6 @@ class ROIManager(CTk.CTkToplevel):
             ToolTip(button, text=tooltip)
             self.buttons += [button]
             button.grid(row=0, column=_, padx=10, pady=10, sticky='nswe')
-        self.buttons[-1].configure(fg_color=red[0], hover_color=red[1])
         self.add_elements(type(self).cmax, rois)
         self.sheet.enable_bindings()
         self.sheet.disable_bindings(['rc_insert_column', 'rc_delete_column', 'rc_insert_row', 'rc_delete_row', 'hide_columns', 'row_height_resize','row_width_resize', 'column_height_resize', 'column_width_resize', 'edit_header', 'arrowkeys'])
@@ -750,6 +749,7 @@ class ROIManager(CTk.CTkToplevel):
         for _, width in enumerate(widths):
             self.sheet.column_width(column=_, width=width)
         self.sheet.create_header_checkbox(c=3, checked=True, text="select", check_function=self.select_all)
+        self.sheet.create_header_checkbox(c=4, checked=False, text="delete", check_function=self.delete_all)
 
     def add_elements(self, cmax:int, rois) -> None:
         self.sheet.align_columns(columns=[0, cmax-1], align='center')
@@ -764,32 +764,44 @@ class ROIManager(CTk.CTkToplevel):
                 self.sheet.MT.data[_][3] = bool(value[3])
         except:
             pass
+    
+    def delete_all(self, value:bool) -> None:
+        try:
+            for _ in range(self.sheet.get_total_rows()):
+                self.sheet.MT.data[_][4] = bool(value[3])
+        except:
+            pass
         
     def delete(self, rois:list) -> None:
-        vec = [_ for _, x in enumerate(self.sheet.get_column_data(c=-1)) if x == 'True']
+        vec = [_ for _, x in enumerate(self.sheet.get_column_data(c=-1)) if x==True]
+        if len(vec) >= 1:
+            self.sheet.MT._headers[-1] = False
         while len(vec) >= 1:
             self.sheet.delete_row(idx=vec[0])
             del rois[vec[0]]
             for _, roi in enumerate(rois):
                 roi['indx'] = _ + 1
             self.sheet.set_column_data(0, values=tuple(roi['indx'] for roi in rois), add_rows=False)
-            vec = [_ for _, x in enumerate(self.sheet.get_column_data(c=-1)) if x == 'True']
+            vec = [_ for _, x in enumerate(self.sheet.get_column_data(c=-1)) if x==True]
         self.sheet.set_options(height=self.sheet_height(self.cell_height, rois))
         x, y = self.winfo_x(), self.winfo_y()
         self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, rois)) + f'+{x}+{y}')
     
-    def delete_all(self) -> None:
-        for _ in range(self.sheet.get_total_rows()):
-            self.sheet.delete_row()
-        self.sheet.set_options(height=self.sheet_height(self.cell_height, []))
-        x, y = self.winfo_x(), self.winfo_y()
-        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, [])) + f'+{x}+{y}')
+    def delete_manager(self) -> None:
+        try:
+            for _ in range(self.sheet.get_total_rows()):
+                self.sheet.delete_row()
+            self.sheet.set_options(height=self.sheet_height(self.cell_height, []))
+            x, y = self.winfo_x(), self.winfo_y()
+            self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, [])) + f'+{x}+{y}')
+        except:
+            pass
 
     def get_buttons(self) -> list:
         return self.buttons
 
     def load(self, initialdir:Path=Path.home()) -> List[dict]:
-        self.delete_all()
+        self.delete_manager()
         filetypes = [('PyROI files', '*.pyroi')]
         file = fd.askopenfilename(title='Select a PyROI file', initialdir=initialdir, filetypes=filetypes)
         with open(file, 'rb') as f:
