@@ -8,5 +8,5 @@ openpyxl==3.0.9
 pillow==9.3.0
 scikit-image==0.19.3
 scipy==1.10.0
-tksheet==5.4.1
+tksheet==6.2.5
 
