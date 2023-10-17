@@ -716,7 +716,7 @@ class ROIManager(CTk.CTkToplevel):
         self.grid_rowconfigure(0, weight=1)
         
         self.sheet_height = lambda cell_h, rois_: self.cell_height + (cell_h + 2) * (len(rois_) + 1)
-        widths = type(self).widths + [70, 70]
+        widths = type(self).widths + [95, 95]
         self.sheet_width = sum(widths) + 2
 
         self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, rois)) + f'+1200+200')
@@ -749,6 +749,7 @@ class ROIManager(CTk.CTkToplevel):
         self.sheet.default_row_height(self.cell_height)
         for _, width in enumerate(widths):
             self.sheet.column_width(column=_, width=width)
+        self.sheet.create_header_checkbox(c=3, checked=True, text="select", check_function=self.select_all)
 
     def add_elements(self, cmax:int, rois) -> None:
         self.sheet.align_columns(columns=[0, cmax-1], align='center')
@@ -756,6 +757,13 @@ class ROIManager(CTk.CTkToplevel):
             self.sheet.create_checkbox(r=_, c=cmax, checked=roi['select'], state='normal', redraw=False, check_function=None, text='')
         self.sheet.create_checkbox(r='all', c=cmax+1, checked=False, state='normal', redraw=False, check_function=None, text='')
         self.sheet.highlight_columns(columns=[cmax, cmax+1], fg=orange[0], highlight_header=False)
+
+    def select_all(self, value:bool) -> None:
+        try:
+            for _ in range(self.sheet.get_total_rows()):
+                self.sheet.MT.data[_][3] = bool(value[3])
+        except:
+            pass
         
     def delete(self, rois:list) -> None:
         vec = [_ for _, x in enumerate(self.sheet.get_column_data(c=-1)) if x == 'True']

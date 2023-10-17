@@ -62,8 +62,8 @@ plt.ion()
 
 class Polarimetry(CTk.CTk):
 
-    __version__ = '2.6'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023'}
+    __version__ = '2.6.1'
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.1': 'October 17, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -621,6 +621,7 @@ class Polarimetry(CTk.CTk):
             buttons[-1].configure(command=lambda:delete_all(self.manager))
             buttons[-2].configure(command=lambda:delete(self.manager))
             self.manager.sheet.extra_bindings("edit_cell", func=lambda _:on_edit(self.manager, self.datastack.rois, _))
+            self.manager.sheet.extra_bindings("edit_header", func=lambda _:on_edit(self.manager, self.datastack.rois, _))
 
     def add_axes_on_all_figures(self) -> None:
         figs = list(map(plt.figure, plt.get_fignums()))
