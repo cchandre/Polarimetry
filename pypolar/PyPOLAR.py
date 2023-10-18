@@ -131,7 +131,7 @@ class Polarimetry(CTk.CTk):
         self.option = CTk.StringVar()
         self.options_dropdown = DropDown(left_frame, values=['Thresholding (manual)', 'Mask (manual)'], image=self.icons['build'], variable=self.option, state='disabled', command=self.options_dropdown_callback, tooltip=' select the method of analysis\n - intensity thresholding or segmentation mask for single file analysis (manual) or batch processing (auto)\n - the mask has to be binary and in PNG format and have the same file name as the respective polarimetry data file')
         self.options_dropdown.grid(row=3, **dict_left_frame)
-        self.add_roi_button = Button(left_frame, text='Add ROI', image=self.icons['roi'], command=self.add_roi_callback, tooltip=' add a region of interest: polygon (left button), freeform (right button)')
+        self.add_roi_button = Button(left_frame, text='Add ROI', image=self.icons['roi'], command=self.add_roi_callback, tooltip=' add a region of interest: polygon (left button), freeform (right button); double-click to close the ROI')
         self.add_roi_button.grid(row=4, **dict_left_frame)
         self.analysis_button = Button(left_frame, text='Analysis', command=self.analysis_callback, image=self.icons['play'], fg_color=green[0], hover_color=green[1], tooltip=' perform polarimetry analysis')
         self.analysis_button.grid(row=5, **dict_left_frame)
