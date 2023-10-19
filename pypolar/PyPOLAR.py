@@ -502,12 +502,12 @@ class Polarimetry(CTk.CTk):
     def edge_detection_tab(self) -> None:
         self.tabview.insert(4, 'Edge Detection')
         adv_elts = ['Edge detection', 'Layer']
-        adv_loc = [(0, 0), (0, 1)]
+        adv_sides = [CTk.LEFT, CTk.RIGHT]
         adv = {}
-        for loc, elt in zip(adv_loc, adv_elts):
+        for elt, side in zip(adv_elts, adv_sides):
             adv.update({elt: CTk.CTkFrame(
             master=self.tabview.tab('Edge Detection'), fg_color=gray[0])})
-            adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=(10, 10), sticky='nw')
+            adv[elt].pack(side=side, padx=20, pady=(10, 10))
             Label(master=adv[elt], text=elt + '\n', width=230, font=CTk.CTkFont(size=16)).grid(row=0, column=0, padx=20, pady=(10,0))
         params = ['Low threshold', 'High threshold', 'Length', 'Smoothing window']
         tooltips = [' hysteresis thresholding values: edges with intensity gradients\n below this value are not edges and discarded ', ' hysteresis thresholding values: edges with intensity gradients\n larger than this value are sure to be edges', ' minimum length for a contour (in pixels)', ' number of pixels in the window used for smoothing contours (in pixels)']
