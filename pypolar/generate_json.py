@@ -5,6 +5,7 @@ orange = ('#FF7F4F', '#ffb295')
 text_color = 'black'
 red = ('#B54D42', '#d5928b')
 green = ('#ADD1AD', '#cee3ce')
+blue = ('#0047AB', '#0047AB')
 gray = ('#7F7F7F', '#A6A6A6')
 
 font_macosx = 'Arial Rounded MT Bold'

@@ -33,7 +33,7 @@ from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, NToolb
 from pypolar_classes import Button, CheckBox, Entry, DropDown, Label, OptionMenu, SpinBox, ShowInfo, Switch, TextBox
 from pypolar_classes import adjust, angle_edge, circularmean, divide_ext, find_matches, wrapto180
 from pypolar_classes import button_size, geometry_info
-from generate_json import font_macosx, font_windows, orange, gray, red, green, text_color
+from generate_json import font_macosx, font_windows, orange, gray, red, green, blue, text_color
 
 try:
     from ctypes import windll 
@@ -166,10 +166,10 @@ class Polarimetry(CTk.CTk):
         sliderframe.pack(side=CTk.RIGHT)
         self.stack_slider = CTk.CTkSlider(master=sliderframe, from_=0, to=18, number_of_steps=18, width=self.length_slider, command=self.stack_slider_callback, state='disabled')
         self.stack_slider.set(0)
-        self.stack_slider.grid(row=0, column=0, columnspan=2, sticky="e")
+        self.stack_slider.pack(side=CTk.TOP)
         self.stack_slider_label = Label(master=sliderframe, text='T', tooltip=' slider at T for the total intensity, otherwise scroll through the images of the stack')
-        self.stack_slider_label.grid(row=1, column=0, sticky='w')
-        Label(master=sliderframe, fg_color='transparent', text='Stack', tooltip=' slider at T for the total intensity, otherwise scroll through the images of the stack').grid(row=1, column=1, sticky='e')
+        self.stack_slider_label.pack(side=CTk.LEFT)
+        Label(master=sliderframe, fg_color='transparent', text='Stack', tooltip=' slider at T for the total intensity, otherwise scroll through the images of the stack').pack(side=CTk.RIGHT)
         
 ## RIGHT FRAME: THRSH
         banner = CTk.CTkFrame(master=self.tabview.tab('Thresholding/Mask'), fg_color='transparent')
@@ -182,7 +182,9 @@ class Polarimetry(CTk.CTk):
         self.no_background_button = Button(banner, image=self.icons['photo_fill'], command=self.no_background, tooltip=' change background to enhance visibility')
         self.no_background_button.grid(row=3, column=0, padx=10, pady=10)
         Button(banner, image=self.icons['open_in_new'], command=self.export_mask, tooltip=' export mask as .png').grid(row=4, column=0, padx=10, pady=10)
-        Button(banner, image=self.icons['format_list'], command=self.roimanager_callback, tooltip=' open ROI Manager').grid(row=4, column=0, padx=10, pady=10)
+        Button(banner, image=self.icons['format_list'], command=self.roimanager_callback, tooltip=' open ROI Manager').grid(row=5, column=0, padx=10, pady=10)
+        self.edge_button = Button(banner, image=self.icons['edge'], command=self.edge_button_callback, tooltip=' determine the edges of the thresholded image and compute orientations with respect to the edges')
+        self.edge_button.grid(row=6, column=0, padx=10, pady=10)
 
         self.thrsh_axis_facecolor = gray[1]
         self.thrsh_fig = Figure(figsize=(self.ratio_fig / dpi, self.ratio_fig / dpi), facecolor=self.thrsh_axis_facecolor)
@@ -205,13 +207,11 @@ class Polarimetry(CTk.CTk):
         entry.bind('<Return>', command=self.ilow2slider_callback)
         entry.grid(row=1, column=1, sticky="se")
         transparency_frame = CTk.CTkFrame(master=bottomframe, fg_color='transparent')
-        transparency_frame.pack(side=CTk.LEFT, padx=(30, 0))
+        transparency_frame.pack(side=CTk.RIGHT, padx=0)
         self.transparency_slider = CTk.CTkSlider(master=transparency_frame, from_=0, to=1, width=self.length_slider, command=self.transparency_slider_callback)
         self.transparency_slider.set(0)
         self.transparency_slider.grid(row=0, column=0)
         Label(master=transparency_frame, text='Transparency\n', tooltip=' use slider to adjust the transparency of the background image').grid(row=1, column=0, padx=20, sticky="sw")
-        self.edge_detection_switch = Switch(master=bottomframe, text='\nEdge\n', fg_color=gray[0], onvalue='on', offvalue='off', command=self.edge_detection_callback, tooltip=' switch on to determine the edges of the thresholded image and compute orientations with respect to the edges')
-        self.edge_detection_switch.pack(side=CTk.RIGHT)
 
 ## RIGHT FRAME: OPTIONS
         left_color = left_frame.cget('fg_color')
@@ -453,27 +453,29 @@ class Polarimetry(CTk.CTk):
     def on_click_tab(self) -> None:
         self.tabview.set('About' if self.tabview.get()!='About' else 'Intensity')
 
-    def edge_detection_callback(self) -> None:
+    def edge_button_callback(self) -> None:
         if hasattr(self, 'stack'):
-            if self.edge_detection_switch.get() == 'on':
+            if hasattr(self, 'edge_contours'):
+                self.edge_detection_switch = 'off'
+                self.edge_button.configure(fg_color=orange[0])
+                delattr(self, 'edge_contours')
+                self.tabview.delete('Edge Detection')
+                self.ontab_thrsh()
+            else:
+                self.edge_detection_switch = 'on'
+                self.edge_button.configure(fg_color=blue)
                 window = ShowInfo(message=' Image for edge detection', image=self.icons['multiline_chart'], button_labels=['Download', 'Compute', 'Cancel'], geometry=(370, 140), fontsize=16)
                 buttons = window.get_buttons()
                 buttons[0].configure(command=lambda:self.download_edge_mask(window))
                 buttons[1].configure(command=lambda:self.compute_edge_mask(window))
                 buttons[2].configure(command=lambda:self.delete_edge_mask(window))
-            elif self.edge_detection_switch.get() == 'off':
-                if hasattr(self, 'edge_contours'):
-                    delattr(self, 'edge_contours')
-                self.tabview.delete('Edge Detection')
-                self.ontab_thrsh()
-        else:
-            self.edge_detection_switch.deselect()
 
     def delete_edge_mask(self, window:CTk.CTkToplevel) -> None:
         window.withdraw()
         if hasattr(self, 'edge_contours'):
             delattr(self, 'edge_contours')
-        self.edge_detection_switch.deselect()
+        self.edge_button.configure(fg_color=orange[0])
+        self.edge_detection_switch = 'off'
 
     def download_edge_mask(self, window:CTk.CTkToplevel) -> None:
         window.withdraw()
@@ -639,9 +641,9 @@ class Polarimetry(CTk.CTk):
                         cax = ax_divider.append_axes('right', size='7%', pad='2%')
                         if fig.type == 'Composite':
                             fig.colorbar(fig.axes[0].images[1], cax=cax)
-                        elif (fig.type == 'Sticks') or ((fig.type == 'Intensity') and (self.edge_detection_switch.get() == 'on')):
+                        elif (fig.type == 'Sticks') or ((fig.type == 'Intensity') and (self.edge_detection_switch == 'on')):
                             fig.colorbar(fig.axes[0].collections[0], cax=cax)
-                        if (fig.type == 'Intensity') and (self.edge_detection_switch.get() == 'off'):
+                        if (fig.type == 'Intensity') and (self.edge_detection_switch == 'off'):
                             fig.axes[1].remove()
                     else:
                         if len(fig.axes) >= 2:
@@ -661,7 +663,7 @@ class Polarimetry(CTk.CTk):
                         cmap = self.datastack.vars[0].colormap[self.colorblind_checkbox.get()]
                     if (fig.type == 'Composite') and (self.datastack.name in fs):
                         fig.axes[0].images[1].set_cmap(cmap)
-                    elif ((fig.type == 'Sticks') or ((fig.type == 'Intensity') and (self.edge_detection_switch.get() == 'on'))) and (self.datastack.name in fs):
+                    elif ((fig.type == 'Sticks') or ((fig.type == 'Intensity') and (self.edge_detection_switch == 'on'))) and (self.datastack.name in fs):
                         fig.axes[0].collections[0].set_cmap(cmap)
                 if fs.startswith('Disk Cone'):
                     fig.axes[0].images[0].set_cmap('hsv' if not self.colorblind_checkbox.get() else m_colorwheel)
@@ -681,7 +683,8 @@ class Polarimetry(CTk.CTk):
         initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
         if hasattr(self, 'manager'):
             self.manager.delete_manager()
-        self.edge_detection_switch.deselect()
+        self.edge_detection_switch = 'off'
+        self.edge_button.configure(fg_color=orange[0])
         self.filelist = []
         if hasattr(self, 'edge_contours'):
             delattr(self, 'edge_contours')
@@ -1673,7 +1676,7 @@ class Polarimetry(CTk.CTk):
             ax.axis(self.add_axes_checkbox.get())
             p = datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             self.add_patches(datastack, ax, fig.canvas)
-            if self.edge_detection_switch.get() == 'on':
+            if self.edge_detection_switch == 'on':
                 for contour in self.edge_contours:
                     angles = np.mod(2 * angle_edge(contour)[0], 360) / 2
                     cmap = m_colorwheel if self.colorblind_checkbox.get() else 'hsv'
@@ -1689,7 +1692,7 @@ class Polarimetry(CTk.CTk):
                 ax_divider = make_axes_locatable(ax)
                 cax = ax_divider.append_axes('right', size='7%', pad='2%')
                 fig.colorbar(p, cax=cax)
-                if self.edge_detection_switch.get() == 'off':
+                if self.edge_detection_switch == 'off':
                     fig.axes[1].remove()
             if self.save_table[3].get():
                 file = datastack.file.with_name(datastack.name + '_Intensity' + self.figure_extension.get())
@@ -1746,7 +1749,7 @@ class Polarimetry(CTk.CTk):
                 joblib.dump(datastack_, f, compress=9)
             window.withdraw()
         if self.extension_table[2].get():
-            suffix = '_Stats.xlsx' if self.edge_detection_switch.get() == 'off' else '_Stats_c.xlsx'
+            suffix = '_Stats.xlsx' if self.edge_detection_switch == 'off' else '_Stats_c.xlsx'
             if self.filelist:
                 file = self.stack.folder / (self.stack.folder.stem + suffix)
                 title = self.stack.folder.stem
@@ -1796,7 +1799,7 @@ class Polarimetry(CTk.CTk):
             results = [self.stack.name, roi['indx'], roi['name'], roi['group'], meandata, np.std(deltarho), np.mean(deltarho)]
         else:
             results = [self.stack.name, 'all', '', '', meandata, np.std(deltarho), np.mean(deltarho)]
-        if self.edge_detection_switch.get() == 'on':
+        if self.edge_detection_switch == 'on':
             title += ['MeanRho_c_180', 'StdRho_c_180', 'MeanDeltaRho_c_180', 'MeanRho_c_90', 'StdRho_c_90', 'MeanDeltaRho_c_90']
             rho_c_180 = datastack.vars[-1].values
             rho_c_90 = rho_c_180.copy()
@@ -1991,7 +1994,7 @@ class Polarimetry(CTk.CTk):
         X_.indx, Y_.indx, Int_.indx = 1, 2, 3
         X_.values, Y_.values, Int_.values = X, Y, a0
         datastack.added_vars = [X_, Y_, Int_]
-        if self.edge_detection_switch.get() == 'on':
+        if self.edge_detection_switch == 'on':
             rho_ct = Variable('Rho_contour', datastack=datastack)
             vals = self.define_rho_ct(self.edge_contours)
             filter = np.isfinite(rho_.values) * np.isfinite(vals)
