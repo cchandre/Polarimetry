@@ -461,21 +461,29 @@ class Polarimetry(CTk.CTk):
                 self.tabview.delete('Edge Detection')
                 self.ontab_thrsh()
             else:
-                self.edge_button.configure(fg_color=blue[0])
-                window = ShowInfo(message=' Image for edge detection', image=self.icons['multiline_chart'], button_labels=['Download', 'Compute', 'Cancel'], geometry=(370, 140), fontsize=16)
-                buttons = window.get_buttons()
-                buttons[0].configure(command=lambda:self.download_edge_mask(window))
-                buttons[1].configure(command=lambda:self.compute_edge_mask(window))
-                buttons[2].configure(command=lambda:self.cancel_edge_mask(window))
+                if not hasattr(self, 'edge_window'):
+                    self.edge_button.configure(fg_color=blue[0])
+                    self.edge_window = ShowInfo(message=' Image for edge detection', image=self.icons['multiline_chart'], button_labels=['Download', 'Compute', 'Cancel'], geometry=(370, 140), fontsize=16)
+                    self.edge_window.protocol('WM_DELETE_WINDOW', self.cancel_edge_mask)
+                    self.edge_window.bind('<Command-q>', self.cancel_edge_mask)
+                    self.edge_window.bind('<Command-w>', self.cancel_edge_mask)
+                    buttons = self.edge_window.get_buttons()
+                    buttons[0].configure(command=self.download_edge_mask)
+                    buttons[1].configure(command=self.compute_edge_mask)
+                    buttons[2].configure(command=self.cancel_edge_mask)
+                else: 
+                    self.cancel_edge_mask()
 
-    def cancel_edge_mask(self, window:CTk.CTkToplevel) -> None:
-        window.withdraw()
+    def cancel_edge_mask(self) -> None:
+        self.edge_window.withdraw()
+        delattr(self, 'edge_window')
         if hasattr(self, 'edge_contours'):
             delattr(self, 'edge_contours')
         self.edge_button.configure(fg_color=orange[0])
 
-    def download_edge_mask(self, window:CTk.CTkToplevel) -> None:
-        window.withdraw()
+    def download_edge_mask(self) -> None:
+        self.edge_window.withdraw()
+        delattr(self, 'edge_window')
         filetypes = [('PNG files', '*.png')]
         initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
         file = fd.askopenfilename(title='Select a mask file', initialdir=initialdir, filetypes=filetypes)
@@ -484,8 +492,9 @@ class Polarimetry(CTk.CTk):
         self.edge_mask = cv2.imread(file, cv2.IMREAD_GRAYSCALE)
         self.compute_edges()
 
-    def compute_edge_mask(self, window:CTk.CTkToplevel) -> None:
-        window.withdraw()
+    def compute_edge_mask(self) -> None:
+        self.edge_window.withdraw()
+        delattr(self, 'edge_window')
         self.edge_method = 'compute'
         self.edge_detection_tab()
         self.compute_edges()
