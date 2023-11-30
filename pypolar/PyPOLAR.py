@@ -62,8 +62,8 @@ plt.ion()
 
 class Polarimetry(CTk.CTk):
 
-    __version__ = '2.6.1'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.1': 'October 19, 2023'}
+    __version__ = '2.6.2'
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'November 30, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -1183,7 +1183,10 @@ class Polarimetry(CTk.CTk):
 
     def define_stack(self, file:Path) -> Stack:
         stack_vals = cv2.imreadmulti(str(file), [], cv2.IMREAD_ANYDEPTH)[1]
-        nangle, h, w = np.asarray(stack_vals).shape
+        try:
+            nangle, h, w = np.asarray(stack_vals).shape
+        except:
+            h, w = np.asarray(stack_vals).shape
         a = np.asarray(stack_vals)
         if not np.issubdtype(a.dtype, np.integer):
             stack_vals = (65535 * (a - np.amin(a)) / np.ptp(a)).astype(np.uint16)
