@@ -7,7 +7,7 @@ Source code: [PyPOLAR.py](https://github.com/cchandre/Polarimetry/blob/master/py
 
 Website: [www.fresnel.fr/polarimetry](https://www.fresnel.fr/polarimetry)
 
-![Version](https://img.shields.io/badge/version-v2.6.1-blue)
+![Version](https://img.shields.io/badge/version-v2.6.2-blue)
 ![Platform](https://img.shields.io/badge/platform-macOS|Windows-orange)
 ![License](https://img.shields.io/badge/license-BSD-lightgray)
 
