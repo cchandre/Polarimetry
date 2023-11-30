@@ -326,7 +326,7 @@ class Polarimetry(CTk.CTk):
         self.calib_dropdown.grid(row=1, column=0, padx=(0, 52), pady=10, sticky='e')
         self.calib_textbox = TextBox(master=adv['Disk cone / Calibration data'], width=250, height=50, state='disabled', fg_color=gray[0])
         self.calib_textbox.grid(row=3, column=0, pady=10)
-        self.polar_dropdown = OptionMenu(master=adv['Disk cone / Calibration data'], width=button_size[0], height=button_size[1], dynamic_resizing=False, state='disabled', text_color_disabled=gray[0], tooltip=' 4POLAR: select the distribution of polarizations (0,45,90,135) among quadrants clockwise\n Upper Left (UL), Upper Right (UR), Lower Right (LR), Lower Left (LL)')
+        self.polar_dropdown = OptionMenu(master=adv['Disk cone / Calibration data'], width=button_size[0], height=button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state='disabled', text_color_disabled=gray[0], tooltip=' 4POLAR: select the distribution of polarizations (0,45,90,135) among quadrants clockwise\n Upper Left (UL), Upper Right (UR), Lower Right (LR), Lower Left (LL)')
         angles = [0, 45, 90, 135]
         self.dict_polar = {}
         for p in list(permutations([0, 1, 2, 3])):
@@ -1204,7 +1204,8 @@ class Polarimetry(CTk.CTk):
     def open_file(self, file:Path) -> None:
         self.stack = self.define_stack(file)
         if self.method.get().startswith('4POLAR'):
-            self.stack = self.slice4polar(self.stack)
+            self.stack_unsliced = copy.deepcopy(self.stack)
+            self.stack = self.slice4polar(self.stack_unsliced, self.polar_dropdown.get())
         if self.stack.nangle >= 2:
             self.stack_slider.configure(to=self.stack.nangle, number_of_steps=self.stack.nangle, state='normal')
         else:
@@ -1870,7 +1871,7 @@ class Polarimetry(CTk.CTk):
         mask *= (datastack.intensity >= roi_ilow_map) * (roi_map > 0)
         return roi_map, (mask != 0)
 
-    def slice4polar(self, stack:Stack) -> Stack:
+    def slice4polar(self, stack:Stack, str_order:str) -> Stack:
         if hasattr(self, 'registration'):
             radius = np.asarray(self.registration['radius']).item()
             centers = self.registration['centers']
@@ -1886,13 +1887,23 @@ class Polarimetry(CTk.CTk):
                 ims += [stack.values[0, yi:yf, xi:xf].reshape((stack_.height, stack_.width))]
             ims_reg = [ims[0]]
             ims_reg += [cv2.warpPerspective(im, homography, (stack_.width, stack_.height)) for im, homography in zip(ims[1:], homographies)]
-            order = self.dict_polar[self.polar_dropdown.get()]
+            order = self.dict_polar[str_order]
             for it in range(stack_.nangle):
                 stack_.values[order[it]] = ims_reg[it]
             return stack_
         else:
             ShowInfo(message=' No registration', image=self.icons['blur_circular'], button_labels=['OK'], fontsize=16)
             self.method.set('1PF')
+
+    def polar_dropdown_callback(self, order:str) -> None:
+        if hasattr(self, 'stack') and hasattr(self, 'registration'):
+            self.stack = self.slice4polar(self.stack_unsliced, order)
+            self.compute_intensity(self.stack)
+            self.datastack = self.define_datastack(self.stack)
+            if self.option.get().startswith('Mask'):
+                self.mask = self.get_mask(self.datastack)
+            self.ontab_intensity(update=False)
+            self.ontab_thrsh(update=False)
 
     def analyze_stack(self, datastack:DataStack) -> None:
         chi2threshold = 500
