@@ -29,8 +29,8 @@ from itertools import permutations, chain
 from datetime import date
 import copy
 from typing import List, Tuple, Union
-from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, NToolbar2PyPOLAR, PyPOLARfigure, ROIManager, TabView, ToolTip
-from pypolar_classes import Button, CheckBox, Entry, DropDown, Label, OptionMenu, SpinBox, ShowInfo, Switch, TextBox
+from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, PyPOLARfigure, ROIManager, TabView, ToolTip
+from pypolar_classes import Button, CheckBox, Entry, DropDown, Label, OptionMenu, SpinBox, ShowInfo, QueryWindow, TextBox
 from pypolar_classes import adjust, angle_edge, circularmean, divide_ext, find_matches, wrapto180
 from pypolar_classes import button_size, geometry_info
 from generate_json import font_macosx, font_windows, orange, gray, red, green, blue, text_color
@@ -1061,6 +1061,9 @@ class Polarimetry(CTk.CTk):
             self.polar_dropdown.configure(state='normal')
             window = ShowInfo(message='\n Perform: Select a beads file (*.tif)\n\n Load: Select a registration file (*.pyreg)\n\n Registration is performed with Whitelight.tif \n   which should be in the same folder as the beads file', image=self.icons['blur_circular'], button_labels=['Perform', 'Load', 'Cancel'], geometry=(420, 240))
             buttons = window.get_buttons()
+            self.nfeatures = 0
+            self.contrastThreshold = 0.04
+            self.sigma = 1.6
             buttons[0].configure(command=lambda:self.perform_registration(window))
             buttons[1].configure(command=lambda:self.load_registration(window))
             buttons[2].configure(command=lambda:window.withdraw())
@@ -1107,26 +1110,29 @@ class Polarimetry(CTk.CTk):
         centers, radius = [None] * len(contours), [None] * len(contours)
         for _, contour in enumerate(contours):
             centers[_], radius[_] = cv2.minEnclosingCircle(contour)
-        centers = np.asarray(centers, dtype=np.int32)
-        radius = int(round(max(radius))) + npix
+        beadstack.centers = np.asarray(centers, dtype=np.int32)
+        beadstack.radius = int(round(max(radius))) + npix
         ind = np.arange(len(contours))
-        Iul, Ilr = np.argmin(np.abs(centers[:, 0] + 1j * centers[:, 1])), np.argmax(np.abs(centers[:, 0] + 1j * centers[:, 1]))
+        Iul, Ilr = np.argmin(np.abs(beadstack.centers[:, 0] + 1j * beadstack.centers[:, 1])), np.argmax(np.abs(beadstack.centers[:, 0] + 1j * beadstack.centers[:, 1]))
         ind = np.delete(ind, [Iul, Ilr])
-        Iur, Ill = np.argmin(centers[ind, 1]), np.argmax(centers[ind, 1])
-        centers = centers[[Iul, ind[Iur], Ilr, ind[Ill]], :]
+        Iur, Ill = np.argmin(beadstack.centers[ind, 1]), np.argmax(beadstack.centers[ind, 1])
+        centers = beadstack.centers[[Iul, ind[Iur], Ilr, ind[Ill]], :]
         ims = []
         for _ in range(4):
-            xi, yi = centers[_, 0] - radius, centers[_, 1] - radius
-            xf, yf = centers[_, 0] + radius, centers[_, 1] + radius
+            xi, yi = beadstack.centers[_, 0] - beadstack.radius, beadstack.centers[_, 1] - beadstack.radius
+            xf, yf = beadstack.centers[_, 0] + beadstack.radius, beadstack.centers[_, 1] + beadstack.radius
             im = intensity[yi:yf, xi:xf]
             im = (im / np.amax(im) * 255).astype(np.uint8)
             thresh = cv2.threshold(im, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
             ims += [im * thresh]
+        self.compute_alignment(ims, beadstack, file)
+        
+    def compute_alignment(self, ims, beadstack, file):
         height, width = ims[0].shape
+        sift=cv2.SIFT_create(nfeatures=self.nfeatures, contrastThreshold=self.contrastThreshold, sigma=self.sigma)
+        keypoints0 = sift.detect(ims[0], None)
+        points0 = np.unique(np.asarray([kp.pt for kp in keypoints0]), axis=0)
         try:
-            sift=cv2.SIFT_create(nfeatures=500, contrastThreshold=1e-4, sigma=1.1)
-            keypoints0 = sift.detect(ims[0], None)
-            points0 = np.unique(np.asarray([kp.pt for kp in keypoints0]), axis=0)
             homographies, ims_ = [], [ims[0]]
             for im in ims[1:]:
                 keypoints = sift.detect(im, None)
@@ -1145,18 +1151,19 @@ class Polarimetry(CTk.CTk):
                 ax.imshow(im)
                 ax.set_title(title)
                 ax.set_axis_off()
-            self.registration = {'name_beads': beadstack.name, 'radius': radius, 'centers': centers, 'homographies': homographies}
-            window = ShowInfo(message=' Are you okay with this registration?', button_labels=['Yes', u'Yes \u0026 Save', 'No'], image=self.icons['blur_circular'], geometry=(380, 150))
-            buttons = window.get_buttons()
-            buttons[0].configure(command=lambda:self.yes_registration_callback(window, fig))
-            buttons[1].configure(command=lambda:self.yes_save_registration_callback(window, fig, file))
-            buttons[2].configure(command=lambda:self.no_registration_callback(window, fig))
+            self.registration = {'name_beads': beadstack.name, 'radius': beadstack.radius, 'centers': beadstack.centers, 'homographies': homographies}
+            message = " Are you okay with this registration?"
+            state = "normal"
         except:
-            window = ShowInfo(message='\n The registration was not successful. Try again. \n\n Perform: Select a beads file (*.tif)\n\n Load: Select a registration file (*.pyreg)\n\n Registration is performed with Whitelight.tif \n   which should be in the same folder as the beads file', image=self.icons['blur_circular'], button_labels=['Perform', 'Load', 'Cancel'], geometry=(420, 260))
-            buttons = window.get_buttons()
-            buttons[0].configure(command=lambda:self.perform_registration(window))
-            buttons[1].configure(command=lambda:self.load_registration(window))
-            buttons[2].configure(command=lambda:window.withdraw())
+            message = " The registration was not successful. Try again."
+            state = "disabled"
+            fig = []
+        window = ShowInfo(message=message, button_labels=['Yes', u'Yes \u0026 Save', 'Change', 'Cancel'], image=self.icons['blur_circular'], geometry=(480, 150))
+        buttons = window.get_buttons()
+        buttons[0].configure(command=lambda:self.yes_registration_callback(window, fig), state=state)
+        buttons[1].configure(command=lambda:self.yes_save_registration_callback(window, fig, file), state=state)
+        buttons[2].configure(command=lambda:self.change_registration_callback(window, fig, ims, beadstack, file))
+        buttons[3].configure(command=lambda:self.cancel_registration_callback(window, fig))
 
     def yes_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure) -> None:
         plt.close(fig)
@@ -1168,10 +1175,29 @@ class Polarimetry(CTk.CTk):
         plt.close(fig)
         window.withdraw()
 
-    def no_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure) -> None:
+    def change_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure, ims, beadstack, file) -> None:
+        self.tform = []
+        if fig:
+            plt.close(fig)
+        window.withdraw()
+        query_tooltips = ["The number of best features to retain. The features are ranked by their scores (measured in SIFT algorithm as the local contrast).", "The contrast threshold used to filter out weak features in semi-uniform (low-contrast) regions. The larger the threshold, the less features are produced by the detector.", "The sigma of the Gaussian applied to the input image at the octave #0. If your image is captured with a weak camera with soft lenses, you might want to reduce the number."]
+        param_window = QueryWindow(message=" Enter new parameters for the registration", button_labels=["Peform", "Cancel"], query_labels=["nfeatures", "contrastThreshold", "sigma"], query_values=[self.nfeatures, self.contrastThreshold, self.sigma], query_tooltips=query_tooltips, geometry=(350, 240), image=self.icons['blur_circular'])
+        buttons = param_window.get_buttons()
+        buttons[0].configure(command=lambda:self.compute_changed_alignment(param_window, ims, beadstack, file))
+        buttons[1].configure(command=lambda:self.cancel_registration_callback(param_window))
+
+    def compute_changed_alignment(self, window:CTk.CTkToplevel, ims, beadstack, file):
+        parameters = window.get_queries()
+        window.withdraw()
+        self.nfeatures, self.contrastThreshold, self.sigma = int(parameters[0]), float(parameters[1]), float(parameters[2])
+        
+        self.compute_alignment(ims, beadstack, file)
+
+    def cancel_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure=[]) -> None:
         self.tform = []
         self.method.set('1PF')
-        plt.close(fig)
+        if fig:
+            plt.close(fig)
         window.withdraw()
 
     def load_registration(self, window:CTk.CTkToplevel) -> None:

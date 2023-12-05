@@ -215,6 +215,38 @@ class ShowInfo(CTk.CTkToplevel):
     def get_buttons(self) -> List[Button]:
         return self.buttons
     
+class QueryWindow(CTk.CTkToplevel):
+    def __init__(self, message:str='', image:CTk.CTkImage=None, button_labels:List[str]=[], query_labels:List[str]=[], query_values:List[str]=[], query_tooltips:List[str]=[], geometry:tuple=(300, 150), fontsize:int=13) -> None:
+        super().__init__()
+        self.attributes('-topmost', 'true')
+        self.title('Polarimetry Analysis')
+        self.geometry(geometry_info(geometry))
+        CTk.CTkLabel(self, text=message, image=image, compound='left', width=250, justify=tk.LEFT, font=CTk.CTkFont(size=fontsize)).grid(row=0, column=0, padx=30, pady=10)
+        self.buttons = []
+        if button_labels:
+            if len(button_labels) >= 2:
+                banner = CTk.CTkFrame(self, fg_color='transparent')
+                banner.grid(row=1+len(query_labels), column=0)
+                master, row_ = banner, 0
+            else:
+                master, row_ = self, 1
+            for _, label in enumerate(button_labels):
+                button = Button(master, text=label, width=80, anchor='center')
+                if label == 'OK':
+                    button.configure(command=lambda:self.withdraw())
+                button.grid(row=row_, column=_, padx=20, pady=(20, 0))
+                self.buttons += [button]
+        if query_labels:
+            self.query_vars = [tk.StringVar(value=value) for value in query_values]
+            for _, (label, tooltip) in enumerate(zip(query_labels, query_tooltips)):
+                Entry(self, text=label, textvariable=self.query_vars[_], width=80, column=0, row=_+1, pady=(0, 10))
+
+    def get_buttons(self) -> List[Button]:
+        return self.buttons
+    
+    def get_queries(self) -> List[str]:
+        return [var.get() for var in self.query_vars]
+    
 class Switch(CTk.CTkSwitch):
     def __init__(self, master, tooltip:str=None, **kwargs) -> None:
         super().__init__(master, **kwargs)
