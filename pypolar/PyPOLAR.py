@@ -1124,13 +1124,13 @@ class Polarimetry(CTk.CTk):
             ims += [im * thresh]
         height, width = ims[0].shape
         try:
-            sift=cv2.SIFT_create()
+            sift=cv2.SIFT_create(nfeatures=500, contrastThreshold=1e-4, sigma=1.1)
             keypoints0 = sift.detect(ims[0], None)
-            points0 = np.asarray([kp.pt for kp in keypoints0])
+            points0 = np.unique(np.asarray([kp.pt for kp in keypoints0]), axis=0)
             homographies, ims_ = [], [ims[0]]
             for im in ims[1:]:
                 keypoints = sift.detect(im, None)
-                points = np.asarray([kp.pt for kp in keypoints])
+                points = np.unique(np.asarray([kp.pt for kp in keypoints]), axis=0)
                 p, p0 = find_matches(points, points0)
                 homography = cv2.findHomography(p, p0, cv2.RANSAC)[0]
                 homographies += [homography]
