@@ -1159,40 +1159,39 @@ class Polarimetry(CTk.CTk):
             fig = []
         window = ShowInfo(message=message, button_labels=['Validate', 'Save', 'Change', 'Cancel'], image=self.icons['blur_circular'], geometry=(480, 150))
         buttons = window.get_buttons()
-        buttons[0].configure(command=lambda:self.yes_registration_callback(window, fig), state=state)
-        buttons[1].configure(command=lambda:self.yes_save_registration_callback(window, fig, beadstack.file), state=state)
+        buttons[0].configure(command=lambda:self.validate_registration_callback(window, fig), state=state)
+        buttons[1].configure(command=lambda:self.save_registration_callback(window, fig, beadstack.file), state=state)
         buttons[2].configure(command=lambda:self.change_registration_callback(window, fig, ims, beadstack))
         buttons[3].configure(command=lambda:self.cancel_registration_callback(window, fig))
 
-    def yes_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure) -> None:
+    def validate_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure) -> None:
         plt.close(fig)
         window.withdraw()
 
-    def yes_save_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure, file:Path) -> None:
+    def save_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure, file:Path) -> None:
         with file.with_suffix('.pyreg').open('wb') as f:
             joblib.dump(self.registration, f)
-        plt.close(fig)
-        window.withdraw()
+        self.validate_registration_callback(window, fig)
 
     def change_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure, ims, beadstack) -> None:
-        self.tform = []
+        self.registration = []
         if fig:
             plt.close(fig)
         window.withdraw()
         query_tooltips = ["The contrast threshold used to filter out weak features in semi-uniform (low-contrast) regions. The larger the threshold, the less features are produced by the detector.", "The sigma of the Gaussian applied to the input image at the octave #0. If your image is captured with a weak camera with soft lenses, you might want to reduce the number."]
-        param_window = QueryWindow(message=" Enter new parameters for the registration", button_labels=["Peform", "Cancel"], query_labels=["contrastThreshold", "sigma"], query_values=[self.contrastThreshold, self.sigma], query_tooltips=query_tooltips, geometry=(350, 200), image=self.icons['blur_circular'])
-        buttons = param_window.get_buttons()
-        buttons[0].configure(command=lambda:self.compute_changed_alignment(param_window, ims, beadstack))
-        buttons[1].configure(command=lambda:self.cancel_registration_callback(param_window))
+        window = QueryWindow(message=" Enter new parameters for the registration", button_labels=["Perform", "Cancel"], query_labels=["contrastThreshold", "sigma"], query_values=[self.contrastThreshold, self.sigma], query_tooltips=query_tooltips, geometry=(350, 200), image=self.icons['blur_circular'])
+        buttons = window.get_buttons()
+        buttons[0].configure(command=lambda:self.compute_changed_alignment(window, ims, beadstack))
+        buttons[1].configure(command=lambda:self.cancel_registration_callback(window))
 
-    def compute_changed_alignment(self, window:CTk.CTkToplevel, ims, beadstack):
+    def compute_changed_alignment(self, window:CTk.CTkToplevel, ims, beadstack) -> None:
         parameters = window.get_queries()
         window.withdraw()
         self.contrastThreshold, self.sigma = float(parameters[0]), float(parameters[1])
         self.compute_alignment(ims, beadstack)
 
     def cancel_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure=[]) -> None:
-        self.tform = []
+        self.registration = []
         self.method.set('1PF')
         if fig:
             plt.close(fig)
