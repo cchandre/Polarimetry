@@ -30,7 +30,7 @@ from datetime import date
 import copy
 from typing import List, Tuple, Union
 from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, PyPOLARfigure, ROIManager, TabView, ToolTip
-from pypolar_classes import Button, CheckBox, Entry, DropDown, Label, OptionMenu, SpinBox, ShowInfo, QueryWindow, TextBox
+from pypolar_classes import Button, CheckBox, Entry, DropDown, Label, OptionMenu, SpinBox, ShowInfo, TextBox
 from pypolar_classes import adjust, angle_edge, circularmean, divide_ext, find_matches, wrapto180
 from pypolar_classes import button_size, geometry_info
 from generate_json import font_macosx, font_windows, orange, gray, red, green, blue, text_color
@@ -88,7 +88,7 @@ class Polarimetry(CTk.CTk):
         delx, dely = self.winfo_screenwidth() // 10, self.winfo_screenheight() // 10
         dpi = self.winfo_fpixels('1i')
         self.figsize = (type(self).figsize[0] / dpi, type(self).figsize[1] / dpi)
-        self.title('Polarimetry Analysis')
+        self.title('PyPOLAR')
         self.geometry(f'{width}x{height}+{delx}+{dely}')
         self.protocol('WM_DELETE_WINDOW', self.on_closing)
         self.bind('<Command-q>', self.on_closing)
@@ -1179,13 +1179,28 @@ class Polarimetry(CTk.CTk):
             plt.close(fig)
         window.withdraw()
         query_tooltips = ["The contrast threshold used to filter out weak features in semi-uniform (low-contrast) regions. The larger the threshold, the less features are produced by the detector.", "The sigma of the Gaussian applied to the input image at the octave #0. If your image is captured with a weak camera with soft lenses, you might want to reduce the number."]
-        window = QueryWindow(message=" Enter new parameters for the registration", button_labels=["Perform", "Cancel"], query_labels=["contrastThreshold", "sigma"], query_values=[self.contrastThreshold, self.sigma], query_tooltips=query_tooltips, geometry=(350, 200), image=self.icons['blur_circular'])
-        buttons = window.get_buttons()
+        query_labels=["contrastThreshold", "sigma"]
+        query_values=[self.contrastThreshold, self.sigma]
+        button_labels=["Perform", "Cancel"]
+        window = CTk.CTkToplevel(self)
+        window.title('PyPOLAR')
+        window.geometry(geometry_info((350, 200)))
+        CTk.CTkLabel(window, text=" Enter new parameters for the registration", image=self.icons['blur_circular'], compound='left', width=250, justify=CTk.LEFT, font=CTk.CTkFont(size=13)).grid(row=0, column=0, padx=30, pady=10)
+        buttons = []
+        banner = CTk.CTkFrame(window, fg_color='transparent')
+        banner.grid(row=1+len(query_labels), column=0)
+        for _, label in enumerate(button_labels):
+            button = Button(banner, text=label, width=80, anchor='center')
+            button.grid(row=0, column=_, padx=20, pady=(20, 0))
+            buttons += [button]
+        self.query_vars = [CTk.StringVar(value=value) for value in query_values]
+        for _, (label, tooltip) in enumerate(zip(query_labels, query_tooltips)):
+            Entry(window, text=label, textvariable=self.query_vars[_], tooltip=tooltip, width=80, column=0, row=_+1, pady=(0, 10))
         buttons[0].configure(command=lambda:self.compute_changed_alignment(window, ims, beadstack))
         buttons[1].configure(command=lambda:self.cancel_registration_callback(window))
 
     def compute_changed_alignment(self, window:CTk.CTkToplevel, ims, beadstack) -> None:
-        parameters = window.get_queries()
+        parameters = [var.get() for var in self.query_vars]
         window.withdraw()
         self.contrastThreshold, self.sigma = float(parameters[0]), float(parameters[1])
         self.compute_alignment(ims, beadstack)
