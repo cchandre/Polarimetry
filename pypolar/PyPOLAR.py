@@ -63,7 +63,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.6.2'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'December 12, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'December 19, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -1098,6 +1098,7 @@ class Polarimetry(CTk.CTk):
         initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
         file = Path(fd.askopenfilename(title='Select a beads file', initialdir=initialdir, filetypes=[('TIFF files', '*.tiff'), ('TIF files', '*.tif')]))
         beadstack = self.define_stack(file)
+        self.beads_name = beadstack.name
         self.filename_label.write('')
         dark = beadstack.compute_dark()
         intensity = np.sum((beadstack.values - dark) * (beadstack.values >= dark), axis=0)
@@ -1872,8 +1873,8 @@ class Polarimetry(CTk.CTk):
             title += ['Calibration']
             results += [self.CD.name]
         if self.method.get().startswith('4POLAR'):
-            title += ['4POLAR angles']
-            results += [self.polar_dropdown.get()]
+            title += ['4POLAR angles', 'beads', 'contrastThreshold', 'sigma']
+            results += [self.polar_dropdown.get(), self.beads_name, self.contrastThreshold, self.sigma]
         title += ['dark', 'offset', 'polarization', 'bin width', 'bin height', 'reference angle']
         results += [float(self.dark.get()), float(self.offset_angle.get()), self.polar_dir.get(), self.bin_spinboxes[0].get(), self.bin_spinboxes[1].get(), float(self.rotation[2].get())]
         return results, title
