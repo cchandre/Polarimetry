@@ -9,6 +9,7 @@ import copy
 import webbrowser
 import numpy as np
 from scipy.signal import convolve2d, savgol_filter
+from scipy.spatial.distance import cdist
 from scipy.interpolate import interpn
 from scipy.ndimage import rotate
 from scipy.io import savemat, loadmat
@@ -63,7 +64,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.6.2'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'December 19, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'December 21, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -1133,10 +1134,11 @@ class Polarimetry(CTk.CTk):
         keypoints0 = sift.detect(ims[0], None)
         points0 = np.unique(np.asarray([kp.pt for kp in keypoints0]), axis=0)
         try:
-            homographies, ims_ = [], [ims[0]]
+            homographies, ims_, md = [], [ims[0]], []
             for im in ims[1:]:
                 keypoints = sift.detect(im, None)
                 points = np.unique(np.asarray([kp.pt for kp in keypoints]), axis=0)
+                md += [np.mean(np.amin(cdist(points, points0), axis=0))]
                 p, p0 = find_matches(points, points0)
                 homography = cv2.findHomography(p, p0, cv2.RANSAC)[0]
                 homographies += [homography]
@@ -1145,6 +1147,7 @@ class Polarimetry(CTk.CTk):
             fig, axs = plt.subplots(2, 2)
             fig.type, fig.var = 'Calibration', None
             fig.canvas.manager.set_window_title('Quality of calibration: ' + beadstack.name)
+            fig.suptitle(f'error in calibration = {np.mean(np.asarray(md)):.2f} pixels', fontsize=10, x=0.2)
             reg_ims[2:4] = reg_ims[3:1:-1]
             titles = ['UL', 'UR', 'LL', 'LR']
             for im, title, ax in zip(reg_ims, titles, axs.ravel()):
