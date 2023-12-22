@@ -1148,7 +1148,7 @@ class Polarimetry(CTk.CTk):
             fig, axs = plt.subplots(2, 2)
             fig.type, fig.var = 'Calibration', None
             fig.canvas.manager.set_window_title('Quality of calibration: ' + beadstack.name)
-            fig.suptitle(f'error in calibration = {np.mean(np.asarray(mse)):.2e}', fontsize=10, x=0.2)
+            fig.suptitle(f'Mean Squared Error = {np.mean(np.asarray(mse)):.2e}', fontsize=10, x=0.2)
             reg_ims[2:4] = reg_ims[3:1:-1]
             titles = ['UL', 'UR', 'LL', 'LR']
             for im, title, ax in zip(reg_ims, titles, axs.ravel()):
