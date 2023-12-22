@@ -1134,7 +1134,7 @@ class Polarimetry(CTk.CTk):
         keypoints0 = sift.detect(ims[0], None)
         points0 = np.unique(np.asarray([kp.pt for kp in keypoints0]), axis=0)
         try:
-            homographies, ims_, rse = [], [ims[0]], []
+            homographies, ims_, mse = [], [ims[0]], []
             for im in ims[1:]:
                 keypoints = sift.detect(im, None)
                 points = np.unique(np.asarray([kp.pt for kp in keypoints]), axis=0)
@@ -1142,13 +1142,13 @@ class Polarimetry(CTk.CTk):
                 homography = cv2.findHomography(p, p0, cv2.RANSAC)[0]
                 homographies += [homography]
                 im_reg = cv2.warpPerspective(im, homography, (width, height))
-                rse += [np.sum((im_reg - ims[0])**2) / (width * height)]
+                mse += [np.mean(cv2.subtract(im_reg, ims[0])**2)]
                 ims_ += [im_reg]
             reg_ims = [cv2.merge([_, ims[0], _]) for _ in ims_]
             fig, axs = plt.subplots(2, 2)
             fig.type, fig.var = 'Calibration', None
             fig.canvas.manager.set_window_title('Quality of calibration: ' + beadstack.name)
-            fig.suptitle(f'error in calibration = {np.mean(np.asarray(rse)):.2e}', fontsize=10, x=0.2)
+            fig.suptitle(f'error in calibration = {np.mean(np.asarray(mse)):.2e}', fontsize=10, x=0.2)
             reg_ims[2:4] = reg_ims[3:1:-1]
             titles = ['UL', 'UR', 'LL', 'LR']
             for im, title, ax in zip(reg_ims, titles, axs.ravel()):
