@@ -2,12 +2,12 @@ colorcet==3.0.1
 customtkinter==5.2.0
 joblib==1.2.0
 matplotlib==3.6.2
-numpy==1.24.3
+numpy==1.23.5
 opencv-python==4.6.0
 openpyxl==3.0.9
-pillow==10.1.0
+pillow==9.3.0
 scikit-image==0.20.0
-scipy==1.10.0
+scipy==1.9.1
 tksheet==6.2.5
 tk==8.6.13
 

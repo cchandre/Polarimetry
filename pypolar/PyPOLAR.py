@@ -24,8 +24,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from colorcet import m_colorwheel
 from PIL import Image
 import cv2
-from skimage.metrics import structural_similarity as ssim
-from skimage.measure import manders_coloc_coeff
+from skimage.measure import manders_coloc_coeff, pearson_corr_coeff
 import openpyxl
 from itertools import permutations, chain
 from datetime import date
@@ -65,7 +64,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.6.2'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'December 22, 2023'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'December 23, 2023'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -1135,7 +1134,7 @@ class Polarimetry(CTk.CTk):
         keypoints0 = sift.detect(ims[0], None)
         points0 = np.unique(np.asarray([kp.pt for kp in keypoints0]), axis=0)
         try:
-            homographies, ims_, mse, s, mand = [], [ims[0]], [], [], []
+            homographies, ims_, mand, pcc = [], [ims[0]], [], []
             for im in ims[1:]:
                 keypoints = sift.detect(im, None)
                 points = np.unique(np.asarray([kp.pt for kp in keypoints]), axis=0)
@@ -1143,15 +1142,14 @@ class Polarimetry(CTk.CTk):
                 homography = cv2.findHomography(p, p0, cv2.RANSAC)[0]
                 homographies += [homography]
                 im_reg = cv2.warpPerspective(im, homography, (width, height))
-                mse += [np.mean(cv2.subtract(im_reg, ims[0])**2)]
-                s += [ssim(im_reg, ims[0])]
                 mand += [manders_coloc_coeff(im_reg, ims[0] > 0)]
+                pcc += [pearson_corr_coeff(im_reg, ims[0])[0]]
                 ims_ += [im_reg]
             reg_ims = [cv2.merge([_, ims[0], _]) for _ in ims_]
             fig, axs = plt.subplots(2, 2)
             fig.type, fig.var = 'Calibration', None
             fig.canvas.manager.set_window_title('Quality of calibration: ' + beadstack.name)
-            fig.suptitle(f'MSE = {np.mean(np.asarray(mse)):.2e}  SSIM = {np.amin(np.asarray(s)):.2f}  Manders = {np.mean(np.asarray(mand)):.2f}', fontsize=10, x=0.3)
+            fig.suptitle(f'Manders = {np.mean(mand):.2f}   Pearson = {np.mean(pcc):.2f}', fontsize=10, x=0.35)
             reg_ims[2:4] = reg_ims[3:1:-1]
             titles = ['UL', 'UR', 'LL', 'LR']
             for im, title, ax in zip(reg_ims, titles, axs.ravel()):
