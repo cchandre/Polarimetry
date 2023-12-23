@@ -9,7 +9,6 @@ import copy
 import webbrowser
 import numpy as np
 from scipy.signal import convolve2d, savgol_filter
-from scipy.spatial.distance import cdist
 from scipy.interpolate import interpn
 from scipy.ndimage import rotate
 from scipy.io import savemat, loadmat
@@ -25,6 +24,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from colorcet import m_colorwheel
 from PIL import Image
 import cv2
+from skimage.metrics import structural_similarity as ssim
+from skimage.measure import manders_coloc_coeff
 import openpyxl
 from itertools import permutations, chain
 from datetime import date
@@ -1134,7 +1135,7 @@ class Polarimetry(CTk.CTk):
         keypoints0 = sift.detect(ims[0], None)
         points0 = np.unique(np.asarray([kp.pt for kp in keypoints0]), axis=0)
         try:
-            homographies, ims_, mse = [], [ims[0]], []
+            homographies, ims_, mse, s, mand = [], [ims[0]], [], [], []
             for im in ims[1:]:
                 keypoints = sift.detect(im, None)
                 points = np.unique(np.asarray([kp.pt for kp in keypoints]), axis=0)
@@ -1143,12 +1144,14 @@ class Polarimetry(CTk.CTk):
                 homographies += [homography]
                 im_reg = cv2.warpPerspective(im, homography, (width, height))
                 mse += [np.mean(cv2.subtract(im_reg, ims[0])**2)]
+                s += [ssim(im_reg, ims[0])]
+                mand += [manders_coloc_coeff(im_reg, ims[0] > 0)]
                 ims_ += [im_reg]
             reg_ims = [cv2.merge([_, ims[0], _]) for _ in ims_]
             fig, axs = plt.subplots(2, 2)
             fig.type, fig.var = 'Calibration', None
             fig.canvas.manager.set_window_title('Quality of calibration: ' + beadstack.name)
-            fig.suptitle(f'Mean Squared Error = {np.mean(np.asarray(mse)):.2e}', fontsize=10, x=0.2)
+            fig.suptitle(f'MSE = {np.mean(np.asarray(mse)):.2e}  SSIM = {np.amin(np.asarray(s)):.2f}  Manders = {np.mean(np.asarray(mand)):.2f}', fontsize=10, x=0.3)
             reg_ims[2:4] = reg_ims[3:1:-1]
             titles = ['UL', 'UR', 'LL', 'LR']
             for im, title, ax in zip(reg_ims, titles, axs.ravel()):
