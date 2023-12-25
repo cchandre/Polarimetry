@@ -1149,7 +1149,7 @@ class Polarimetry(CTk.CTk):
             fig, axs = plt.subplots(2, 2)
             fig.type, fig.var = 'Calibration', None
             fig.canvas.manager.set_window_title('Quality of calibration: ' + beadstack.name)
-            fig.suptitle(f'Manders = {np.mean(mand):.2f}   Pearson = {np.mean(pcc):.2f}', fontsize=10, x=0.35)
+            fig.suptitle(f'Manders = {np.amin(mand):.2f}   Pearson = {np.amin(pcc):.2f}', fontsize=10, x=0.35)
             reg_ims[2:4] = reg_ims[3:1:-1]
             titles = ['UL', 'UR', 'LL', 'LR']
             for im, title, ax in zip(reg_ims, titles, axs.ravel()):
