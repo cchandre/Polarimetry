@@ -87,9 +87,9 @@ if sys.platform == 'darwin':
         info_plist={
             'NSPrincipalClass': 'NSApplication',
             'NSAppleScriptEnabled': False,
-            'CFBundleGetInfoString': "Python-based app for analyzing polarization-resolved microscopy data to measure molecular orientation and order in biological samples",
-            'NSHumanReadableCopyright': "BSD 2-Clause License\nCopyright © 2021, Cristel Chandre\nAll Rights Reserved",
+            'NSHumanReadableCopyright': "Python-based app for analyzing polarization-resolved microscopy data\n to measure molecular orientation and order in biological samples\nBSD 2-Clause License\nCopyright © 2021, Cristel Chandre\nAll Rights Reserved",
             "CFBundlePackageType": "APPL",
+            "LSApplicationCategoryType": "public.app-category.utilities",
             "CFBundleDevelopmentRegion": "English",
             "UTExportedTypeDeclarations": [
             {
