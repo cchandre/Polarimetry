@@ -23,8 +23,8 @@ __version__ = "2.6.2"
 
 block_cipher = None
 
-DATA_FILES = [("icons/*.png", "icons/"), ("polarimetry.json", "."), ("pypolar_classes.py", "."), ("generate_json.py", ".")]
-BINARY_FILES = [("calibration/*.txt", "calibration/"), ("diskcones/*.mat", "diskcones/")]
+DATA_FILES = [("icons/*.png", "icons/"), ("polarimetry.json", "."), ("pypolar_classes.py", "."), ("generate_json.py", "."), ("calibration/*.txt", "calibration/"), ("diskcones/*.mat", "diskcones/")]
+BINARY_FILES = []
 
 if sys.platform == "darwin":
     CTK_PATH = "/Users/cchandre/opt/anaconda3/envs/polarimetry_env/lib/python3.8/site-packages/customtkinter/"
@@ -87,7 +87,7 @@ if sys.platform == 'darwin':
         info_plist={
             'NSPrincipalClass': 'NSApplication',
             'NSAppleScriptEnabled': False,
-            'NSHumanReadableCopyright': "Python-based app for analyzing polarization-resolved microscopy data\n to measure molecular orientation and order in biological samples\nBSD 2-Clause License\nCopyright © 2021, Cristel Chandre\nAll Rights Reserved",
+            'NSHumanReadableCopyright': "BSD 2-Clause License\nCopyright © 2021, Cristel Chandre\nAll Rights Reserved",
             "CFBundlePackageType": "APPL",
             "LSApplicationCategoryType": "public.app-category.utilities",
             "CFBundleDevelopmentRegion": "English",
