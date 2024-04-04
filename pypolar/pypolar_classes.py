@@ -259,6 +259,8 @@ class Stack:
         im_cg = np.asarray(np.split(np.asarray(np.split(crop_im, n_width, axis=1)), n_height, axis=1))
         m_im_cg = np.mean(im_cg[..., 0], axis=(2, 3), where=im_cg[..., 0]!=0)
         ind_i, ind_j = np.unravel_index(np.argmin(m_im_cg), m_im_cg.shape)
+        if np.all(im_cg[ind_i, ind_j, ...]) == 0:
+            return 0
         return np.mean(im_cg[ind_i, ind_j, ...], where=im_cg[ind_i, ind_j, ...]!=0)
 
 class DataStack:
