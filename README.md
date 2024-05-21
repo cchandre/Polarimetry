@@ -9,7 +9,7 @@ Website: [www.fresnel.fr/polarimetry](https://www.fresnel.fr/polarimetry)
 
 ![Version](https://img.shields.io/badge/version-v2.6.2-blue)
 ![Platform](https://img.shields.io/badge/platform-macOS|Windows-orange)
-![License](https://img.shields.io/badge/license-BSD-lightgray)
+[![License](https://img.shields.io/badge/license-BSD-lightgray)](https://github.com/cchandre/Polarimetry/blob/master/LICENSE)
 
 <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/PyPOLAR_layout.png" alt=" " width="400"/>  
 
