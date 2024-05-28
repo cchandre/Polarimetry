@@ -7,12 +7,12 @@ def main() -> None:
 
 	## COLORBAR PARAMETERS
 
-	variable = 'Eta'  				## 'Rho', 'Rho_contour', 'Rho_angle', 'Psi', 'Eta', 'S2', 'S4', 'S_SHG'
-	colorbar_type = 'polar90'		## 'vertical', 'horizontal', 'polar180', 'polar90'
+	variable = 'S2'  				## 'Rho', 'Rho_contour', 'Rho_angle', 'Psi', 'Eta', 'S2', 'S4', 'S_SHG'
+	colorbar_type = 'vertical'		## 'vertical', 'horizontal', 'polar180', 'polar90'
 	color = 'k'						## 'k', 'w'
-	label_side = 'top'				## None, 'left', 'right', 'top', 'bottom'
+	label_side = 'left'				## None, 'left', 'right', 'top', 'bottom'
 	colorblind = False				## True, False
-	nbr_ticks = 3					## any integer
+	nbr_ticks = 5					## any integer
 	aspect_ratio = 20				## any integer
 	font_size = 20					## any integer
 	font = 'Arial'					## see https://matplotlib.org/stable/users/explain/customizing.html
@@ -69,7 +69,11 @@ class Colorbar:
 		else:
 			self.aspect_ratio = aspect_ratio if colorbar_type=='vertical' else 1 / aspect_ratio
 		ticks = np.linspace(*self.var_range, nbr_ticks)
-		self.ticks = [ticks, [] if label_side is None else [str(int(_)) + u"\u00b0" for _ in ticks]]
+		if not var.startswith('S'):
+			labels = [str(int(_)) + u"\u00b0" for _ in ticks]
+		else:
+			labels = [f"{_:.1f}" for _ in ticks]
+		self.ticks  = [ticks, [] if label_side is None else labels]
 		
 	def plot_colorbar(self) -> None:
 		if not self.colorbar_type.startswith('polar'):
@@ -83,9 +87,10 @@ class Colorbar:
 			gradient = gradient.T  
 			ax.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False, labeltop=False)
 			ax.tick_params(axis='y', which='both', right=True, left=True)
-			extent = (0, 255, self.var_range[0], self.var_range[1])
+			extent = (0, 1 if self.var.startswith('S') else 255, self.var_range[0], self.var_range[1])
 			ax.set_yticks(self.ticks[0], labels=self.ticks[1])
 			ax.imshow(gradient, aspect=self.aspect_ratio, cmap=self.colormap, extent=extent)
+			#ax.pcolormesh(gradient, aspect=self.aspect_ratio, cmap=self.colormap, extent=extent)
 		elif self.colorbar_type == 'horizontal':
 			if self.label_side == 'top':
 				ax.tick_params(labeltop=True, labelbottom=False)
@@ -106,9 +111,9 @@ class Colorbar:
 			ax.pcolormesh(theta, rho, theta, cmap=self.colormap)
 			ax.set_rticks([])
 			ax.set_rorigin(rorigin)
-			if self.colorbar_type == 'polar180':
+			if self.colorbar_type == 'polar180' and self.label_side is not None:
 				self.ticks[1][-1] = self.ticks[1][-1] + "   "
-			if self.theta_setup[1] == -1:
+			if self.theta_setup[1] == -1 and self.label_side is not None:
 				self.ticks[1][-1] = "   " + self.ticks[1][-1]
 			ax.set_thetagrids(self.ticks[0], labels=self.ticks[1], color=self.color, horizontalalignment='center')
 			ax.grid(False)
