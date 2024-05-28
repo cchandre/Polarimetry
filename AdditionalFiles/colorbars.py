@@ -7,12 +7,12 @@ def main() -> None:
 
 	## COLORBAR PARAMETERS
 
-	variable = 'Eta'  				## 'Rho', 'Rho_contour', 'Rho_angle', 'Psi', 'Eta', 'S2', 'S4', 'S_SHG'
-	colorbar_type = 'horizontal'	## 'vertical', 'horizontal', 'polar1', 'polar2', 'polar3'
+	variable = 'Rho_angle'  		## 'Rho', 'Rho_contour', 'Rho_angle', 'Psi', 'Eta', 'S2', 'S4', 'S_SHG'
+	colorbar_type = 'polar3'		## 'vertical', 'horizontal', 'polar1', 'polar2', 'polar3'
 	color = 'k'						## 'k', 'w'
 	label_side = 'top'				## None, 'left', 'right', 'top', 'bottom'
 	colorblind = False				## True, False
-	nbr_ticks = 10					## any integer
+	nbr_ticks = 3					## any integer
 	aspect_ratio = 20				## any integer
 	font_size = 20					## any integer
 	font = 'Arial'					## see https://matplotlib.org/stable/users/explain/customizing.html
@@ -32,7 +32,7 @@ def main() -> None:
 	mpl.rcParams['font.weight'] = font_style
 	Colorbar(variable, colorbar_type=colorbar_type, aspect_ratio=aspect_ratio, color=color, colorblind=colorblind,\
 		   		label_side=label_side, nbr_ticks=nbr_ticks).plot_colorbar()
-	plt.savefig("colorbar" + save_extension, dpi=resolution, transparent=True, bbox_inches='tight')
+	plt.savefig(variable + "Colorbar" + save_extension, dpi=resolution, transparent=True, bbox_inches='tight')
 	plt.show()
 
 class Colorbar:
@@ -101,7 +101,7 @@ class Colorbar:
 			ax.set_theta_direction(self.theta_direction)
 			ax.set_thetamin(self.var_range[0])
 			ax.set_thetamax(self.var_range[1])
-			outer_radius, rorigin = 20, -15
+			outer_radius, rorigin = 20, -10
 			x, y = np.meshgrid(np.linspace(outer_radius, -outer_radius, 2**10), np.linspace(0, outer_radius, 2**10))
 			theta, rho = np.arctan2(y, x), np.sqrt(x**2 + y**2)
 			ax.pcolormesh(theta, rho, theta, cmap=self.colormap)
