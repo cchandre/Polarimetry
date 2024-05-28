@@ -3,18 +3,16 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from colorcet import m_colorwheel
 
-mpl.rcParams['axes.linewidth'] = 2
-
 def main() -> None:
 
-## COLORBAR PARAMETERS
+	## COLORBAR PARAMETERS
 
-	variable = 'Rho_angle'  				## 'Rho', 'Rho_contour', 'Rho_angle', 'Psi', 'Eta', 'S2', 'S4', 'S_SHG'
-	colorbar_type = 'polar3'		## 'vertical', 'horizontal', 'polar1', 'polar2', 'polar3'
+	variable = 'Eta'  				## 'Rho', 'Rho_contour', 'Rho_angle', 'Psi', 'Eta', 'S2', 'S4', 'S_SHG'
+	colorbar_type = 'horizontal'	## 'vertical', 'horizontal', 'polar1', 'polar2', 'polar3'
 	color = 'k'						## 'k', 'w'
 	label_side = 'top'				## None, 'left', 'right', 'top', 'bottom'
-	colorblind = True				## True, False
-	nbr_ticks = 3					## any integer
+	colorblind = False				## True, False
+	nbr_ticks = 10					## any integer
 	aspect_ratio = 20				## any integer
 	font_size = 20					## any integer
 	font = 'Arial'					## see https://matplotlib.org/stable/users/explain/customizing.html
@@ -22,8 +20,10 @@ def main() -> None:
 	save_extension = '.png'			## '.png', '.pdf', '.jpg', '.tif'
 	resolution = 300				## 150, 300, 600
 
-## DO NOT EDIT BELOW THIS LINE
-
+	###################################################################################################################
+	##                                          DO NOT EDIT BELOW THIS LINE                                          ##
+	###################################################################################################################
+	mpl.rcParams['axes.linewidth'] = 2
 	mpl.rcParams['axes.labelsize'] = font_size
 	mpl.rcParams['xtick.labelsize'] = font_size
 	mpl.rcParams['ytick.labelsize'] = font_size
@@ -31,7 +31,7 @@ def main() -> None:
 	mpl.rcParams['font.sans-serif'] = font
 	mpl.rcParams['font.weight'] = font_style
 	Colorbar(variable, colorbar_type=colorbar_type, aspect_ratio=aspect_ratio, color=color, colorblind=colorblind,\
-		   		nbr_ticks=nbr_ticks, label_side=label_side, font_size=font_size).plot_colorbar()
+		   		label_side=label_side, nbr_ticks=nbr_ticks).plot_colorbar()
 	plt.savefig("colorbar" + save_extension, dpi=resolution, transparent=True, bbox_inches='tight')
 	plt.show()
 
@@ -48,9 +48,8 @@ class Colorbar:
 				
 	list_vars = [key for key in dict_vars.keys()]
 	
-	def __init__(self, var:str, colorbar_type:str='vertical', color:str='k', colorblind:bool=False,\
-			   		aspect_ratio:int=20, label_side:str='right', font_size:int=20,\
-				  	font:str='Arial', font_style:str='bold', nbr_ticks:int=8) -> None:
+	def __init__(self, var:str, colorbar_type:str='vertical', aspect_ratio:int=20, color:str='k', colorblind:bool=False,\
+			   		label_side:str='right', nbr_ticks:int=8) -> None:
 		if var not in type(self).list_vars:
 			raise ValueError(f"Colorbar for var {var} is not available")
 		data = type(self).dict_vars.get(var)
@@ -63,7 +62,6 @@ class Colorbar:
 		self.theta_zero_location = 'N' if colorbar_type == 'polar2' else 'E'
 		self.theta_direction = -1 if colorbar_type == 'polar2' else 1
 		self.label_side = label_side
-		self.font = [font, font_size, font_style, color]
 		self.var_range = data[3]
 		if colorbar_type in ['polar2', 'polar3']:
 			self.var_range = (0, 90)
@@ -88,14 +86,16 @@ class Colorbar:
 			ax.tick_params(axis='y', which='both', right=True, left=True)
 			extent = (0, 255, self.var_range[0], self.var_range[1])
 			ax.set_yticks(self.ticks[0], labels=self.ticks[1])
+			ax.imshow(gradient, aspect=self.aspect_ratio, cmap=self.colormap, extent=extent)
 		elif self.colorbar_type == 'horizontal':
 			if self.label_side == 'top':
-				ax.tick_params(labeltop=False, labelbottom=False)
+				ax.tick_params(labeltop=True, labelbottom=False)
 			ax.tick_params(axis='x', which='both', bottom=True, top=True)
 			ax.tick_params(axis='y', which='both', left=False, right=False, labelleft=False, labelright=False)
 			extent = (self.var_range[0], self.var_range[1], 0, 255)
 			ax.set_xticks(self.ticks[0], labels=self.ticks[1])
-		if self.colorbar_type.startswith('polar'):
+			ax.imshow(gradient, aspect=self.aspect_ratio, cmap=self.colormap, extent=extent)
+		elif self.colorbar_type.startswith('polar'):
 			ax = plt.subplot(projection='polar')
 			ax.set_theta_zero_location(self.theta_zero_location)
 			ax.set_theta_direction(self.theta_direction)
@@ -109,14 +109,14 @@ class Colorbar:
 			ax.set_rorigin(rorigin)
 			if self.colorbar_type == 'polar1':
 				self.ticks[1][-1] = self.ticks[1][-1] + "   "
-			ax.set_thetagrids(self.ticks[0], labels=self.ticks[1], fontsize=self.font[1], color=self.color, horizontalalignment='center')
+			if self.colorbar_type == 'polar2':
+				self.ticks[1][-1] = "   " + self.ticks[1][-1]
+			ax.set_thetagrids(self.ticks[0], labels=self.ticks[1], color=self.color, horizontalalignment='center')
 			ax.grid(False)
 			for t in np.deg2rad(self.ticks[0]):
 				ax.plot([t, t], [outer_radius, outer_radius - 5], lw=2, color=self.color)
 				ax.plot([t, t], [0, 5], lw=2, color=self.color)
 			ax.set_rmax(outer_radius)
-		if self.var == 'Psi':
-			ax.imshow(gradient, aspect=self.aspect_ratio, cmap=self.colormap, extent=extent)
 
 if __name__ == '__main__':
 	main()
