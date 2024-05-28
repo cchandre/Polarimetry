@@ -7,8 +7,8 @@ def main() -> None:
 
 	## COLORBAR PARAMETERS
 
-	variable = 'Rho_angle'  		## 'Rho', 'Rho_contour', 'Rho_angle', 'Psi', 'Eta', 'S2', 'S4', 'S_SHG'
-	colorbar_type = 'polar3'		## 'vertical', 'horizontal', 'polar1', 'polar2', 'polar3'
+	variable = 'Eta'  				## 'Rho', 'Rho_contour', 'Rho_angle', 'Psi', 'Eta', 'S2', 'S4', 'S_SHG'
+	colorbar_type = 'polar90'		## 'vertical', 'horizontal', 'polar180', 'polar90'
 	color = 'k'						## 'k', 'w'
 	label_side = 'top'				## None, 'left', 'right', 'top', 'bottom'
 	colorblind = False				## True, False
@@ -37,11 +37,11 @@ def main() -> None:
 
 class Colorbar:
 
-	dict_vars = {'Rho': [['vertical', 'horizontal', 'polar1'], r'\rho', ['hsv', m_colorwheel], (0, 180)], 
-                'Rho_contour': [['vertical', 'horizontal', 'polar1', 'polar3'], r'$\rho_c$', ['hsv', m_colorwheel], (0, 180)],
-                'Rho_angle': [['vertical', 'horizontal', 'polar1', 'polar3'], r'$\rho_a$', ['hsv', m_colorwheel], (0, 180)],
+	dict_vars = {'Rho': [['vertical', 'horizontal', 'polar180'], r'\rho', ['hsv', m_colorwheel], (0, 180)], 
+                'Rho_contour': [['vertical', 'horizontal', 'polar180', 'polar90'], r'$\rho_c$', ['hsv', m_colorwheel], (0, 180)],
+                'Rho_angle': [['vertical', 'horizontal', 'polar180', 'polar90'], r'$\rho_a$', ['hsv', m_colorwheel], (0, 180)],
                 'Psi': [['vertical', 'horizontal'], '$\psi$', ['jet', 'viridis'], (40, 180)],
-                'Eta': [['vertical', 'horizontal', 'polar2'], '$\eta$', ['plasma', 'plasma'], (0, 90)],
+                'Eta': [['vertical', 'horizontal', 'polar90'], '$\eta$', ['plasma', 'plasma'], (0, 90)],
                 'S2': [['vertical', 'horizontal'], '$S_2$', ['jet', 'viridis'], (0, 1)],
                 'S4': [['vertical', 'horizontal'], '$S_4$', ['jet', 'viridis'], (-1, 1)],
                 'S_SHG': [['vertical', 'horizontal'], '$S_\mathrm{SHG}$', ['jet', 'viridis'], (-1, 1)]}
@@ -59,11 +59,10 @@ class Colorbar:
 		self.colorbar_type = colorbar_type
 		self.colormap = data[2][1] if colorblind else data[2][0]
 		self.color = color
-		self.theta_zero_location = 'N' if colorbar_type == 'polar2' else 'E'
-		self.theta_direction = -1 if colorbar_type == 'polar2' else 1
+		self.theta_setup = ('N', -1) if var == 'Eta' else ('E', 1)
 		self.label_side = label_side
 		self.var_range = data[3]
-		if colorbar_type in ['polar2', 'polar3']:
+		if colorbar_type == 'polar90':
 			self.var_range = (0, 90)
 		if colorbar_type.startswith('polar'):
 			self.aspect_ratio = 1
@@ -74,7 +73,7 @@ class Colorbar:
 		
 	def plot_colorbar(self) -> None:
 		if not self.colorbar_type.startswith('polar'):
-			fig, ax = plt.subplots()
+			fig, ax = plt.subplots(figsize=(5, 5))
 			gradient = np.linspace(0, 1, 256)
 			gradient = np.vstack((gradient, gradient))
 			ax.tick_params('both', colors=self.color, width=2, length=6, direction='in')
@@ -96,9 +95,9 @@ class Colorbar:
 			ax.set_xticks(self.ticks[0], labels=self.ticks[1])
 			ax.imshow(gradient, aspect=self.aspect_ratio, cmap=self.colormap, extent=extent)
 		elif self.colorbar_type.startswith('polar'):
-			ax = plt.subplot(projection='polar')
-			ax.set_theta_zero_location(self.theta_zero_location)
-			ax.set_theta_direction(self.theta_direction)
+			fig, ax = plt.subplots(figsize=(5, 5), subplot_kw=dict(projection="polar"))
+			ax.set_theta_zero_location(self.theta_setup[0])
+			ax.set_theta_direction(self.theta_setup[1])
 			ax.set_thetamin(self.var_range[0])
 			ax.set_thetamax(self.var_range[1])
 			outer_radius, rorigin = 20, -10
@@ -107,9 +106,9 @@ class Colorbar:
 			ax.pcolormesh(theta, rho, theta, cmap=self.colormap)
 			ax.set_rticks([])
 			ax.set_rorigin(rorigin)
-			if self.colorbar_type == 'polar1':
+			if self.colorbar_type == 'polar180':
 				self.ticks[1][-1] = self.ticks[1][-1] + "   "
-			if self.colorbar_type == 'polar2':
+			if self.theta_setup[1] == -1:
 				self.ticks[1][-1] = "   " + self.ticks[1][-1]
 			ax.set_thetagrids(self.ticks[0], labels=self.ticks[1], color=self.color, horizontalalignment='center')
 			ax.grid(False)
