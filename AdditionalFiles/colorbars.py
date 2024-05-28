@@ -7,10 +7,10 @@ def main() -> None:
 
 	## COLORBAR PARAMETERS
 
-	variable = 'S2'  				## 'Rho', 'Rho_contour', 'Rho_angle', 'Psi', 'Eta', 'S2', 'S4', 'S_SHG'
-	colorbar_type = 'vertical'		## 'vertical', 'horizontal', 'polar180', 'polar90'
+	variable = 'Rho'  				## 'Rho', 'Rho_contour', 'Rho_angle', 'Psi', 'Eta', 'S2', 'S4', 'S_SHG'
+	colorbar_type = 'horizontal'		## 'vertical', 'horizontal', 'polar180', 'polar90'
 	color = 'k'						## 'k', 'w'
-	label_side = 'left'				## None, 'left', 'right', 'top', 'bottom'
+	label_side = 'top'				## None, 'left', 'right', 'top', 'bottom'
 	colorblind = False				## True, False
 	nbr_ticks = 5					## any integer
 	aspect_ratio = 20				## any integer
@@ -73,6 +73,8 @@ class Colorbar:
 			labels = [str(int(_)) + u"\u00b0" for _ in ticks]
 		else:
 			labels = [f"{_:.1f}" for _ in ticks]
+		if not colorbar_type.startswith('polar'):
+			ticks = (ticks - np.amin(ticks)) / np.ptp(ticks)
 		self.ticks  = [ticks, [] if label_side is None else labels]
 		
 	def plot_colorbar(self) -> None:
@@ -88,17 +90,18 @@ class Colorbar:
 			ax.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False, labeltop=False)
 			ax.tick_params(axis='y', which='both', right=True, left=True)
 			extent = (0, 1 if self.var.startswith('S') else 255, self.var_range[0], self.var_range[1])
-			ax.set_yticks(self.ticks[0], labels=self.ticks[1])
-			ax.imshow(gradient, aspect=self.aspect_ratio, cmap=self.colormap, extent=extent)
-			#ax.pcolormesh(gradient, aspect=self.aspect_ratio, cmap=self.colormap, extent=extent)
+			ax.set_yticks(self.ticks[0] / np.amax(self.ticks[0]), labels=self.ticks[1])
+			ax.pcolormesh(np.linspace(0, 1, 2), np.linspace(0, 1, 256), gradient, cmap=self.colormap)
+			ax.set_aspect(self.aspect_ratio)
 		elif self.colorbar_type == 'horizontal':
 			if self.label_side == 'top':
 				ax.tick_params(labeltop=True, labelbottom=False)
 			ax.tick_params(axis='x', which='both', bottom=True, top=True)
 			ax.tick_params(axis='y', which='both', left=False, right=False, labelleft=False, labelright=False)
 			extent = (self.var_range[0], self.var_range[1], 0, 255)
-			ax.set_xticks(self.ticks[0], labels=self.ticks[1])
-			ax.imshow(gradient, aspect=self.aspect_ratio, cmap=self.colormap, extent=extent)
+			ax.set_xticks(self.ticks[0] / np.amax(self.ticks[0]), labels=self.ticks[1])
+			ax.pcolormesh(np.linspace(0, 1, 256), np.linspace(0, 1, 2), gradient, cmap=self.colormap)
+			ax.set_aspect(self.aspect_ratio)
 		elif self.colorbar_type.startswith('polar'):
 			fig, ax = plt.subplots(figsize=(5, 5), subplot_kw=dict(projection="polar"))
 			ax.set_theta_zero_location(self.theta_setup[0])
