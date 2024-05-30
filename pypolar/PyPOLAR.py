@@ -63,8 +63,8 @@ plt.ion()
 
 class Polarimetry(CTk.CTk):
 
-    __version__ = '2.6.2'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024'}
+    __version__ = '2.6.3'
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'May 30, 2024'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -179,7 +179,7 @@ class Polarimetry(CTk.CTk):
         self.contrast_thrsh_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation='vertical', height=self.length_slider, command=self.contrast_thrsh_slider_callback)
         self.contrast_thrsh_slider.set(1)
         self.contrast_thrsh_slider.grid(row=1, column=0, padx=10, pady=(0, 20))
-        Button(banner, image=self.icons['palette'], command=self.change_colormap, tooltip=" change the colormap used for thresholding ('hot' or 'gray')").grid(row=2, column=0, padx=10, pady=10)
+        Button(banner, image=self.icons['colorize'], command=self.change_colormap, tooltip=" change the colormap used for thresholding ('hot' or 'gray')").grid(row=2, column=0, padx=10, pady=10)
         self.no_background_button = Button(banner, image=self.icons['photo_fill'], command=self.no_background, tooltip=' change background to enhance visibility')
         self.no_background_button.grid(row=3, column=0, padx=10, pady=10)
         Button(banner, image=self.icons['open_in_new'], command=self.export_mask, tooltip=' export mask as .png').grid(row=4, column=0, padx=10, pady=10)
@@ -286,7 +286,9 @@ class Polarimetry(CTk.CTk):
         Label(master=save_ext, text=labels[-1], anchor='w').grid(row=len(labels)+1, column=0, padx=(40, 0), pady=(0, 10), sticky='w')
         self.extension_table[len(labels)-1].grid(row=len(labels)+1, column=1, pady=(0, 10), padx=0)    
 
-        Button(scrollable_frame, image=self.icons['delete_forever'], command=self.initialize_tables, tooltip=' reinitialize Figures, Save output and Variables tables').grid(row=3, column=1, padx=40, pady=(10, 0), sticky="n")
+        Button(scrollable_frame, image=self.icons['palette'], command=lambda:self.openweb('https://colab.research.google.com/drive/1Ho8kU1yYrtltQ0xPs5SB9osiB2fRG4SJ?usp=sharing'), tooltip=' opens the Jupyter Notebook to visualize and customize the colorbars used in PyPOLAR').grid(row=3, column=1, padx=(100, 0), pady=(10, 0), sticky="nw")
+
+        Button(scrollable_frame, image=self.icons['delete_forever'], command=self.initialize_tables, tooltip=' reinitialize Figures, Save output and Variables tables').grid(row=3, column=1, padx=(0, 100), pady=(10, 0), sticky="ne")
 
 ## RIGHT FRAME: ADV
         scrollable_frame = CTk.CTkScrollableFrame(master=self.tabview.tab('Advanced'), fg_color='transparent', scrollbar_fg_color='transparent', scrollbar_button_color=right_frame.cget('fg_color'), scrollbar_button_hover_color=left_color)
