@@ -1,5 +1,5 @@
 #
-# The colorbars produced in this code are the ones used in the software 
+# The colorbars produced in this code correspond to the ones used in the software 
 # Polarimetry Analysis https://www.fresnel.fr/polarimetry/
 #
 #
