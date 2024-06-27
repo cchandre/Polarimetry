@@ -15,6 +15,5 @@ Wiki: [PyPOLARwiki](https://github.com/cchandre/Polarimetry/wiki)
 
 <img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/PyPOLAR_layout.png" alt=" " width="400"/>  
 
-The code was compiled with Python 3.8.16 with the packages listed in [requirements.txt](https://github.com/cchandre/Polarimetry/blob/master/pypolar/requirements.txt), and the app was created using [PyInstaller](https://pyinstaller.org/) 5.12.0
 ___
 For more information: <cristel.chandre@cnrs.fr>
