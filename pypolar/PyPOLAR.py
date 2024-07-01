@@ -64,7 +64,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.6.3'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'May 30, 2024'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 1, 2024'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -74,6 +74,7 @@ class Polarimetry(CTk.CTk):
     length_slider = 150
 
     url_github = 'https://github.com/cchandre/Polarimetry'
+    url_wiki = url_github + '/wiki'
     url_fresnel = 'https://www.fresnel.fr/polarimetry'
     email = 'cristel.chandre@cnrs.fr'
 
@@ -377,7 +378,7 @@ class Polarimetry(CTk.CTk):
         Button(self.tabview.tab('About'), image=self.icons['web'], command=lambda:self.openweb(type(self).url_fresnel), tooltip=' visit the polarimetry website').grid(column=0, **dict_buttons)
         Button(self.tabview.tab('About'), image=self.icons['mail'], command=self.send_email, tooltip=' send an email to report bugs and/or send suggestions').grid(column=1, **dict_buttons)
         Button(self.tabview.tab('About'), image=self.icons['GitHub'], command=lambda:self.openweb(type(self).url_github), tooltip=' visit the PyPOLAR GitHub page').grid(column=2, **dict_buttons)
-        Button(self.tabview.tab('About'), image=self.icons['contact_support'], command=lambda:self.openweb(type(self).url_github + '/blob/master/README.md'), tooltip=' visit the online help').grid(column=3, **dict_buttons)
+        Button(self.tabview.tab('About'), image=self.icons['contact_support'], command=lambda:self.openweb(type(self).url_wiki), tooltip=' visit the PyPOLAR wiki').grid(column=3, **dict_buttons)
         about_textbox = TextBox(master=self.tabview.tab('About'), width=600, height=500, wrap='word')
         about_textbox.write(f'Version: {type(self).__version__} ({type(self).__version_date__}) \n\n\n Website: {self.url_fresnel} \n\n\n Source code available at {self.url_github} \n\n\n\n PyPOLAR is based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     {self.email}  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  PyPOLAR was created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV, scikit-image, Matplotlib, openpyxl, tksheet, colorcet, joblib \n\n\n  PyPOLAR uses Material Design icons by Google')
         about_textbox.grid(row=1, column=0, columnspan=4, padx=30, sticky="n")
