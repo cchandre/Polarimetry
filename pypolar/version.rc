@@ -1,7 +1,7 @@
 VSVersionInfo(
     ffi=FixedFileInfo(
-       filevers=(2, 6, 2),
-       prodvers=(2, 6, 2),
+       filevers=(2, 6, 4),
+       prodvers=(2, 6, 4),
        mask=0x3f,
        flags=0x0,
        OS=0x40004,
@@ -12,11 +12,11 @@ VSVersionInfo(
        u'040904B0',
        [StringStruct(u'CompanyName', u'Institut Fresnel, CNRS, Aix-Marseille Université')
         StringStruct(u'FileDescription', u'PyPOLAR: a Python-based app for analyzing polarization-resolved microscopy data to measure molecular orientation and order in biological samples'),
-        StringStruct(u'FileVersion', u'2.6.2'),
+        StringStruct(u'FileVersion', u'2.6.4'),
         StringStruct(u'InternalName', u'PyPOLAR'),
         StringStruct(u'LegalCopyright', u'BSD 2-Clause License\nCopyright (c) 2021, Cristel Chandre\nAll rights reserved'),
         StringStruct(u'OriginalFilename', u'PyPOLAR'),
         StringStruct(u'ProductName', u'PyPOLAR'),
-        StringStruct(u'ProductVersion', u'2.6.2')])]), 
+        StringStruct(u'ProductVersion', u'2.6.4')])]), 
     VarFileInfo([VarStruct(u'Translation', [1033, 1200])])]
    )

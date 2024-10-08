@@ -63,8 +63,8 @@ plt.ion()
 
 class Polarimetry(CTk.CTk):
 
-    __version__ = '2.6.3'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024'}
+    __version__ = '2.6.4'
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 8, 2024'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -1896,7 +1896,8 @@ class Polarimetry(CTk.CTk):
             for _ in range(stack_.nangle):
                 xi, yi = centers[_, 0] - radius, centers[_, 1] - radius
                 xf, yf = centers[_, 0] + radius, centers[_, 1] + radius
-                ims += [stack.values[0, yi:yf, xi:xf].reshape((stack_.height, stack_.width))]
+                xf, yf = min(stack.width, xf), min(stack.height, yf)
+                ims += [stack.values[0, yi:yf, xi:xf].reshape((yf - yi, xf - xi))]
             ims_reg = [ims[0]]
             ims_reg += [cv2.warpPerspective(im, homography, (stack_.width, stack_.height)) for im, homography in zip(ims[1:], homographies)]
             order = self.dict_polar[str_order]
