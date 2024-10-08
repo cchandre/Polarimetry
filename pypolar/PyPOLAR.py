@@ -1896,6 +1896,7 @@ class Polarimetry(CTk.CTk):
             for _ in range(stack_.nangle):
                 xi, yi = centers[_, 0] - radius, centers[_, 1] - radius
                 xf, yf = centers[_, 0] + radius, centers[_, 1] + radius
+                xi, yi = max(1, xi), max(1, yi)
                 xf, yf = min(stack.width, xf), min(stack.height, yf)
                 ims += [stack.values[0, yi:yf, xi:xf].reshape((yf - yi, xf - xi))]
             ims_reg = [ims[0]]
