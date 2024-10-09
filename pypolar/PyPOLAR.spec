@@ -30,7 +30,7 @@ if sys.platform == "darwin":
     CTK_PATH = "/Users/cchandre/opt/anaconda3/envs/polarimetry_env/lib/python3.8/site-packages/customtkinter/"
     DATA_FILES += [("icons/*.icns", "icons/")]
 if sys.platform == 'win32':
-    CTK_PATH = "c:/users/libreservice fresnel/anaconda3/envs/polarimetry_env/lib/site-packages/customtkinter/"
+    CTK_PATH = "C:/Users/Cristel/anaconda3/envs/pypolar_env/Lib/site-packages/customtkinter/"
     extra_options = dict(icon='main_icon.ico', version_file='version.rc')
     DATA_FILES += [("icons/*.ico", "icons/"), ("version.rc", ".")]
 else:
