@@ -64,7 +64,7 @@ plt.ion()
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.6.4'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 8, 2024'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 10, 2024'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -1083,7 +1083,10 @@ class Polarimetry(CTk.CTk):
         self.filename_label.write('')
         dark = beadstack.compute_dark()
         intensity = np.sum((beadstack.values - dark) * (beadstack.values >= dark), axis=0)
-        whitelight = cv2.imread(str(beadstack.folder / 'Whitelight.tif'), cv2.IMREAD_GRAYSCALE)
+        try:
+            whitelight = cv2.imread(str(beadstack.folder / 'Whitelight.tif'), cv2.IMREAD_GRAYSCALE)
+        except:
+            whitelight = cv2.imread(str(beadstack.folder / 'Whitelight.tiff'), cv2.IMREAD_GRAYSCALE)
         whitelight = cv2.threshold(whitelight, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
         contours = cv2.findContours(whitelight, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
         filter = np.asarray([len(contour) >= 200 for contour in contours])
