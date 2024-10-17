@@ -1085,8 +1085,11 @@ class Polarimetry(CTk.CTk):
         intensity = np.sum((beadstack.values - dark) * (beadstack.values >= dark), axis=0)
         try:
             whitelight = cv2.imread(str(beadstack.folder / 'Whitelight.tif'), cv2.IMREAD_GRAYSCALE)
-        except:
+        else:
             whitelight = cv2.imread(str(beadstack.folder / 'Whitelight.tiff'), cv2.IMREAD_GRAYSCALE)
+		except:
+			ShowInfo(' The file Whitelight.tif or Whitelight.tiff cannot be found. See PyPOLAR wiki for more details.', image=self.icons['blur_circular'], button_labels=['OK'])
+			return
         whitelight = cv2.threshold(whitelight, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
         contours = cv2.findContours(whitelight, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
         filter = np.asarray([len(contour) >= 200 for contour in contours])
@@ -1129,10 +1132,10 @@ class Polarimetry(CTk.CTk):
                 pcc += [pearson_corr_coeff(im_reg, ims[0])[0]]
                 ims_ += [im_reg]
             reg_ims = [cv2.merge([_, ims[0], _]) for _ in ims_]
-            fig, axs = plt.subplots(2, 2)
+            fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
             fig.type, fig.var = 'Calibration', None
             fig.canvas.manager.set_window_title('Quality of calibration: ' + beadstack.name)
-            fig.suptitle(f'Manders = {np.amin(mand):.2f}   Pearson = {np.amin(pcc):.2f}', fontsize=10, x=0.35)
+            fig.suptitle(f'Manders = {np.amin(mand):.2f}   Pearson = {np.amin(pcc):.2f}   (for contrast = {self.contrastThreshold:.2f} and sigma = {self.sigma:.2f})', fontsize=10, x=0.35)
             reg_ims[2:4] = reg_ims[3:1:-1]
             titles = ['UL', 'UR', 'LL', 'LR']
             for im, title, ax in zip(reg_ims, titles, axs.ravel()):
@@ -1145,27 +1148,24 @@ class Polarimetry(CTk.CTk):
         except:
             message = " The registration was not successful. Try again."
             state = "disabled"
-            fig = []
         window = ShowInfo(message=message, button_labels=['Validate', 'Save', 'Change', 'Cancel'], image=self.icons['blur_circular'], geometry=(480, 150))
         buttons = window.get_buttons()
-        buttons[0].configure(command=lambda:self.validate_registration_callback(window, fig), state=state)
-        buttons[1].configure(command=lambda:self.save_registration_callback(window, fig, beadstack.file), state=state)
-        buttons[2].configure(command=lambda:self.change_registration_callback(window, fig, ims, beadstack))
-        buttons[3].configure(command=lambda:self.cancel_registration_callback(window, fig))
+        buttons[0].configure(command=lambda:self.validate_registration_callback(window), state=state)
+        buttons[1].configure(command=lambda:self.save_registration_callback(window, beadstack.file), state=state)
+        buttons[2].configure(command=lambda:self.change_registration_callback(window, ims, beadstack))
+        buttons[3].configure(command=lambda:self.cancel_registration_callback(window))
 
-    def validate_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure) -> None:
-        plt.close(fig)
+    def validate_registration_callback(self, window:CTk.CTkToplevel) -> None:
+        plt.close('all')
         window.withdraw()
 
-    def save_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure, file:Path) -> None:
+    def save_registration_callback(self, window:CTk.CTkToplevel, file:Path) -> None:
         with file.with_suffix('.pyreg').open('wb') as f:
             joblib.dump(self.registration, f)
-        self.validate_registration_callback(window, fig)
+        self.validate_registration_callback(window)
 
-    def change_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure, ims, beadstack) -> None:
+    def change_registration_callback(self, window:CTk.CTkToplevel, ims, beadstack) -> None:
         self.registration = []
-        if fig:
-            plt.close(fig)
         window.withdraw()
         query_tooltips = ["The contrast threshold used to filter out weak features in semi-uniform (low-contrast) regions. The larger the threshold, the less features are produced by the detector.", "The sigma of the Gaussian applied to the input image at the octave #0. If your image is captured with a weak camera with soft lenses, you might want to reduce the number."]
         query_labels=["contrastThreshold", "sigma"]
@@ -1194,12 +1194,10 @@ class Polarimetry(CTk.CTk):
         self.contrastThreshold, self.sigma = float(parameters[0]), float(parameters[1])
         self.compute_alignment(ims, beadstack)
 
-    def cancel_registration_callback(self, window:CTk.CTkToplevel, fig:plt.Figure=[]) -> None:
+    def cancel_registration_callback(self, window:CTk.CTkToplevel) -> None:
         self.registration = []
         self.method.set('1PF')
-        if fig:
-            plt.close(fig)
-        window.withdraw()
+        self.validate_registration_callback(window)
 
     def load_registration(self, window:CTk.CTkToplevel) -> None:
         window.withdraw()
