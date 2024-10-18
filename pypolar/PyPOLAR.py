@@ -1083,13 +1083,13 @@ class Polarimetry(CTk.CTk):
         self.filename_label.write('')
         dark = beadstack.compute_dark()
         intensity = np.sum((beadstack.values - dark) * (beadstack.values >= dark), axis=0)
-        try:
-            whitelight = cv2.imread(str(beadstack.folder / 'Whitelight.tif'), cv2.IMREAD_GRAYSCALE)
-        else:
+        if Path(str(beadstack.folder / 'Whitelight.tif')).exists():
+            whitelight = cv2.imread(str(beadstack.folder / 'Whitelight.tif'), cv2.IMREAD_GRAYSCALE) 
+        elif Path(str(beadstack.folder / 'Whitelight.tiff')).exists():
             whitelight = cv2.imread(str(beadstack.folder / 'Whitelight.tiff'), cv2.IMREAD_GRAYSCALE)
-		except:
-			ShowInfo(' The file Whitelight.tif or Whitelight.tiff cannot be found. See PyPOLAR wiki for more details.', image=self.icons['blur_circular'], button_labels=['OK'])
-			return
+        else:
+            ShowInfo(' The file Whitelight.tif or Whitelight.tiff cannot be found\n See PyPOLAR wiki for more details', image=self.icons['blur_circular'], button_labels=['OK'], geometry=(420, 140))
+            return
         whitelight = cv2.threshold(whitelight, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
         contours = cv2.findContours(whitelight, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
         filter = np.asarray([len(contour) >= 200 for contour in contours])
@@ -1135,7 +1135,7 @@ class Polarimetry(CTk.CTk):
             fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
             fig.type, fig.var = 'Calibration', None
             fig.canvas.manager.set_window_title('Quality of calibration: ' + beadstack.name)
-            fig.suptitle(f'Manders = {np.amin(mand):.2f}   Pearson = {np.amin(pcc):.2f}   (for contrast = {self.contrastThreshold:.2f} and sigma = {self.sigma:.2f})', fontsize=10, x=0.35)
+            fig.suptitle(f'Manders = {np.amin(mand):.2f}   Pearson = {np.amin(pcc):.2f}   (for contrast = {self.contrastThreshold:.2f} and sigma = {self.sigma:.2f})', fontsize=10, x=0.45)
             reg_ims[2:4] = reg_ims[3:1:-1]
             titles = ['UL', 'UR', 'LL', 'LR']
             for im, title, ax in zip(reg_ims, titles, axs.ravel()):
