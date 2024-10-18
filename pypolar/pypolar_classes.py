@@ -416,8 +416,11 @@ class Calibration:
                     vars = (file.stem, 0)
             if vars[0].startswith('Calib'):
                 self.invKmat = np.linalg.pinv(np.genfromtxt(str(folder / (vars[0] + '.txt')), dtype=np.float64))
+                if self.invKmat.shape != (int(method[-2]) + 1, 4):
+                    showerror('Calibration data', 'Incorrect calibration data\n Download another file')
+                    vars = (' ', 0)
             else:
-                showerror('Calibration data', 'Incorrect calibration data\n Download another file', icon='error')
+                showerror('Calibration data', 'Incorrect calibration data\n Download another file')
                 vars = (' ', 0)
         else:
             vars = (' ', 0)
