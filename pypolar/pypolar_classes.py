@@ -308,7 +308,7 @@ class Variable:
         ax = plt.gca()
         field = self.values.copy()
         if self.name == 'Rho':
-                field = np.mod(2 * (field + rotation), 360) / 2
+            field = np.mod(2 * (field + rotation), 360) / 2
         if rotation:
             field = rotate(field, rotation, reshape=False, order=0, mode='constant')
             field[field == 0] = np.nan
