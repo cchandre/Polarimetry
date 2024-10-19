@@ -394,14 +394,13 @@ class Calibration:
         if method == '1PF':
             if label == 'other':
                 file = Path(fd.askopenfilename(title='Select file', initialdir=Path.home(), filetypes=[('MAT-files', '*.mat')]))
-                if file.stem.startswith('Disk'):
-                    folder = file.parent
-                    vars = (file.stem, 0)
+                folder = file.parent
+                vars = (file.stem, 0)
             disk = loadmat(str(folder / (vars[0] + '.mat')))
-            if vars[0].startswith('Disk'):
+            try:
                 self.RhoPsi = np.moveaxis(np.stack((np.array(disk['RoTest'], dtype=np.float64), np.array(disk['PsiTest'], dtype=np.float64))), 0, -1)
                 self.xy = 2 * (np.linspace(-1, 1, int(disk['NbMapValues']), dtype=np.float64),)
-            else:
+            except:
                 showerror('Calibration data', 'Incorrect disk cone\n Download another file', icon='error')
                 vars = (' ', 0)
         elif method.startswith('4POLAR'):
@@ -411,15 +410,11 @@ class Calibration:
                 vars = tuple(vars)
             if label == 'other':
                 file = Path(fd.askopenfilename(title='Select file', initialdir=Path.home(), filetypes=[('TXT-files', '*.txt')]))
-                if file.stem.startswith('Calib'):
-                    folder = file.parent
-                    vars = (file.stem, 0)
-            if vars[0].startswith('Calib'):
+                folder = file.parent
+                vars = (file.stem, 0)
+            try:
                 self.invKmat = np.linalg.pinv(np.genfromtxt(str(folder / (vars[0] + '.txt')), dtype=np.float64))
-                if self.invKmat.shape != (int(method[-2]) + 1, 4):
-                    showerror('Calibration data', 'Incorrect calibration data\n Download another file')
-                    vars = (' ', 0)
-            else:
+            except:
                 showerror('Calibration data', 'Incorrect calibration data\n Download another file')
                 vars = (' ', 0)
         else:
