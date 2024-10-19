@@ -39,8 +39,7 @@ def adjust(field:np.ndarray, contrast:float, vmin:float, vmax:float, sharpen:boo
         sharpened = np.maximum(sharpened, vmin)
     else:
         sharpened = field.copy()
-    sharpened = adjust_gamma((sharpened - vmin) / (vmax - vmin), contrast) * (vmax - vmin) + vmin
-    return sharpened
+    return adjust_gamma((sharpened - vmin) / (vmax - vmin), contrast) * (vmax - vmin) + vmin
 
 def angle_edge(edge:np.ndarray) -> Tuple[float, np.ndarray]:
     tangent = np.diff(edge, axis=0, append=edge[-1, :].reshape((1, 2)))
@@ -519,7 +518,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         height = self.canvas.figure.bbox.height
         y0, y1 = height - y0, height - y1
         self.canvas._rubberband_rect_black = (self.canvas._tkcanvas.create_rectangle(x0, y0, x1, y1))
-        self.canvas._rubberband_rect_white = (self.canvas._tkcanvas.create_rectangle(x0, y0, x1, y1, outline='white', dash=(3, 3)))
+        self.canvas._rubberband_rect_white = (self.canvas._tkcanvas.create_rectangle(x0, y0, x1, y1, outline=orange[0], dash=(3, 3)))
         
     def remove_rubberband(self) -> None:
         if self.canvas._rubberband_rect_white:
