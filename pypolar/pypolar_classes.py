@@ -414,33 +414,27 @@ class Calibration:
                 vars = (file.stem, 0)
             try:
                 self.invKmat = np.linalg.pinv(np.genfromtxt(str(folder / (vars[0] + '.txt')), dtype=np.float64))
+                if self.invKmat.shape != (int(method[-2]) + 1, 4):
+                    raise ValueError('Error in the dimension of the calibration matrix')
             except:
                 showerror('Calibration data', 'Incorrect calibration data\n Download another file')
                 vars = (' ', 0)
         else:
             vars = (' ', 0)
-        self.name = vars[0]
-        self.offset_default = vars[1]
+        self.name, self.offset_default = vars
 
     def display(self, colorblind:bool=False) -> None:
         fig, axs = plt.subplots(ncols=2, figsize=(13, 8))
         fig.canvas.manager.set_window_title('Disk Cone: ' + self.name)
-        cmap = m_colorwheel if colorblind else 'hsv'
-        h = axs[0].imshow(self.RhoPsi[:, :, 0], cmap=cmap, interpolation='nearest', extent=[-1, 1, -1, 1], vmin=0, vmax=180)
-        axs[0].set_title('Rho Test')
-        ax_divider = make_axes_locatable(axs[0])
-        cax = ax_divider.append_axes('right', size='7%', pad='2%')
-        fig.colorbar(h, cax=cax)
-        cmap = 'viridis' if colorblind else 'jet'
-        h = axs[1].imshow(self.RhoPsi[:, :, 1], cmap=cmap, interpolation='nearest', extent=[-1, 1, -1, 1], vmin=0, vmax=180)
-        axs[1].set_title('Psi Test')
-        ax_divider = make_axes_locatable(axs[1])
-        cax = ax_divider.append_axes('right', size='7%', pad='2%')
-        fig.colorbar(h, cax=cax)
-        plt.subplots_adjust(wspace=0.4)
-        for ax in axs:
+        labels = ['Rho Test', 'Psi Test']
+        cmaps = [m_colorwheel, 'viridis'] if colorblind else ['hsv', 'jet']
+        for _, (label, cmap, ax) in enumerate(zip(labels, cmaps, axs)):
+            h = ax.imshow(self.RhoPsi[:, :, _], cmap=cmap, interpolation='nearest', extent=[-1, 1, -1, 1], vmin=0, vmax=180)
+            ax.set_title(label)
             ax.set_xlabel('$B_2$')
             ax.set_ylabel('$A_2$')
+            fig.colorbar(h, cax=make_axes_locatable(ax).append_axes('right', size='7%', pad='2%'))
+        plt.subplots_adjust(wspace=0.4)
 
     def list(self, method:str) -> str:
         if method == '1PF':
