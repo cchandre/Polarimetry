@@ -410,7 +410,6 @@ class Calibration:
                 folder = file.parent
                 vars = [file.stem, 0]
             try:
-                print(str(folder / (vars[0] + '.txt')))
                 self.invKmat = np.linalg.pinv(np.genfromtxt(str(folder / (vars[0] + '.txt')), dtype=np.float64))
                 if self.invKmat.shape != (int(method[-2]) + 1, 4):
                     raise ValueError('Error in the dimension of the calibration matrix')
