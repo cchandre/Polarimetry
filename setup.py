@@ -40,7 +40,6 @@ setup(
 		  "pillow==10.3.0",
 		  "scikit-image==0.20.0",
 		  "scipy==1.9.1",
-		  "tksheet==6.2.5",
-		  "tk==8.6.13"
+		  "tksheet==6.2.5"
     ]
 )
