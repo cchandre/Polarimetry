@@ -1,4 +1,4 @@
-# [<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/main_icon.png" alt=" " width="50"/>](https://www.fresnel.fr/polarimetry) PyPOLAR 
+# [<img src="https://github.com/cchandre/Polarimetry/raw/master/pypolar/main_icon.png" alt=" " width="50"/>](https://www.fresnel.fr/polarimetry) PyPOLAR 
 
 ![Version](https://img.shields.io/badge/version-v2.6.4-blue)
 ![Platform](https://img.shields.io/badge/platform-macOS|Windows-orange)
@@ -14,7 +14,7 @@ To install PyPOLAR on your computer, check out the [latest release](https://gith
 - Wiki: [PyPOLARwiki](https://github.com/cchandre/Polarimetry/wiki)
 
 <div align="center">
-<img src="https://github.com/cchandre/Polarimetry/blob/master/pypolar/PyPOLAR_layout.png" alt=" " width="400"/>  
+<img src="https://github.com/cchandre/Polarimetry/raw/master/pypolar/PyPOLAR_layout.png" alt=" " width="400"/>  
 </div>
 
 ___
