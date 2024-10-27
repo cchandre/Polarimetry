@@ -61,6 +61,10 @@ plt.rcParams['savefig.bbox'] = 'tight'
 plt.rcParams['savefig.dpi'] = 100
 plt.ion()
 
+def main():
+    app = Polarimetry()
+    app.mainloop()
+
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.6.4'
