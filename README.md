@@ -6,7 +6,7 @@
 
 PyPOLAR is a Python-based app for analyzing polarization-resolved microscopy data to measure molecular orientation and order in biological samples.  
 To install PyPOLAR on your computer, check out the [latest release](https://github.com/cchandre/Polarimetry/releases), and download `PyPOLAR_installer.exe` for Windows or `PyPOLAR.dmg` for macOS.   
-It is also possible to install and run PyPOLAR from PyPI, independently of the operating system (Windows, macOS, Linux); click [here](./Install-and-run-PyPOLAR-with-PyPI) for more details.
+It is also possible to install and run PyPOLAR from PyPI, independently of the operating system (Windows, macOS, Linux); click [here](https://github.com/cchandre/Polarimetry/wiki/Install-and-run-PyPOLAR-with-PyPI) for more details.
 
 - Source code: [PyPOLAR.py](https://github.com/cchandre/Polarimetry/blob/master/pypolar/PyPOLAR.py)
 
