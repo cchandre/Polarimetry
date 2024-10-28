@@ -2048,5 +2048,4 @@ class Polarimetry(CTk.CTk):
         self.save_data(datastack, roi_map=roi_map)
 
 if __name__ == '__main__':
-    app = Polarimetry()
-    app.mainloop()
+    main()
