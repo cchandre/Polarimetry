@@ -694,8 +694,8 @@ class ToolTip:
         self.tw = None
 
 class ROIManager(CTk.CTkToplevel):
-    labels = ['indx', 'name', 'group']
-    widths = [40, 250, 90]
+    labels = ['indx', 'label 1', 'label 2', 'label 3']
+    widths = [40, 120, 110, 110]
     button_labels = ['Save', 'Load', 'Delete']
     tooltips = [' save information on ROIs as a .pyroi file', ' load ROIs from a .pyroi file', ' permanently deletes ROIs selected in delete column']
     manager_size = lambda w, h: f'{w+40}x{h+84}'
@@ -741,8 +741,8 @@ class ROIManager(CTk.CTkToplevel):
         self.sheet.default_row_height(self.cell_height)
         for _, width in enumerate(widths):
             self.sheet.column_width(column=_, width=width)
-        self.sheet.create_header_checkbox(c=3, checked=True, text="select", check_function=self.select_all)
-        self.sheet.create_header_checkbox(c=4, checked=False, text="delete", check_function=self.delete_all)
+        self.sheet.create_header_checkbox(c=4, checked=True, text="select", check_function=self.select_all)
+        self.sheet.create_header_checkbox(c=5, checked=False, text="delete", check_function=self.delete_all)
 
     def add_elements(self, cmax:int, rois) -> None:
         self.sheet.align_columns(columns=[0, cmax-1], align='center')
@@ -754,14 +754,14 @@ class ROIManager(CTk.CTkToplevel):
     def select_all(self, value:bool) -> None:
         try:
             for _ in range(self.sheet.get_total_rows()):
-                self.sheet.MT.data[_][3] = bool(value[3])
+                self.sheet.MT.data[_][4] = bool(value[4])
         except:
             pass
     
     def delete_all(self, value:bool) -> None:
         try:
             for _ in range(self.sheet.get_total_rows()):
-                self.sheet.MT.data[_][4] = bool(value[3])
+                self.sheet.MT.data[_][5] = bool(value[5])
         except:
             pass
         
@@ -831,8 +831,9 @@ class ROIManager(CTk.CTkToplevel):
         if any(rois):
             data = self.sheet.get_sheet_data()
             for _, roi in enumerate(rois):
-                roi['name'] = data[_][1]
-                roi['group'] = data[_][2]
+                roi['label 1'] = data[_][1]
+                roi['label 2'] = data[_][2]
+				roi['label 3'] = data[_][3]
                 roi['select'] = data[_][-2]
             return rois
         return []

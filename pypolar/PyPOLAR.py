@@ -283,7 +283,7 @@ class Polarimetry(CTk.CTk):
         self.figure_extension = CTk.StringVar(value='.pdf')
         self.figure_extension_optionmenu = OptionMenu(save_ext, width=60, height=20, variable=self.figure_extension, values=['.pdf', '.png', '.jpeg', '.tif', '.pyfig'], state='disabled', fg_color=gray[0], button_color=gray[0], text_color_disabled=gray[1], button_hover_color=gray[0], anchor='e', tooltip=' select the file type for the saved figures')
         self.figure_extension_optionmenu.grid(row=1, column=1, padx=(0, 10))
-        labels = ['Data (.mat)', 'Mean values (.xlsx)', 'Movie (.gif)']
+        labels = ['Data (.csv)', 'Data (.mat)', 'Mean values (.xlsx)', 'Movie (.gif)']
         self.extension_table = [CheckBox(save_ext) for _ in range(len(labels))]
         for _ in range(len(labels)-1):
             Label(master=save_ext, text=labels[_], anchor='w').grid(row=_+2, column=0, padx=(40, 0), sticky='w')
@@ -804,7 +804,7 @@ class Polarimetry(CTk.CTk):
             else:
                 vertices = np.asarray([roix, roiy])
             indx = self.datastack.rois[-1]['indx'] + 1 if self.datastack.rois else 1
-            self.datastack.rois += [{'indx': indx, 'label': (vertices[0][0], vertices[1][0]), 'vertices': vertices, 'ILow': self.ilow.get(), 'name': '', 'group': '', 'select': True}]
+            self.datastack.rois += [{'indx': indx, 'label': (vertices[0][0], vertices[1][0]), 'vertices': vertices, 'ILow': self.ilow.get(), 'label 1': '', 'label 2': '', 'label 3': '', 'select': True}]
             self.thrsh_pyfig.canvas.draw()
             self.ontab_intensity()
             self.ontab_thrsh()
@@ -1017,8 +1017,8 @@ class Polarimetry(CTk.CTk):
             variables = ['\u03C1', 'S2', 'S4']
             vals = [(0, 180), (0, 1), (-1, 1)]
         elif method == 'SHG':
-            variables = ['\u03C1', 'S']
-            vals = [(0, 180), (-1, 1)]
+            variables = ['\u03C1', 'S', 'S2', 'S4']
+            vals = [(0, 180), (-1, 1), (0, 1), (-1, 1)]
         elif method == '4POLAR 3D':
             variables = ['\u03C1', '\u03C8', '\u03B7']
             vals = [(0, 180), (40, 180), (0, 90)]
@@ -1317,7 +1317,7 @@ class Polarimetry(CTk.CTk):
     def yes_add_roi_callback(self, window:CTk.CTkToplevel, roi:ROI) -> None:
         vertices = np.asarray([roi.x, roi.y])
         indx = self.datastack.rois[-1]['indx'] + 1 if self.datastack.rois else 1
-        self.datastack.rois += [{'indx': indx, 'label': (roi.x[0], roi.y[0]), 'vertices': vertices, 'ILow': self.ilow.get(), 'name': '', 'group': '', 'select': True}]
+        self.datastack.rois += [{'indx': indx, 'label': (roi.x[0], roi.y[0]), 'vertices': vertices, 'ILow': self.ilow.get(), 'label 1': '', 'label 2': '', 'label 3': '', 'select': True}]
         window.withdraw()
         for line in roi.lines:
             line.remove()
@@ -1546,7 +1546,7 @@ class Polarimetry(CTk.CTk):
                     else:
                         vars += [tempvar]
                         data[tempvar] = tempdata[tempvar]
-            if self.extension_table[0].get():
+            if self.extension_table[1].get():
                 dict_ = {'polarimetry': self.method.get(), 'folder': str(folder)}
                 for var in vars:
                     dict_.update({var: data[var]})
@@ -1768,9 +1768,11 @@ class Polarimetry(CTk.CTk):
             for roi in datastack.rois:
                 if roi['select']:
                     self.save_mat(datastack, roi_map, roi=roi)
+					self.save_csv(datastack, roi_map, roi=roi)
         else:
             self.save_mat(datastack, roi_map, roi=[])
-        if self.extension_table[1].get():
+			self.save_csv(datastack, roi_map, roi=[])
+        if self.extension_table[2].get():
             suffix = '_Stats.xlsx' if not hasattr(self, 'edge_contours') else '_Stats_c.xlsx'
             if self.filelist:
                 file = self.stack.folder / (self.stack.folder.stem + suffix)
@@ -1785,7 +1787,7 @@ class Polarimetry(CTk.CTk):
             worksheet = workbook.active
             worksheet.title = title
             if not file.exists():
-                title = ['File', 'ROI', 'name', 'group', 'MeanRho', 'StdRho', 'MeanDeltaRho']
+                title = ['File', 'ROI', 'label 1', 'label 2', 'label 3', 'MeanRho', 'StdRho', 'MeanDeltaRho']
                 worksheet.append(title + self.return_vecexcel(datastack, roi_map)[1])
             if self.per_roi.get():
                 for roi in datastack.rois:
@@ -1794,7 +1796,7 @@ class Polarimetry(CTk.CTk):
             else:
                 worksheet.append(self.return_vecexcel(datastack, roi_map, roi=[])[0])
             workbook.save(file)
-        if self.extension_table[2].get():
+        if self.extension_table[3].get():
             images = []
             vmin, vmax = np.amin(self.stack.values), np.amax(self.stack.values)
             for _ in range(self.stack.nangle):
@@ -1818,9 +1820,9 @@ class Polarimetry(CTk.CTk):
         deltarho = wrapto180(2 * (data_vals - meandata)) / 2
         title = []
         if roi:
-            results = [self.stack.name, roi['indx'], roi['name'], roi['group'], meandata, np.std(deltarho), np.mean(deltarho)]
+            results = [self.stack.name, roi['indx'], roi['label 1'], roi['label 2'], roi['label 3'], meandata, np.std(deltarho), np.mean(deltarho)]
         else:
-            results = [self.stack.name, 'all', '', '', meandata, np.std(deltarho), np.mean(deltarho)]
+            results = [self.stack.name, 'all', '', '', '', meandata, np.std(deltarho), np.mean(deltarho)]
         if hasattr(self, 'edge_contours'):
             title += ['MeanRho_c_180', 'StdRho_c_180', 'MeanDeltaRho_c_180', 'MeanRho_c_90', 'StdRho_c_90', 'MeanDeltaRho_c_90']
             rho_c_180 = datastack.vars[-1].values
@@ -1854,8 +1856,27 @@ class Polarimetry(CTk.CTk):
         results += [float(self.dark.get()), float(self.offset_angle.get()), self.polar_dir.get(), self.bin_spinboxes[0].get(), self.bin_spinboxes[1].get(), float(self.rotation[2].get())]
         return results, title
 
-    def save_mat(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
+		
+	def save_csv(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
         if self.extension_table[0].get():
+            mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
+			header = f"polarimetry: {self.method.get()}, file: {str(datastack.file)}, date: {date.today().strftime('%B %d, %Y')}"
+			list_vars, data_vars = [], None
+            for var in datastack.vars:
+                data = var.values[mask * np.isfinite(var.values)].flatten()
+				data_vars = xp.column_stack((data_vars, data)) if data_vars is not None else data
+                list_vars += var.name + ", "
+            for var in datastack.added_vars:
+                data = var.values[mask * np.isfinite(var.values)].flatten()
+				data_vars = xp.column_stack((data_vars, data)) if data_vars is not None else data
+                list_vars += var.name + ", "
+			header += "\n" + list_vars
+            suffix = '_ROI' + str(roi['indx']) if roi else ''
+            file = datastack.file.with_name(datastack.name + suffix + '.csv')
+            xp.savetxt(file, data_vars, header=header)
+			
+    def save_mat(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
+        if self.extension_table[1].get():
             mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
             dict_ = {'polarimetry': self.method.get(), 'file': str(datastack.file), 'date': date.today().strftime('%B %d, %Y')}
             for var in datastack.vars:
@@ -2002,7 +2023,11 @@ class Polarimetry(CTk.CTk):
             rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
             s_shg_ = Variable('S_SHG', datastack=datastack)
             s_shg_.values[mask] = -0.5 * (np.abs(a4[mask]) - np.abs(a2[mask])) / (np.abs(a4[mask]) + np.abs(a2[mask])) - 0.65
-            datastack.vars = [rho_, s_shg_]
+			s2_ = Variable('S2', datastack=datastack)
+            s2_.values[mask] = 1.5 * np.abs(a2[mask])
+            s4_ = Variable('S4', datastack=datastack)
+            s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.values[mask])))
+            datastack.vars = [rho_, s_shg_, s2_, s4_]
         elif self.method.get() == '4POLAR 3D':
             mask *= (lam < 1/3) * (lam > 0) * (pzz > lam)
             rho_.values[mask] = 0.5 * np.rad2deg(np.arctan2(puv[mask], pxy[mask]))
