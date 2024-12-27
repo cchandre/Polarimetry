@@ -24,6 +24,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from colorcet import m_colorwheel
 from PIL import Image
 import cv2
+import tifffile
 from skimage.measure import manders_coloc_coeff, pearson_corr_coeff
 import openpyxl
 from itertools import permutations, chain
@@ -1608,7 +1609,11 @@ class Polarimetry(CTk.CTk):
                 fig.colorbar(h, cax=cax)
             if self.save_table[0].get():
                 file = datastack.file.with_name(datastack.name + '_' + var.name + 'Composite' + self.figure_extension.get())
-                self.save_fig(fig, file)
+				if self.figure_extension.get() == '.tif':
+					data = xp.asarray([datastack.intensity, var.values])
+					tifffile.imwrite(file, data, imagej=True, metadata={'axes': 'CYX', 'Labels': ['intensity', var.name]})
+				else:
+                	self.save_fig(fig, file)
             if not self.show_table[0].get():
                 plt.close(fig)
 
