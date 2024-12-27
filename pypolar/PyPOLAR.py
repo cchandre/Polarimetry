@@ -1873,14 +1873,15 @@ class Polarimetry(CTk.CTk):
             mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
             header = f"{self.method.get()}, file: {str(datastack.file)}, date: {date.today().strftime('%B %d %Y')}"
             list_vars, data_vars = "", None
-            for var in datastack.vars + datastack.added_vars:
+            for var in datastack.added_vars + datastack.vars:
                 data = var.values[mask * np.isfinite(var.values)].flatten()
                 data_vars = np.column_stack((data_vars, data)) if data_vars is not None else data
-                list_vars += var.name + ", "
-            header += "\n" + list_vars
+                list_vars += var.name + ","
+            header += "\n" + list_vars[:-1]
             suffix = '_ROI' + str(roi['indx']) if roi else ''
             file = datastack.file.with_name(datastack.name + suffix + '.csv')
-            np.savetxt(file, data_vars, header=header, delimiter=",", comments="")
+            fmt = '%d,%d' + ',%.5f' * (len(data_vars[0, :]) - 2)
+            np.savetxt(file, data_vars, fmt=fmt, header=header, comments="")
 			
     def save_mat(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
         if self.extension_table[1].get():
