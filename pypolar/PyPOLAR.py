@@ -1608,11 +1608,17 @@ class Polarimetry(CTk.CTk):
                 cax = ax_divider.append_axes('right', size='7%', pad='2%')
                 fig.colorbar(h, cax=cax)
             if self.save_table[0].get():
-                file = datastack.file.with_name(datastack.name + '_' + var.name + 'Composite' + self.figure_extension.get())
                 if self.figure_extension.get() == '.tif (ImageJ)':
-                    data = np.asarray([datastack.intensity, var.values])
-                    tifffile.imwrite(file, data, imagej=True, metadata={'axes': 'CYX', 'Labels': ['intensity', var.name]})
+                    file = datastack.file.with_name(datastack.name + '_' + var.name + 'Composite' + '_ImageJ.tif')
+                    cmap1 = plt.get_cmap('gray')
+                    cmap2 = plt.get_cmap(var.colormap[self.colorblind_checkbox.get()])
+                    values = np.linspace(0, 1, 256)
+                    rgb1 = (cmap1(values)[:, :3] * 255).astype(np.uint8)
+                    rgb2 = (cmap2(values)[:, :3] * 255).astype(np.uint8)
+                    data = np.asarray([datastack.intensity, var.values], dtype=np.float32)
+                    tifffile.imwrite(file, data, imagej=True, metadata={'axes': 'CYX', 'Labels': ['intensity', var.name], 'LUTs': [rgb1, rgb2]})
                 else:
+                    file = datastack.file.with_name(datastack.name + '_' + var.name + 'Composite' + self.figure_extension.get())
                     self.save_fig(fig, file)
             if not self.show_table[0].get():
                 plt.close(fig)
