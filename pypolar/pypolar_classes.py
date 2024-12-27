@@ -833,7 +833,7 @@ class ROIManager(CTk.CTkToplevel):
             for _, roi in enumerate(rois):
                 roi['label 1'] = data[_][1]
                 roi['label 2'] = data[_][2]
-				roi['label 3'] = data[_][3]
+                roi['label 3'] = data[_][3]
                 roi['select'] = data[_][-2]
             return rois
         return []

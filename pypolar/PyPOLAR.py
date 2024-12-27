@@ -69,7 +69,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.7.0'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'December 24, 2024'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'December 27, 2024'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -282,7 +282,7 @@ class Polarimetry(CTk.CTk):
         save_ext.grid(row=2, column=1, padx=0, pady=(10, 0), sticky="n")
         Label(save_ext, text='Figures', anchor='w').grid(row=1, column=0, padx=(40, 0), sticky='w')
         self.figure_extension = CTk.StringVar(value='.pdf')
-        self.figure_extension_optionmenu = OptionMenu(save_ext, width=60, height=20, variable=self.figure_extension, values=['.pdf', '.png', '.jpeg', '.tif', '.pyfig'], state='disabled', fg_color=gray[0], button_color=gray[0], text_color_disabled=gray[1], button_hover_color=gray[0], anchor='e', tooltip=' select the file type for the saved figures')
+        self.figure_extension_optionmenu = OptionMenu(save_ext, width=60, height=20, variable=self.figure_extension, values=['.pdf', '.png', '.jpeg', '.tif', '.tif (ImageJ)', '.pyfig'], state='disabled', fg_color=gray[0], button_color=gray[0], text_color_disabled=gray[1], button_hover_color=gray[0], anchor='e', tooltip=' select the file type for the saved figures')
         self.figure_extension_optionmenu.grid(row=1, column=1, padx=(0, 10))
         labels = ['Data (.csv)', 'Data (.mat)', 'Mean values (.xlsx)', 'Movie (.gif)']
         self.extension_table = [CheckBox(save_ext) for _ in range(len(labels))]
@@ -385,7 +385,7 @@ class Polarimetry(CTk.CTk):
         Button(self.tabview.tab('About'), image=self.icons['GitHub'], command=lambda:self.openweb(type(self).url_github), tooltip=' visit the PyPOLAR GitHub page').grid(column=2, **dict_buttons)
         Button(self.tabview.tab('About'), image=self.icons['contact_support'], command=lambda:self.openweb(type(self).url_wiki), tooltip=' visit the PyPOLAR wiki').grid(column=3, **dict_buttons)
         about_textbox = TextBox(master=self.tabview.tab('About'), width=600, height=500, wrap='word')
-        about_textbox.write(f'Version: {type(self).__version__} ({type(self).__version_date__}) \n\n\n Website: {self.url_fresnel} \n\n\n Source code available at {self.url_github} \n\n\n\n PyPOLAR is based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     {self.email}  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  PyPOLAR was created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV, scikit-image, Matplotlib, openpyxl, tksheet, colorcet, joblib \n\n\n  PyPOLAR uses Material Design icons by Google')
+        about_textbox.write(f'Version: {type(self).__version__} ({type(self).__version_date__}) \n\n\n Website: {self.url_fresnel} \n\n\n Source code available at {self.url_github} \n\n\n\n PyPOLAR is based on a code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr  (Manos Mavrakis, Institut Fresnel, CNRS) \n     {self.email}  (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr  (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n  PyPOLAR was created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV, scikit-image, Matplotlib, openpyxl, tksheet, colorcet, joblib, tifffile \n\n\n  PyPOLAR uses Material Design icons by Google')
         about_textbox.grid(row=1, column=0, columnspan=4, padx=30, sticky="n")
         self.startup()
 
@@ -1609,11 +1609,11 @@ class Polarimetry(CTk.CTk):
                 fig.colorbar(h, cax=cax)
             if self.save_table[0].get():
                 file = datastack.file.with_name(datastack.name + '_' + var.name + 'Composite' + self.figure_extension.get())
-				if self.figure_extension.get() == '.tif':
-					data = xp.asarray([datastack.intensity, var.values])
-					tifffile.imwrite(file, data, imagej=True, metadata={'axes': 'CYX', 'Labels': ['intensity', var.name]})
-				else:
-                	self.save_fig(fig, file)
+                if self.figure_extension.get() == '.tif (ImageJ)':
+                    data = np.asarray([datastack.intensity, var.values])
+                    tifffile.imwrite(file, data, imagej=True, metadata={'axes': 'CYX', 'Labels': ['intensity', var.name]})
+                else:
+                    self.save_fig(fig, file)
             if not self.show_table[0].get():
                 plt.close(fig)
 
@@ -1773,10 +1773,10 @@ class Polarimetry(CTk.CTk):
             for roi in datastack.rois:
                 if roi['select']:
                     self.save_mat(datastack, roi_map, roi=roi)
-					self.save_csv(datastack, roi_map, roi=roi)
+                    self.save_csv(datastack, roi_map, roi=roi)
         else:
             self.save_mat(datastack, roi_map, roi=[])
-			self.save_csv(datastack, roi_map, roi=[])
+            self.save_csv(datastack, roi_map, roi=[])
         if self.extension_table[2].get():
             suffix = '_Stats.xlsx' if not hasattr(self, 'edge_contours') else '_Stats_c.xlsx'
             if self.filelist:
@@ -1862,32 +1862,25 @@ class Polarimetry(CTk.CTk):
         return results, title
 
 		
-	def save_csv(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
+    def save_csv(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
         if self.extension_table[0].get():
             mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
-			header = f"polarimetry: {self.method.get()}, file: {str(datastack.file)}, date: {date.today().strftime('%B %d, %Y')}"
-			list_vars, data_vars = [], None
-            for var in datastack.vars:
+            header = f"{self.method.get()}, file: {str(datastack.file)}, date: {date.today().strftime('%B %d %Y')}"
+            list_vars, data_vars = "", None
+            for var in datastack.vars + datastack.added_vars:
                 data = var.values[mask * np.isfinite(var.values)].flatten()
-				data_vars = xp.column_stack((data_vars, data)) if data_vars is not None else data
+                data_vars = np.column_stack((data_vars, data)) if data_vars is not None else data
                 list_vars += var.name + ", "
-            for var in datastack.added_vars:
-                data = var.values[mask * np.isfinite(var.values)].flatten()
-				data_vars = xp.column_stack((data_vars, data)) if data_vars is not None else data
-                list_vars += var.name + ", "
-			header += "\n" + list_vars
+            header += "\n" + list_vars
             suffix = '_ROI' + str(roi['indx']) if roi else ''
             file = datastack.file.with_name(datastack.name + suffix + '.csv')
-            xp.savetxt(file, data_vars, header=header)
+            np.savetxt(file, data_vars, header=header, delimiter=",", comments="")
 			
     def save_mat(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
         if self.extension_table[1].get():
             mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
             dict_ = {'polarimetry': self.method.get(), 'file': str(datastack.file), 'date': date.today().strftime('%B %d, %Y')}
-            for var in datastack.vars:
-                data = var.values[mask * np.isfinite(var.values)]
-                dict_.update({var.name: data})
-            for var in datastack.added_vars:
+            for var in datastack.vars + datastack.added_vars:
                 data = var.values[mask * np.isfinite(var.values)]
                 dict_.update({var.name: data})
             suffix = '_ROI' + str(roi['indx']) if roi else ''
@@ -2028,7 +2021,7 @@ class Polarimetry(CTk.CTk):
             rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
             s_shg_ = Variable('S_SHG', datastack=datastack)
             s_shg_.values[mask] = -0.5 * (np.abs(a4[mask]) - np.abs(a2[mask])) / (np.abs(a4[mask]) + np.abs(a2[mask])) - 0.65
-			s2_ = Variable('S2', datastack=datastack)
+            s2_ = Variable('S2', datastack=datastack)
             s2_.values[mask] = 1.5 * np.abs(a2[mask])
             s4_ = Variable('S4', datastack=datastack)
             s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.values[mask])))
