@@ -1866,7 +1866,6 @@ class Polarimetry(CTk.CTk):
         title += ['dark', 'offset', 'polarization', 'bin width', 'bin height', 'reference angle']
         results += [float(self.dark.get()), float(self.offset_angle.get()), self.polar_dir.get(), self.bin_spinboxes[0].get(), self.bin_spinboxes[1].get(), float(self.rotation[2].get())]
         return results, title
-
 		
     def save_csv(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
         if self.extension_table[0].get():
