@@ -754,14 +754,14 @@ class ROIManager(CTk.CTkToplevel):
     def select_all(self, value:bool) -> None:
         try:
             for _ in range(self.sheet.get_total_rows()):
-                self.sheet.MT.data[_][4] = bool(value[4])
+                self.sheet.MT.data[_][4] = bool(value[3])
         except:
             pass
     
     def delete_all(self, value:bool) -> None:
         try:
             for _ in range(self.sheet.get_total_rows()):
-                self.sheet.MT.data[_][5] = bool(value[5])
+                self.sheet.MT.data[_][5] = bool(value[3])
         except:
             pass
         
