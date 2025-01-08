@@ -1615,14 +1615,7 @@ class Polarimetry(CTk.CTk):
                     values = np.linspace(0, 1, 256)
                     rgb1 = (cmap1(values)[:, :3] * 255).astype(np.uint8)
                     rgb2 = (cmap2(values)[:, :3] * 255).astype(np.uint8)
-                    if var.name =='Rho':
-                        temp_data = var.values.copy()
-                        temp_data[temp_data==np.nan] = -1
-                        temp_data = (temp_data + 1).astype(np.uint8)
-                        normalized_image = cv2.normalize(datastack.intensity, None, 0, 255, cv2.NORM_MINMAX)
-                        data = np.asarray([normalized_image, temp_data], dtype=np.uint8)
-                    else:
-                        data = np.asarray([datastack.intensity, var.values], dtype=np.float32)
+                    data = np.asarray([datastack.intensity, var.values], dtype=np.float32)
                     tifffile.imwrite(file, data, imagej=True, metadata={'axes': 'CYX', 'Labels': ['intensity', var.name], 'LUTs': [rgb1, rgb2]})
                 else:
                     file = datastack.file.with_name(datastack.name + '_' + var.name + 'Composite' + self.figure_extension.get())
