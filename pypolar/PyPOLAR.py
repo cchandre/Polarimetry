@@ -68,8 +68,8 @@ def main():
 
 class Polarimetry(CTk.CTk):
 
-    __version__ = '2.7.0'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025'}
+    __version__ = '2.7.1'
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 20, 2025'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -556,6 +556,7 @@ class Polarimetry(CTk.CTk):
     
     def define_rho_ct(self, contours:List[np.ndarray]) -> np.ndarray:
         rho_ct = np.nan * np.ones_like(self.stack.intensity)
+        x_ct, y_ct = np.nan * np.ones_like(self.stack.intensity), np.nan * np.ones_like(self.stack.intensity)
         for contour in contours:
             angle, normal = angle_edge(contour)
             crange = chain(range(-int(self.layer_params[0].get()) - int(self.layer_params[1].get()), -int(self.layer_params[0].get()) + 1), range(int(self.layer_params[0].get()), int(self.layer_params[0].get()) + int(self.layer_params[1].get()) + 1))
@@ -567,7 +568,8 @@ class Polarimetry(CTk.CTk):
                 shift_x[shift_x >= self.stack.width - 1] = self.stack.width - 1
                 shift_y[shift_y >= self.stack.height - 1] = self.stack.height - 1
                 rho_ct[shift_y, shift_x] = angle
-        return rho_ct
+                x_ct[shift_y, shift_x], y_ct[shift_y, shift_x] = shift_x, shift_y
+        return rho_ct, x_ct, y_ct
 
     def change_polarization_direction(self):
         self.polar_dir.set('clockwise' if self.polar_dir.get() == 'counterclockwise' else 'counterclockwise')
@@ -1768,9 +1770,10 @@ class Polarimetry(CTk.CTk):
                 var.values *= mask
                 var.values[var.values==0] = np.nan
         for var in vars:
-            self.plot_composite(var, datastack)
-            self.plot_sticks(var, datastack)
-            self.plot_histos(var, datastack, roi_map)
+            if 'X' not in var.name and 'Y' not in var.name:
+                self.plot_composite(var, datastack)
+                self.plot_sticks(var, datastack)
+                self.plot_histos(var, datastack, roi_map)
 
     def save_data(self, datastack:DataStack, roi_map:np.ndarray=[]) -> None:
         if len(roi_map) == 0:
@@ -1871,16 +1874,24 @@ class Polarimetry(CTk.CTk):
         if self.extension_table[0].get():
             mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
             header = f"{self.method.get()}, file: {str(datastack.file)}, date: {date.today().strftime('%B %d %Y')}"
-            list_vars, data_vars = "", None
+            list_vars, list_ct_vars, data_vars, data_ct_vars = "", "", None, None
             for var in datastack.added_vars + datastack.vars:
                 data = var.values[mask * np.isfinite(var.values)].flatten()
-                data_vars = np.column_stack((data_vars, data)) if data_vars is not None else data
-                list_vars += var.name + ","
-            header += "\n" + list_vars[:-1]
+                if '_c' in var.name:
+                    data_ct_vars = np.column_stack((data_ct_vars, data)) if data_ct_vars is not None else data
+                    list_ct_vars += var.name + ","
+                else:
+                    data_vars = np.column_stack((data_vars, data)) if data_vars is not None else data
+                    list_vars += var.name + ","
             suffix = '_ROI' + str(roi['indx']) if roi else ''
             file = datastack.file.with_name(datastack.name + suffix + '.csv')
             fmt = '%d,%d' + ',%.5f' * (len(data_vars[0, :]) - 2)
-            np.savetxt(file, data_vars, fmt=fmt, header=header, comments="")
+            np.savetxt(file, data_vars, fmt=fmt, header=header + "\n" + list_vars[:-1], comments="")
+            if hasattr(self, 'edge_contours'):
+                suffix += '_ct'
+                file = datastack.file.with_name(datastack.name + suffix + '.csv')
+                fmt = '%d,%d' + ',%.5f' * (len(data_ct_vars[0, :]) - 2)
+                np.savetxt(file, data_ct_vars, fmt=fmt, header=header + "\n" + list_ct_vars[:-1], comments="")
 			
     def save_mat(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
         if self.extension_table[1].get():
@@ -2059,10 +2070,12 @@ class Polarimetry(CTk.CTk):
         datastack.added_vars = [X_, Y_, Int_]
         if hasattr(self, 'edge_contours'):
             rho_ct = Variable('Rho_contour', datastack=datastack)
-            vals = self.define_rho_ct(self.edge_contours)
+            X_ct, Y_ct = Variable('X_ct', datastack=datastack), Variable('Y_ct', datastack=datastack)
+            vals, x_ct, y_ct = self.define_rho_ct(self.edge_contours)
             filter = np.isfinite(rho_.values) * np.isfinite(vals)
             rho_ct.values[filter] = np.mod(2 * (rho_.values[filter] - vals[filter]), 360) / 2
-            datastack.vars += [rho_ct]
+            X_ct.values[filter], Y_ct.values[filter] = x_ct[filter], y_ct[filter]
+            datastack.vars += [X_ct, Y_ct, rho_ct]
         if float(self.rotation[2].get()):
             rho_a = Variable('Rho_angle', datastack=datastack)
             rho_a.values = np.mod(2 * (rho_.values - float(self.rotation[2].get())), 360) / 2
