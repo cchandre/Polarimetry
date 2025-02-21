@@ -1851,7 +1851,7 @@ class Polarimetry(CTk.CTk):
             deltarho = wrapto180(2 * (data_vals - meandata)) / 2
             results += [meandata, np.std(deltarho), np.mean(deltarho)]
         for var in datastack.vars[1:]:
-            if var.name != 'Rho_contour':
+            if '_c' not in var.name:
                 data_vals = var.values[mask * np.isfinite(rho)]
                 meandata = np.mean(data_vals)
                 title += ['Mean' + var.name, 'Std' + var.name]
