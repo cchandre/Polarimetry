@@ -757,7 +757,7 @@ class ROIManager(CTk.CTkToplevel):
         self.sheet.create_header_checkbox(c=type(self).cmax+1, checked=False, text="delete", check_function=self.delete_all)
 
     def add_elements(self, rois) -> None:
-        self.sheet.align_columns(columns=[0, type(self).cmax-1], align='center')
+        self.sheet.align_columns(columns=list(range(type(self).cmax)), align='center')
         for _, roi in enumerate(rois):
             self.sheet.create_checkbox(r=_, c=type(self).cmax, checked=roi['select'], state='normal', redraw=False, check_function=None, text='')
         self.sheet.create_checkbox(r='all', c=type(self).cmax+1, checked=False, state='normal', redraw=False, check_function=None, text='')
@@ -809,10 +809,13 @@ class ROIManager(CTk.CTkToplevel):
         self.delete_manager()
         filetypes = [('PyROI files', '*.pyroi'), ('ImageJ ROI files', '*.zip *.roi')]
         file = fd.askopenfilename(title='Select a PyROI file or an ImageJ ROI file', initialdir=initialdir, filetypes=filetypes)
-        if file.extension == '.pyroi':
-            print('success')
-        with open(file, 'rb') as f:
-            rois = pickle.load(f)
+        if Path(file).suffix == '.pyroi':
+            with open(file, 'rb') as f:
+                rois = pickle.load(f)
+        elif Path(file).suffix == '.zip':
+            print('TBI')
+        elif Path(file).suffix == '.roi':
+            print('TBI')
         self.sheet.set_options(height=self.sheet_height(self.cell_height, rois))
         x, y = self.winfo_x(), self.winfo_y()
         self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, rois)) + f'+{x}+{y}')

@@ -10,3 +10,4 @@ scikit-image==0.20.0
 scipy==1.9.1
 tksheet==6.2.5
 tifffile==2024.12.12
+roifile==2023.5.12
