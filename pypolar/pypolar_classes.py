@@ -4,6 +4,7 @@ import tksheet
 from pathlib import Path
 import sys
 import pickle
+import roifile
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -264,20 +265,26 @@ class Stack:
 
 class DataStack:
     def __init__(self, stack:Stack) -> None:
-        self.file = stack.file
-        self.folder = stack.folder
-        self.name = stack.name
+        self.file, self.folder, self.name = stack.file, stack.folder, stack.name
         self.method = ''
         self.height, self.width, self.nangle = stack.height, stack.width, stack.nangle
         self.display = stack.display
         self.dark = 0
         self.intensity = stack.intensity
-        self.field = []
-        self.field_fit = []
+        self.field, self.field_fit = [], []
         self.chi2 = []
         self.rois = []
         self.vars = []
         self.added_vars = []
+        self.xmap, self.ymap = [], []
+        self.xct, self.yct = [], []
+        self.intmap = []
+
+    def get_var(self, name:str):
+        for var in self.vars:
+            if var.name == name:
+                return var
+        return None
 
     def plot_intensity(self, ax, contrast:float, rotation:int=0):
         vmin, vmax = np.amin(self.intensity), np.amax(self.intensity)
@@ -699,10 +706,10 @@ class ToolTip:
         self.tw = None
 
 class ROIManager(CTk.CTkToplevel):
-    labels = ['indx', 'label 1', 'label 2', 'label 3']
-    widths = [40, 120, 110, 110]
+    labels = ['indx', 'ILow', 'label 1', 'label 2', 'label 3']
+    widths = [40, 110, 110, 110, 110]
     button_labels = ['Save', 'Load', 'Delete']
-    tooltips = [' save information on ROIs as a .pyroi file', ' load ROIs from a .pyroi file', ' permanently deletes ROIs selected in delete column']
+    tooltips = [' save information on ROIs as a .pyroi file', ' load ROIs from a .pyroi file or from an ImageJ ROI file (.zip or .roi)', ' permanently deletes ROIs selected in delete column']
     manager_size = lambda w, h: f'{w+40}x{h+84}'
     cmax = len(labels)
     cell_height = 25
@@ -717,7 +724,7 @@ class ROIManager(CTk.CTkToplevel):
         widths = type(self).widths + [95, 95]
         self.sheet_width = sum(widths) + 2
 
-        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, rois)) + f'+1200+200')
+        self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, rois)) + f'+1350+200')
 
         if sys.platform == 'darwin':
             font = (font_macosx, 14, 'normal')
@@ -740,33 +747,33 @@ class ROIManager(CTk.CTkToplevel):
             ToolTip(button, text=tooltip)
             self.buttons += [button]
             button.grid(row=0, column=_, padx=10, pady=10, sticky='nswe')
-        self.add_elements(type(self).cmax, rois)
+        self.add_elements(rois)
         self.sheet.enable_bindings()
         self.sheet.disable_bindings(['rc_insert_column', 'rc_delete_column', 'rc_insert_row', 'rc_delete_row', 'hide_columns', 'row_height_resize','row_width_resize', 'column_height_resize', 'column_width_resize', 'edit_header', 'arrowkeys'])
         self.sheet.default_row_height(self.cell_height)
         for _, width in enumerate(widths):
             self.sheet.column_width(column=_, width=width)
-        self.sheet.create_header_checkbox(c=4, checked=True, text="select", check_function=self.select_all)
-        self.sheet.create_header_checkbox(c=5, checked=False, text="delete", check_function=self.delete_all)
+        self.sheet.create_header_checkbox(c=type(self).cmax, checked=True, text="select", check_function=self.select_all)
+        self.sheet.create_header_checkbox(c=type(self).cmax+1, checked=False, text="delete", check_function=self.delete_all)
 
-    def add_elements(self, cmax:int, rois) -> None:
-        self.sheet.align_columns(columns=[0, cmax-1], align='center')
+    def add_elements(self, rois) -> None:
+        self.sheet.align_columns(columns=[0, type(self).cmax-1], align='center')
         for _, roi in enumerate(rois):
-            self.sheet.create_checkbox(r=_, c=cmax, checked=roi['select'], state='normal', redraw=False, check_function=None, text='')
-        self.sheet.create_checkbox(r='all', c=cmax+1, checked=False, state='normal', redraw=False, check_function=None, text='')
-        self.sheet.highlight_columns(columns=[cmax, cmax+1], fg=orange[0], highlight_header=False)
+            self.sheet.create_checkbox(r=_, c=type(self).cmax, checked=roi['select'], state='normal', redraw=False, check_function=None, text='')
+        self.sheet.create_checkbox(r='all', c=type(self).cmax+1, checked=False, state='normal', redraw=False, check_function=None, text='')
+        self.sheet.highlight_columns(columns=[type(self).cmax, type(self).cmax+1], fg=orange[0], highlight_header=False)
 
     def select_all(self, value:bool) -> None:
         try:
             for _ in range(self.sheet.get_total_rows()):
-                self.sheet.MT.data[_][4] = bool(value[3])
+                self.sheet.MT.data[_][type(self).cmax] = bool(value[3])
         except:
             pass
     
     def delete_all(self, value:bool) -> None:
         try:
             for _ in range(self.sheet.get_total_rows()):
-                self.sheet.MT.data[_][5] = bool(value[3])
+                self.sheet.MT.data[_][type(self).cmax+1] = bool(value[3])
         except:
             pass
         
@@ -800,15 +807,17 @@ class ROIManager(CTk.CTkToplevel):
 
     def load(self, initialdir:Path=Path.home()) -> List[dict]:
         self.delete_manager()
-        filetypes = [('PyROI files', '*.pyroi')]
-        file = fd.askopenfilename(title='Select a PyROI file', initialdir=initialdir, filetypes=filetypes)
+        filetypes = [('PyROI files', '*.pyroi'), ('ImageJ ROI files', '*.zip *.roi')]
+        file = fd.askopenfilename(title='Select a PyROI file or an ImageJ ROI file', initialdir=initialdir, filetypes=filetypes)
+        if file.extension == '.pyroi':
+            print('success')
         with open(file, 'rb') as f:
             rois = pickle.load(f)
         self.sheet.set_options(height=self.sheet_height(self.cell_height, rois))
         x, y = self.winfo_x(), self.winfo_y()
         self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, rois)) + f'+{x}+{y}')
         self.sheet.insert_rows(rows=len(rois))
-        self.add_elements(len(type(self).labels), rois)
+        self.add_elements(rois)
         self.rois2sheet(rois)
         return rois
 
@@ -836,9 +845,10 @@ class ROIManager(CTk.CTkToplevel):
         if any(rois):
             data = self.sheet.get_sheet_data()
             for _, roi in enumerate(rois):
-                roi['label 1'] = data[_][1]
-                roi['label 2'] = data[_][2]
-                roi['label 3'] = data[_][3]
+                roi['ILow'] = data[_][1]
+                roi['label 1'] = data[_][2]
+                roi['label 2'] = data[_][3]
+                roi['label 3'] = data[_][4]
                 roi['select'] = data[_][-2]
             return rois
         return []
