@@ -1770,7 +1770,6 @@ class Polarimetry(CTk.CTk):
                 var.values *= mask
                 var.values[var.values==0] = np.nan
         for var in vars:
-            #if 'X' not in var.name and 'Y' not in var.name:
             self.plot_composite(var, datastack)
             self.plot_sticks(var, datastack)
             self.plot_histos(var, datastack, roi_map)
@@ -1809,6 +1808,10 @@ class Polarimetry(CTk.CTk):
                         worksheet.append(self.return_vecexcel(datastack, roi_map, roi=roi)[0])
             else:
                 worksheet.append(self.return_vecexcel(datastack, roi_map, roi=[])[0])
+            for row in worksheet.iter_rows():
+                for cell in row:
+                    cell.alignment = openpyxl.styles.Alignment(horizontal="center", vertical="center")
+
             workbook.save(file)
         if self.extension_table[3].get():
             images = []
@@ -1834,27 +1837,32 @@ class Polarimetry(CTk.CTk):
         deltarho = wrapto180(2 * (data_vals - meandata)) / 2
         title = []
         if roi:
-            results = [self.stack.name, roi['indx'], roi['label 1'], roi['label 2'], roi['label 3'], meandata, np.std(deltarho), np.mean(deltarho)]
+            results = [self.stack.name, int(roi['indx']), roi['label 1'], roi['label 2'], roi['label 3'], meandata, np.std(deltarho), np.mean(deltarho)]
         else:
             results = [self.stack.name, 'all', '', '', '', meandata, np.std(deltarho), np.mean(deltarho)]
-        if hasattr(self, 'edge_contours'):
-            title += ['MeanRho_c_180', 'StdRho_c_180', 'MeanDeltaRho_c_180', 'MeanRho_c_90', 'StdRho_c_90', 'MeanDeltaRho_c_90']
-            rho_c_180 = datastack.vars[-1].values
-            rho_c_90 = rho_c_180.copy()
-            rho_c_90[rho_c_90 >= 90] = 180 - rho_c_90[rho_c_90 >= 90]
-            data_vals = rho_c_180[mask * np.isfinite(rho) * np.isfinite(rho_c_180)]
-            meandata = circularmean(data_vals)
-            deltarho = wrapto180(2 * (data_vals - meandata)) / 2
-            results += [meandata, np.std(deltarho), np.mean(deltarho)]
-            data_vals = rho_c_90[mask * np.isfinite(rho) * np.isfinite(rho_c_90)]
-            meandata = circularmean(data_vals)
-            deltarho = wrapto180(2 * (data_vals - meandata)) / 2
-            results += [meandata, np.std(deltarho), np.mean(deltarho)]
         for var in datastack.vars[1:]:
+            if var.name not in ['Rho_contour', 'Rho_angle']:
                 data_vals = var.values[mask * np.isfinite(rho)]
                 meandata = np.mean(data_vals)
                 title += ['Mean' + var.name, 'Std' + var.name]
                 results += [meandata, np.std(data_vals)]
+            else:
+                if var.name == 'Rho_contour':
+                    title += ['MeanRho_c_180', 'StdRho_c_180', 'MeanDeltaRho_c_180', 'MeanRho_c_90', 'StdRho_c_90', 'MeanDeltaRho_c_90']
+                    rho_180 = datastack.get_var('Rho_contour').values
+                elif var.name == 'Rho_angle':
+                    title += ['MeanRho_a_180', 'StdRho_a_180', 'MeanDeltaRho_a_180', 'MeanRho_a_90', 'StdRho_a_90', 'MeanDeltaRho_a_90']
+                    rho_180 = datastack.get_var('Rho_angle').values
+                rho_90 = rho_180.copy()
+                rho_90[rho_90 >= 90] = 180 - rho_90[rho_90 >= 90]
+                data_vals = rho_180[mask * np.isfinite(rho) * np.isfinite(rho_180)]
+                meandata = circularmean(data_vals)
+                deltarho = wrapto180(2 * (data_vals - meandata)) / 2
+                results += [meandata, np.std(deltarho), np.mean(deltarho)]
+                data_vals = rho_90[mask * np.isfinite(rho) * np.isfinite(rho_90)]
+                meandata = circularmean(data_vals)
+                deltarho = wrapto180(2 * (data_vals - meandata)) / 2
+                results += [meandata, np.std(deltarho), np.mean(deltarho)]
         data_vals = datastack.intmap[mask * np.isfinite(rho)]
         meandata, stddata = np.mean(data_vals), np.std(data_vals)
         title += ['MeanInt', 'StdInt', 'TotalInt', 'ILow', 'N']

@@ -299,15 +299,15 @@ class Variable:
                 'Rho_contour': [10, ['polar1', 'polar3'], r'$\rho_c$', ['hsv', m_colorwheel]],
                 'Rho_angle': [10, ['polar1', 'polar3'], r'$\rho_a$', ['hsv', m_colorwheel]],
                 'Psi': [1, ['normal'], '$\psi$', ['jet', 'viridis']],
-                'Psi_ct': [1, ['normal'], '$\psi$', ['jet', 'viridis']],
+                'Psi_contour': [1, ['normal'], '$\psi$', ['jet', 'viridis']],
                 'Eta': [2, ['polar2'], '$\eta$', ['plasma', 'plasma']],
-                'Eta_ct': [2, ['polar2'], '$\eta$', ['plasma', 'plasma']],
+                'Eta_contour': [2, ['polar2'], '$\eta$', ['plasma', 'plasma']],
                 'S2': [1, ['normal'], '$S_2$', ['jet', 'viridis']],
-                'S2_ct': [1, ['normal'], '$S_2$', ['jet', 'viridis']],
+                'S2_contour': [1, ['normal'], '$S_2$', ['jet', 'viridis']],
                 'S4': [2, ['normal'], '$S_4$', ['jet', 'viridis']],
-                'S4_ct': [2, ['normal'], '$S_4$', ['jet', 'viridis']],
+                'S4_contour': [2, ['normal'], '$S_4$', ['jet', 'viridis']],
                 'S_SHG': [1, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis']],
-                'S_SHG_ct': [1, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis']]}.get(name)
+                'S_SHG_contour': [1, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis']]}.get(name)
         self.indx = var[0] if var is not None else 0
         self.name = name
         self.latex = var[2] if var is not None else ''
