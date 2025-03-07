@@ -855,7 +855,7 @@ class ROIManager(CTk.CTkToplevel):
         if any(rois):
             data = self.sheet.get_sheet_data()
             for _, roi in enumerate(rois):
-                roi['indx'] = data[_][0]
+                roi['indx'] = int(data[_][0])
                 roi['ILow'] = data[_][1]
                 roi['label 1'] = data[_][2]
                 roi['label 2'] = data[_][3]

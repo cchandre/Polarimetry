@@ -1837,7 +1837,7 @@ class Polarimetry(CTk.CTk):
         deltarho = wrapto180(2 * (data_vals - meandata)) / 2
         title = []
         if roi:
-            results = [self.stack.name, int(roi['indx']), roi['label 1'], roi['label 2'], roi['label 3'], meandata, np.std(deltarho), np.mean(deltarho)]
+            results = [self.stack.name, roi['indx'], roi['label 1'], roi['label 2'], roi['label 3'], meandata, np.std(deltarho), np.mean(deltarho)]
         else:
             results = [self.stack.name, 'all', '', '', '', meandata, np.std(deltarho), np.mean(deltarho)]
         for var in datastack.vars[1:]:
@@ -1929,7 +1929,7 @@ class Polarimetry(CTk.CTk):
             for roi in datastack.rois:
                 if roi['select']:
                     patch= Polygon(roi['vertices'].T)
-                    roi_map[patch.contains_points(points).reshape(shape)] = int(roi['indx']) if self.per_roi.get() else 1
+                    roi_map[patch.contains_points(points).reshape(shape)] = roi['indx'] if self.per_roi.get() else 1
                     roi_ilow_map[patch.contains_points(points).reshape(shape)] = float(roi['ILow'])
         else:
             roi_map = np.ones(shape, dtype=np.int32)
