@@ -296,8 +296,8 @@ class DataStack:
 class Variable:
     def __init__(self, name:str='', values:np.ndarray=None, datastack:DataStack=None) -> None:
         var = {'Rho': [0, ['polar1'], r'$\rho$', ['hsv', m_colorwheel]], 
-                'Rho_contour': [10, ['polar1', 'polar3'], r'$\rho_c$', ['hsv', m_colorwheel]],
-                'Rho_angle': [10, ['polar1', 'polar3'], r'$\rho_a$', ['hsv', m_colorwheel]],
+                'Rho_contour': [0, ['polar1', 'polar3'], r'$\rho_c$', ['hsv', m_colorwheel]],
+                'Rho_angle': [0, ['polar1', 'polar3'], r'$\rho_a$', ['hsv', m_colorwheel]],
                 'Psi': [1, ['normal'], '$\psi$', ['jet', 'viridis']],
                 'Psi_contour': [1, ['normal'], '$\psi$', ['jet', 'viridis']],
                 'Eta': [2, ['polar2'], '$\eta$', ['plasma', 'plasma']],

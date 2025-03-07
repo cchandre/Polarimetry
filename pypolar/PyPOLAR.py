@@ -1506,7 +1506,7 @@ class Polarimetry(CTk.CTk):
             pickle.dump(fig, open(file, 'wb'))
 
     def plot_histo(self, var:Variable, datastack:DataStack, roi_map:np.ndarray, roi:ROI=None) -> None:
-        display, vmin, vmax = self.get_variable(var.indx % 10)
+        display, vmin, vmax = self.get_variable(var.indx)
         if display and (self.show_table[2].get() or self.save_table[2].get()):
             for htype in var.type_histo:
                 fig = plt.figure(figsize=self.figsize)
@@ -1558,7 +1558,7 @@ class Polarimetry(CTk.CTk):
             #vars.remove('Int')
             for var in vars:
                 var_ = Variable(var, values=data[var])
-                display, vmin, vmax = self.get_variable(var_.indx % 10)
+                display, vmin, vmax = self.get_variable(var_.indx)
                 if display:
                     for htype in var_.type_histo:
                         fig = plt.figure(figsize=self.figsize)
@@ -1596,7 +1596,7 @@ class Polarimetry(CTk.CTk):
             canvas.draw()
 
     def plot_composite(self, var:Variable, datastack:DataStack) -> None:
-        display, vmin, vmax = self.get_variable(var.indx % 10)
+        display, vmin, vmax = self.get_variable(var.indx)
         if display and (self.show_table[0].get() or self.save_table[0].get()):
             fig = plt.figure(figsize=self.figsize)
             fig.type, fig.var, fig.width, fig.height = 'Composite', var.name, datastack.width, datastack.height
@@ -1692,7 +1692,7 @@ class Polarimetry(CTk.CTk):
         return PolyCollection(vertices, cmap=var.colormap[self.colorblind_checkbox.get()], lw=2, array=stick_colors)
 
     def plot_sticks(self, var:Variable, datastack:DataStack) -> None:
-        display, vmin, vmax = self.get_variable(var.indx % 10)
+        display, vmin, vmax = self.get_variable(var.indx)
         if display and (self.show_table[1].get() or self.save_table[1].get()):
             fig = plt.figure(figsize=self.figsize)
             fig.type, fig.var, fig.width, fig.height = 'Sticks', var.name, datastack.width, datastack.height
