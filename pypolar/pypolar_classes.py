@@ -813,9 +813,10 @@ class ROIManager(CTk.CTkToplevel):
             with open(file, 'rb') as f:
                 rois = pickle.load(f)
         elif Path(file).suffix == '.zip':
-            print('TBI')
+            rois_imagej = roifile.roiread(file)
+            rois = [self.roi_imagej2roi_pypolar(roi, _ + 1) for _, roi in enumerate(rois_imagej)]
         elif Path(file).suffix == '.roi':
-            print('TBI')
+            rois = [self.roi_imagej2roi_pypolar(roifile.ImagejRoi.fromfile(file), 1)]
         self.sheet.set_options(height=self.sheet_height(self.cell_height, rois))
         x, y = self.winfo_x(), self.winfo_y()
         self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, rois)) + f'+{x}+{y}')
@@ -823,6 +824,12 @@ class ROIManager(CTk.CTkToplevel):
         self.add_elements(rois)
         self.rois2sheet(rois)
         return rois
+    
+    def roi_imagej2roi_pypolar(self, roi, indx):
+        coords = roi.coordinates()
+        vertices = np.asarray([coords.T[0], coords.T[1]])
+        label = (coords[0, 0], coords[0, 1])
+        return {'indx': indx, 'label': label, 'vertices': vertices, 'ILow': 0, 'label 1': roi.name, 'label 2': '', 'label 3': '', 'select': True}
 
     def rois2sheet(self, rois:List[dict]):
         for it, roi in enumerate(rois):
@@ -848,6 +855,7 @@ class ROIManager(CTk.CTkToplevel):
         if any(rois):
             data = self.sheet.get_sheet_data()
             for _, roi in enumerate(rois):
+                roi['indx'] = data[_][0]
                 roi['ILow'] = data[_][1]
                 roi['label 1'] = data[_][2]
                 roi['label 2'] = data[_][3]
