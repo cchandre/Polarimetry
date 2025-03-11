@@ -20,5 +20,7 @@ It is also possible to install and run PyPOLAR from PyPI, independently of the o
 
 - [Data post-processing](https://github.com/cchandre/Polarimetry/blob/master/AdditionalFiles/README.md)
 
+- [Publications using PyPOLAR]()
+
 ___
 For more information: <cristel.chandre@cnrs.fr>
