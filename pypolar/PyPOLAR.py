@@ -526,7 +526,7 @@ class Polarimetry(CTk.CTk):
             entry.bind('<Return>', command=self.compute_edges)
         Label(master=adv['Edge detection'], text=' ').grid(row=5, column=0)
         params = ['Distance from contour', 'Layer width']
-        tooltips = [' width of the region to be analyzed (in pixels)', ' distance from contour of the region to be analyzed (in pixels)']
+        tooltips = [' distance from contour of the region to be analyzed (in pixels)', ' width of the region to be analyzed (in pixels)']
         self.layer_params = [CTk.StringVar(value='0'), CTk.StringVar(value='10')]
         for _, (param, tooltip) in enumerate(zip(params, tooltips)):
             Entry(adv['Layer'], text=param, textvariable=self.layer_params[_], row=_+1, tooltip=tooltip)
