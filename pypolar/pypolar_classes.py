@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import font as tkfont
 import customtkinter as CTk
 import tksheet
 from pathlib import Path
@@ -70,9 +71,19 @@ def wrapto180(rho:np.ndarray) -> np.ndarray:
 
 ## PyPOLAR WIDGETS
 
+def get_custom_default_font(size=14, weight='normal'):
+    available_fonts = tkfont.families()
+    if "Arial Rounded MT Bold" in available_fonts:
+        return CTk.CTkFont(family="Arial Rounded MT Bold", size=size, weight=weight)
+    elif os_name == 'Windows':
+        return CTk.CTkFont(family=font_windows, size=size, weight=weight) 
+    elif os_name == 'Linux':
+        return CTk.CTkFont(family=font_linux, size=size, weight=weight)
+
 class Button(CTk.CTkButton):
-    def __init__(self, master, text:str=None, image:CTk.CTkImage=None, tooltip:str=None, width:int=button_size[0], height:int=button_size[1], anchor:str='w', **kwargs) -> None:
+    def __init__(self, master, text:str=None, image:CTk.CTkImage=None, tooltip:str=None, width:int=button_size[0], height:int=button_size[1], anchor:str='w', fontsize:int=13, **kwargs) -> None:
         super().__init__(master, text=text, image=image, width=width, height=height, anchor=anchor, compound=tk.LEFT, **kwargs)
+        self.configure(font=get_custom_default_font(size=fontsize))
         if text is None:
             self.configure(width=height)
         if tooltip is not None:
@@ -138,8 +149,9 @@ class DropDown(CTk.CTkFrame):
         return self.option_menu.bind(*args, **kwargs)
     
 class Label(CTk.CTkLabel):
-    def __init__(self, master, tooltip:str=None, **kwargs) -> None:
+    def __init__(self, master, tooltip:str=None, fontsize:int=13, weight:str='normal', **kwargs) -> None:
         super().__init__(master, **kwargs)
+        self.configure(font=get_custom_default_font(size=fontsize, weight=weight))
         if tooltip is not None:
             ToolTip(self, text=tooltip)
 
@@ -480,7 +492,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
                 ToolTip(button, text=tooltip_text)
                 
         if os_name == 'Darwin':
-            self._label_font = CTk.CTkFont(family=font_macosx, size=11, weight='normal')
+            self._label_font = CTk.CTkFont(family=font_macosx, size=12, weight='normal')
         elif os_name == 'Windows':
             self._label_font = CTk.CTkFont(family=font_windows, size=13, weight='bold')
         elif os_name == 'Linux':
