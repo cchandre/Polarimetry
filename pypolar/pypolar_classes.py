@@ -71,9 +71,8 @@ def wrapto180(rho:np.ndarray) -> np.ndarray:
 
 ## PyPOLAR WIDGETS
 
-def get_custom_default_font(size=13, weight='normal'):
-    available_fonts = tkfont.families()
-    if font_macosx in available_fonts:
+def get_custom_default_font(size:int=13, weight:str='normal') -> CTk.CTkFont: 
+    if font_macosx in tkfont.families():
         return CTk.CTkFont(family=font_macosx, size=size, weight=weight)
     elif os_name == 'Windows':
         return CTk.CTkFont(family=font_windows, size=size, weight=weight) 
