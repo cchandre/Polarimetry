@@ -10,7 +10,7 @@ gray = ('#7F7F7F', '#A6A6A6')
 
 font_macosx = 'Arial Rounded MT Bold'
 font_windows = 'Segoe UI'
-font_linux = 'Ubuntu'
+font_linux = 'DejaVu Sans'
 
 file = Path(__file__).parent / 'polarimetry.json'
 

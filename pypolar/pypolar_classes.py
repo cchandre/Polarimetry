@@ -24,7 +24,7 @@ import matplotlib.backends.backend_pdf
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.backend_bases import NavigationToolbar2, _Mode, MouseEvent
 from typing import Callable, List, Tuple, Union
-from generate_json import font_macosx, font_windows, orange, red, gray, text_color
+from generate_json import font_macosx, font_windows, font_linux, orange, red, gray, text_color
 
 button_size = (160, 40)
 
@@ -482,6 +482,8 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
             self._label_font = CTk.CTkFont(family=font_macosx, size=11, weight='normal')
         elif sys.platform == 'win32':
             self._label_font = CTk.CTkFont(family=font_windows, size=13, weight='bold')
+        elif sys.platform == 'linux':
+            self._label_font = CTk.CTkFont(family=font_linux, size=12, weight='normal')
 
         label = tk.Label(master=self, font=self._label_font, text='\N{NO-BREAK SPACE}\n\N{NO-BREAK SPACE}')
         label.pack(side=tk.RIGHT)
@@ -693,6 +695,8 @@ class ToolTip:
             label_font = CTk.CTkFont(family=font_macosx, size=11, weight='normal')
         elif sys.platform == 'win32':
             label_font = CTk.CTkFont(family=font_windows, size=13, weight='bold')
+        elif sys.platform == 'linux':
+            label_font = CTk.CTkFont(family=font_linux, size=12, weight='normal')
         label = tk.Label(win, text=self.text, font=label_font, justify=tk.LEFT, relief=tk.SOLID, borderwidth=0, wraplength=self.wraplength)
         label.grid(padx=(pad[0], pad[2]), pady=(pad[1], pad[3]), sticky=tk.NSEW)
         win.grid()
