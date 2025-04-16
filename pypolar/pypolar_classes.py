@@ -36,8 +36,8 @@ geometry_info = lambda dim: f'{dim[0]}x{dim[1]}+400+300'
 def adjust(field:np.ndarray, contrast:float, vmin:float, vmax:float, sharpen:bool=True) -> np.ndarray:
     if sharpen:
         amount = 0.8
-        blur = cv2.GaussianBlur(field, (5, 5), sigmaX=1)
-        sharpened = cv2.addWeighted(field, 1 + amount, blur, -amount, 0)
+        blurred = cv2.GaussianBlur(field, (5, 5), sigmaX=1)
+        sharpened = cv2.addWeighted(field, 1 + amount, blurred, -amount, 0)
         sharpened = np.maximum(sharpened, vmin)
     else:
         sharpened = field.copy()
