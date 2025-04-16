@@ -739,7 +739,7 @@ class ROIManager(CTk.CTkToplevel):
         self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, rois)) + f'+1350+200')
 
         font = (font_name, 13, 'normal')
-        header_font = (font_name, 15, 'bold')
+        header_font = (font_name, 14, 'bold')
 
         labels_ = type(self).labels + ['select', 'delete']
         labels_[0] = 'ROI'
