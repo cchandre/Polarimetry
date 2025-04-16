@@ -1,6 +1,7 @@
 import customtkinter as CTk
 from tkinter import Event as tkEvent
 from tkinter import filedialog as fd
+from tkinter import font as tkfont
 from pathlib import Path
 import os
 import shutil
@@ -88,10 +89,15 @@ class Polarimetry(CTk.CTk):
 
     def __init__(self) -> None:
         super().__init__()
+        global font_macosx, font_windows, font_linux
 
 ## MAIN
         base_dir = Path(__file__).parent
         image_path = base_dir / 'icons'
+
+        if "Arial Rounded MT Bold" in tkfont.families():
+            font_windows = "Arial Rounded MT Bold"
+            font_linux = "Arial Rounded MT Bold"
 
         height = int(self.ratio_app * self.winfo_screenheight())
         width = height + self.left_width

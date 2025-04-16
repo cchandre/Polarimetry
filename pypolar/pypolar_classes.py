@@ -71,10 +71,10 @@ def wrapto180(rho:np.ndarray) -> np.ndarray:
 
 ## PyPOLAR WIDGETS
 
-def get_custom_default_font(size=14, weight='normal'):
+def get_custom_default_font(size=13, weight='normal'):
     available_fonts = tkfont.families()
-    if "Arial Rounded MT Bold" in available_fonts:
-        return CTk.CTkFont(family="Arial Rounded MT Bold", size=size, weight=weight)
+    if font_macosx in available_fonts:
+        return CTk.CTkFont(family=font_macosx, size=size, weight=weight)
     elif os_name == 'Windows':
         return CTk.CTkFont(family=font_windows, size=size, weight=weight) 
     elif os_name == 'Linux':
@@ -130,7 +130,7 @@ class DropDown(CTk.CTkFrame):
         self.variable = variable
         self.icon = Button(self, image=image, tooltip=tooltip, hover=False, width=button_size[1])
         self.icon.grid(row=0, column=0)
-        self.option_menu = CTk.CTkOptionMenu(self, values=values, width=button_size[0]-button_size[1]-5, height=button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state)
+        self.option_menu = CTk.CTkOptionMenu(self, values=values, width=button_size[0]-button_size[1]-5, height=button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state, font=get_custom_default_font())
         self.option_menu.grid(row=0, column=1)
 
     def set_state(self, state:str) -> None:
@@ -158,6 +158,7 @@ class Label(CTk.CTkLabel):
 class OptionMenu(CTk.CTkOptionMenu):
     def __init__(self, master, tooltip:str=None, **kwargs) -> None:
         super().__init__(master, **kwargs)
+        self.configure(font=get_custom_default_font())
         if tooltip is not None:
             ToolTip(self, text=tooltip)
 
@@ -209,7 +210,7 @@ class ShowInfo(CTk.CTkToplevel):
         self.attributes('-topmost', 'true')
         self.title('PyPOLAR')
         self.geometry(geometry_info(geometry))
-        CTk.CTkLabel(self, text=message, image=image, compound='left', width=250, justify=tk.LEFT, font=CTk.CTkFont(size=fontsize)).grid(row=0, column=0, padx=30, pady=20)
+        CTk.CTkLabel(self, text=message, image=image, compound='left', width=250, justify=tk.LEFT, font=get_custom_default_font(size=fontsize)).grid(row=0, column=0, padx=30, pady=20)
         self.buttons = []
         if button_labels:
             if len(button_labels) >= 2:
@@ -237,7 +238,7 @@ class Switch(CTk.CTkSwitch):
 class TextBox(CTk.CTkTextbox):
     def __init__(self, master, tooltip:str=None, **kwargs) -> None:
         super().__init__(master, **kwargs)
-        self.configure(state='disabled')
+        self.configure(state='disabled', font=get_custom_default_font())
         if tooltip is not None:
             ToolTip(self, text=tooltip)
 
@@ -704,13 +705,13 @@ class ToolTip:
         self.tw = tk.Toplevel(widget)
         self.tw.wm_overrideredirect(True)
         win = tk.Frame(self.tw, borderwidth=0)
-        if os_name == 'Darwin':
-            label_font = CTk.CTkFont(family=font_macosx, size=11, weight='normal')
-        elif os_name == 'Windows':
-            label_font = CTk.CTkFont(family=font_windows, size=13, weight='bold')
-        elif os_name == 'Linux':
-            label_font = CTk.CTkFont(family=font_linux, size=12, weight='normal')
-        label = tk.Label(win, text=self.text, font=label_font, justify=tk.LEFT, relief=tk.SOLID, borderwidth=0, wraplength=self.wraplength)
+        #if os_name == 'Darwin':
+        #    label_font = CTk.CTkFont(family=font_macosx, size=11, weight='normal')
+        #elif os_name == 'Windows':
+        #    label_font = CTk.CTkFont(family=font_windows, size=13, weight='bold')
+        #elif os_name == 'Linux':
+        #    label_font = CTk.CTkFont(family=font_linux, size=12, weight='normal')
+        label = tk.Label(win, text=self.text, font=get_custom_default_font(11), justify=tk.LEFT, relief=tk.SOLID, borderwidth=0, wraplength=self.wraplength)
         label.grid(padx=(pad[0], pad[2]), pady=(pad[1], pad[3]), sticky=tk.NSEW)
         win.grid()
         x, y = tip_pos_calculator(widget, label)
