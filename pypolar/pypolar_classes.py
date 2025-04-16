@@ -705,12 +705,6 @@ class ToolTip:
         self.tw = tk.Toplevel(widget)
         self.tw.wm_overrideredirect(True)
         win = tk.Frame(self.tw, borderwidth=0)
-        #if os_name == 'Darwin':
-        #    label_font = CTk.CTkFont(family=font_macosx, size=11, weight='normal')
-        #elif os_name == 'Windows':
-        #    label_font = CTk.CTkFont(family=font_windows, size=13, weight='bold')
-        #elif os_name == 'Linux':
-        #    label_font = CTk.CTkFont(family=font_linux, size=12, weight='normal')
         label = tk.Label(win, text=self.text, font=get_custom_default_font(11), justify=tk.LEFT, relief=tk.SOLID, borderwidth=0, wraplength=self.wraplength)
         label.grid(padx=(pad[0], pad[2]), pady=(pad[1], pad[3]), sticky=tk.NSEW)
         win.grid()
@@ -732,7 +726,7 @@ class ROIManager(CTk.CTkToplevel):
     cmax = len(labels)
     cell_height = 25
 
-    def __init__(self, rois:list=[], button_images:list=[]) -> None:
+    def __init__(self, rois:list=[], button_images:list=[], font_name:str=font_macosx) -> None:
         super().__init__(fg_color=gray[1])
         self.title('ROI Manager')
         self.grid_columnconfigure(1, weight=1)
@@ -744,15 +738,8 @@ class ROIManager(CTk.CTkToplevel):
 
         self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, rois)) + f'+1350+200')
 
-        if os_name == 'Darwin':
-            font = (font_macosx, 14, 'normal')
-            header_font = (font_macosx, 16, 'bold')
-        elif os_name == 'Windows':
-            font = (font_windows, 14, 'normal')
-            header_font = (font_windows, 16, 'bold')
-        elif os_name == 'Linux':
-            font = (font_linux, 14, 'normal')
-            header_font = (font_linux, 16, 'bold')
+        font = (font_name, 14, 'normal')
+        header_font = (font_name, 16, 'bold')
 
         labels_ = type(self).labels + ['select', 'delete']
         labels_[0] = 'ROI'

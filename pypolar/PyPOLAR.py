@@ -89,15 +89,17 @@ class Polarimetry(CTk.CTk):
 
     def __init__(self) -> None:
         super().__init__()
-        global font_macosx, font_windows, font_linux
 
 ## MAIN
         base_dir = Path(__file__).parent
         image_path = base_dir / 'icons'
 
         if "Arial Rounded MT Bold" in tkfont.families():
-            font_windows = "Arial Rounded MT Bold"
-            font_linux = "Arial Rounded MT Bold"
+            self.default_font = "Arial Rounded MT Bold"
+        elif os_name == "Windows":
+            self.default_font = font_windows
+        elif os_name == "Linux":
+            self.default_font = font_linux
 
         height = int(self.ratio_app * self.winfo_screenheight())
         width = height + self.left_width
@@ -674,7 +676,7 @@ class Polarimetry(CTk.CTk):
 
         if not hasattr(self, 'manager'):
             button_images = [self.icons['save'], self.icons['download'], self.icons['delete']]
-            self.manager = ROIManager(rois=self.datastack.rois if hasattr(self, 'datastack') else [], button_images=button_images)
+            self.manager = ROIManager(rois=self.datastack.rois if hasattr(self, 'datastack') else [], button_images=button_images, font_name=self.default_font)
             self.manager.protocol('WM_DELETE_WINDOW', lambda:on_closing(self.manager))
             self.manager.bind('<Command-q>', lambda:on_closing(self.manager))
             self.manager.bind('<Command-w>', lambda:on_closing(self.manager))
