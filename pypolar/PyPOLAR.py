@@ -2,6 +2,8 @@ import customtkinter as CTk
 from tkinter import Event as tkEvent
 from tkinter import filedialog as fd
 from pathlib import Path
+import os
+import shutil
 import joblib
 import pickle
 import copy
@@ -120,6 +122,49 @@ class Polarimetry(CTk.CTk):
                     winreg.CloseKey(icon_key)
                     winreg.CloseKey(key)
             except OSError:
+                pass
+        elif os_name == 'Linux':
+            EXTS = ['.pyroi', '.pyreg', '.pyfig']
+            TYPES = ['application/x-pypolar-roi', 'application/x-pypolar-registration', 'application/x-pypolar-figure']
+            ICONS = ['pyroi', 'pyreg', 'pyfig'] 
+            APP_NAME = "PyPOLAR"
+            DESKTOP_FILE_NAME = f"{APP_NAME.lower()}.desktop"
+            ICON_INSTALL_PATH = Path.home() / ".local/share/icons"
+            MIME_DIR = Path.home() / ".local/share/mime/packages"
+            APPLICATIONS_DIR = Path.home() / ".local/share/applications"
+            try:
+                ICON_INSTALL_PATH.mkdir(parents=True, exist_ok=True)
+                for icon_file in ICONS:
+                    src = image_path / f"{icon_file}.png"
+                    dest = ICON_INSTALL_PATH / f"{icon_file}.png"
+                    if src.exists():
+                        shutil.copy(src, dest)
+                MIME_DIR.mkdir(parents=True, exist_ok=True)
+                for EXT, MIME in zip(EXTS, TYPES):
+                    mime_xml = MIME_DIR / f"{MIME.replace('/', '-')}.xml"
+                    with mime_xml.open("w") as f:
+                        f.write(f"""<?xml version="1.0" encoding="UTF-8"?>
+            <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+            <mime-type type="{MIME}">
+                <comment>{APP_NAME} File</comment>
+                <glob pattern="*{EXT}"/>
+            </mime-type>
+            </mime-info>
+            """)
+                APPLICATIONS_DIR.mkdir(parents=True, exist_ok=True)
+                desktop_file = APPLICATIONS_DIR / DESKTOP_FILE_NAME
+                with desktop_file.open("w") as f:
+                    f.write(f"""[Desktop Entry]
+            Name={APP_NAME}
+            Exec=/usr/bin/{APP_NAME.lower()} %f
+            MimeType={';'.join(TYPES)};
+            Icon={ICONS[0]}
+            Type=Application
+            Categories=Utility;
+            """)
+                os.system("update-mime-database ~/.local/share/mime > /dev/null 2>&1")
+                os.system("update-desktop-database ~/.local/share/applications > /dev/null 2>&1")
+            except Exception:
                 pass
 
 ## DEFINE FRAMES
