@@ -117,12 +117,6 @@ class Polarimetry(CTk.CTk):
         if os_name == 'Windows':
             self.iconbitmap(str(base_dir / 'main_icon.ico'))
             import winreg
-            import ctypes
-            from win32api import GetSystemMetrics
-            hdc = ctypes.windll.gdi32.GetDC(0)
-            font_size = ctypes.windll.gdi32.GetTextMetricsW(hdc)
-            ctypes.windll.gdi32.ReleaseDC(0, hdc)
-            print(font_size)
             EXTS = ['.pyroi', '.pyreg', '.pyfig']
             TYPES = ['PyPOLAR ROI', 'PyPOLAR Registration', 'PyPOLAR Figure']
             ICONS = ['pyroi.ico', 'pyreg.ico', 'pyfig.ico']
