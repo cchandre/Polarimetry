@@ -492,12 +492,7 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
             if tooltip_text is not None:
                 ToolTip(button, text=tooltip_text)
                 
-        if os_name == 'Darwin':
-            self._label_font = CTk.CTkFont(family=font_macosx, size=12, weight='normal')
-        elif os_name == 'Windows':
-            self._label_font = CTk.CTkFont(family=font_windows, size=13, weight='bold')
-        elif os_name == 'Linux':
-            self._label_font = CTk.CTkFont(family=font_linux, size=12, weight='normal')
+        self._label_font = get_custom_default_font(size=12)
 
         label = tk.Label(master=self, font=self._label_font, text='\N{NO-BREAK SPACE}\n\N{NO-BREAK SPACE}')
         label.pack(side=tk.RIGHT)
