@@ -1,7 +1,6 @@
 import customtkinter as CTk
 from tkinter import Event as tkEvent
 from tkinter import filedialog as fd
-import sys
 from pathlib import Path
 import joblib
 import pickle
@@ -34,8 +33,8 @@ from typing import List, Tuple, Union
 from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, PyPOLARfigure, ROIManager, TabView, ToolTip
 from pypolar_classes import Button, CheckBox, Entry, DropDown, Label, OptionMenu, SpinBox, ShowInfo, TextBox
 from pypolar_classes import adjust, angle_edge, circularmean, divide_ext, find_matches, wrapto180
-from pypolar_classes import button_size, geometry_info
-from generate_json import font_macosx, font_windows, orange, gray, red, green, blue, text_color
+from pypolar_classes import button_size, geometry_info, os_name
+from generate_json import font_macosx, font_windows, font_linux, orange, gray, red, green, blue, text_color
 
 try:
     from ctypes import windll 
@@ -50,11 +49,13 @@ CTk.set_default_color_theme(Path(__file__).parent / 'polarimetry.json')
 CTk.set_appearance_mode('dark')
 
 plt.rcParams['font.size'] = 16
-if sys.platform == 'darwin':
+if os_name == 'Darwin':
     plt.rcParams['font.family'] = font_macosx
     #mpl.use('macosx')
-elif sys.platform == 'win32':
+elif os_name == 'Windows':
     plt.rcParams['font.family'] = font_windows
+elif os_name == 'Linux':
+    plt.rcParams['font.family'] = font_linux
 plt.rcParams['image.origin'] = 'upper'
 plt.rcParams['figure.max_open_warning'] = 100
 plt.rcParams['axes.unicode_minus'] = False
@@ -103,7 +104,7 @@ class Polarimetry(CTk.CTk):
         self.createcommand('tk::mac::Quit', self.on_closing)
         self.configure(fg_color=gray[0])
         self.icons = {file.stem: CTk.CTkImage(dark_image=Image.open(file).resize((60, 60)), size=(30, 30)) for file in image_path.glob('*.png')}
-        if sys.platform == 'win32':
+        if os_name == 'Windows':
             self.iconbitmap(str(base_dir / 'main_icon.ico'))
             import winreg
             EXTS = ['.pyroi', '.pyreg', '.pyfig']
@@ -112,12 +113,13 @@ class Polarimetry(CTk.CTk):
             try:
                 for EXT, TYPE, ICON in zip(EXTS, TYPES, ICONS):
                     key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, EXT)
-                    winreg.SetValue(key, None, winreg.REG_SZ, TYPE)
-                    iconkey = winreg.CreateKey(key, 'DefaultIcon')
-                    winreg.SetValue(iconkey, None, winreg.REG_SZ, str(image_path / ICON))
-                    winreg.CloseKey(iconkey)
+                    winreg.SetValue(key, '', winreg.REG_SZ, TYPE)
+                    icon_key_path = f"{TYPE}\\DefaultIcon"
+                    icon_key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, icon_key_path)
+                    winreg.SetValue(icon_key, '', winreg.REG_SZ, str(image_path / ICON))
+                    winreg.CloseKey(icon_key)
                     winreg.CloseKey(key)
-            except WindowsError:
+            except OSError:
                 pass
 
 ## DEFINE FRAMES

@@ -2,7 +2,7 @@ import tkinter as tk
 import customtkinter as CTk
 import tksheet
 from pathlib import Path
-import sys
+import platform
 import pickle
 import roifile
 import numpy as np
@@ -27,6 +27,7 @@ from typing import Callable, List, Tuple, Union
 from generate_json import font_macosx, font_windows, font_linux, orange, red, gray, text_color
 
 button_size = (160, 40)
+os_name = platform.system()
 
 ## PyPOLAR USEFUL FUNCTIONS
 
@@ -478,11 +479,11 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
             if tooltip_text is not None:
                 ToolTip(button, text=tooltip_text)
                 
-        if sys.platform == 'darwin':
+        if os_name == 'Darwin':
             self._label_font = CTk.CTkFont(family=font_macosx, size=11, weight='normal')
-        elif sys.platform == 'win32':
+        elif os_name == 'Windows':
             self._label_font = CTk.CTkFont(family=font_windows, size=13, weight='bold')
-        elif sys.platform == 'linux':
+        elif os_name == 'Linux':
             self._label_font = CTk.CTkFont(family=font_linux, size=12, weight='normal')
 
         label = tk.Label(master=self, font=self._label_font, text='\N{NO-BREAK SPACE}\n\N{NO-BREAK SPACE}')
@@ -691,11 +692,11 @@ class ToolTip:
         self.tw = tk.Toplevel(widget)
         self.tw.wm_overrideredirect(True)
         win = tk.Frame(self.tw, borderwidth=0)
-        if sys.platform == 'darwin':
+        if os_name == 'Darwin':
             label_font = CTk.CTkFont(family=font_macosx, size=11, weight='normal')
-        elif sys.platform == 'win32':
+        elif os_name == 'Windows':
             label_font = CTk.CTkFont(family=font_windows, size=13, weight='bold')
-        elif sys.platform == 'linux':
+        elif os_name == 'Linux':
             label_font = CTk.CTkFont(family=font_linux, size=12, weight='normal')
         label = tk.Label(win, text=self.text, font=label_font, justify=tk.LEFT, relief=tk.SOLID, borderwidth=0, wraplength=self.wraplength)
         label.grid(padx=(pad[0], pad[2]), pady=(pad[1], pad[3]), sticky=tk.NSEW)
@@ -730,12 +731,15 @@ class ROIManager(CTk.CTkToplevel):
 
         self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, rois)) + f'+1350+200')
 
-        if sys.platform == 'darwin':
+        if os_name == 'Darwin':
             font = (font_macosx, 14, 'normal')
             header_font = (font_macosx, 16, 'bold')
-        elif sys.platform == 'win32':
+        elif os_name == 'Windows':
             font = (font_windows, 14, 'normal')
             header_font = (font_windows, 16, 'bold')
+        elif os_name == 'Linux':
+            font = (font_linux, 14, 'normal')
+            header_font = (font_linux, 16, 'bold')
 
         labels_ = type(self).labels + ['select', 'delete']
         labels_[0] = 'ROI'
