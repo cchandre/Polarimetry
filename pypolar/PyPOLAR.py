@@ -73,7 +73,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.8.0'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'April 16, 2025'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -1075,8 +1075,8 @@ class Polarimetry(CTk.CTk):
             variables = ['\u03C1', 'S2', 'S4']
             vals = [(0, 180), (0, 1), (-1, 1)]
         elif method == 'SHG':
-            variables = ['\u03C1', 'S', 'S2', 'S4']
-            vals = [(0, 180), (-1, 1), (0, 1), (-1, 1)]
+            variables = ['\u03C1', 'S2', 'S4', 'S']
+            vals = [(0, 180), (0, 1), (-1, 1), (-1, 1)]
         elif method == '4POLAR 3D':
             variables = ['\u03C1', '\u03C8', '\u03B7']
             vals = [(0, 180), (40, 180), (0, 90)]
@@ -2112,7 +2112,7 @@ class Polarimetry(CTk.CTk):
             s2_.values[mask] = 1.5 * np.abs(a2[mask])
             s4_ = Variable('S4', datastack=datastack)
             s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.values[mask])))
-            datastack.vars = [rho_, s_shg_, s2_, s4_]
+            datastack.vars = [rho_, s2_, s4_, s_shg_]
         elif self.method.get() == '4POLAR 3D':
             mask *= (lam < 1/3) * (lam > 0) * (pzz > lam)
             rho_.values[mask] = 0.5 * np.rad2deg(np.arctan2(puv[mask], pxy[mask]))

@@ -319,8 +319,8 @@ class Variable:
                 'S2_contour': [1, ['normal'], '$S_2$', ['jet', 'viridis']],
                 'S4': [2, ['normal'], '$S_4$', ['jet', 'viridis']],
                 'S4_contour': [2, ['normal'], '$S_4$', ['jet', 'viridis']],
-                'S_SHG': [1, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis']],
-                'S_SHG_contour': [1, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis']]}.get(name)
+                'S_SHG': [3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis']],
+                'S_SHG_contour': [3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis']]}.get(name)
         self.indx = var[0] if var is not None else 0
         self.name = name
         self.latex = var[2] if var is not None else ''
