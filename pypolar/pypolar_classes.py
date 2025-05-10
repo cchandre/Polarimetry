@@ -360,6 +360,9 @@ class Variable:
             ax.set_xlabel(self.latex, fontsize=20)
             text = self.latex + ' = ' + '{:.2f}'.format(np.mean(data_vals)) + ' $\pm$ ' '{:.2f}'.format(np.std(data_vals))
             ax.annotate(text, xy=(0.3, 1.05), xycoords='axes fraction', fontsize=14)
+            if self.name == 'Psi':
+                xtick_labels = ax.get_xticklabels()
+                ax.set_xticklabels([label.get_text() + "\u00B0" for label in xtick_labels])
         elif htype.startswith('polar'):
             ax = plt.subplot(projection='polar')
             if htype == 'polar1':
