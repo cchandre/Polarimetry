@@ -55,8 +55,11 @@ def angle_edge(edge:np.ndarray) -> Tuple[float, np.ndarray]:
 def circularmean(rho:np.ndarray) -> float:
     return np.mod(np.angle(np.mean(np.exp(2j * np.deg2rad(rho))), deg=True), 360) / 2
 
-def divide_ext(a:np.ndarray, b:np.ndarray) -> np.ndarray:
-    return np.divide(a, b, where=np.all((b!=0, np.isfinite(b)), axis=0))
+def divide_ext(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    result = np.full_like(a, np.nan, dtype=np.result_type(a, b))
+    mask = (b != 0) & np.isfinite(b)
+    result[mask] = np.divide(a[mask], b[mask])
+    return result
 
 def find_matches(a:np.ndarray, b:np.ndarray, tol:float=10) -> Tuple[np.ndarray, np.ndarray]:
     a_, b_ = (a, b) if len(b) >= len(a) else (b, a)

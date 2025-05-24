@@ -72,8 +72,8 @@ def main():
 
 class Polarimetry(CTk.CTk):
 
-    __version__ = '2.8.0'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025'}
+    __version__ = '2.8.1'
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -2062,7 +2062,7 @@ class Polarimetry(CTk.CTk):
                 field_fit += (a4[np.newaxis] * e4.conj()).real
                 a4 = divide_ext(a4, a0)
             chi2 = np.mean(np.divide((field - field_fit)**2, field_fit, where=np.all((field_fit!=0, np.isfinite(field_fit)), axis=0)), axis=0)
-            mask *= (chi2 <= chi2threshold) * (chi2 > 0)
+            mask *= np.all(field_fit > 0, axis=0) * (chi2 <= chi2threshold) * (chi2 > 0)
         elif self.method.get() == '4POLAR 3D':
             mat = np.einsum('ij,jmn->imn', self.CD.invKmat, field)
             s = mat[0] + mat[1] + mat[2]
@@ -2083,7 +2083,6 @@ class Polarimetry(CTk.CTk):
             a0[a0 == 0] = np.nan
         rho_ = Variable('Rho', datastack=datastack)
         if self.method.get() == '1PF':
-            mask *= np.abs(a2) < 1
             a2_vals = np.moveaxis(np.asarray([a2.real[mask].flatten(), a2.imag[mask].flatten()]), 0, -1)
             rho, psi = np.moveaxis(interpn(self.CD.xy, self.CD.RhoPsi, a2_vals), 0, 1)
             ixgrid = mask.nonzero()
@@ -2094,7 +2093,6 @@ class Polarimetry(CTk.CTk):
             mask *= np.isfinite(rho_.values) * np.isfinite(psi_.values)
             datastack.vars = [rho_, psi_]
         elif self.method.get() in ['CARS', 'SRS', '2PF']:
-            mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1)
             rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
             rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
             s2_ = Variable('S2', datastack=datastack)
@@ -2103,7 +2101,6 @@ class Polarimetry(CTk.CTk):
             s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.values[mask])))
             datastack.vars = [rho_, s2_, s4_]
         elif self.method.get() == 'SHG':
-            mask *= (np.abs(a2) < 1) * (np.abs(a4) < 1)
             rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
             rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
             s_shg_ = Variable('S_SHG', datastack=datastack)
