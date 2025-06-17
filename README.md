@@ -14,8 +14,6 @@ It is also possible to install and run PyPOLAR from PyPI, independently of the o
 
 - Wiki: [PyPOLARwiki](https://github.com/cchandre/Polarimetry/wiki)
 
-- [Articles using PyPOLAR](https://github.com/cchandre/Polarimetry/wiki/articles)
-
 <div align="center">
 <img src="https://github.com/cchandre/Polarimetry/raw/master/pypolar/PyPOLAR_layout.png" alt=" " width="400"/>  
 </div>
