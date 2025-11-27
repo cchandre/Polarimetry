@@ -72,8 +72,8 @@ def main():
 
 class Polarimetry(CTk.CTk):
 
-    __version__ = '2.8.1'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025'}
+    __version__ = '2.8.2'
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.8.2': 'November 27, 2025'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -518,25 +518,26 @@ class Polarimetry(CTk.CTk):
         self.tabview.set('About' if self.tabview.get()!='About' else 'Intensity')
 
     def edge_button_callback(self) -> None:
-        if hasattr(self, 'stack'):
-            if hasattr(self, 'edge_contours'):
-                self.edge_button.configure(fg_color=orange[0])
-                delattr(self, 'edge_contours')
-                self.tabview.delete('Edge Detection')
-                self.ontab_thrsh()
-            else:
-                if not hasattr(self, 'edge_window'):
-                    self.edge_button.configure(fg_color=blue[0])
-                    self.edge_window = ShowInfo(message=' Image for edge detection', image=self.icons['multiline_chart'], button_labels=['Download', 'Compute', 'Cancel'], geometry=(370, 140), fontsize=16)
-                    self.edge_window.protocol('WM_DELETE_WINDOW', self.cancel_edge_mask)
-                    self.edge_window.bind('<Command-q>', self.cancel_edge_mask)
-                    self.edge_window.bind('<Command-w>', self.cancel_edge_mask)
-                    buttons = self.edge_window.get_buttons()
-                    buttons[0].configure(command=self.download_edge_mask)
-                    buttons[1].configure(command=self.compute_edge_mask)
-                    buttons[2].configure(command=self.cancel_edge_mask)
-                else: 
-                    self.cancel_edge_mask()
+        if not hasattr(self, 'stack'):
+            return
+        if hasattr(self, 'edge_contours'):
+            self.edge_button.configure(fg_color=orange[0])
+            delattr(self, 'edge_contours')
+            self.tabview.delete('Edge Detection')
+            self.ontab_thrsh()
+        else:
+            if not hasattr(self, 'edge_window'):
+                self.edge_button.configure(fg_color=blue[0])
+                self.edge_window = ShowInfo(message=' Image for edge detection', image=self.icons['multiline_chart'], button_labels=['Download', 'Compute', 'Cancel'], geometry=(370, 140), fontsize=16)
+                self.edge_window.protocol('WM_DELETE_WINDOW', self.cancel_edge_mask)
+                self.edge_window.bind('<Command-q>', self.cancel_edge_mask)
+                self.edge_window.bind('<Command-w>', self.cancel_edge_mask)
+                buttons = self.edge_window.get_buttons()
+                buttons[0].configure(command=self.download_edge_mask)
+                buttons[1].configure(command=self.compute_edge_mask)
+                buttons[2].configure(command=self.cancel_edge_mask)
+            else: 
+                self.cancel_edge_mask()
 
     def cancel_edge_mask(self) -> None:
         self.edge_window.withdraw()
@@ -723,22 +724,22 @@ class Polarimetry(CTk.CTk):
                     plt.show()
 
     def colorblind_on_all_figures(self) -> None:
-            figs = list(map(plt.figure, plt.get_fignums()))
-            for fig in figs:
-                fs = fig.canvas.manager.get_window_title()
-                if hasattr(self, 'datastack'):
-                    for var in self.datastack.vars:
-                        if (var.name == fig.var):
-                            cmap = var.colormap[self.colorblind_checkbox.get()]
-                    if fig.type == 'Intensity':
-                        cmap = self.datastack.vars[0].colormap[self.colorblind_checkbox.get()]
-                    if (fig.type == 'Composite') and (self.datastack.name in fs):
-                        fig.axes[0].images[1].set_cmap(cmap)
-                    elif ((fig.type == 'Sticks') or ((fig.type == 'Intensity') and hasattr(self, 'edge_contours'))) and (self.datastack.name in fs):
-                        fig.axes[0].collections[0].set_cmap(cmap)
-                if fs.startswith('Disk Cone'):
-                    fig.axes[0].images[0].set_cmap('hsv' if not self.colorblind_checkbox.get() else m_colorwheel)
-                    fig.axes[1].images[0].set_cmap('jet' if not self.colorblind_checkbox.get() else 'viridis')
+        figs = list(map(plt.figure, plt.get_fignums()))
+        for fig in figs:
+            fs = fig.canvas.manager.get_window_title()
+            if hasattr(self, 'datastack'):
+                for var in self.datastack.vars:
+                    if (var.name == fig.var):
+                        cmap = var.colormap[self.colorblind_checkbox.get()]
+                if fig.type == 'Intensity':
+                    cmap = self.datastack.vars[0].colormap[self.colorblind_checkbox.get()]
+                if (fig.type == 'Composite') and (self.datastack.name in fs):
+                    fig.axes[0].images[1].set_cmap(cmap)
+                elif ((fig.type == 'Sticks') or ((fig.type == 'Intensity') and hasattr(self, 'edge_contours'))) and (self.datastack.name in fs):
+                    fig.axes[0].collections[0].set_cmap(cmap)
+            if fs.startswith('Disk Cone'):
+                fig.axes[0].images[0].set_cmap('hsv' if not self.colorblind_checkbox.get() else m_colorwheel)
+                fig.axes[1].images[0].set_cmap('jet' if not self.colorblind_checkbox.get() else 'viridis')
 
     def options_dropdown_callback(self, option:str) -> None:
         self.options_dropdown.get_icon().configure(image=self.icons['build_fill'] if option.endswith('(auto)') else self.icons['build'])
@@ -850,24 +851,25 @@ class Polarimetry(CTk.CTk):
             ShowInfo(message=' Select an active figure of the type\n Composite, Sticks or Intensity', image=self.icons['crop'], button_labels=['OK'])
 
     def createROIfromcrop(self) -> None:
-        if hasattr(self, 'datastack'):
-            self.get_axes()
-            roix = np.asarray([int(self.xylim[0].get()), int(self.xylim[1].get()), int(self.xylim[1].get()), int(self.xylim[0].get())])
-            roiy = np.asarray([int(self.xylim[3].get()), int(self.xylim[3].get()), int(self.xylim[2].get()), int(self.xylim[2].get())])
-            if (float(self.rotation[1].get()) != 0) :
-                theta = -np.deg2rad(float(self.rotation[1].get()))
-                cosd, sind = np.cos(theta), np.sin(theta)
-                x0, y0 = self.datastack.width / 2, self.datastack.height / 2
-                vertices = np.asarray([x0 + (roix - x0) * cosd + (roiy - y0) * sind, y0 - (roix - x0) * sind + (roiy - y0) * cosd])
-            else:
-                vertices = np.asarray([roix, roiy])
-            indx = self.datastack.rois[-1]['indx'] + 1 if self.datastack.rois else 1
-            self.datastack.rois += [{'indx': indx, 'label': (vertices[0][0], vertices[1][0]), 'vertices': vertices, 'ILow': self.ilow.get(), 'label 1': '', 'label 2': '', 'label 3': '', 'select': True}]
-            self.thrsh_pyfig.canvas.draw()
-            self.ontab_intensity()
-            self.ontab_thrsh()
-            if hasattr(self, 'manager'):
-                self.manager.update_manager(self.datastack.rois)
+        if not hasattr(self, 'datastack'):
+            return
+        self.get_axes()
+        roix = np.asarray([int(self.xylim[0].get()), int(self.xylim[1].get()), int(self.xylim[1].get()), int(self.xylim[0].get())])
+        roiy = np.asarray([int(self.xylim[3].get()), int(self.xylim[3].get()), int(self.xylim[2].get()), int(self.xylim[2].get())])
+        if (float(self.rotation[1].get()) != 0) :
+            theta = -np.deg2rad(float(self.rotation[1].get()))
+            cosd, sind = np.cos(theta), np.sin(theta)
+            x0, y0 = self.datastack.width / 2, self.datastack.height / 2
+            vertices = np.asarray([x0 + (roix - x0) * cosd + (roiy - y0) * sind, y0 - (roix - x0) * sind + (roiy - y0) * cosd])
+        else:
+            vertices = np.asarray([roix, roiy])
+        indx = self.datastack.rois[-1]['indx'] + 1 if self.datastack.rois else 1
+        self.datastack.rois += [{'indx': indx, 'label': (vertices[0][0], vertices[1][0]), 'vertices': vertices, 'ILow': self.ilow.get(), 'label 1': '', 'label 2': '', 'label 3': '', 'select': True}]
+        self.thrsh_pyfig.canvas.draw()
+        self.ontab_intensity()
+        self.ontab_thrsh()
+        if hasattr(self, 'manager'):
+            self.manager.update_manager(self.datastack.rois)
 
     def reset_figures(self) -> None:
         if hasattr(self, 'datastack'):
@@ -890,41 +892,49 @@ class Polarimetry(CTk.CTk):
             canvas.draw()
 
     def export_mask(self) -> None:
-        if hasattr(self, 'datastack'):
-            window = ShowInfo(message=' Select output mask type: \n\n   - ROI: export ROIs as segmentation mask \n   - Intensity: export intensity-thresholded image as segmentation mask \n   - ROI \u00D7 Intensity: export intensity-thresholded ROIs as segmentation mask', image=self.icons['open_in_new'], button_labels=['ROI', 'Intensity', 'ROI \u00D7 Intensity', 'Cancel'], geometry=(530, 200))
-            buttons = window.get_buttons()
-            buttons[0].configure(command=lambda:self.export_mask_callback(window, 0))
-            buttons[1].configure(command=lambda:self.export_mask_callback(window, 1))
-            buttons[2].configure(command=lambda:self.export_mask_callback(window, 2))
-            buttons[3].configure(command=lambda:self.export_mask_callback(window, 3))
+        if not hasattr(self, 'datastack'):
+            return
+        window = ShowInfo(message=' Select output mask type: \n\n   - ROI: export ROIs as segmentation mask (per ROI or not) \n   - Intensity: export intensity-thresholded image as segmentation mask \n   - ROI \u00D7 Intensity: export intensity-thresholded ROIs as segmentation mask', image=self.icons['open_in_new'], button_labels=['ROI', 'Intensity', 'ROI \u00D7 Intensity', 'Cancel'], geometry=(530, 200))
+        buttons = window.get_buttons()
+        buttons[0].configure(command=lambda:self.export_mask_callback(window, 0))
+        buttons[1].configure(command=lambda:self.export_mask_callback(window, 1))
+        buttons[2].configure(command=lambda:self.export_mask_callback(window, 2))
+        buttons[3].configure(command=lambda:self.export_mask_callback(window, 3))
 
     def export_mask_callback(self, window:CTk.CTkToplevel, event:int) -> None:
         roi_map, mask = self.compute_roi_map(self.datastack)
-        array = []
+        file = self.datastack.file
         if event == 0:
-            array = (255 * (roi_map != 0)).astype(np.uint8)
+            if self.per_roi.get():
+                for roi in self.datastack.rois:
+                    self.save_mask((255 * (roi_map == roi['indx'])).astype(np.uint8), file.with_name(file.stem + f'_roi{roi["indx"]}'))
+            else:
+                self.save_mask((255 * (roi_map != 0)).astype(np.uint8), file.with_name(file.stem + '_roi'))
         elif event == 1:
-            array = (255 * (self.datastack.intensity >= float(self.ilow.get()))).astype(np.uint8)
+            self.save_mask((255 * (self.datastack.intensity >= float(self.ilow.get()))).astype(np.uint8), file.with_name(file.stem + '_intensity'))
         elif event == 2:
-            array = (255 * mask).astype(np.uint8)
+            self.save_mask((255 * mask).astype(np.uint8), file.with_name(file.stem + '_roi_intensity'))
+        window.withdraw()
+
+    def save_mask(self, array, file:Path) -> None:
         if np.any(array):
             data = Image.fromarray(array)
-            data.save(self.datastack.file.with_suffix('.png'))
-        window.withdraw()
+            data.save(file.with_suffix('.png'))
 
     def change_colormap(self) -> None:
         self.thrsh_colormap = 'gray' if self.thrsh_colormap == 'hot' else 'hot'
         self.ontab_thrsh()
 
     def no_background(self) -> None:
-        if hasattr(self, 'stack'):
-            if self.thrsh_fig.patch.get_facecolor() == mpl.colors.to_rgba('k', 1):
-                self.thrsh_fig.patch.set_facecolor(gray[1])
-                self.no_background_button.configure(image=self.icons['photo_fill'])
-            else:
-                self.thrsh_fig.patch.set_facecolor('k')
-                self.no_background_button.configure(image=self.icons['photo'])
-            self.thrsh_pyfig.canvas.draw()
+        if not hasattr(self, 'stack'):
+            return
+        if self.thrsh_fig.patch.get_facecolor() == mpl.colors.to_rgba('k', 1):
+            self.thrsh_fig.patch.set_facecolor(gray[1])
+            self.no_background_button.configure(image=self.icons['photo_fill'])
+        else:
+            self.thrsh_fig.patch.set_facecolor('k')
+            self.no_background_button.configure(image=self.icons['photo'])
+        self.thrsh_pyfig.canvas.draw()
 
     def offset_angle_switch_callback(self) -> None:
         self.offset_angle_entry.set_state('normal' if self.offset_angle_switch.get() == 'on' else 'disabled')
@@ -975,19 +985,20 @@ class Polarimetry(CTk.CTk):
             entry.set_state(state)
 
     def click_callback(self, ax:plt.Axes, canvas:FigureCanvasTkAgg, method:str) -> None:
-        if hasattr(self, 'datastack'):
-            if method == 'click background':
-                self.tabview.set('Intensity')
-            xlim, ylim = ax.get_xlim(), ax.get_ylim()
-            hlines = [plt.Line2D([(xlim[0] + xlim[1])/2, (xlim[0] + xlim[1])/2], ylim, lw=1, color='w'),
-                plt.Line2D(xlim, [(ylim[0] + ylim[1])/2, (ylim[0] + ylim[1])/2], lw=1, color='w')]
-            ax.add_line(hlines[0])
-            ax.add_line(hlines[1])
-            self.__cid1 = canvas.mpl_connect('motion_notify_event', lambda event: self.click_motion_notify_callback(event, hlines, ax, canvas))
-            if method == 'click background':
-                self.__cid2 = canvas.mpl_connect('button_press_event', lambda event: self.click_background_button_press_callback(event, hlines, ax, canvas))
-            elif method == 'individual fit':
-                self.__cid2 = canvas.mpl_connect('button_press_event', lambda event: self.individual_fit_button_press_callback(event, hlines, ax, canvas))
+        if not hasattr(self, 'datastack'):
+            return
+        if method == 'click background':
+            self.tabview.set('Intensity')
+        xlim, ylim = ax.get_xlim(), ax.get_ylim()
+        hlines = [plt.Line2D([(xlim[0] + xlim[1])/2, (xlim[0] + xlim[1])/2], ylim, lw=1, color='w'),
+            plt.Line2D(xlim, [(ylim[0] + ylim[1])/2, (ylim[0] + ylim[1])/2], lw=1, color='w')]
+        ax.add_line(hlines[0])
+        ax.add_line(hlines[1])
+        self._cid1 = canvas.mpl_connect('motion_notify_event', lambda event: self.click_motion_notify_callback(event, hlines, ax, canvas))
+        if method == 'click background':
+            self._cid2 = canvas.mpl_connect('button_press_event', lambda event: self.click_background_button_press_callback(event, hlines, ax, canvas))
+        elif method == 'individual fit':
+            self._cid2 = canvas.mpl_connect('button_press_event', lambda event: self.individual_fit_button_press_callback(event, hlines, ax, canvas))
 
     def click_motion_notify_callback(self, event:MouseEvent, hlines:List[mpl.lines.Line2D], ax:plt.Axes, canvas:FigureCanvasTkAgg) -> None:
         if event.inaxes == ax:
@@ -1006,21 +1017,22 @@ class Polarimetry(CTk.CTk):
                 y1, y2 = int(round(y)) - int(self.noise[2].get())//2, int(round(y)) + int(self.noise[2].get())//2
                 self.removed_intensity = int(np.mean(self.datastack.intensity[y1:y2, x1:x2]) / self.stack.nangle * float(self.noise[0].get()))
                 self.intensity_removal_label.configure(text=f'Removed intensity value = {self.removed_intensity}')
-                canvas.mpl_disconnect(self.__cid1)
-                canvas.mpl_disconnect(self.__cid2)
+                canvas.mpl_disconnect(self._cid1)
+                canvas.mpl_disconnect(self._cid2)
                 for line in hlines:
                     line.remove()
                 canvas.draw()
 
     def compute_angle(self) -> None:
-        if hasattr(self, 'stack'):
-            self.intensity_pyfig.toolbar.mode = _Mode.NONE
-            self.intensity_pyfig.toolbar._update_buttons_checked()
-            self.tabview.set('Intensity')
-            self.compute_angle_button.configure(fg_color=orange[1])
-            hroi = ROI()
-            self.__cid1 = self.intensity_pyfig.canvas.mpl_connect('motion_notify_event', lambda event: self.compute_angle_motion_notify_callback(event, hroi))
-            self.__cid2 = self.intensity_pyfig.canvas.mpl_connect('button_press_event', lambda event: self.compute_angle_button_press_callback(event, hroi))
+        if not hasattr(self, 'stack'):
+            return
+        self.intensity_pyfig.toolbar.mode = _Mode.NONE
+        self.intensity_pyfig.toolbar._update_buttons_checked()
+        self.tabview.set('Intensity')
+        self.compute_angle_button.configure(fg_color=orange[1])
+        hroi = ROI()
+        self._cid1 = self.intensity_pyfig.canvas.mpl_connect('motion_notify_event', lambda event: self.compute_angle_motion_notify_callback(event, hroi))
+        self._cid2 = self.intensity_pyfig.canvas.mpl_connect('button_press_event', lambda event: self.compute_angle_button_press_callback(event, hroi))
 
     def compute_angle_motion_notify_callback(self, event:MouseEvent, roi:ROI) -> None:
         if event.inaxes == self.intensity_axis:
@@ -1044,8 +1056,8 @@ class Polarimetry(CTk.CTk):
                     roi.previous_point = [x, y]
                     self.intensity_axis.add_line(roi.lines[-1])
                     self.intensity_pyfig.canvas.draw()
-                    self.intensity_pyfig.canvas.mpl_disconnect(self.__cid1)
-                    self.intensity_pyfig.canvas.mpl_disconnect(self.__cid2)
+                    self.intensity_pyfig.canvas.mpl_disconnect(self._cid1)
+                    self.intensity_pyfig.canvas.mpl_disconnect(self._cid2)
                     slope = 180 - np.rad2deg(np.arctan((roi.previous_point[1] - roi.start_point[1]) / (roi.previous_point[0] - roi.start_point[0])))
                     slope = np.mod(2 * slope, 360) / 2
                     dist = np.sqrt(((np.asarray(roi.previous_point) - np.asarray(roi.start_point))**2).sum())
@@ -1316,16 +1328,33 @@ class Polarimetry(CTk.CTk):
         self.tabview.tab('Thresholding/Mask').update()
 
     def add_roi_callback(self) -> None:
-        if hasattr(self, 'stack'):
-            self.thrsh_pyfig.toolbar.mode = _Mode.NONE
-            self.thrsh_pyfig.toolbar._update_buttons_checked()
-            self.tabview.set('Thresholding/Mask')
-            self.update()
-            self.add_roi_button.configure(fg_color=orange[1])
-            hroi = ROI()
-            self.__cid1 = self.thrsh_pyfig.canvas.mpl_connect('motion_notify_event', lambda event: self.add_roi_motion_notify_callback(event, hroi))
-            self.__cid2 = self.thrsh_pyfig.canvas.mpl_connect('button_press_event', lambda event: self.add_roi_button_press_callback(event, hroi))
-
+        if not hasattr(self, 'stack'):
+            return
+        if getattr(self, "adding_roi", False):
+            self.adding_roi = False
+            if hasattr(self, "_cid1"):
+                self.thrsh_pyfig.canvas.mpl_disconnect(self._cid1)
+            if hasattr(self, "_cid2"):
+                self.thrsh_pyfig.canvas.mpl_disconnect(self._cid2)
+            if hasattr(self, "_hroi"):
+                for line in self._hroi.lines:
+                    line.remove()
+                self._hroi.lines = []
+                self.thrsh_pyfig.canvas.draw()
+            self.add_roi_button.configure(fg_color=orange[0])
+            return   
+        self.adding_roi = True
+        self.thrsh_pyfig.toolbar.mode = _Mode.NONE
+        self.thrsh_pyfig.toolbar._update_buttons_checked()
+        self.tabview.set('Thresholding/Mask')
+        self.update()
+        self.add_roi_button.configure(fg_color=orange[1])  
+        self._hroi = ROI()
+        self._cid1 = self.thrsh_pyfig.canvas.mpl_connect('motion_notify_event',
+            lambda event: self.add_roi_motion_notify_callback(event, self._hroi))
+        self._cid2 = self.thrsh_pyfig.canvas.mpl_connect('button_press_event',
+            lambda event: self.add_roi_button_press_callback(event, self._hroi))
+            
     def add_roi_motion_notify_callback(self, event:MouseEvent, roi:ROI) -> None:
         self.thrsh_pyfig.toolbar.mode = _Mode.NONE
         self.thrsh_pyfig.toolbar._update_buttons_checked()
@@ -1369,8 +1398,8 @@ class Polarimetry(CTk.CTk):
                 buttons[1].configure(command=lambda:self.no_add_roi_callback(window, roi))
                 self.add_roi_button.configure(fg_color=orange[0])
                 self.thrsh_pyfig.canvas.draw()
-                self.thrsh_pyfig.canvas.mpl_disconnect(self.__cid1)
-                self.thrsh_pyfig.canvas.mpl_disconnect(self.__cid2)
+                self.thrsh_pyfig.canvas.mpl_disconnect(self._cid1)
+                self.thrsh_pyfig.canvas.mpl_disconnect(self._cid2)
 
     def yes_add_roi_callback(self, window:CTk.CTkToplevel, roi:ROI) -> None:
         vertices = np.asarray([roi.x, roi.y])
@@ -1407,31 +1436,32 @@ class Polarimetry(CTk.CTk):
         return mask
 
     def analysis_callback(self) -> None:
-        if hasattr(self, 'stack'):
-            self.analysis_button.configure(image=self.icons['pause'])
-            self.tabview.set('Intensity')
-            self.update()
-            if self.option.get().endswith('(manual)'):
+        if not hasattr(self, 'stack'):
+            return
+        self.analysis_button.configure(image=self.icons['pause'])
+        self.tabview.set('Intensity')
+        self.update()
+        if self.option.get().endswith('(manual)'):
+            self.analyze_stack(self.datastack)
+            if self.filelist:
+                self.indxlist += 1
+                if self.indxlist < len(self.filelist):
+                    self.open_file(self.filelist[self.indxlist])
+                    self.initialize_noise()
+                else:
+                    self.indxlist = 0
+                    self.open_file(self.filelist[0])
+                    ShowInfo(message=' End of list', image=self.icons['check_circle'], button_labels=['OK'], fontsize=16)
+                    self.initialize()
+            self.analysis_button.configure(image=self.icons['play'])
+        elif self.option.get().endswith('(auto)'):
+            for file in self.filelist:
+                self.open_file(file)
                 self.analyze_stack(self.datastack)
-                if self.filelist:
-                    self.indxlist += 1
-                    if self.indxlist < len(self.filelist):
-                        self.open_file(self.filelist[self.indxlist])
-                        self.initialize_noise()
-                    else:
-                        self.indxlist = 0
-                        self.open_file(self.filelist[0])
-                        ShowInfo(message=' End of list', image=self.icons['check_circle'], button_labels=['OK'], fontsize=16)
-                        self.initialize()
-                self.analysis_button.configure(image=self.icons['play'])
-            elif self.option.get().endswith('(auto)'):
-                for file in self.filelist:
-                    self.open_file(file)
-                    self.analyze_stack(self.datastack)
-                self.analysis_button.configure(image=self.icons['play'])
-                self.open_file(self.filelist[0])
-                ShowInfo(message=' End of list', image=self.icons['check_circle'], button_labels=['OK'], fontsize=16)
-                self.initialize()
+            self.analysis_button.configure(image=self.icons['play'])
+            self.open_file(self.filelist[0])
+            ShowInfo(message=' End of list', image=self.icons['check_circle'], button_labels=['OK'], fontsize=16)
+            self.initialize()
 
     def stack_slider_callback(self, value:str) -> None:
         self.stack_slider_label.configure(text=int(value))
@@ -1443,11 +1473,12 @@ class Polarimetry(CTk.CTk):
         self.ontab_intensity()
 
     def ilow_slider_callback(self, value:str) -> None:
-        if hasattr(self, 'datastack'):
-            self.ilow.set(self.stack.display.format(float(value) * float(np.ptp(self.datastack.intensity)) + self.datastack.intensity.min()))
-            if hasattr(self, 'edge_contours'):
-                self.compute_edges()
-            self.ontab_thrsh()
+        if not hasattr(self, 'datastack'):
+            return
+        self.ilow.set(self.stack.display.format(float(value) * float(np.ptp(self.datastack.intensity)) + self.datastack.intensity.min()))
+        if hasattr(self, 'edge_contours'):
+            self.compute_edges()
+        self.ontab_thrsh()
 
     def ilow2slider_callback(self, event:tkEvent) -> None:
         if event and hasattr(self, 'datastack'):
@@ -1506,36 +1537,37 @@ class Polarimetry(CTk.CTk):
             self.intensity_pyfig.canvas.draw()
 
     def ontab_thrsh(self, update:bool=True) -> None:
-        if hasattr(self, 'stack'):
-            field = self.stack.intensity.copy()
-            if self.option.get().startswith('Mask'):
-                field *= self.mask
-            vmin, vmax = np.amin(self.stack.intensity), np.amax(self.stack.intensity)
-            field_im = adjust(self.stack.intensity, self.contrast_thrsh_slider.get(), vmin, vmax)
-            alphadata = np.ones(field.shape)
-            thrsh = float(self.ilow.get())
-            alphadata[field <= thrsh] *= self.transparency_slider.get()
-            if update:
-                plt.setp(self.thrsh_im, alpha=alphadata, cmap=self.thrsh_colormap)
-                self.thrsh_im.set_data(field_im)
-            else:
-                self.thrsh_axis.clear()
-                self.thrsh_axis.set_axis_off()
-                self.thrsh_im = self.thrsh_axis.imshow(field_im, cmap=self.thrsh_colormap, alpha=alphadata, interpolation='nearest')
-                self.tabview.tab('Thresholding/Mask').update()
-            self.thrsh_im.set_clim(vmin, vmax)
-            self.clear_patches(self.thrsh_axis, self.thrsh_fig.canvas)
-            if hasattr(self, 'plot_edges'):
-                for edge in self.plot_edges:
-                    edge.pop(0).remove()
-                delattr(self, 'plot_edges')
-            if hasattr(self, 'datastack'):
-                self.add_patches(self.datastack, self.thrsh_axis, self.thrsh_fig.canvas, rotation=False)
-            if hasattr(self, 'edge_contours'):
-                self.plot_edges = []
-                for contour in self.edge_contours:
-                    self.plot_edges += [self.thrsh_axis.plot(contour[:, 0], contour[:, 1], '-', color=blue[0], lw=1)]
-            self.thrsh_pyfig.canvas.draw()
+        if not hasattr(self, 'stack'):
+            return
+        field = self.stack.intensity.copy()
+        if self.option.get().startswith('Mask'):
+            field *= self.mask
+        vmin, vmax = np.amin(self.stack.intensity), np.amax(self.stack.intensity)
+        field_im = adjust(self.stack.intensity, self.contrast_thrsh_slider.get(), vmin, vmax)
+        alphadata = np.ones(field.shape)
+        thrsh = float(self.ilow.get())
+        alphadata[field <= thrsh] *= self.transparency_slider.get()
+        if update:
+            plt.setp(self.thrsh_im, alpha=alphadata, cmap=self.thrsh_colormap)
+            self.thrsh_im.set_data(field_im)
+        else:
+            self.thrsh_axis.clear()
+            self.thrsh_axis.set_axis_off()
+            self.thrsh_im = self.thrsh_axis.imshow(field_im, cmap=self.thrsh_colormap, alpha=alphadata, interpolation='nearest')
+            self.tabview.tab('Thresholding/Mask').update()
+        self.thrsh_im.set_clim(vmin, vmax)
+        self.clear_patches(self.thrsh_axis, self.thrsh_fig.canvas)
+        if hasattr(self, 'plot_edges'):
+            for edge in self.plot_edges:
+                edge.pop(0).remove()
+            delattr(self, 'plot_edges')
+        if hasattr(self, 'datastack'):
+            self.add_patches(self.datastack, self.thrsh_axis, self.thrsh_fig.canvas, rotation=False)
+        if hasattr(self, 'edge_contours'):
+            self.plot_edges = []
+            for contour in self.edge_contours:
+                self.plot_edges += [self.thrsh_axis.plot(contour[:, 0], contour[:, 1], '-', color=blue[0], lw=1)]
+        self.thrsh_pyfig.canvas.draw()
 
     def compute_intensity(self, stack:Stack) -> None:
         dark = float(self.dark.get())
@@ -1720,8 +1752,8 @@ class Polarimetry(CTk.CTk):
                         secax = ax_.secondary_xaxis('top', functions=(indx2alpha, alpha2indx))
                         secax.set_xlabel(r'$\alpha$')
                     plt.subplots_adjust(hspace=0.9)
-            canvas.mpl_disconnect(self.__cid1)
-            canvas.mpl_disconnect(self.__cid2)
+            canvas.mpl_disconnect(self._cid1)
+            canvas.mpl_disconnect(self._cid2)
             for line in hlines:
                 line.remove()
             canvas.draw()
@@ -1802,19 +1834,20 @@ class Polarimetry(CTk.CTk):
                 plt.close(fig)
     
     def per_roi_callback(self):
-        if hasattr(self, 'datastack'):
-            if len(self.datastack.rois) >= 2:
-                figs = list(map(plt.figure, plt.get_fignums()))
-                redraw = False
-                for fig in figs:
-                    fs = fig.canvas.manager.get_window_title()
-                    if (fig.type == 'Histogram') and (self.datastack.name in fs) :
-                        plt.close(fig)
-                        redraw = True
-                if redraw:
-                    roi_map = self.compute_roi_map(self.datastack)[0]
-                    for var in self.datastack.vars:
-                            self.plot_histos(var, self.datastack, roi_map)
+        if not hasattr(self, 'datastack'):
+            return
+        if len(self.datastack.rois) >= 2:
+            figs = list(map(plt.figure, plt.get_fignums()))
+            redraw = False
+            for fig in figs:
+                fs = fig.canvas.manager.get_window_title()
+                if (fig.type == 'Histogram') and (self.datastack.name in fs) :
+                    plt.close(fig)
+                    redraw = True
+            if redraw:
+                roi_map = self.compute_roi_map(self.datastack)[0]
+                for var in self.datastack.vars:
+                        self.plot_histos(var, self.datastack, roi_map)
 
     def plot_data(self, datastack:DataStack, roi_map:np.ndarray=None) -> None:
         self.plot_intensity(datastack)
