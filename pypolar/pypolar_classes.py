@@ -311,19 +311,19 @@ class DataStack:
 
 class Variable:
     def __init__(self, name:str='', values:np.ndarray=None, datastack:DataStack=None) -> None:
-        var = {'Rho': [0, ['polar1'], r'$\rho$', ['hsv', m_colorwheel]], 
-                'Rho_contour': [0, ['polar1', 'polar3'], r'$\rho_c$', ['hsv', m_colorwheel]],
-                'Rho_angle': [0, ['polar1', 'polar3'], r'$\rho_a$', ['hsv', m_colorwheel]],
-                'Psi': [1, ['normal'], '$\psi$', ['jet', 'viridis']],
-                'Psi_contour': [1, ['normal'], '$\psi$', ['jet', 'viridis']],
-                'Eta': [2, ['polar2'], '$\eta$', ['plasma', 'plasma']],
-                'Eta_contour': [2, ['polar2'], '$\eta$', ['plasma', 'plasma']],
-                'S2': [1, ['normal'], '$S_2$', ['jet', 'viridis']],
-                'S2_contour': [1, ['normal'], '$S_2$', ['jet', 'viridis']],
-                'S4': [2, ['normal'], '$S_4$', ['jet', 'viridis']],
-                'S4_contour': [2, ['normal'], '$S_4$', ['jet', 'viridis']],
-                'S_SHG': [3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis']],
-                'S_SHG_contour': [3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis']]}.get(name)
+        var = {'Rho': [0, ['polar1'], r'$\rho$', ['hsv', m_colorwheel], '\u03C1'], 
+                'Rho_contour': [0, ['polar1', 'polar3'], r'$\rho_c$', ['hsv', m_colorwheel], '\u03C1'+'c'],
+                'Rho_angle': [0, ['polar1', 'polar3'], r'$\rho_a$', ['hsv', m_colorwheel], '\u03C1'+'a'],
+                'Psi': [1, ['normal'], '$\psi$', ['jet', 'viridis'], '\u03C8'],
+                'Psi_contour': [1, ['normal'], '$\psi$', ['jet', 'viridis'], '\u03C8'],
+                'Eta': [2, ['polar2'], '$\eta$', ['plasma', 'plasma'], '\u03B7'],
+                'Eta_contour': [2, ['polar2'], '$\eta$', ['plasma', 'plasma'], '\u03B7'],
+                'S2': [1, ['normal'], '$S_2$', ['jet', 'viridis'], 'S2'],
+                'S2_contour': [1, ['normal'], '$S_2$', ['jet', 'viridis'], 'S2'],
+                'S4': [2, ['normal'], '$S_4$', ['jet', 'viridis'], 'S4'],
+                'S4_contour': [2, ['normal'], '$S_4$', ['jet', 'viridis'], 'S4'],
+                'S_SHG': [3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis'], 'Sshg'],
+                'S_SHG_contour': [3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis'], 'Sshg']}.get(name)
         self.indx = var[0] if var is not None else 0
         self.name = name
         self.latex = var[2] if var is not None else ''
@@ -331,6 +331,7 @@ class Variable:
         self.type_histo = var[1] if var is not None else ['normal']
         self.colormap = var[3] if var is not None else ['jet', 'viridis']
         self.display_style = '{:.2f}' if self.name.startswith('S') else '{:.0f}'
+        self.unicode = var[4] if var is not None else ''
 
     def imshow(self, vmin:float, vmax:float, colorblind:bool=False, rotation:float=0) -> mpl.image.AxesImage:
         ax = plt.gca()
@@ -369,7 +370,7 @@ class Variable:
                     return f"\u03C8 = {xval:.0f}\u00B0,  count = {yval:.0f}"
             else:
                 def format_coord(xval, yval):
-                    return f"{self.name} = {xval:.2f},  count = {yval:.0f}"
+                    return f"{self.unicode} = {xval:.2f},  count = {yval:.0f}"
             ax.format_coord = format_coord
         elif htype.startswith('polar'):
             ax = plt.subplot(projection='polar')
@@ -397,6 +398,10 @@ class Variable:
             ax.set_thetamin(vmin_)
             ax.set_thetamax(vmax_)
             text = self.latex + ' = ' + '{:.2f}'.format(meandata) + ' $\pm$ ' '{:.2f}'.format(std)
+            def format_coord(theta_val, r_val):
+                theta_deg = np.degrees(theta_val)
+                return f"{self.unicode}={theta_deg:.0f}°, count={r_val:.0f}"
+            ax.format_coord = format_coord
             if htype == 'polar1':
                 ax.annotate(text, xy=(0.3, 0.95), xycoords='axes fraction', fontsize=14)
             else:
