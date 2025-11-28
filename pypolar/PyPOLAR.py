@@ -1761,7 +1761,14 @@ class Polarimetry(CTk.CTk):
                         ax_.set_title(title, fontsize=16)
                         secax = ax_.secondary_xaxis('top', functions=(indx2alpha, alpha2indx))
                         secax.set_xlabel(r'$\alpha$')
+                        secax.xaxis.set_major_formatter(lambda val, pos: f"{val:.0f}°")
                     plt.subplots_adjust(hspace=0.9)
+                    def format_coords0(x, y):
+                        return f'(slice={round(x)}, \u03B1={indx2alpha(round(x)):.0f}\u00B0)\n count={self.datastack.display.format(y)}'
+                    def format_coords1(x, y):
+                        return f'(slice={round(x)}, \u03B1={indx2alpha(round(x)):.0f}\u00B0)\n residual={self.datastack.display.format(y)}'
+                    axs[0].format_coord = format_coords0
+                    axs[1].format_coord = format_coords1
             canvas.mpl_disconnect(self._cid1)
             canvas.mpl_disconnect(self._cid2)
             for line in hlines:
