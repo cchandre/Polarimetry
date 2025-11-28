@@ -128,7 +128,7 @@ class Entry(CTk.CTkFrame):
 class DropDown(CTk.CTkFrame):
     def __init__(self, master, values:List[str]=[], image:CTk.CTkImage=None, tooltip:str=None, command:Callable=None, variable:tk.StringVar=None, state:str='normal', **kwargs):
         super().__init__(master, **kwargs)
-        self.configure(bg_color=orange[0], background_corner_colors=[gray[0], gray[0], gray[0], gray[0]])
+        self.configure(bg_color=orange[0], background_corner_colors=[gray[0]]*4)
         self.variable = variable
         self.icon = Button(self, image=image, tooltip=tooltip, hover=False, width=button_size[1])
         self.icon.grid(row=0, column=0)
@@ -264,11 +264,10 @@ class Stack:
 
     def get_intensity(self, dark:float=0, bin:List[int]=[1, 1]) -> np.ndarray:
         intensity = np.sum((self.values - dark) * (self.values >= dark), axis=0)
-        if sum(bin) != 2:
-            return convolve2d(intensity, np.ones(bin), mode='same') / (bin[0] * bin[1])
-        else:
+        if sum(bin) == 2:
             return intensity
-        
+        return convolve2d(intensity, np.ones(bin), mode='same') / (bin[0] * bin[1])
+
     def compute_dark(self, size_cell:int=20) -> int:
         n_height, n_width = int(np.floor(self.height / size_cell)), int(np.floor(self.width / size_cell))
         crop_im = np.moveaxis(self.values[:, :size_cell * n_height, :size_cell * n_width], 0, -1)
@@ -297,10 +296,7 @@ class DataStack:
         self.intmap = []
 
     def get_var(self, name:str):
-        for var in self.vars:
-            if var.name == name:
-                return var
-        return None
+        return next((var for var in self.vars if var.name == name), None)
 
     def plot_intensity(self, ax, contrast:float, rotation:int=0):
         vmin, vmax = np.amin(self.intensity), np.amax(self.intensity)

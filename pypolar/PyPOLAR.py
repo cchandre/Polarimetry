@@ -386,7 +386,7 @@ class Polarimetry(CTk.CTk):
         self.polarization_button = Button(adv['Polarization'], image=self.icons[self.polar_dir.get()], command=self.change_polarization_direction, tooltip=' change polarization direction')
         self.polarization_button.grid(row=2, column=0, pady=(0, 10))
 
-        Button(adv['Disk cone / Calibration data'], image=self.icons['photo'], command=self.diskcone_display, tooltip=' display the selected disk cone (for 1PF)').grid(row=1, column=0, padx=(52, 0), pady=10, sticky='w')
+        Button(adv['Disk cone / Calibration data'], image=self.icons['photo'], command=self.diskcone_display, hover=False, tooltip=' display the selected disk cone (for 1PF)').grid(row=1, column=0, padx=(52, 0), pady=10, sticky='w')
         self.calib_dropdown = OptionMenu(master=adv['Disk cone / Calibration data'], values='', width=button_size[0]-button_size[1], height=button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback, tooltip=' 1PF: select disk cone depending on wavelength and acquisition date\n 4POLAR: select .mat file containing the calibration data')
         self.calib_dropdown.grid(row=1, column=0, padx=(0, 52), pady=10, sticky='e')
         self.calib_textbox = TextBox(master=adv['Disk cone / Calibration data'], width=250, height=50, state='disabled', fg_color=gray[0])
