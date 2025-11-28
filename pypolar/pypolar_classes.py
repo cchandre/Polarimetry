@@ -330,6 +330,7 @@ class Variable:
         self.values = values if values is not None else np.nan * np.ones((datastack.height, datastack.width)) if datastack is not None else []
         self.type_histo = var[1] if var is not None else ['normal']
         self.colormap = var[3] if var is not None else ['jet', 'viridis']
+        self.display_style = '{:.2f}' if self.name.startswith('S') else '{:.0f}'
 
     def imshow(self, vmin:float, vmax:float, colorblind:bool=False, rotation:float=0) -> mpl.image.AxesImage:
         ax = plt.gca()

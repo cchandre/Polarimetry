@@ -1693,6 +1693,15 @@ class Polarimetry(CTk.CTk):
             ax.axis(self.add_axes_checkbox.get())
             datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             h = var.imshow(vmin, vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()))
+            h.format_cursor_data = lambda value: ""
+            def format_coords(x, y):
+                x, y = int(round(x)), int(round(y))
+                if 0 <= x < datastack.width and 0 <= y < datastack.height:
+                    intensity = datastack.intensity[y, x]
+                    return f'(x={x}, y={y})\n {var.name}={var.display_style.format(var.values[y, x])}, I={datastack.display.format(intensity)}'
+                else:
+                    return f'(x={x}, y={y})'
+            ax.format_coord = format_coords
             if self.colorbar_checkbox.get():
                 ax_divider = make_axes_locatable(ax)
                 cax = ax_divider.append_axes('right', size='7%', pad='2%')
@@ -1787,10 +1796,19 @@ class Polarimetry(CTk.CTk):
             fig.canvas.manager.set_window_title(var.name + ' Sticks: ' + datastack.name)
             ax = plt.gca()
             ax.axis(self.add_axes_checkbox.get())
-            datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
+            h = datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             p = self.get_sticks(var, datastack)
             p.set_clim([vmin, vmax])
             ax.add_collection(p)
+            h.format_cursor_data = lambda value: ""
+            def format_coords(x, y):
+                x, y = int(round(x)), int(round(y))
+                if 0 <= x < datastack.width and 0 <= y < datastack.height:
+                    intensity = datastack.intensity[y, x]
+                    return f'(x={x}, y={y})\n I={datastack.display.format(intensity)}'
+                else:
+                    return f'(x={x}, y={y})'
+            ax.format_coord = format_coords
             if self.colorbar_checkbox.get():
                 ax_divider = make_axes_locatable(ax)
                 cax = ax_divider.append_axes('right', size='7%', pad='2%')
@@ -1810,6 +1828,15 @@ class Polarimetry(CTk.CTk):
             ax.axis(self.add_axes_checkbox.get())
             p = datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             self.add_patches(datastack, ax, fig.canvas)
+            p.format_cursor_data = lambda value: ""
+            def format_coords(x, y):
+                x, y = int(round(x)), int(round(y))
+                if 0 <= x < datastack.width and 0 <= y < datastack.height:
+                    intensity = datastack.intensity[y, x]
+                    return f'(x={x}, y={y})\n I={datastack.display.format(intensity)}'
+                else:
+                    return f'(x={x}, y={y})'
+            ax.format_coord = format_coords
             if hasattr(self, 'edge_contours'):
                 for contour in self.edge_contours:
                     angles = np.mod(2 * angle_edge(contour)[0], 360) / 2
