@@ -22,7 +22,6 @@ from scipy.io import loadmat
 from colorcet import m_colorwheel
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.backends.backend_pdf
-from matplotlib.ticker import FuncFormatter
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.backend_bases import NavigationToolbar2, _Mode, MouseEvent
 from typing import Callable, List, Tuple, Union
@@ -365,7 +364,12 @@ class Variable:
             text = self.latex + ' = ' + '{:.2f}'.format(np.mean(data_vals)) + ' $\pm$ ' '{:.2f}'.format(np.std(data_vals))
             ax.annotate(text, xy=(0.3, 1.05), xycoords='axes fraction', fontsize=14)
             if self.name == 'Psi':
-                ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: f'{int(x)}\u00B0'))
+                def format_coord(xval, yval):
+                    return f"\u03C8 = {xval:.0f}\u00B0,  count = {yval:.0f}"
+            else:
+                def format_coord(xval, yval):
+                    return f"{self.name} = {xval:.2f},  count = {yval:.0f}"
+            ax.format_coord = format_coord
         elif htype.startswith('polar'):
             ax = plt.subplot(projection='polar')
             if htype == 'polar1':
