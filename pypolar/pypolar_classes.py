@@ -312,18 +312,18 @@ class DataStack:
 class Variable:
     def __init__(self, name:str='', values:np.ndarray=None, datastack:DataStack=None) -> None:
         var = {'Rho': [0, ['polar1'], r'$\rho$', ['hsv', m_colorwheel], '\u03C1'], 
-                'Rho_contour': [0, ['polar1', 'polar3'], r'$\rho_c$', ['hsv', m_colorwheel], '\u03C1'+'c'],
-                'Rho_angle': [0, ['polar1', 'polar3'], r'$\rho_a$', ['hsv', m_colorwheel], '\u03C1'+'a'],
+                'Rho_contour': [0, ['polar1', 'polar3'], r'$\rho_c$', ['hsv', m_colorwheel], '\u03C1_c'],
+                'Rho_angle': [0, ['polar1', 'polar3'], r'$\rho_a$', ['hsv', m_colorwheel], '\u03C1_a'],
                 'Psi': [1, ['normal'], '$\psi$', ['jet', 'viridis'], '\u03C8'],
-                'Psi_contour': [1, ['normal'], '$\psi$', ['jet', 'viridis'], '\u03C8'],
+                'Psi_contour': [1, ['normal'], '$\psi$', ['jet', 'viridis'], '\u03C8_c'],
                 'Eta': [2, ['polar2'], '$\eta$', ['plasma', 'plasma'], '\u03B7'],
-                'Eta_contour': [2, ['polar2'], '$\eta$', ['plasma', 'plasma'], '\u03B7'],
+                'Eta_contour': [2, ['polar2'], '$\eta$', ['plasma', 'plasma'], '\u03B7_c'],
                 'S2': [1, ['normal'], '$S_2$', ['jet', 'viridis'], 'S2'],
-                'S2_contour': [1, ['normal'], '$S_2$', ['jet', 'viridis'], 'S2'],
+                'S2_contour': [1, ['normal'], '$S_2$', ['jet', 'viridis'], 'S2_c'],
                 'S4': [2, ['normal'], '$S_4$', ['jet', 'viridis'], 'S4'],
-                'S4_contour': [2, ['normal'], '$S_4$', ['jet', 'viridis'], 'S4'],
+                'S4_contour': [2, ['normal'], '$S_4$', ['jet', 'viridis'], 'S4_c'],
                 'S_SHG': [3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis'], 'Sshg'],
-                'S_SHG_contour': [3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis'], 'Sshg']}.get(name)
+                'S_SHG_contour': [3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis'], 'Sshg_c']}.get(name)
         self.indx = var[0] if var is not None else 0
         self.name = name
         self.latex = var[2] if var is not None else ''
