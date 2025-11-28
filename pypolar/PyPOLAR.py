@@ -67,7 +67,8 @@ plt.rcParams['savefig.dpi'] = 100
 plt.ion()
 
 def main():
-    app = Polarimetry()
+    app = Polarimetry()   
+    app.focus_force()         
     app.mainloop()
 
 class Polarimetry(CTk.CTk):
