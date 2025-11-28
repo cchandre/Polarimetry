@@ -310,27 +310,25 @@ class DataStack:
 
 class Variable:
     def __init__(self, name:str='', values:np.ndarray=None, datastack:DataStack=None) -> None:
-        var = {'Rho': [0, ['polar1'], r'$\rho$', ['hsv', m_colorwheel], '\u03C1'], 
-                'Rho_contour': [0, ['polar1', 'polar3'], r'$\rho_c$', ['hsv', m_colorwheel], '\u03C1_c'],
-                'Rho_angle': [0, ['polar1', 'polar3'], r'$\rho_a$', ['hsv', m_colorwheel], '\u03C1_a'],
-                'Psi': [1, ['normal'], '$\psi$', ['jet', 'viridis'], '\u03C8'],
-                'Psi_contour': [1, ['normal'], '$\psi$', ['jet', 'viridis'], '\u03C8_c'],
-                'Eta': [2, ['polar2'], '$\eta$', ['plasma', 'plasma'], '\u03B7'],
-                'Eta_contour': [2, ['polar2'], '$\eta$', ['plasma', 'plasma'], '\u03B7_c'],
-                'S2': [1, ['normal'], '$S_2$', ['jet', 'viridis'], 'S2'],
-                'S2_contour': [1, ['normal'], '$S_2$', ['jet', 'viridis'], 'S2_c'],
-                'S4': [2, ['normal'], '$S_4$', ['jet', 'viridis'], 'S4'],
-                'S4_contour': [2, ['normal'], '$S_4$', ['jet', 'viridis'], 'S4_c'],
-                'S_SHG': [3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis'], 'Sshg'],
-                'S_SHG_contour': [3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis'], 'Sshg_c']}.get(name)
-        self.indx = var[0] if var is not None else 0
+        VAR_DEFINITIONS = {
+            'Rho':          [0, ['polar1'], r'$\rho$', ['hsv', m_colorwheel], '\u03C1'], 
+            'Rho_contour':  [0, ['polar1', 'polar3'], r'$\rho_c$', ['hsv', m_colorwheel], '\u03C1_c'],
+            'Rho_angle':    [0, ['polar1', 'polar3'], r'$\rho_a$', ['hsv', m_colorwheel], '\u03C1_a'],
+            'Psi':          [1, ['normal'], '$\psi$', ['jet', 'viridis'], '\u03C8'],
+            'Psi_contour':  [1, ['normal'], '$\psi$', ['jet', 'viridis'], '\u03C8_c'],
+            'Eta':          [2, ['polar2'], '$\eta$', ['plasma', 'plasma'], '\u03B7'],
+            'Eta_contour':  [2, ['polar2'], '$\eta$', ['plasma', 'plasma'], '\u03B7_c'],
+            'S2':           [1, ['normal'], '$S_2$', ['jet', 'viridis'], 'S2'],
+            'S2_contour':   [1, ['normal'], '$S_2$', ['jet', 'viridis'], 'S2_c'],
+            'S4':           [2, ['normal'], '$S_4$', ['jet', 'viridis'], 'S4'],
+            'S4_contour':   [2, ['normal'], '$S_4$', ['jet', 'viridis'], 'S4_c'],
+            'S_SHG':        [3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis'], 'Sshg'],
+            'S_SHG_contour':[3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis'], 'Sshg_c']}
+        var = VAR_DEFINITIONS.get(name, [0, ['normal'], '', ['jet', 'viridis'], ''])
+        self.indx, self.type_histo, self.latex, self.colormap, self.unicode = var
         self.name = name
-        self.latex = var[2] if var is not None else ''
-        self.values = values if values is not None else np.nan * np.ones((datastack.height, datastack.width)) if datastack is not None else []
-        self.type_histo = var[1] if var is not None else ['normal']
-        self.colormap = var[3] if var is not None else ['jet', 'viridis']
+        self.values = values if values is not None else np.full((datastack.height, datastack.width), np.nan) if datastack is not None else []
         self.display_style = '{:.2f}' if self.name.startswith('S') else '{:.0f}'
-        self.unicode = var[4] if var is not None else ''
 
     def imshow(self, vmin:float, vmax:float, colorblind:bool=False, rotation:float=0) -> mpl.image.AxesImage:
         ax = plt.gca()
@@ -417,10 +415,26 @@ class ROI:
 
 class Calibration:
 
-    dict_1pf = {'no distortions': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 0], '488 nm (no distortions)': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 175], '561 nm (no distortions)': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 120], '640 nm (no distortions)': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 125], '488 nm (16/03/2020 - 12/04/2022)': ['Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0', 0], '561 nm (16/03/2020 - 12/04/2022)': ['Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0', 0], '640 nm (16/03/2020 - 12/04/2022)': ['Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0', 0], '488 nm (13/12/2019 - 15/03/2020)': ['Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0', 0], '561 nm (13/12/2019 - 15/03/2020)': ['Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0', 0], '640 nm (13/12/2019 - 15/03/2020)': ['Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0', 0], '488 nm (before 13/12/2019)': ['Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0', 0], '561 nm (before 13/12/2019)': ['Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0', 0], '640 nm (before 13/12/2019)': ['Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0', 0], 'other': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 0]}
+    dict_1pf = {
+        'no distortions': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 0], 
+        '488 nm (no distortions)': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 175], 
+        '561 nm (no distortions)': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 120], 
+        '640 nm (no distortions)': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 125], 
+        '488 nm (16/03/2020 - 12/04/2022)': ['Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0', 0],
+        '561 nm (16/03/2020 - 12/04/2022)': ['Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0', 0], 
+        '640 nm (16/03/2020 - 12/04/2022)': ['Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0', 0], 
+        '488 nm (13/12/2019 - 15/03/2020)': ['Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0', 0], 
+        '561 nm (13/12/2019 - 15/03/2020)': ['Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0', 0], 
+        '640 nm (13/12/2019 - 15/03/2020)': ['Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0', 0], 
+        '488 nm (before 13/12/2019)': ['Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0', 0], 
+        '561 nm (before 13/12/2019)': ['Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0', 0], 
+        '640 nm (before 13/12/2019)': ['Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0', 0], 
+        'other': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 0]}
     folder_1pf = Path(__file__).parent / 'diskcones'
 
-    dict_4polar = {'no distortions': ['Calib_th', 0], 'Calib_20231009_2D': ['Calib_20231009_2D', 0], 'other': ['Calib_th', 0]}
+    dict_4polar = {'no distortions': ['Calib_th', 0], 
+                   'Calib_20231009_2D': ['Calib_20231009_2D', 0], 
+                   'other': ['Calib_th', 0]}
     folder_4polar = Path(__file__).parent / 'calibration'
 
     def __init__(self, method:str, label:str='no distortions') -> None:
@@ -463,7 +477,7 @@ class Calibration:
     def display(self, colorblind:bool=False) -> None:
         fig, axs = plt.subplots(ncols=2, figsize=(13, 8))
         fig.canvas.manager.set_window_title('Disk Cone: ' + self.name)
-        labels = ['Rho Test', 'Psi Test']
+        labels = ['Rho test', 'Psi test']
         cmaps = [m_colorwheel, 'viridis'] if colorblind else ['hsv', 'jet']
         for _, (label, cmap, ax) in enumerate(zip(labels, cmaps, axs)):
             h = ax.imshow(self.RhoPsi[:, :, _], cmap=cmap, interpolation='nearest', extent=[-1, 1, -1, 1], vmin=0, vmax=180)
@@ -471,13 +485,25 @@ class Calibration:
             ax.set_xlabel('$B_2$')
             ax.set_ylabel('$A_2$')
             fig.colorbar(h, cax=make_axes_locatable(ax).append_axes('right', size='7%', pad='2%'))
+            h.format_cursor_data = lambda value: ""
         plt.subplots_adjust(wspace=0.4)
+        ny, nx = self.RhoPsi.shape[:2]
+        def format_coord_rho(xval, yval):
+            col = int(np.clip((xval + 1) / 2 * nx, 0, nx - 1))
+            row = int(np.clip((1 - yval) / 2 * ny, 0, ny - 1))
+            return f"(B2={xval:.2f}, A2={yval:.2f})\n \u03C1={self.RhoPsi[row, col, 0]:.0f}\u00B0"
+        axs[0].format_coord = format_coord_rho
+        def format_coord_psi(xval, yval):
+            col = int(np.clip((xval + 1) / 2 * nx, 0, nx - 1))
+            row = int(np.clip((1 - yval) / 2 * ny, 0, ny - 1))
+            return f"(B2={xval:.2f}, A2={yval:.2f})\n \u03C8={self.RhoPsi[row, col, 1]:.0f}\u00B0"
+        axs[1].format_coord = format_coord_psi
 
     def list(self, method:str) -> str:
         if method == '1PF':
-            return [key for key in type(self).dict_1pf.keys()]
+            return list(type(self).dict_1pf.keys())
         elif method.startswith('4POLAR'):
-            return [key for key in type(self).dict_4polar.keys()]
+            return list(type(self).dict_4polar.keys())
         else:
             return ' '
     
