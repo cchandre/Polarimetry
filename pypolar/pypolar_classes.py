@@ -42,12 +42,15 @@ def adjust(field:np.ndarray, contrast:float, vmin:float, vmax:float, sharpen:boo
         sharpened = np.maximum(sharpened, vmin)
     else:
         sharpened = field.copy()
-    return adjust_gamma((sharpened - vmin) / (vmax - vmin), contrast) * (vmax - vmin) + vmin
+    scale = vmax - vmin if vmax != vmin else 1.0
+    normalized = np.clip((sharpened - vmin) / scale, 0, 1)
+    return adjust_gamma(normalized, contrast) * scale + vmin
 
 def angle_edge(edge:np.ndarray) -> Tuple[float, np.ndarray]:
     tangent = np.diff(edge, axis=0, append=edge[-1, :].reshape((1, 2)))
     norm_t = norm(tangent, axis=1)[:, np.newaxis]
-    tangent = np.divide(tangent, norm_t, where=np.all((norm_t!=0, np.isfinite(norm_t)), axis=0))
+    mask = (norm_t != 0) & np.isfinite(norm_t)
+    tangent = np.divide(tangent, norm_t, where=mask)
     angle = np.mod(2 * np.rad2deg(np.arctan2(-tangent[:, 1], tangent[:, 0])), 360) / 2
     normal = np.einsum('ij,jk->ik', tangent, np.array([[0, -1], [1, 0]]))
     return angle, normal
