@@ -9,7 +9,6 @@ function DiskConeAnalysis_ParFor
 params.dark = 480;
 params.polardir = 'clockwise';      % 'clockwise' or 'anticlockwise'
 params.offsetangle = 0;
-params.chi2threshold = 500; 
 excelfile = 'CD_Stats.xlsx';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -21,7 +20,7 @@ CD.files = dir([CD.folder filesep '*.mat']);
 
 %% get stack files
 STfolder = uigetdir;
-STfiles = dir([STFolder filesep '*.tiff']);
+STfiles = dir([STfolder filesep '*.tiff']);
 
 f = waitbar(0, 'Please wait...');
 listCD = {};
@@ -36,7 +35,7 @@ for itdc = 1:length(CD.files)
     [~, CD.name, ~] = fileparts(char(CD.files(itdc).name));
     if strncmp(CD.files(itdc).name, 'Disk', 4) && ~ismember({matlab.lang.makeValidName(CD.name)}, listCD)
         [~, CD.name, ~] = fileparts(char(CD.files(itdc).name));
-        load([CD.Folder filesep CD.files(itdc).name], 'RoTest', 'PsiTest', 'NbMapValues');
+        load([CD.folder filesep CD.files(itdc).name], 'RoTest', 'PsiTest', 'NbMapValues');
         CD.RhoPsi = cat(3, double(RoTest), double(PsiTest));
         CD.NbMapValues = NbMapValues;
         parfor(itst = 1:length(STfiles))
@@ -45,19 +44,17 @@ for itdc = 1:length(CD.files)
             binarized = imread([STfolder filesep STname '.png']);
             mask = double(binarized/max(binarized(:)));
             results = PolarimetryAnalysis(stack, mask, CD, params);
-            Tdata = [Tdata; [{matlab.lang.makeValidName(CD.name)}...
-                num2cell(results) {matlab.lang.makeValidName(STname)} num2cell(itdc)]];
+            Tdata = [Tdata; [{matlab.lang.makeValidName(CD.name)} num2cell(itdc)...
+                {matlab.lang.makeValidName(STname)} num2cell(results)... 
+                num2cell(params.dark) num2cell(params.offsetangle) {params.polardir}]];
         end
         %% save to MS Excel
+        T = array2table(Tdata,'VariableNames',...
+            {'Calibration', 'Disk #', 'File', 'MeanRho', 'StdRho', 'MeanDeltaRho', 'MeanPsi', 'StdPsi', ...
+            'MeanInt', 'StdInt', 'TotalInt', 'N', 'dark', 'offset', 'polarization'});
         if itdc==1
-            T = array2table(Tdata,'VariableNames',...
-                {'Disk Cone', 'MeanPsi', 'StdPsi', 'MeanRho', 'StdRho', 'MeanDeltaRho',...
-                'MeanInt', 'StdInt','TotalInt', 'N', 'Stack', 'Disk #'});
             writetable(T, excelfile, 'Sheet', 1, 'WriteRowNames', true);
         else
-            T = array2table(Tdata,'VariableNames',...
-                {'Disk Cone', 'MeanPsi', 'StdPsi', 'MeanRho', 'StdRho', 'MeanDeltaRho',...
-                'MeanInt', 'StdInt','TotalInt', 'N', 'Stack', 'Disk #'});
             writetable(T, excelfile, 'Sheet', 1, 'WriteMode', 'Append',...
                 'WriteVariableNames', false, 'WriteRowNames', true);
         end
@@ -68,6 +65,7 @@ end
 
 function results = PolarimetryAnalysis(stack, mask, CD, params)
     
+    chi2threshold = 500; % Define a threshold for chi-squared values
     [nangle, width, height] = size(stack);
     field = stack - params.dark;
     field(field < 0) = 0;

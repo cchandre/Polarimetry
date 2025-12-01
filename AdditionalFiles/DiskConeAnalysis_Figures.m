@@ -6,10 +6,9 @@ function DiskConeAnalysis_Figures
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% parameters
-DiskMin = 6560;
-DiskMax = 6570; 
-DiskDelta = 1;
-klowest = 20;
+DiskRange = 1:1:30;     % format: FirstDisk:DeltaDisk:LastDisk
+klowest = 10;
+output_file = "output";
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 close all
@@ -19,7 +18,7 @@ warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
 T = readtable([path file], 'FileType', 'spreadsheet');
 ListDC = unique(T.DiskCone);
 ListDCn = unique(T.Disk_);
-ListDCn = ListDCn(ismember(ListDCn,DiskMin:DiskDelta:DiskMax));
+ListDCn = ListDCn(ismember(ListDCn,DiskRange));
 
 if isempty(ListDCn)
     disp('No Disk cones found in this range...');
@@ -38,7 +37,7 @@ hold on
 for it = 1:length(ListDC)
     T1 = T(T.Disk_ == it,:);
     NameOfFile(it) = T1{1,1};
-    StdPsi(it) = std(T1{:,2});
+    StdPsi(it) = std(T1{:,8});
     s = plot(it, StdPsi(it), 'o', 'MarkerFaceColor', Colors(it,:), 'MarkerEdgeColor', Colors(it,:));
     s.DataTipTemplate.DataTipRows(end+1) = ['Disk Cone Name :  ' char(T1{1,1})];
     s.DataTipTemplate.Interpreter = 'none';
@@ -54,9 +53,13 @@ hold off
 %% k-lowest StdPsi
 [OStdPsi, Index] = sort(StdPsi);
 LowIndex = Index(1:klowest);
+fid = fopen(output_file + ".txt","w"); 
 for it = 1:klowest
     disp(['StdPsi = ' num2str(OStdPsi(it))   '   # ' num2str(LowIndex(it))   '   file = ' char(NameOfFile(LowIndex(it)))])
+    fprintf(fid, 'StdPsi = %g   # %d   file = %s\n', ...
+        OStdPsi(it), LowIndex(it), char(NameOfFile(LowIndex(it))));
 end
+fclose(fid);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Figures for lowest StdPsi disks
@@ -67,7 +70,7 @@ Colors = colormap(hsv(length(ListDC)));
 hold on
 for it = 1:klowest
     T1 = T(T.Disk_ == LowIndex(it),:);
-    plot(it, T1{:,2}, 'o', 'MarkerFaceColor', Colors(LowIndex(it),:), 'MarkerEdgeColor', Colors(LowIndex(it),:));
+    plot(it, T1{:,8}, 'o', 'MarkerFaceColor', Colors(LowIndex(it),:), 'MarkerEdgeColor', Colors(LowIndex(it),:));
 end
 xlabel('Disk #', 'FontSize', 25);
 ylabel('\psi', 'FontSize', 30);
@@ -95,7 +98,7 @@ hold on
 for it = 1:klowest
     T1 = T(T.Disk_ == LowIndex(it),:);
     [Rho, I] = sort(T1{:,4});
-    Psi = T1{I,2};
+    Psi = T1{I,7};
     s = plot(Rho, Psi, '-o', 'LineWidth', 2, 'Color', Colors(LowIndex(it),:), 'MarkerFaceColor', Colors(LowIndex(it),:), 'MarkerEdgeColor', Colors(LowIndex(it),:));
     s.DataTipTemplate.DataTipRows(end+1) = ['Disk Cone ' num2str(LowIndex(it))];
 end
@@ -113,7 +116,7 @@ hold off
 % hold on
 % for it = ListDCn'
 %     T1 = T(T.Disk_ == it,:);
-%     plot(it, T1{:,2}, 'o', 'MarkerFaceColor', Colors(it,:), 'MarkerEdgeColor', Colors(it,:));
+%     plot(it, T1{:,7}, 'o', 'MarkerFaceColor', Colors(it,:), 'MarkerEdgeColor', Colors(it,:));
 % end
 % xlabel('Disk #', 'FontSize', 25);
 % ylabel('\psi', 'FontSize', 30);
@@ -145,7 +148,7 @@ hold off
 % for it = ListDCn'
 %     T1 = T(T.Disk_ == it,:);
 %     [Rho, I] = sort(T1{:,4});
-%     Psi = T1{I,2};
+%     Psi = T1{I,7};
 %     s = plot(Rho, Psi, '-o', 'LineWidth', 2, 'Color', Colors(it,:), 'MarkerFaceColor', Colors(it,:), 'MarkerEdgeColor', Colors(it,:));
 %     s.DataTipTemplate.DataTipRows(end+1) = ['Disk Cone ' num2str(it)];
 % end
