@@ -17,7 +17,7 @@ warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
 [file, path] = uigetfile('*.xlsx');
 T = readtable([path file], 'FileType', 'spreadsheet');
 ListDC = unique(T.DiskCone);
-ListDCn = unique(T.Disk_);
+ListDCn = unique(T.DiskNumber);
 ListDCn = ListDCn(ismember(ListDCn,DiskRange));
 
 if isempty(ListDCn)

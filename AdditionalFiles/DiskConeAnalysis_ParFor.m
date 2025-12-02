@@ -1,13 +1,13 @@
 function DiskConeAnalysis_ParFor
 %%
-%% Last modified by Cristel Chandre (November 29, 2025)
+%% Last modified by Cristel Chandre (December 2, 2025)
 %% Comments? cristel.chandre@cnrs.fr 
 %%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% parameters
 params.dark = 480;
-params.polardir = 'clockwise';      % 'clockwise' or 'anticlockwise'
+params.polardir = 'anticlockwise';      % 'clockwise' or 'anticlockwise'
 params.offsetangle = 0;
 excelfile = 'CD_Stats.xlsx';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -15,42 +15,41 @@ excelfile = 'CD_Stats.xlsx';
 waitfor(msgbox({'(1) Diskcone folder','(2) Stack folder'}, 'Instructions', 'help'));
 
 %% get disk cone files
-CD.folder = uigetdir;
-CD.files = dir([CD.folder filesep '*.mat']);
+disk.folder = uigetdir;
+disk.files = dir([disk.folder filesep '*.mat']);
 
 %% get stack files
-STfolder = uigetdir;
-STfiles = dir([STfolder filesep '*.tiff']);
+folder = uigetdir;
+files = dir([folder filesep '*.tiff']);
 
 f = waitbar(0, 'Please wait...');
-listCD = {};
+disk.list = {};
 if exist(excelfile, 'file')
     To = readtable(excelfile, 'ReadVariableNames', false);
-    listCD = unique(To.Var1);
+    disk.list = unique(To.Var1);
 end
 
-for itdc = 1:length(CD.files)
+for itdc = 1:length(disk.files)
     Tdata = [];
-    f = waitbar(double(itdc/length(CD.files)), f, ['Processing ' num2str(itdc) ' Diskcone file(s)...']);
-    [~, CD.name, ~] = fileparts(char(CD.files(itdc).name));
-    if strncmp(CD.files(itdc).name, 'Disk', 4) && ~ismember({matlab.lang.makeValidName(CD.name)}, listCD)
-        [~, CD.name, ~] = fileparts(char(CD.files(itdc).name));
-        load([CD.folder filesep CD.files(itdc).name], 'RoTest', 'PsiTest', 'NbMapValues');
-        CD.RhoPsi = cat(3, double(RoTest), double(PsiTest));
-        CD.NbMapValues = NbMapValues;
-        parfor(itst = 1:length(STfiles))
-            stack = OpenFile([STfolder filesep STfiles(itst).name]);
-            [~, STname, ~] = fileparts(char(STfiles(itst).name));
-            binarized = imread([STfolder filesep STname '.png']);
-            mask = double(binarized/max(binarized(:)));
-            results = PolarimetryAnalysis(stack, mask, CD, params);
-            Tdata = [Tdata; [{matlab.lang.makeValidName(CD.name)} num2cell(itdc)...
-                {matlab.lang.makeValidName(STname)} num2cell(results)... 
+    f = waitbar(double(itdc/length(disk.files)), f, ['Processing ' num2str(itdc) ' Diskcone file(s)...']);
+    [~, disk.name, ~] = fileparts(char(disk.files(itdc).name));
+    if strncmp(disk.files(itdc).name, 'Disk', 4) && ~ismember({matlab.lang.makeValidName(disk.name)}, disk.list)
+        [~, disk.name, ~] = fileparts(char(disk.files(itdc).name));
+        load([disk.folder filesep disk.files(itdc).name], 'RoTest', 'PsiTest', 'NbMapValues');
+        disk.rhopsi = cat(3, double(RoTest), double(PsiTest));
+        disk.nb = NbMapValues;
+        parfor(itst = 1:length(files))
+            stack = OpenFile([folder filesep files(itst).name]);
+            [~, name, ~] = fileparts(char(files(itst).name));
+            mask = imbinarize(imread([folder filesep name '.png']), 0.5);
+            results = PolarimetryAnalysis(stack, mask, disk, params);
+            Tdata = [Tdata; [{matlab.lang.makeValidName(disk.name)} num2cell(itdc)...
+                {matlab.lang.makeValidName(name)} num2cell(results)... 
                 num2cell(params.dark) num2cell(params.offsetangle) {params.polardir}]];
         end
         %% save to MS Excel
         T = array2table(Tdata,'VariableNames',...
-            {'Calibration', 'Disk #', 'File', 'MeanRho', 'StdRho', 'MeanDeltaRho', 'MeanPsi', 'StdPsi', ...
+            {'Calibration', 'DiskNumber', 'File', 'MeanRho', 'StdRho', 'MeanDeltaRho', 'MeanPsi', 'StdPsi',...
             'MeanInt', 'StdInt', 'TotalInt', 'N', 'dark', 'offset', 'polarization'});
         if itdc==1
             writetable(T, excelfile, 'Sheet', 1, 'WriteRowNames', true);
@@ -63,9 +62,9 @@ end
 close(f);
 end
 
-function results = PolarimetryAnalysis(stack, mask, CD, params)
+function results = PolarimetryAnalysis(stack, mask, disk, params)
     
-    chi2threshold = 500; % Define a threshold for chi-squared values
+    chi2threshold = 500;    % Define a threshold for chi-squared values
     [nangle, width, height] = size(stack);
     field = stack - params.dark;
     field(field < 0) = 0;
@@ -74,52 +73,36 @@ function results = PolarimetryAnalysis(stack, mask, CD, params)
     alpha = polardir * (0:nangle-1) * (180/nangle) + params.offsetangle;
     e2 = exp(2i * deg2rad(alpha));
     a0 = mean(field, 1);
-    a0(a0 == 0) = NaN;
-    a2 = 2 * mean(field .* e2, 1);
+    a2 = 2 * mean(field .* reshape(e2, [nangle,1,1]), 1);
     field_fit = reshape(a0, [1,width,height])...
 		+ real(reshape(a2, [1,width,height]) .* conj(reshape(e2, [nangle,1,1])));
-    a2 = divide_ext(a2, a0);
-    valid = all(field_fit ~= 0 & isfinite(field_fit), 1);
-    num = (field - field_fit).^2;
-    safe_div = nan(size(field), 'like', field); 
-    safe_div(valid) = num(valid) ./ field_fit(valid);
-    chi2 = mean(safe_div, 1);
-    mask = mask & all(field_fit > 0, 1) & (chi2 <= chi2threshold) & (chi2 > 0);
+    chi2 = squeeze(mean((field - field_fit).^2 ./ field_fit, 1));
+    mask = mask & squeeze(all(field_fit > 0, 1)) & (chi2 <= chi2threshold) & (chi2 > 0);
+    a2 = a2 ./ a0;
     a2_vals = [real(a2(mask)), imag(a2(mask))];
 
-    x = linspace(-1, 1, CD.NbMapValues);
-    rhopsi = interpn(x, x, CD.RhoPsi, a2_vals(:,1), a2_vals(:,2));
+    x = linspace(-1, 1, disk.nb);
+    rhopsi = interpn(x, x, disk.rhopsi, a2_vals(:,1), a2_vals(:,2));
     rho = rhopsi(:,1);
     psi = rhopsi(:,2);
 
-    rho_values = nan(height, width); 
-    psi_values = nan(height, width);
+    rho_values = nan(width, height); 
+    psi_values = nan(width, height);
 	ixgrid = find(mask);
-    rho_values(ixgrid) = rho;
+    rho_values(ixgrid) = mod(2 * rho, 360) / 2;
     psi_values(ixgrid) = psi;
-    finite_idx = isfinite(rho_values);
-    rho_values(finite_idx) = mod(2 * rho_values(finite_idx), 360) / 2;
     mask = mask & isfinite(rho_values) & isfinite(psi_values);
-    a0(~mask) = NaN;
    
-    mean_rho = circularmean(rho_values);
-    deltarho = wrapto180(2 * (rho_values - mean_rho)) / 2;
-    mean_deltarho = mean(deltarho, 'all', 'omitnan');
-    std_deltarho = std(deltarho, 0, 'all', 'omitnan');
-    mean_psi = mean(psi_values, 'all', 'omitnan');
-    std_psi = std(psi_values, 0, 'all', 'omitnan');
-    mean_int = mean(a0, 'all', 'omitnan');
-    std_int = std(a0, 0, 'all', 'omitnan');
-    total_int = mean_int * nangle;
-    N = numel(psi_values);
-    results = [mean_psi, std_psi, mean_rho, std_rho, mean_deltarho,...
-        std_deltarho, mean_int, std_int, total_int, N];
-end
-
-function result = divide_ext(a, b)
-    result = nan(size(a), 'like', a);
-    mask = (b ~= 0) & isfinite(b);
-    result(mask) = a(mask) ./ b(mask);
+    mean_rho = circularmean(rho_values(mask), 'all');
+    deltarho = wrapTo180(2 * (rho_values(mask) - mean_rho)) / 2;
+    mean_deltarho = mean(deltarho, 'all');
+    std_deltarho = std(deltarho, 0, 'all');
+    mean_psi = mean(psi_values(mask), 'all');
+    std_psi = std(psi_values(mask), 0, 'all');
+    mean_int = mean(a0(mask), 'all');
+    std_int = std(a0(mask), 0, 'all');
+    results = [mean_rho, std_deltarho, mean_deltarho, mean_psi, std_psi, ...
+        mean_int, std_int, mean_int * nangle, numel(psi_values(mask))];
 end
 
 function stack = OpenFile(filename)
@@ -129,13 +112,13 @@ function stack = OpenFile(filename)
     t = Tiff(filename, 'r');
     for k = 1:nangle
         t.setDirectory(k);
-        stack(k,:,:) = t.read();
+        stack(k,:,:) = double(t.read());
     end
     t.close();
 end
 
-function mu = circularmean(rho)
-    z = mean(exp(2i * deg2rad(rho)));
+function mu = circularmean(rho, dim)
+    z = mean(exp(2i * deg2rad(rho)), dim);
     mu = mod(rad2deg(angle(z)), 360) / 2;
 end
 
