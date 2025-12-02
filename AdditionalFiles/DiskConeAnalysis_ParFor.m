@@ -76,7 +76,8 @@ function results = PolarimetryAnalysis(stack, mask, CD, params)
     a0 = mean(field, 1);
     a0(a0 == 0) = NaN;
     a2 = 2 * mean(field .* e2, 1);
-    field_fit = a0 + real(a2 .*conj(e2));
+    field_fit = reshape(a0, [1,width,height])...
+		+ real(reshape(a2, [1,width,height]) .* conj(reshape(e2, [nangle,1,1])));
     a2 = divide_ext(a2, a0);
     valid = all(field_fit ~= 0 & isfinite(field_fit), 1);
     num = (field - field_fit).^2;
@@ -85,17 +86,15 @@ function results = PolarimetryAnalysis(stack, mask, CD, params)
     chi2 = mean(safe_div, 1);
     mask = mask & all(field_fit > 0, 1) & (chi2 <= chi2threshold) & (chi2 > 0);
     a2_vals = [real(a2(mask)), imag(a2(mask))];
-    a0(~mask) = NaN;
 
     x = linspace(-1, 1, CD.NbMapValues);
-    CD.xy = {x, x};
-    rhopsi = interpn(CD.xy{:}, CD.RhoPsi, a2_vals(:,1), a2_vals(:,2));
+    rhopsi = interpn(x, x, CD.RhoPsi, a2_vals(:,1), a2_vals(:,2));
     rho = rhopsi(:,1);
     psi = rhopsi(:,2);
-    ixgrid = find(mask);
 
     rho_values = nan(height, width); 
     psi_values = nan(height, width);
+	ixgrid = find(mask);
     rho_values(ixgrid) = rho;
     psi_values(ixgrid) = psi;
     finite_idx = isfinite(rho_values);
