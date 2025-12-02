@@ -5,3 +5,5 @@ dist/
 .DS_Store
 .DS_Store?
 pypolar/polarimetry.json
+*.xlsx
+*.asv
