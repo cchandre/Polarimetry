@@ -16,7 +16,7 @@ warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
 
 [file, path] = uigetfile('*.xlsx');
 T = readtable([path file], 'FileType', 'spreadsheet');
-ListDC = unique(T.DiskCone);
+ListDC = unique(T.Calibration);
 ListDCn = unique(T.DiskNumber);
 ListDCn = ListDCn(ismember(ListDCn,DiskRange));
 
@@ -35,7 +35,7 @@ StdPsi = zeros(1,length(ListDC));
 NameOfFile = cell(1,length(ListDC));
 hold on
 for it = 1:length(ListDC)
-    T1 = T(T.Disk_ == it,:);
+    T1 = T(T.DiskNumber == it,:);
     NameOfFile(it) = T1{1,1};
     StdPsi(it) = std(T1{:,8});
     s = plot(it, StdPsi(it), 'o', 'MarkerFaceColor', Colors(it,:), 'MarkerEdgeColor', Colors(it,:));
@@ -69,7 +69,7 @@ figure('Name', 'Psi function of Disk Cone');
 Colors = colormap(hsv(length(ListDC)));
 hold on
 for it = 1:klowest
-    T1 = T(T.Disk_ == LowIndex(it),:);
+    T1 = T(T.DiskNumber == LowIndex(it),:);
     plot(it, T1{:,8}, 'o', 'MarkerFaceColor', Colors(LowIndex(it),:), 'MarkerEdgeColor', Colors(LowIndex(it),:));
 end
 xlabel('Disk #', 'FontSize', 25);
@@ -83,7 +83,7 @@ figure('Name', 'Rho function of Disk Cone');
 Colors = colormap(hsv(length(ListDC)));
 hold on
 for it = 1:klowest
-    T1 = T(T.Disk_ == LowIndex(it),:);
+    T1 = T(T.DiskNumber == LowIndex(it),:);
     plot(it, T1{:,4}, 'o', 'MarkerFaceColor', Colors(LowIndex(it),:), 'MarkerEdgeColor', Colors(LowIndex(it),:));
 end
 xlabel('Disk #', 'FontSize', 25);
@@ -96,7 +96,7 @@ hold off
 figure('Name', 'Psi function of Rho');
 hold on
 for it = 1:klowest
-    T1 = T(T.Disk_ == LowIndex(it),:);
+    T1 = T(T.DiskNumber == LowIndex(it),:);
     [Rho, I] = sort(T1{:,4});
     Psi = T1{I,7};
     s = plot(Rho, Psi, '-o', 'LineWidth', 2, 'Color', Colors(LowIndex(it),:), 'MarkerFaceColor', Colors(LowIndex(it),:), 'MarkerEdgeColor', Colors(LowIndex(it),:));
