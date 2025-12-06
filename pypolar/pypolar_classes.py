@@ -15,6 +15,7 @@ from scipy.ndimage import rotate
 from scipy.signal import convolve2d
 from scipy.linalg import norm
 from scipy.optimize import linear_sum_assignment
+from scipy.interpolate import interpn
 from PIL import Image, ImageTk
 from tkinter import filedialog as fd
 from tkinter.messagebox import showerror
@@ -498,6 +499,43 @@ class Calibration:
             row = int(np.clip((1 - yval) / 2 * ny, 0, ny - 1))
             return f"(B2={xval:.2f}, A2={yval:.2f})\n \u03C8={self.RhoPsi[row, col, 1]:.0f}\u00B0"
         axs[1].format_coord = format_coord_psi
+
+    def calibrate(self) -> None:
+        pass
+
+    def compute_1PF(self, stack, mask, disk, params) -> None:
+        chi2threshold = 500
+        shape = (stack.height, stack.width)
+        field = stack.values - params['dark'] 
+        field *= (field >= 0)
+        polardir = -1 if params['polar_dir'] == 'anticlockwise' else 1
+        alpha = polardir * np.linspace(0, 180, stack.nangle, endpoint=False) + float(params['offset_angle'])
+        e2 = np.exp(2j * np.deg2rad(alpha[:, np.newaxis, np.newaxis]))
+        a0 = np.mean(field, axis=0)
+        a0[a0 == 0] = np.nan
+        a2 = 2 * np.mean(field * e2, axis=0)
+        field_fit = a0[np.newaxis] + (a2[np.newaxis] * e2.conj()).real
+        a2 = divide_ext(a2, a0)
+        chi2 = np.mean(np.divide((field - field_fit)**2, field_fit, where=np.all((field_fit!=0, np.isfinite(field_fit)), axis=0)), axis=0)
+        mask *= np.all(field_fit > 0, axis=0) * (chi2 <= chi2threshold) * (chi2 > 0)
+        a2_vals = np.moveaxis(np.asarray([a2.real[mask].flatten(), a2.imag[mask].flatten()]), 0, -1)
+        x = np.linspace(-1, 1, disk.RhoPsi.shape[0], dtype=np.float64)
+        rho, psi = np.moveaxis(interpn(x, x, disk.RhoPsi, a2_vals), 0, 1)
+        rho_values, psi_values = np.full(shape, np.nan), np.full(shape, np.nan)
+        ixgrid = mask.nonzero()
+        rho_values[ixgrid] = rho
+        rho_values[np.isfinite(rho_values)] = np.mod(2 * (rho_values[np.isfinite(rho_values)]), 360) / 2
+        psi_values[ixgrid] = psi
+        mask *= np.isfinite(rho_values) * np.isfinite(psi_values)
+        mean_rho = circularmean(rho_values[mask])
+        deltarho = wrapto180(2 * (rho_values[mask] - mean_rho)) / 2
+        mean_deltarho = np.mean(deltarho)
+        std_rho = np.std(deltarho)
+        mean_psi = np.mean(psi_values[mask])
+        std_psi = np.std(psi_values[mask])
+        mean_int = np.mean(a0[mask])
+        std_int = np.std(a0[mask])
+        return [mean_rho, std_rho, mean_deltarho, mean_psi, std_psi, mean_int, std_int, mean_int * stack.nangle, np.sum(mask)]
 
     def list(self, method:str) -> str:
         if method == '1PF':

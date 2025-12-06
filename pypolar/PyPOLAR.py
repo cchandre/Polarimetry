@@ -352,7 +352,7 @@ class Polarimetry(CTk.CTk):
 
         Button(scrollable_frame, image=self.icons['delete_forever'], command=self.initialize_tables, tooltip=' reinitialize Figures, Save output and Variables tables').grid(row=3, column=1, padx=(0, 100), pady=(10, 0), sticky="ne")
 
-## RIGHT FRAME: ADV
+## RIGHT FRAME: ADVANCED
         scrollable_frame = CTk.CTkScrollableFrame(master=self.tabview.tab('Advanced'), fg_color='transparent', scrollbar_fg_color='transparent', scrollbar_button_color=right_frame.cget('fg_color'), scrollbar_button_hover_color=left_color)
         scrollable_frame.columnconfigure((0, 1), weight=1)
         scrollable_frame.pack(side=CTk.LEFT, fill=CTk.BOTH, expand=True)
@@ -386,9 +386,10 @@ class Polarimetry(CTk.CTk):
         self.polarization_button = Button(adv['Polarization'], image=self.icons[self.polar_dir.get()], command=self.change_polarization_direction, tooltip=' change polarization direction')
         self.polarization_button.grid(row=2, column=0, pady=(0, 10))
 
-        Button(adv['Disk cone / Calibration data'], image=self.icons['photo'], command=self.diskcone_display, tooltip=' display the selected disk cone (for 1PF)').grid(row=1, column=0, padx=(52, 0), pady=10, sticky='w')
+        Button(adv['Disk cone / Calibration data'], image=self.icons['photo'], command=self.diskcone_display, tooltip=' display the selected disk cone (for 1PF)').grid(row=1, column=0, padx=(32, 0), pady=10, sticky='w')
         self.calib_dropdown = OptionMenu(master=adv['Disk cone / Calibration data'], values='', width=button_size[0]-button_size[1], height=button_size[1], dynamic_resizing=False, command=self.calib_dropdown_callback, tooltip=' 1PF: select disk cone depending on wavelength and acquisition date\n 4POLAR: select .mat file containing the calibration data')
-        self.calib_dropdown.grid(row=1, column=0, padx=(0, 52), pady=10, sticky='e')
+        self.calib_dropdown.grid(row=1, column=0, padx=(0, 72), pady=10, sticky='e')
+        Button(adv['Disk cone / Calibration data'], image=self.icons['construction'], command=self.calibration_procedure_callback, tooltip=' For expert users: calibration procedure for 1PF').grid(row=1, column=0, padx=(0, 27), pady=10, sticky='e')
         self.calib_textbox = TextBox(master=adv['Disk cone / Calibration data'], width=250, height=50, state='disabled', fg_color=gray[0])
         self.calib_textbox.grid(row=3, column=0, pady=10)
         self.polar_dropdown = OptionMenu(master=adv['Disk cone / Calibration data'], width=button_size[0], height=button_size[1], dynamic_resizing=False, command=self.polar_dropdown_callback, state='disabled', text_color_disabled=gray[0], tooltip=' 4POLAR: select the distribution of polarizations (0,45,90,135) among quadrants clockwise\n Upper Left (UL), Upper Right (UR), Lower Right (LR), Lower Left (LL)')
@@ -611,6 +612,46 @@ class Polarimetry(CTk.CTk):
                 edge_contours += [savgol_filter(contour.reshape((-1, 2)), window_length=window_length, polyorder=3, mode='nearest', axis=0)]
         return edge_contours
     
+    def calibration_procedure_callback(self) -> None:
+        params = {'offset_angle': float(self.offset_angle.get()), 
+                  'polar_dir': self.polar_dir.get(),
+                  'dark': self.dark.get() if self.dark_switch.get() == 'on' else 480}
+        self.calib_window = CTk.CTkToplevel(self)
+        self.calib_window.title('Calibration for 1PF')
+        self.calib_window.geometry(geometry_info((500, 300)))
+        self.calib_window.protocol('WM_DELETE_WINDOW', self.calib_on_closing)
+        self.calib_window.bind('<Command-q>', lambda:self.calib_on_closing)
+        self.calib_window.bind('<Command-w>', self.calib_on_closing)
+        self.calib_window.grid_columnconfigure(0, weight=1)
+        self.calib_window.grid_columnconfigure(1, weight=3)
+        self.calib_window.grid_columnconfigure(2, weight=1)
+        self.create_folder_query_widgets(
+            parent=self.calib_window, row=0,
+            label_text="Disk folder:",
+            entry_variable_name="_disk_folder_path")
+        self.create_folder_query_widgets(
+            parent=self.calib_window, row=1,
+            label_text="Stack folder:",
+            entry_variable_name="_stack_folder_path")
+        self.calib_window.grab_set()
+        pass
+
+    def create_folder_query_widgets(self, parent, row, label_text, entry_variable_name):
+        label = CTk.CTkLabel(parent, text=label_text, width=100)
+        label.grid(row=row, column=0, pady=15, padx=(20,0))
+        string_var = CTk.StringVar(value="Select folder...")
+        setattr(self, entry_variable_name, string_var)
+        entry = CTk.CTkEntry(parent, textvariable=string_var, width=250)
+        entry.grid(row=row, column=1, pady=15)
+        browse_button = CTk.CTkButton(parent, text="Browse", width=80, command=lambda: self.browse_folder(string_var))
+        browse_button.grid(row=row, column=2, pady=15, padx=(0, 20))
+
+    def browse_folder(self, path_var: CTk.StringVar):
+        initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
+        folder_path = Path(fd.askdirectory(title='Select a folder', initialdir=initialdir))
+        if folder_path:
+            path_var.set(folder_path)
+    
     def define_rho_ct(self, contours:List[np.ndarray]) -> np.ndarray:
         rho_ct = np.nan * np.empty_like(self.stack.intensity)
         x_ct, y_ct = np.nan * np.empty_like(self.stack.intensity), np.nan * np.empty_like(self.stack.intensity)
@@ -828,6 +869,10 @@ class Polarimetry(CTk.CTk):
     def crop_on_closing(self):
         self.crop_window.destroy()
         delattr(self, 'crop_window')
+
+    def calib_on_closing(self):
+        self.calib_window.destroy()
+        delattr(self, 'calib_window')
 
     def crop_figures(self) -> None:
         figs = list(map(plt.figure, plt.get_fignums()))
