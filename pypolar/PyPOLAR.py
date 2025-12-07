@@ -17,6 +17,7 @@ from scipy.io import savemat, loadmat
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
+import matplotlib.colors as mcolors
 from matplotlib.patches import Polygon
 from matplotlib.collections import PolyCollection
 from matplotlib.backend_bases import FigureCanvasBase, _Mode, MouseEvent
@@ -30,7 +31,7 @@ import tifffile
 from skimage.measure import manders_coloc_coeff, pearson_corr_coeff
 import openpyxl
 from itertools import permutations, chain
-from datetime import date
+from datetime import date, datetime
 import time
 import copy
 from typing import List, Tuple, Union
@@ -636,6 +637,8 @@ class Polarimetry(CTk.CTk):
         status_entry.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
         self.calib_window.grab_set()
         CTk.CTkButton(self.calib_window, text="Start", width=80, command=self.start_calibration).grid(row=3, column=1, pady=10)
+        self.lowest_calib = CTk.StringVar(value='10')
+        SpinBox(master=self.calib_window, from_=1, to_=50, step_size=1, textvariable=self.lowest_calib).grid(row=3, column=0, padx=0, pady=10)
 
     def start_calibration(self) -> None:
         params = {'offset_angle': float(self.offset_angle.get()), 
@@ -646,6 +649,7 @@ class Polarimetry(CTk.CTk):
         stacklist = [file for file in Path(self._stack_folder_path.get()).glob('*.tif*')]
         self._status_message.set(f"Starting calibration...")
         self.calib_window.update()
+        data = [['Calibration', 'DiskNumber', 'File', 'MeanRho', 'StdRho', 'MeanDeltaRho', 'MeanPsi', 'StdPsi', 'MeanInt', 'StdInt', 'TotalInt', 'N', 'dark', 'offset', 'polarization']]
         for i, disk_path in enumerate(disklist):
             disk = loadmat(disk_path, variable_names=TARGET_VARIABLES, squeeze_me=True)
             for stack_path in stacklist:
@@ -653,10 +657,46 @@ class Polarimetry(CTk.CTk):
                 mask_path = stack_path.with_suffix('.png')
                 im_binarized = np.asarray(Image.open(mask_path), dtype=np.float64)
                 mask = (im_binarized > 0)
-                results = self.compute_1PF(stack, mask, disk, params)
+                result = [disk_path.stem, i + 1, stack_path.stem]
+                result += self.compute_1PF(stack, mask, disk, params)
+                result += [params['dark'], params['offset_angle'], params['polar_dir']]
+                data.append(result)
             self._status_message.set(f"{i + 1} over {len(disklist)} disks processed")
             self.calib_window.update()
             self.calib_window.update_idletasks()
+        if self.extension_table[2].get():
+            current_time = datetime.now()
+            timestamp = current_time.strftime("_%Y%m%d_%H%M")
+            file_name = Path(self._stack_folder_path.get()) / f'calibration_results{timestamp}.xlsx'
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Calibration Results"
+            for row_data in data:
+                ws.append(row_data)
+            wb.save(file_name) 
+            self._status_message.set(f"Excel file '{file_name}' created successfully.")
+        self.plot_calibration_results(data)
+
+    def plot_calibration_results(self, data:List) -> None:
+        list_disks = list(set([row[0] for row in data[1:]]))
+        std_psi = np.zeros(len(list_disks))
+        ncolors = len(list_disks)
+        cmap = plt.cm.get_cmap('hsv', ncolors)
+        colors = cmap(np.arange(ncolors))
+        fig, ax = plt.subplots(figsize=(12, 6)) 
+        plt.get_current_fig_manager().set_window_title('StdPsi function of Disk Cone') 
+        #ax.set_box_aspect(1)
+        ax.set_xticks(range(1, len(list_disks) + 1))
+        ax.set_xlim(0.9, len(list_disks) + 0.1)
+        ax.set_xlabel('Disk #', fontsize=25)
+        ax.set_ylabel(r'Std $\psi$', fontsize=30)
+        for itdc, disk_name in enumerate(list_disks):
+            std_psi[itdc] = np.std([row[7] for row in data[1:] if row[0] == disk_name])
+            ax.scatter(itdc + 1, std_psi[itdc], color=colors[itdc], s=100,
+                      marker='o', label=f'Disk Cone: {list_disks[itdc]}')
+        plt.show()
+    
+        pass
 
     def compute_1PF(self, stack, mask, disk, params):
         chi2threshold = 500
