@@ -31,6 +31,7 @@ from skimage.measure import manders_coloc_coeff, pearson_corr_coeff
 import openpyxl
 from itertools import permutations, chain
 from datetime import date
+import time
 import copy
 from typing import List, Tuple, Union
 from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, PyPOLARfigure, ROIManager, TabView, ToolTip
@@ -613,12 +614,9 @@ class Polarimetry(CTk.CTk):
         return edge_contours
     
     def calibration_procedure_callback(self) -> None:
-        params = {'offset_angle': float(self.offset_angle.get()), 
-                  'polar_dir': self.polar_dir.get(),
-                  'dark': self.dark.get() if self.dark_switch.get() == 'on' else 480}
         self.calib_window = CTk.CTkToplevel(self)
         self.calib_window.title('Calibration for 1PF')
-        self.calib_window.geometry(geometry_info((500, 300)))
+        self.calib_window.geometry(geometry_info((500, 220)))
         self.calib_window.protocol('WM_DELETE_WINDOW', self.calib_on_closing)
         self.calib_window.bind('<Command-q>', lambda:self.calib_on_closing)
         self.calib_window.bind('<Command-w>', self.calib_on_closing)
@@ -633,8 +631,67 @@ class Polarimetry(CTk.CTk):
             parent=self.calib_window, row=1,
             label_text="Stack folder:",
             entry_variable_name="_stack_folder_path")
+        self._status_message = CTk.StringVar(value="Ready to load data...")
+        status_entry = CTk.CTkEntry(self.calib_window, textvariable=self._status_message,state="readonly")
+        status_entry.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
         self.calib_window.grab_set()
-        pass
+        CTk.CTkButton(self.calib_window, text="Start", width=80, command=self.start_calibration).grid(row=3, column=1, pady=10)
+
+    def start_calibration(self) -> None:
+        params = {'offset_angle': float(self.offset_angle.get()), 
+                  'polar_dir': self.polar_dir.get(),
+                  'dark': self.dark.get() if self.dark_switch.get() == 'on' else 480}
+        TARGET_VARIABLES = ['RoTest', 'PsiTest', 'NbMapValues']
+        disklist = [file for file in Path(self._disk_folder_path.get()).glob('*.mat') if file.stem.startswith("Disk")]
+        stacklist = [file for file in Path(self._stack_folder_path.get()).glob('*.tif*')]
+        self._status_message.set(f"Starting calibration...")
+        self.calib_window.update()
+        for i, disk_path in enumerate(disklist):
+            disk = loadmat(disk_path, variable_names=TARGET_VARIABLES, squeeze_me=True)
+            for stack_path in stacklist:
+                stack = self.define_stack(stack_path)
+                mask_path = stack_path.with_suffix('.png')
+                im_binarized = np.asarray(Image.open(mask_path), dtype=np.float64)
+                mask = (im_binarized > 0)
+                results = self.compute_1PF(stack, mask, disk, params)
+            self._status_message.set(f"{i + 1} over {len(disklist)} disks processed")
+            self.calib_window.update()
+            self.calib_window.update_idletasks()
+
+    def compute_1PF(self, stack, mask, disk, params):
+        chi2threshold = 500
+        shape = (stack.height, stack.width)
+        field = stack.values - float(params['dark'])
+        field *= (field >= 0)
+        polardir = -1 if params['polar_dir'] == 'clockwise' else 1
+        alpha = polardir * np.linspace(0, 180, stack.nangle, endpoint=False) + float(params['offset_angle'])
+        e2 = np.exp(2j * np.deg2rad(alpha[:, np.newaxis, np.newaxis]))
+        a0 = np.mean(field, axis=0)
+        a0[a0 == 0] = np.nan
+        a2 = 2 * np.mean(field * e2, axis=0)
+        field_fit = a0[np.newaxis] + (a2[np.newaxis] * e2.conj()).real
+        a2 = divide_ext(a2, a0)
+        chi2 = np.mean(np.divide((field - field_fit)**2, field_fit, where=np.all((field_fit!=0, np.isfinite(field_fit)), axis=0)), axis=0)
+        mask *= np.all(field_fit > 0, axis=0) * (chi2 <= chi2threshold) * (chi2 > 0)
+        a2_vals = np.moveaxis(np.asarray([a2.real[mask].flatten(), a2.imag[mask].flatten()]), 0, -1)
+        RhoPsi = np.moveaxis(np.stack((np.array(disk['RoTest'], dtype=np.float64), np.array(disk['PsiTest'], dtype=np.float64))), 0, -1)
+        xy = 2 * (np.linspace(-1, 1, int(disk['NbMapValues']), dtype=np.float64),)
+        rho, psi = np.moveaxis(interpn(xy, RhoPsi, a2_vals), 0, 1)
+        rho_values, psi_values = np.full(shape, np.nan), np.full(shape, np.nan)
+        ixgrid = mask.nonzero()
+        rho_values[ixgrid] = rho
+        rho_values[np.isfinite(rho_values)] = np.mod(2 * (rho_values[np.isfinite(rho_values)]), 360) / 2
+        psi_values[ixgrid] = psi
+        mask *= np.isfinite(rho_values) * np.isfinite(psi_values)
+        mean_rho = circularmean(rho_values[mask])
+        deltarho = wrapto180(2 * (rho_values[mask] - mean_rho)) / 2
+        mean_deltarho = np.mean(deltarho)
+        std_rho = np.std(deltarho)
+        mean_psi = np.mean(psi_values[mask])
+        std_psi = np.std(psi_values[mask])
+        mean_int = np.mean(a0[mask])
+        std_int = np.std(a0[mask])
+        return [mean_rho, std_rho, mean_deltarho, mean_psi, std_psi, mean_int, std_int, mean_int * stack.nangle, np.sum(mask)]
 
     def create_folder_query_widgets(self, parent, row, label_text, entry_variable_name):
         label = CTk.CTkLabel(parent, text=label_text, width=100)
