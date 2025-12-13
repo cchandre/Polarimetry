@@ -636,9 +636,12 @@ class Polarimetry(CTk.CTk):
         status_entry = CTk.CTkEntry(self.calib_window, textvariable=self._status_message,state="readonly")
         status_entry.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
         self.calib_window.grab_set()
-        CTk.CTkButton(self.calib_window, text="Start", width=80, command=self.start_calibration).grid(row=3, column=1, pady=10)
+        self.button_main_calib = CTk.CTkButton(self.calib_window, text="Start", width=80, command=self.start_calibration)
+        self.button_main_calib.grid(row=4, column=1, pady=10)
         self.lowest_calib = CTk.StringVar(value='10')
-        SpinBox(master=self.calib_window, from_=1, to_=50, step_size=1, textvariable=self.lowest_calib).grid(row=3, column=0, padx=0, pady=10)
+        CTk.CTkButton(self.calib_window, text="Plot", width=80, command=self.plot_calibration).grid(row=4, column=2, pady=10)
+        self.lowest_calib = CTk.StringVar(value='10')
+        SpinBox(master=self.calib_window, from_=1, to_=50, step_size=1, textvariable=self.lowest_calib).grid(row=4, column=0, padx=0, pady=10)
 
     def start_calibration(self) -> None:
         params = {'offset_angle': float(self.offset_angle.get()), 
@@ -676,6 +679,29 @@ class Polarimetry(CTk.CTk):
             wb.save(file_name) 
             self._status_message.set(f"Excel file '{file_name}' created successfully.")
         self.plot_calibration_results(data)
+
+    def plot_calibration(self) -> None:
+        self._status_message.set(f"Plotting calibration data...")
+        self.calib_window.geometry(geometry_info((500, 420)))
+        self.button_main_calib.configure(text="Load data", command=self.load_calibration_data)
+        self.textbox_calib = TextBox(master=self.calib_window, width=300, height=180, state='disabled', fg_color=gray[0])
+        self.textbox_calib.grid(row=3, column=0, columnspan=3, pady=10)
+        pass
+
+    def load_calibration_data(self) -> None:
+        filetypes = [('Excel files', '*.xlsx'), ('All files', '*.*')]
+        initialdir = self._stack_folder_path.get() if hasattr(self, '_stack_folder_path') else Path.home()
+        file = fd.askopenfilename(title='Select calibration data file', initialdir=initialdir, filetypes=filetypes)
+        if not file:
+            return
+        wb = openpyxl.load_workbook(file)
+        ws = wb.active
+        data = []
+        for row in ws.iter_rows(values_only=True):
+            data.append(list(row))
+        self.plot_calibration_results(data)
+        self._status_message.set(f"Calibration data loaded from '{file}'")
+        pass
 
     def plot_calibration_results(self, data:List) -> None:
         list_disks = list(set([row[0] for row in data[1:]]))
