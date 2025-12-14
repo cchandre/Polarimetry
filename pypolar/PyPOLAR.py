@@ -639,9 +639,8 @@ class Polarimetry(CTk.CTk):
         self.button_main_calib = CTk.CTkButton(self.calib_window, text="Start", width=80, command=self.start_calibration)
         self.button_main_calib.grid(row=4, column=1, pady=10)
         self.lowest_calib = CTk.StringVar(value='10')
-        CTk.CTkButton(self.calib_window, text="Plot", width=80, command=self.plot_calibration).grid(row=4, column=2, pady=10)
+        self.button_side = CTk.CTkButton(self.calib_window, text="Load", width=80, command=self.load_calibration).grid(row=4, column=2, pady=10)
         self.lowest_calib = CTk.StringVar(value='10')
-        SpinBox(master=self.calib_window, from_=1, to_=50, step_size=1, textvariable=self.lowest_calib).grid(row=4, column=0, padx=0, pady=10)
 
     def start_calibration(self) -> None:
         params = {'offset_angle': float(self.offset_angle.get()), 
@@ -667,6 +666,7 @@ class Polarimetry(CTk.CTk):
             self._status_message.set(f"{i + 1} over {len(disklist)} disks processed")
             self.calib_window.update()
             self.calib_window.update_idletasks()
+        self.calib_excel_data = data
         if self.extension_table[2].get():
             current_time = datetime.now()
             timestamp = current_time.strftime("_%Y%m%d_%H%M")
@@ -678,17 +678,18 @@ class Polarimetry(CTk.CTk):
                 ws.append(row_data)
             wb.save(file_name) 
             self._status_message.set(f"Excel file '{file_name}' created successfully.")
-        self.plot_calibration_results(data)
+        self.main_plot_calibration()
 
-    def plot_calibration(self) -> None:
+    def main_plot_calibration(self) -> None:
         self._status_message.set(f"Plotting calibration data...")
         self.calib_window.geometry(geometry_info((500, 420)))
-        self.button_main_calib.configure(text="Load data", command=self.load_calibration_data)
+        SpinBox(master=self.calib_window, from_=1, to_=50, step_size=1, textvariable=self.lowest_calib).grid(row=4, column=0, padx=0, pady=10)
+        self.button_main_calib.configure(text="Plot", command=lambda:self.plot_calibration_results(self.calib_excel_data))
         self.textbox_calib = TextBox(master=self.calib_window, width=300, height=180, state='disabled', fg_color=gray[0])
         self.textbox_calib.grid(row=3, column=0, columnspan=3, pady=10)
         pass
 
-    def load_calibration_data(self) -> None:
+    def load_calibration(self) -> None:
         filetypes = [('Excel files', '*.xlsx'), ('All files', '*.*')]
         initialdir = self._stack_folder_path.get() if hasattr(self, '_stack_folder_path') else Path.home()
         file = fd.askopenfilename(title='Select calibration data file', initialdir=initialdir, filetypes=filetypes)
@@ -696,11 +697,11 @@ class Polarimetry(CTk.CTk):
             return
         wb = openpyxl.load_workbook(file)
         ws = wb.active
-        data = []
+        self.calib_excel_data = []
         for row in ws.iter_rows(values_only=True):
-            data.append(list(row))
-        self.plot_calibration_results(data)
+            self.calib_excel_data.append(list(row))
         self._status_message.set(f"Calibration data loaded from '{file}'")
+        self.main_plot_calibration()
         pass
 
     def plot_calibration_results(self, data:List) -> None:
@@ -711,7 +712,6 @@ class Polarimetry(CTk.CTk):
         colors = cmap(np.arange(ncolors))
         fig, ax = plt.subplots(figsize=(12, 6)) 
         plt.get_current_fig_manager().set_window_title('StdPsi function of Disk Cone') 
-        #ax.set_box_aspect(1)
         ax.set_xticks(range(1, len(list_disks) + 1))
         ax.set_xlim(0.9, len(list_disks) + 0.1)
         ax.set_xlabel('Disk #', fontsize=25)
@@ -721,7 +721,6 @@ class Polarimetry(CTk.CTk):
             ax.scatter(itdc + 1, std_psi[itdc], color=colors[itdc], s=100,
                       marker='o', label=f'Disk Cone: {list_disks[itdc]}')
         plt.show()
-    
         pass
 
     def compute_1PF(self, stack, mask, disk, params):
