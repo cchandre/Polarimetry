@@ -632,9 +632,14 @@ class Polarimetry(CTk.CTk):
             parent=self.calib_window, row=1,
             label_text="Stack folder:",
             entry_variable_name="_stack_folder_path")
+        scroll_frame = CTk.CTkFrame(self.calib_window)
+        scroll_frame.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
+        h_scrollbar = CTk.CTkScrollbar(scroll_frame, orientation="horizontal")
+        h_scrollbar.pack(side="bottom", fill="x")
         self._status_message = CTk.StringVar(value="Ready to load data...")
-        status_entry = CTk.CTkEntry(self.calib_window, textvariable=self._status_message,state="readonly")
-        status_entry.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
+        status_entry = CTk.CTkEntry(scroll_frame, textvariable=self._status_message, state="readonly", border_width=0, text_color=gray[1], width=460, xscrollcommand=h_scrollbar.set)
+        status_entry.pack(side="top", fill="x", expand=True)
+        h_scrollbar.configure(command=status_entry.xview)
         self.calib_window.grab_set()
         self.button_main_calib = CTk.CTkButton(self.calib_window, text="Start", width=80, command=self.start_calibration)
         self.button_main_calib.grid(row=4, column=1, pady=10)
@@ -666,26 +671,24 @@ class Polarimetry(CTk.CTk):
             self._status_message.set(f"{i + 1} over {len(disklist)} disks processed")
             self.calib_window.update()
             self.calib_window.update_idletasks()
-        self.calib_excel_data = data
-        if self.extension_table[2].get():
-            current_time = datetime.now()
-            timestamp = current_time.strftime("_%Y%m%d_%H%M")
-            file_name = Path(self._stack_folder_path.get()) / f'calibration_results{timestamp}.xlsx'
-            wb = openpyxl.Workbook()
-            ws = wb.active
-            ws.title = "Calibration Results"
-            for row_data in data:
-                ws.append(row_data)
-            wb.save(file_name) 
-            self._status_message.set(f"Excel file '{file_name}' created successfully.")
+        self.calib_disk_data = self.organize_per_disk(data)
+        current_time = datetime.now()
+        timestamp = current_time.strftime("_%Y%m%d_%H%M")
+        file_name = Path(self._stack_folder_path.get()) / f'calibration_results{timestamp}.xlsx'
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Calibration Results"
+        for row_data in data:
+            ws.append(row_data)
+        wb.save(file_name) 
+        self._status_message.set(f"Excel file '{file_name}' created successfully.")
         self.main_plot_calibration()
 
     def main_plot_calibration(self) -> None:
-        self._status_message.set(f"Plotting calibration data...")
         self.calib_window.geometry(geometry_info((500, 420)))
-        SpinBox(master=self.calib_window, from_=1, to_=50, step_size=1, textvariable=self.lowest_calib).grid(row=4, column=0, padx=0, pady=10)
-        self.button_main_calib.configure(text="Plot", command=lambda:self.plot_calibration_results(self.calib_excel_data))
-        self.textbox_calib = TextBox(master=self.calib_window, width=300, height=180, state='disabled', fg_color=gray[0])
+        SpinBox(master=self.calib_window, from_=1, to_=50, step_size=1, textvariable=self.lowest_calib, command=self.print_lowest).grid(row=4, column=0, padx=0, pady=10)
+        self.button_main_calib.configure(text="Plot", command=lambda:self.plot_calibration_results(self.calib_disk_data))
+        self.textbox_calib = TextBox(master=self.calib_window, width=460, height=180, state='disabled', fg_color=gray[0])
         self.textbox_calib.grid(row=3, column=0, columnspan=3, pady=10)
         pass
 
@@ -697,31 +700,92 @@ class Polarimetry(CTk.CTk):
             return
         wb = openpyxl.load_workbook(file)
         ws = wb.active
-        self.calib_excel_data = []
+        data = []
         for row in ws.iter_rows(values_only=True):
-            self.calib_excel_data.append(list(row))
+            data.append(list(row))
+        self.calib_disk_data = self.organize_per_disk(data)
         self._status_message.set(f"Calibration data loaded from '{file}'")
         self.main_plot_calibration()
         pass
 
-    def plot_calibration_results(self, data:List) -> None:
-        list_disks = list(set([row[0] for row in data[1:]]))
-        std_psi = np.zeros(len(list_disks))
+    def plot_calibration_results(self, data:List, list_disks:List) -> None:
+        disk_data = self.organize_per_disk(data)
+        indx_disk = np.zeros(len(list_disks))
         ncolors = len(list_disks)
-        cmap = plt.cm.get_cmap('hsv', ncolors)
-        colors = cmap(np.arange(ncolors))
+        cmap_psi = plt.cm.get_cmap('hsv', ncolors)
+        colors = cmap_psi(np.arange(ncolors))
         fig, ax = plt.subplots(figsize=(12, 6)) 
         plt.get_current_fig_manager().set_window_title('StdPsi function of Disk Cone') 
-        ax.set_xticks(range(1, len(list_disks) + 1))
+        ax.set_xticks(np.arange(len(list_disks)))
         ax.set_xlim(0.9, len(list_disks) + 0.1)
         ax.set_xlabel('Disk #', fontsize=25)
         ax.set_ylabel(r'Std $\psi$', fontsize=30)
         for itdc, disk_name in enumerate(list_disks):
-            std_psi[itdc] = np.std([row[7] for row in data[1:] if row[0] == disk_name])
-            ax.scatter(itdc + 1, std_psi[itdc], color=colors[itdc], s=100,
-                      marker='o', label=f'Disk Cone: {list_disks[itdc]}')
+            std_psi[itdc] = np.std([row[6] for row in data[1:] if row[0] == disk_name])
+            indx_disk[itdc] = [row[1] for row in data[1:] if row[0] == disk_name][0]
+            ax.scatter(indx_disk[itdc], std_psi[itdc], color=colors[itdc], s=100, marker='o')
+        ax.set_xticklabels(indx_disk.astype(int))
+        lowest_disks = self.get_lowest_std_psi(data)
+        self.display_list_in_textbox(lowest_disks)
+        fig, ax = plt.subplots(figsize=(12, 6)) 
+        plt.get_current_fig_manager().set_window_title('Psi function of Disk Cone') 
+        ax.set_xticks(np.arange(len(list_disks)))
+        ax.set_xticklabels(indx_disk.astype(int))
+        ax.set_xlabel('Disk #', fontsize=25)
+        ax.set_ylabel(r'$\psi$', fontsize=30)
+        for itdc, disk_name in enumerate(list_disks):
+            psi[itdc] = np.mean([row[6] for row in data[1:] if row[0] == disk_name])
+            ax.scatter(indx_disk[itdc], psi[itdc], color=colors[itdc], s=100, marker='o')
+        fig, ax = plt.subplots(figsize=(12, 6)) 
+        plt.get_current_fig_manager().set_window_title('Rho function of Disk Cone') 
+        ax.set_xticks(np.arange(len(list_disks)))
+        ax.set_xticklabels(indx_disk.astype(int))
+        ax.set_xlabel('Disk #', fontsize=25)
+        ax.set_ylabel(r'$\rho$', fontsize=30)
+        for itdc, disk_name in enumerate(list_disks):
+            rho[itdc] = np.std([row[5] for row in data[1:] if row[0] == disk_name])
+            ax.scatter(indx_disk[itdc], rho[itdc], color=colors[itdc], s=100, marker='o')
         plt.show()
         pass
+
+    def organize_per_disk(self, data):
+        disk_data = {}
+        for row in data[1:]:
+            disk_name = row[0]
+            disk_index = row[1]
+            psi_value = row[6]
+            rho_value = row[3] 
+            if disk_name not in disk_data:
+                disk_data[disk_name] = {
+                    'index': disk_index,
+                    'psi_values': [psi_value],
+                    'rho_values': [rho_value]}   
+            disk_data[disk_name]['psi_values'].append(psi_value)
+            disk_data[disk_name]['rho_values'].append(rho_value)
+        for disk_name, details in disk_data.items():
+            details['std_psi'] = np.std(details['psi_values'])
+        return disk_data
+    
+    def get_lowest_std_psi(self, disk_data):
+        disk_items = list(disk_data.items())
+        sorted_items = sorted(disk_items, key=lambda item: item[1].get('std_psi', float('inf')))
+        return {item[0]: item[1] for item in sorted_items[:self.klowest]}
+
+    def print_lowest(self, event:tkEvent=None) -> None:
+        try:
+            self.klowest = int(self.lowest_calib.get())
+        except ValueError:
+            self.klowest = 10
+            self.lowest_calib.set('10')
+        lowest_disks = self.get_lowest_std_psi(self.calib_disk_data)
+        output_lines = []
+        for name, details in lowest_disks.items():
+            output_lines.append(f"{details['index']:5} | {name}")
+        self.textbox_calib.configure(state='normal')
+        self.textbox_calib.delete('1.0', 'end')
+        text_to_insert = "\n".join(output_lines)
+        self.textbox_calib.insert('end', text_to_insert)
+        self.textbox_calib.configure(state='disabled')
 
     def compute_1PF(self, stack, mask, disk, params):
         chi2threshold = 500
