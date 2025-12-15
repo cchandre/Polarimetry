@@ -632,14 +632,9 @@ class Polarimetry(CTk.CTk):
             parent=self.calib_window, row=1,
             label_text="Stack folder:",
             entry_variable_name="_stack_folder_path")
-        scroll_frame = CTk.CTkFrame(self.calib_window)
-        scroll_frame.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
-        h_scrollbar = CTk.CTkScrollbar(scroll_frame, orientation="horizontal")
-        h_scrollbar.pack(side="bottom", fill="x")
-        self._status_message = CTk.StringVar(value="Ready to load data...")
-        status_entry = CTk.CTkEntry(scroll_frame, textvariable=self._status_message, state="readonly", border_width=0, text_color=gray[1], width=460, xscrollcommand=h_scrollbar.set)
-        status_entry.pack(side="top", fill="x", expand=True)
-        h_scrollbar.configure(command=status_entry.xview)
+        self._status_entry = CTk.CTkTextbox(self.calib_window, height=10, state="normal", wrap="none", border_width=0, fg_color=gray[0], text_color=gray[1])
+        self._status_entry.insert("1.0", "Ready to load data...")
+        self._status_entry.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
         self.calib_window.grab_set()
         self.button_main_calib = CTk.CTkButton(self.calib_window, text="Start", width=80, command=self.start_calibration)
         self.button_main_calib.grid(row=4, column=1, pady=10)
@@ -654,7 +649,8 @@ class Polarimetry(CTk.CTk):
         TARGET_VARIABLES = ['RoTest', 'PsiTest', 'NbMapValues']
         disklist = [file for file in Path(self._disk_folder_path.get()).glob('*.mat') if file.stem.startswith("Disk")]
         stacklist = [file for file in Path(self._stack_folder_path.get()).glob('*.tif*')]
-        self._status_message.set(f"Starting calibration...")
+        self._status_entry.delete("1.0", CTk.END)
+        self._status_entry.insert("1.0", f"Starting calibration...")
         self.calib_window.update()
         data = [['Calibration', 'DiskNumber', 'File', 'MeanRho', 'StdRho', 'MeanDeltaRho', 'MeanPsi', 'StdPsi', 'MeanInt', 'StdInt', 'TotalInt', 'N', 'dark', 'offset', 'polarization']]
         for i, disk_path in enumerate(disklist):
@@ -668,7 +664,8 @@ class Polarimetry(CTk.CTk):
                 result += self.compute_1PF(stack, mask, disk, params)
                 result += [params['dark'], params['offset_angle'], params['polar_dir']]
                 data.append(result)
-            self._status_message.set(f"{i + 1} over {len(disklist)} disks processed")
+            self._status_entry.delete("1.0", CTk.END)
+            self._status_entry.insert("1.0", f"{i + 1} over {len(disklist)} disks processed")
             self.calib_window.update()
             self.calib_window.update_idletasks()
         self.calib_disk_data = self.organize_per_disk(data)
@@ -681,7 +678,8 @@ class Polarimetry(CTk.CTk):
         for row_data in data:
             ws.append(row_data)
         wb.save(file_name) 
-        self._status_message.set(f"Excel file '{file_name}' created successfully.")
+        self._status_entry.delete("1.0", CTk.END)
+        self._status_entry.insert("1.0", f"Excel file '{file_name}' created successfully.")
         self.main_plot_calibration()
 
     def main_plot_calibration(self) -> None:
@@ -704,7 +702,8 @@ class Polarimetry(CTk.CTk):
         for row in ws.iter_rows(values_only=True):
             data.append(list(row))
         self.calib_disk_data = self.organize_per_disk(data)
-        self._status_message.set(f"Calibration data loaded from '{file}'")
+        self._status_entry.delete("1.0", CTk.END)
+        self._status_entry.insert("1.0", f"Calibration data loaded from '{file}'")
         self.main_plot_calibration()
         pass
 
