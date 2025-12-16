@@ -632,8 +632,8 @@ class Polarimetry(CTk.CTk):
             parent=self.calib_window, row=1,
             label_text="Stack folder:",
             entry_variable_name="_stack_folder_path")
-        self._status_entry = CTk.CTkTextbox(self.calib_window, height=10, state="normal", wrap="none", border_width=0, fg_color=gray[0], text_color=gray[1])
-        self._status_entry.insert("1.0", "Ready to load data...")
+        self._status_entry = TextBox(self.calib_window, height=10, wrap="none", border_width=0, fg_color=gray[0], text_color=gray[1])
+        self._status_entry.write("Ready to load data...")
         self._status_entry.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
         self.calib_window.grab_set()
         self.button_main_calib = CTk.CTkButton(self.calib_window, text="Start", width=80, command=self.start_calibration)
@@ -650,8 +650,7 @@ class Polarimetry(CTk.CTk):
         TARGET_VARIABLES = ['RoTest', 'PsiTest', 'NbMapValues']
         disklist = [file for file in Path(self._disk_folder_path.get()).glob('*.mat') if file.stem.startswith("Disk")]
         stacklist = [file for file in Path(self._stack_folder_path.get()).glob('*.tif*')]
-        self._status_entry.delete("1.0", CTk.END)
-        self._status_entry.insert("1.0", f"Starting calibration...")
+        self._status_entry.write(f"Starting calibration...")
         self.calib_window.update()
         data = [['Calibration', 'DiskNumber', 'File', 'MeanRho', 'StdRho', 'MeanDeltaRho', 'MeanPsi', 'StdPsi', 'MeanInt', 'StdInt', 'TotalInt', 'N', 'dark', 'offset', 'polarization']]
         for i, disk_path in enumerate(disklist):
@@ -665,8 +664,7 @@ class Polarimetry(CTk.CTk):
                 result += self.compute_1PF(stack, mask, disk, params)
                 result += [params['dark'], params['offset_angle'], params['polar_dir']]
                 data.append(result)
-            self._status_entry.delete("1.0", CTk.END)
-            self._status_entry.insert("1.0", f"{i + 1} over {len(disklist)} disks processed")
+            self._status_entry.write(f"{i + 1} over {len(disklist)} disks processed")
             self.calib_window.update()
             self.calib_window.update_idletasks()
         self.calib_disk_data = self.organize_per_disk(data)
@@ -679,8 +677,7 @@ class Polarimetry(CTk.CTk):
         for row_data in data:
             ws.append(row_data)
         wb.save(file_name) 
-        self._status_entry.delete("1.0", CTk.END)
-        self._status_entry.insert("1.0", f"Excel file '{file_name}' created successfully.")
+        self._status_entry.write(f"Excel file '{file_name}' created successfully.")
         self.main_plot_calibration()
 
     def main_plot_calibration(self) -> None:
@@ -689,9 +686,8 @@ class Polarimetry(CTk.CTk):
         SpinBox(master=self.calib_window, from_=1, to_=maxspin, step_size=1, textvariable=self.lowest_calib, command=self.print_lowest).grid(row=4, column=0, padx=0, pady=10)
         self.button_main_calib.configure(text="Plot", command=lambda:self.plot_calibration_results(self.calib_disk_data, label='lowest'))
         self.button_side.configure(text="Plot All", command=lambda:self.plot_calibration_results(self.calib_disk_data, label='all'))
-        self.textbox_calib = TextBox(master=self.calib_window, width=460, height=180, state='disabled', fg_color=gray[0])
+        self.textbox_calib = TextBox(master=self.calib_window, width=460, height=180, fg_color=gray[0])
         self.textbox_calib.grid(row=3, column=0, columnspan=3, pady=10)
-        pass
 
     def load_calibration(self) -> None:
         filetypes = [('Excel files', '*.xlsx'), ('All files', '*.*')]
@@ -705,10 +701,8 @@ class Polarimetry(CTk.CTk):
         for row in ws.iter_rows(values_only=True):
             data.append(list(row))
         self.calib_disk_data = self.organize_per_disk(data)
-        self._status_entry.delete("1.0", CTk.END)
-        self._status_entry.insert("1.0", f"Calibration data loaded from '{file}'")
+        self._status_entry.write(f"Calibration data loaded from '{file}'")
         self.main_plot_calibration()
-        pass
 
     def plot_calibration_results(self, disk_data:List, label:str='all') -> None:
         disks = disk_data if label=='all' else self.get_lowest_std_psi(disk_data) 
@@ -747,20 +741,14 @@ class Polarimetry(CTk.CTk):
         for itdc, disk in enumerate(disks.keys()):
             ax.scatter(disks[disk]['rho_values'], disks[disk]['psi_values'], color=colors[itdc], s=100, marker='o')
         plt.show()
-        pass
 
     def organize_per_disk(self, data):
         disk_data = {}
         for row in data[1:]:
-            disk_name = row[0]
-            disk_index = row[1]
-            psi_value = row[6]
-            rho_value = row[3] 
+            disk_name, disk_index = row[0], row[1]
+            psi_value, rho_value = row[6], row[3]
             if disk_name not in disk_data:
-                disk_data[disk_name] = {
-                    'index': disk_index,
-                    'psi_values': [psi_value],
-                    'rho_values': [rho_value]}   
+                disk_data[disk_name] = {'index': disk_index, 'psi_values': [psi_value], 'rho_values': [rho_value]}   
             disk_data[disk_name]['psi_values'].append(psi_value)
             disk_data[disk_name]['rho_values'].append(rho_value)
         for disk_name, details in disk_data.items():
@@ -776,12 +764,9 @@ class Polarimetry(CTk.CTk):
         lowest_disks = self.get_lowest_std_psi(self.calib_disk_data)
         output_lines = []
         for name, details in lowest_disks.items():
-            output_lines.append(f"{details['index']:5} | {name}")
-        self.textbox_calib.configure(state='normal')
-        self.textbox_calib.delete('1.0', 'end')
+            output_lines.append(f"{details['index']}\t{name}")
         text_to_insert = "\n".join(output_lines)
-        self.textbox_calib.insert('end', text_to_insert)
-        self.textbox_calib.configure(state='disabled')
+        self.textbox_calib.write(text_to_insert)
 
     def compute_1PF(self, stack, mask, disk, params):
         chi2threshold = 500
