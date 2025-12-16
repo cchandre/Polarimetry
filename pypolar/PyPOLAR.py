@@ -639,7 +639,8 @@ class Polarimetry(CTk.CTk):
         self.button_main_calib = CTk.CTkButton(self.calib_window, text="Start", width=80, command=self.start_calibration)
         self.button_main_calib.grid(row=4, column=1, pady=10)
         self.lowest_calib = CTk.StringVar(value='10')
-        self.button_side = CTk.CTkButton(self.calib_window, text="Load", width=80, command=self.load_calibration).grid(row=4, column=2, pady=10)
+        self.button_side = CTk.CTkButton(self.calib_window, text="Load", width=80, command=self.load_calibration)
+        self.button_side.grid(row=4, column=2, pady=10)
         self.lowest_calib = CTk.StringVar(value='10')
 
     def start_calibration(self) -> None:
@@ -684,8 +685,10 @@ class Polarimetry(CTk.CTk):
 
     def main_plot_calibration(self) -> None:
         self.calib_window.geometry(geometry_info((500, 420)))
-        SpinBox(master=self.calib_window, from_=1, to_=50, step_size=1, textvariable=self.lowest_calib, command=self.print_lowest).grid(row=4, column=0, padx=0, pady=10)
-        self.button_main_calib.configure(text="Plot", command=lambda:self.plot_calibration_results(self.calib_disk_data))
+        maxspin = max([int(disk['index']) for disk in self.calib_disk_data.values()])
+        SpinBox(master=self.calib_window, from_=1, to_=maxspin, step_size=1, textvariable=self.lowest_calib, command=self.print_lowest).grid(row=4, column=0, padx=0, pady=10)
+        self.button_main_calib.configure(text="Plot", command=lambda:self.plot_calibration_results(self.calib_disk_data, label='lowest'))
+        self.button_side.configure(text="Plot All", command=lambda:self.plot_calibration_results(self.calib_disk_data, label='all'))
         self.textbox_calib = TextBox(master=self.calib_window, width=460, height=180, state='disabled', fg_color=gray[0])
         self.textbox_calib.grid(row=3, column=0, columnspan=3, pady=10)
         pass
@@ -707,43 +710,42 @@ class Polarimetry(CTk.CTk):
         self.main_plot_calibration()
         pass
 
-    def plot_calibration_results(self, data:List, list_disks:List) -> None:
-        disk_data = self.organize_per_disk(data)
-        indx_disk = np.zeros(len(list_disks))
-        ncolors = len(list_disks)
+    def plot_calibration_results(self, disk_data:List, label:str='all') -> None:
+        disks = disk_data if label=='all' else self.get_lowest_std_psi(disk_data) 
+        disks_indx = [details['index'] for details in disks.values()]
+        ncolors = int(self.lowest_calib.get()) if label!='all' else len(disks_indx)
         cmap_psi = plt.cm.get_cmap('hsv', ncolors)
         colors = cmap_psi(np.arange(ncolors))
         fig, ax = plt.subplots(figsize=(12, 6)) 
         plt.get_current_fig_manager().set_window_title('StdPsi function of Disk Cone') 
-        ax.set_xticks(np.arange(len(list_disks)))
-        ax.set_xlim(0.9, len(list_disks) + 0.1)
+        ax.set_xticks(np.arange(len(disks_indx)))
+        ax.set_xticklabels(np.array(disks_indx).astype(int))
         ax.set_xlabel('Disk #', fontsize=25)
         ax.set_ylabel(r'Std $\psi$', fontsize=30)
-        for itdc, disk_name in enumerate(list_disks):
-            std_psi[itdc] = np.std([row[6] for row in data[1:] if row[0] == disk_name])
-            indx_disk[itdc] = [row[1] for row in data[1:] if row[0] == disk_name][0]
-            ax.scatter(indx_disk[itdc], std_psi[itdc], color=colors[itdc], s=100, marker='o')
-        ax.set_xticklabels(indx_disk.astype(int))
-        lowest_disks = self.get_lowest_std_psi(data)
-        self.display_list_in_textbox(lowest_disks)
+        for itdc, disk in enumerate(disks.keys()):
+            ax.scatter(itdc, float(disks[disk]['std_psi']), color=colors[itdc], s=100, marker='o')
         fig, ax = plt.subplots(figsize=(12, 6)) 
         plt.get_current_fig_manager().set_window_title('Psi function of Disk Cone') 
-        ax.set_xticks(np.arange(len(list_disks)))
-        ax.set_xticklabels(indx_disk.astype(int))
+        ax.set_xticks(np.arange(len(disks_indx)))
+        ax.set_xticklabels(np.array(disks_indx).astype(int))
         ax.set_xlabel('Disk #', fontsize=25)
         ax.set_ylabel(r'$\psi$', fontsize=30)
-        for itdc, disk_name in enumerate(list_disks):
-            psi[itdc] = np.mean([row[6] for row in data[1:] if row[0] == disk_name])
-            ax.scatter(indx_disk[itdc], psi[itdc], color=colors[itdc], s=100, marker='o')
+        for itdc, disk in enumerate(disks.keys()):
+            ax.scatter(itdc * np.ones_like(disks[disk]['psi_values']), disks[disk]['psi_values'], color=colors[itdc], s=100, marker='o')
         fig, ax = plt.subplots(figsize=(12, 6)) 
         plt.get_current_fig_manager().set_window_title('Rho function of Disk Cone') 
-        ax.set_xticks(np.arange(len(list_disks)))
-        ax.set_xticklabels(indx_disk.astype(int))
+        ax.set_xticks(np.arange(len(disks_indx)))
+        ax.set_xticklabels(np.array(disks_indx).astype(int))
         ax.set_xlabel('Disk #', fontsize=25)
         ax.set_ylabel(r'$\rho$', fontsize=30)
-        for itdc, disk_name in enumerate(list_disks):
-            rho[itdc] = np.std([row[5] for row in data[1:] if row[0] == disk_name])
-            ax.scatter(indx_disk[itdc], rho[itdc], color=colors[itdc], s=100, marker='o')
+        for itdc, disk in enumerate(disks.keys()):
+            ax.scatter(itdc * np.ones_like(disks[disk]['rho_values']), disks[disk]['rho_values'], color=colors[itdc], s=100, marker='o')
+        fig, ax = plt.subplots(figsize=(8, 6)) 
+        plt.get_current_fig_manager().set_window_title('Psi function of Rho') 
+        ax.set_xlabel(r'$\rho$', fontsize=30)
+        ax.set_ylabel(r'$\psi$', fontsize=30)
+        for itdc, disk in enumerate(disks.keys()):
+            ax.scatter(disks[disk]['rho_values'], disks[disk]['psi_values'], color=colors[itdc], s=100, marker='o')
         plt.show()
         pass
 
@@ -768,14 +770,9 @@ class Polarimetry(CTk.CTk):
     def get_lowest_std_psi(self, disk_data):
         disk_items = list(disk_data.items())
         sorted_items = sorted(disk_items, key=lambda item: item[1].get('std_psi', float('inf')))
-        return {item[0]: item[1] for item in sorted_items[:self.klowest]}
+        return {item[0]: item[1] for item in sorted_items[:int(self.lowest_calib.get())]}
 
     def print_lowest(self, event:tkEvent=None) -> None:
-        try:
-            self.klowest = int(self.lowest_calib.get())
-        except ValueError:
-            self.klowest = 10
-            self.lowest_calib.set('10')
         lowest_disks = self.get_lowest_std_psi(self.calib_disk_data)
         output_lines = []
         for name, details in lowest_disks.items():
