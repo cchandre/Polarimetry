@@ -617,13 +617,16 @@ class Polarimetry(CTk.CTk):
     def calibration_procedure_callback(self) -> None:
         self.calib_window = CTk.CTkToplevel(self)
         self.calib_window.title('Calibration for 1PF')
-        self.calib_window.geometry(geometry_info((500, 220)))
+        self.calib_window.geometry(geometry_info((500, 240)))
         self.calib_window.protocol('WM_DELETE_WINDOW', self.calib_on_closing)
         self.calib_window.bind('<Command-q>', lambda:self.calib_on_closing)
         self.calib_window.bind('<Command-w>', self.calib_on_closing)
         self.calib_window.grid_columnconfigure(0, weight=1)
         self.calib_window.grid_columnconfigure(1, weight=3)
         self.calib_window.grid_columnconfigure(2, weight=1)
+        self.calib_window.grid_rowconfigure(2, weight=0) 
+        self.calib_window.grid_rowconfigure(3, weight=1)
+        self.calib_window.grid_rowconfigure(4, weight=0)
         self.create_folder_query_widgets(
             parent=self.calib_window, row=0,
             label_text="Disk folder:",
@@ -637,10 +640,10 @@ class Polarimetry(CTk.CTk):
         self._status_entry.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
         self.calib_window.grab_set()
         self.button_main_calib = CTk.CTkButton(self.calib_window, text="Start", width=80, command=self.start_calibration)
-        self.button_main_calib.grid(row=4, column=1, pady=10)
+        self.button_main_calib.grid(row=4, column=1, pady=20, padx=(0, 20))
         self.lowest_calib = CTk.StringVar(value='10')
         self.button_side = CTk.CTkButton(self.calib_window, text="Load", width=80, command=self.load_calibration)
-        self.button_side.grid(row=4, column=2, pady=10)
+        self.button_side.grid(row=4, column=2, pady=20, padx=(0, 20))
         self.lowest_calib = CTk.StringVar(value='10')
 
     def start_calibration(self) -> None:
@@ -681,9 +684,12 @@ class Polarimetry(CTk.CTk):
         self.main_plot_calibration()
 
     def main_plot_calibration(self) -> None:
-        self.calib_window.geometry(geometry_info((500, 420)))
+        self.calib_window.geometry(geometry_info((500, 440)))
         maxspin = max([int(disk['index']) for disk in self.calib_disk_data.values()])
-        SpinBox(master=self.calib_window, from_=1, to_=maxspin, step_size=1, textvariable=self.lowest_calib, command=self.print_lowest).grid(row=4, column=0, padx=0, pady=10)
+        spinbox_frame = CTk.CTkFrame(self.calib_window, fg_color="transparent")
+        spinbox_frame.grid(row=4, column=0, padx=20, pady=20, sticky="s")
+        CTk.CTkLabel(spinbox_frame, text="Lowest").pack(side="top", pady=(0, 5))
+        SpinBox(master=spinbox_frame, from_=1, to_=maxspin, step_size=1, textvariable=self.lowest_calib, command=self.print_lowest).pack(side="top")
         self.button_main_calib.configure(text="Plot", command=lambda:self.plot_calibration_results(self.calib_disk_data, label='lowest'))
         self.button_side.configure(text="Plot All", command=lambda:self.plot_calibration_results(self.calib_disk_data, label='all'))
         self.textbox_calib = TextBox(master=self.calib_window, width=460, height=180, fg_color=gray[0])
@@ -795,12 +801,9 @@ class Polarimetry(CTk.CTk):
         mask *= np.isfinite(rho_values) * np.isfinite(psi_values)
         mean_rho = circularmean(rho_values[mask])
         deltarho = wrapto180(2 * (rho_values[mask] - mean_rho)) / 2
-        mean_deltarho = np.mean(deltarho)
-        std_rho = np.std(deltarho)
-        mean_psi = np.mean(psi_values[mask])
-        std_psi = np.std(psi_values[mask])
-        mean_int = np.mean(a0[mask])
-        std_int = np.std(a0[mask])
+        mean_deltarho, std_rho = np.mean(deltarho), np.std(deltarho)
+        mean_psi, std_psi = np.mean(psi_values[mask]), np.std(psi_values[mask])
+        mean_int, std_int = np.mean(a0[mask]), np.std(a0[mask])
         return [mean_rho, std_rho, mean_deltarho, mean_psi, std_psi, mean_int, std_int, mean_int * stack.nangle, np.sum(mask)]
 
     def create_folder_query_widgets(self, parent, row, label_text, entry_variable_name):
@@ -809,7 +812,7 @@ class Polarimetry(CTk.CTk):
         string_var = CTk.StringVar(value="Select folder...")
         setattr(self, entry_variable_name, string_var)
         entry = CTk.CTkEntry(parent, textvariable=string_var, width=250)
-        entry.grid(row=row, column=1, pady=15)
+        entry.grid(row=row, column=1, pady=15, padx=20, sticky="ew")
         browse_button = CTk.CTkButton(parent, text="Browse", width=80, command=lambda: self.browse_folder(string_var))
         browse_button.grid(row=row, column=2, pady=15, padx=(0, 20))
 
