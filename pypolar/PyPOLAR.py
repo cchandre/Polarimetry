@@ -76,7 +76,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.8.2'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.8.2': 'December 13, 2025'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.8.2': 'December 17, 2025'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -681,14 +681,14 @@ class Polarimetry(CTk.CTk):
             ws.append(row_data)
         wb.save(file_name) 
         self._status_entry.write(f"Excel file '{file_name}' created successfully.")
-        self.main_plot_calibration()
+        self.plot_calibration()
 
-    def main_plot_calibration(self) -> None:
+    def plot_calibration(self) -> None:
         self.calib_window.geometry(geometry_info((500, 440)))
         maxspin = max([int(disk['index']) for disk in self.calib_disk_data.values()])
         spinbox_frame = CTk.CTkFrame(self.calib_window, fg_color="transparent")
         spinbox_frame.grid(row=4, column=0, padx=20, pady=20, sticky="s")
-        CTk.CTkLabel(spinbox_frame, text="Lowest").pack(side="top", pady=(0, 5))
+        Label(spinbox_frame, text="Lowest", tooltip="Select the lowest disk number for plot and display").pack(side="top", pady=(0, 5))
         SpinBox(master=spinbox_frame, from_=1, to_=maxspin, step_size=1, textvariable=self.lowest_calib, command=self.print_lowest).pack(side="top")
         self.button_main_calib.configure(text="Plot", command=lambda:self.plot_calibration_results(self.calib_disk_data, label='lowest'))
         self.button_side.configure(text="Plot All", command=lambda:self.plot_calibration_results(self.calib_disk_data, label='all'))
@@ -708,7 +708,7 @@ class Polarimetry(CTk.CTk):
             data.append(list(row))
         self.calib_disk_data = self.organize_per_disk(data)
         self._status_entry.write(f"Calibration data loaded from '{file}'")
-        self.main_plot_calibration()
+        self.plot_calibration()
 
     def plot_calibration_results(self, disk_data:List, label:str='all') -> None:
         disks = disk_data if label=='all' else self.get_lowest_std_psi(disk_data) 
