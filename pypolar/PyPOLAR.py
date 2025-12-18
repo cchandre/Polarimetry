@@ -1918,7 +1918,11 @@ class Polarimetry(CTk.CTk):
                 x, y = int(round(x)), int(round(y))
                 if 0 <= x < datastack.width and 0 <= y < datastack.height:
                     intensity = datastack.intensity[y, x]
-                    return f'(x={x}, y={y})\n {var.unicode}={var.display_style.format(var.values[y, x])}, I={datastack.display.format(intensity)}'
+                    if var.name.startswith('Rho') or var.name.startswith('Psi') or var.name.startswith('Eta'):
+                        symbol='\u00B0'
+                    else:
+                        symbol=''
+                    return f'(x={x}, y={y})\n {var.unicode}={var.display_style.format(var.values[y, x])}{symbol}, I={datastack.display.format(intensity)}'
                 else:
                     return f'(x={x}, y={y})'
             ax.format_coord = format_coords
