@@ -1038,12 +1038,12 @@ class Polarimetry(CTk.CTk):
         if len(plt.get_fignums()) and (not hasattr(self, 'crop_window')):
             self.crop_window = CTk.CTkToplevel(self)
             self.crop_window.title('Crop Manager')
-            self.crop_window.geometry(geometry_info((440, 230)))
+            self.crop_window.geometry(geometry_info((530, 230)))
             self.crop_window.protocol('WM_DELETE_WINDOW', self.crop_on_closing)
             self.crop_window.bind('<Command-q>', lambda:self.crop_on_closing)
             self.crop_window.bind('<Command-w>', self.crop_on_closing)
             self.crop_window.focus_force()
-            Label(self.crop_window, text='  define xlim and ylim', image=self.icons['crop'], compound='left', fontsize=16, width=250).grid(row=0, column=0, columnspan=3, padx=30, pady=20)
+            Label(self.crop_window, text='  define xlim and ylim', image=self.icons['crop'], compound='left', fontsize=16, width=250).grid(row=0, column=0, columnspan=4, padx=30, pady=20)
             if not hasattr(self, 'xylim'):
                 if hasattr(self, 'datastack'):
                     vals = [1, self.datastack.width, 1, self.datastack.height]
@@ -1058,15 +1058,34 @@ class Polarimetry(CTk.CTk):
             for var, position in zip(self.xylim, positions):
                 Entry(master=self.crop_window, textvariable=var, row=position[0], column=position[1])
             banner = CTk.CTkFrame(self.crop_window)
-            banner.grid(row=3, column=0, columnspan=3, padx=20)
-            Button(banner, text='Crop', anchor='center', command=self.crop_figures, width=80, height=button_size[1], tooltip=' crop figures using the chosen axis limits').grid(row=0, column=0, padx=10, pady=20)
-            Button(banner, text='Get', anchor='center', command=self.get_axes, width=80, height=button_size[1], tooltip=' get the axis limits of the active figure').grid(row=0, column=1, padx=10, pady=20)
-            Button(banner, text='Create ROI', anchor='center', command=self.createROIfromcrop, width=80, height=button_size[1], tooltip=' create a rectangular ROI with the limits defined above').grid(row=0, column=2, padx=10, pady=20)
-            Button(banner, text='Reset', anchor='center', command=self.reset_figures, width=80, height=button_size[1]).grid(row=0, column=3, padx=10, pady=20)
+            banner.grid(row=3, column=0, columnspan=4, padx=20)
+            Button(banner, text='Get', anchor='center', command=self.get_axes, width=80, height=button_size[1], tooltip=' get the axis limits of the active figure').grid(row=0, column=0, padx=10, pady=20)
+            Button(banner, text='Crop', anchor='center', command=self.crop_figures, width=80, height=button_size[1], tooltip=' crop figures using the chosen axis limits').grid(row=0, column=1, padx=10, pady=20)
+            Button(banner, text='Resize', anchor='center', command=self.resize_plt_windows, width=80, height=button_size[1], tooltip=' crop figures using the chosen axis limits').grid(row=0, column=2, padx=10, pady=20)
+            Button(banner, text='Create ROI', anchor='center', command=self.createROIfromcrop, width=80, height=button_size[1], tooltip=' create a rectangular ROI with the limits defined above').grid(row=0, column=3, padx=10, pady=20)
+            Button(banner, text='Reset', anchor='center', command=self.reset_figures, width=80, height=button_size[1]).grid(row=0, column=4, padx=10, pady=20)
 
     def crop_on_closing(self):
         self.crop_window.destroy()
         delattr(self, 'crop_window')
+
+    def resize_plt_windows(self) -> None:
+        active_fig = plt.gcf()
+        initial_active_num = plt.gcf().number
+        print(active_fig.canvas.manager.get_window_title())
+        manager = active_fig.canvas.manager
+        geom = manager.window.geometry()
+        size_str = geom.split('+')[0] 
+        width, height = map(int, size_str.split('x'))
+        for num in plt.get_fignums():
+            fig = plt.figure(num)
+            fs = fig.canvas.manager.get_window_title()
+            fig_type = getattr(fig, 'type', None)
+            if (fig_type in ['Sticks', 'Composite', 'Intensity']) :
+                if (hasattr(self, 'datastack') and (self.datastack.name in fs)):
+                    fig.canvas.manager.window.geometry(f"{width}x{height}")
+                    fig.canvas.draw()
+        plt.figure(initial_active_num)
 
     def calib_on_closing(self):
         self.calib_window.destroy()
