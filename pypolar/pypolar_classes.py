@@ -364,6 +364,9 @@ class Variable:
             text = self.latex + ' = ' + '{:.2f}'.format(np.mean(data_vals)) + ' $\pm$ ' '{:.2f}'.format(np.std(data_vals))
             ax.annotate(text, xy=(0.3, 1.05), xycoords='axes fraction', fontsize=14)
             if self.name == 'Psi':
+                ticks = ax.get_xticks()
+                labels = [label.get_text() + '°' for label in ax.get_xticklabels()]
+                ax.set_xticks(ticks, labels=labels)
                 def format_coord(xval, yval):
                     return f"\u03C8 = {xval:.0f}\u00B0,  count = {yval:.0f}"
             else:
