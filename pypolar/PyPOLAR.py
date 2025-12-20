@@ -1072,7 +1072,6 @@ class Polarimetry(CTk.CTk):
     def resize_plt_windows(self) -> None:
         active_fig = plt.gcf()
         initial_active_num = plt.gcf().number
-        print(active_fig.canvas.manager.get_window_title())
         manager = active_fig.canvas.manager
         geom = manager.window.geometry()
         size_str = geom.split('+')[0] 
@@ -1092,6 +1091,7 @@ class Polarimetry(CTk.CTk):
         delattr(self, 'calib_window')
 
     def crop_figures(self) -> None:
+        initial_active_num = plt.gcf().number
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
@@ -1101,9 +1101,11 @@ class Polarimetry(CTk.CTk):
                 fig.axes[0].set_ylim((int(self.xylim[3].get()), int(self.xylim[2].get())))
                 if self.openfile_dropdown_value.get()=='Open figure':
                     plt.show()
+        plt.figure(initial_active_num)
 
     def get_axes(self) -> None:
         fig = plt.gcf()
+        initial_active_num = plt.gcf().number
         if fig.type in ['Sticks', 'Composite', 'Intensity']:
             ax = fig.axes[0]
             self.xylim[0].set(int(ax.get_xlim()[0]))
@@ -1112,6 +1114,7 @@ class Polarimetry(CTk.CTk):
             self.xylim[3].set(int(ax.get_ylim()[0]))
         else:
             ShowInfo(message=' Select an active figure of the type\n Composite, Sticks or Intensity', image=self.icons['crop'], button_labels=['OK'])
+        plt.figure(initial_active_num)
 
     def createROIfromcrop(self) -> None:
         if not hasattr(self, 'datastack'):
