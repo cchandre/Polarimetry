@@ -645,11 +645,16 @@ class Polarimetry(CTk.CTk):
         self.button_side = CTk.CTkButton(self.calib_window, text="Load", width=80, command=self.load_calibration)
         self.button_side.grid(row=4, column=2, pady=20, padx=(0, 20))
         self.lowest_calib = CTk.StringVar(value='20')
+        self.dark_switch.select()
+        self.dark_entry.set_state('normal')
+        self.dark.set('480')
+        self.offset_angle_switch.select()
+        self.offset_angle_entry.set_state('normal')
 
     def start_calibration(self) -> None:
         params = {'offset_angle': float(self.offset_angle.get()), 
                   'polar_dir': self.polar_dir.get(),
-                  'dark': self.dark.get() if self.dark_switch.get() == 'on' else 480}
+                  'dark': self.dark.get()}
         TARGET_VARIABLES = ['RoTest', 'PsiTest', 'NbMapValues']
         disklist = [file for file in Path(self._disk_folder_path.get()).glob('*.mat') if file.stem.startswith("Disk")]
         stacklist = [file for file in Path(self._stack_folder_path.get()).glob('*.tif*')]
@@ -792,7 +797,7 @@ class Polarimetry(CTk.CTk):
         lowest_disks = self.get_lowest_std_psi(self.calib_disk_data)
         output_lines = []
         for name, details in lowest_disks.items():
-            output_lines.append(f"# {details['index']}\t Std\u03C8: {details['std_psi']:.2f}\t\t{name}")
+            output_lines.append(f"# {details['index']}\t Std \u03C8 = {details['std_psi']:.2f}\t\t{name}")
         text_to_insert = "\n".join(output_lines)
         self.textbox_calib.write(text_to_insert)
 
