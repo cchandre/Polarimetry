@@ -23,6 +23,7 @@ from matplotlib.collections import PolyCollection
 from matplotlib.backend_bases import FigureCanvasBase, _Mode, MouseEvent
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.backends.backend_pdf
+from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from colorcet import m_colorwheel
 from PIL import Image
@@ -76,7 +77,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.0'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 18, 2025'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 20, 2025'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -617,7 +618,7 @@ class Polarimetry(CTk.CTk):
     def calibration_procedure_callback(self) -> None:
         self.calib_window = CTk.CTkToplevel(self)
         self.calib_window.title('Calibration for 1PF')
-        self.calib_window.geometry(geometry_info((500, 240)))
+        self.calib_window.geometry(geometry_info((600, 240)))
         self.calib_window.protocol('WM_DELETE_WINDOW', self.calib_on_closing)
         self.calib_window.bind('<Command-q>', lambda:self.calib_on_closing)
         self.calib_window.bind('<Command-w>', self.calib_on_closing)
@@ -638,13 +639,12 @@ class Polarimetry(CTk.CTk):
         self._status_entry = TextBox(self.calib_window, height=10, wrap="none", border_width=0, fg_color=gray[0], text_color=gray[1])
         self._status_entry.write("Ready to load data...")
         self._status_entry.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
-        self.calib_window.grab_set()
         self.button_main_calib = CTk.CTkButton(self.calib_window, text="Start", width=80, command=self.start_calibration)
         self.button_main_calib.grid(row=4, column=1, pady=20, padx=(0, 20))
         self.lowest_calib = CTk.StringVar(value='10')
         self.button_side = CTk.CTkButton(self.calib_window, text="Load", width=80, command=self.load_calibration)
         self.button_side.grid(row=4, column=2, pady=20, padx=(0, 20))
-        self.lowest_calib = CTk.StringVar(value='10')
+        self.lowest_calib = CTk.StringVar(value='20')
 
     def start_calibration(self) -> None:
         params = {'offset_angle': float(self.offset_angle.get()), 
@@ -684,7 +684,7 @@ class Polarimetry(CTk.CTk):
         self.plot_calibration()
 
     def plot_calibration(self) -> None:
-        self.calib_window.geometry(geometry_info((500, 440)))
+        self.calib_window.geometry(geometry_info((600, 440)))
         maxspin = max([int(disk['index']) for disk in self.calib_disk_data.values()])
         spinbox_frame = CTk.CTkFrame(self.calib_window, fg_color="transparent")
         spinbox_frame.grid(row=4, column=0, padx=20, pady=20, sticky="s")
@@ -692,8 +692,9 @@ class Polarimetry(CTk.CTk):
         SpinBox(master=spinbox_frame, from_=1, to_=maxspin, step_size=1, textvariable=self.lowest_calib, command=self.print_lowest).pack(side="top")
         self.button_main_calib.configure(text="Plot", command=lambda:self.plot_calibration_results(self.calib_disk_data, label='lowest'))
         self.button_side.configure(text="Plot All", command=lambda:self.plot_calibration_results(self.calib_disk_data, label='all'))
-        self.textbox_calib = TextBox(master=self.calib_window, width=460, height=180, fg_color=gray[0])
+        self.textbox_calib = TextBox(master=self.calib_window, width=580, wrap="none", height=180, fg_color=gray[0])
         self.textbox_calib.grid(row=3, column=0, columnspan=3, pady=10)
+        self.print_lowest()
 
     def load_calibration(self) -> None:
         filetypes = [('Excel files', '*.xlsx'), ('All files', '*.*')]
@@ -719,33 +720,54 @@ class Polarimetry(CTk.CTk):
         fig, ax = plt.subplots(figsize=(12, 6)) 
         plt.get_current_fig_manager().set_window_title('StdPsi function of Disk Cone') 
         ax.set_xticks(np.arange(len(disks_indx)))
-        ax.set_xticklabels(np.array(disks_indx).astype(int))
+        ax.set_xticklabels(np.array(disks_indx).astype(int), rotation=90, ha='left')
         ax.set_xlabel('Disk #', fontsize=25)
         ax.set_ylabel(r'Std $\psi$', fontsize=30)
+        x_, y_, c_ = [], [], []
         for itdc, disk in enumerate(disks.keys()):
-            ax.scatter(itdc, float(disks[disk]['std_psi']), color=colors[itdc], s=100, marker='o')
-        fig, ax = plt.subplots(figsize=(12, 6)) 
-        plt.get_current_fig_manager().set_window_title('Psi function of Disk Cone') 
-        ax.set_xticks(np.arange(len(disks_indx)))
-        ax.set_xticklabels(np.array(disks_indx).astype(int))
-        ax.set_xlabel('Disk #', fontsize=25)
-        ax.set_ylabel(r'$\psi$', fontsize=30)
-        for itdc, disk in enumerate(disks.keys()):
-            ax.scatter(itdc * np.ones_like(disks[disk]['psi_values']), disks[disk]['psi_values'], color=colors[itdc], s=100, marker='o')
-        fig, ax = plt.subplots(figsize=(12, 6)) 
-        plt.get_current_fig_manager().set_window_title('Rho function of Disk Cone') 
-        ax.set_xticks(np.arange(len(disks_indx)))
-        ax.set_xticklabels(np.array(disks_indx).astype(int))
-        ax.set_xlabel('Disk #', fontsize=25)
-        ax.set_ylabel(r'$\rho$', fontsize=30)
-        for itdc, disk in enumerate(disks.keys()):
-            ax.scatter(itdc * np.ones_like(disks[disk]['rho_values']), disks[disk]['rho_values'], color=colors[itdc], s=100, marker='o')
-        fig, ax = plt.subplots(figsize=(8, 6)) 
-        plt.get_current_fig_manager().set_window_title('Psi function of Rho') 
-        ax.set_xlabel(r'$\rho$', fontsize=30)
-        ax.set_ylabel(r'$\psi$', fontsize=30)
-        for itdc, disk in enumerate(disks.keys()):
-            ax.scatter(disks[disk]['rho_values'], disks[disk]['psi_values'], color=colors[itdc], s=100, marker='o')
+            x_.append(itdc)
+            y_.append(float(disks[disk]['std_psi']))
+            c_.append(colors[itdc])
+        ax.scatter(x_, y_, color=c_, s=25, marker='o')
+        if label!='all':
+            fig, ax = plt.subplots(figsize=(12, 6)) 
+            plt.get_current_fig_manager().set_window_title('Psi function of Disk Cone') 
+            ax.set_xticks(np.arange(len(disks_indx)))
+            ax.set_xticklabels(np.array(disks_indx).astype(int), rotation=90, ha='left')
+            ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+            ax.set_xlabel('Disk #', fontsize=22)
+            ax.set_ylabel(r'$\psi$', fontsize=25)
+            x_, y_, c_ = [], [], []
+            for itdc, disk in enumerate(disks.keys()):
+                x_.append([itdc] * len(disks[disk]['psi_values']))
+                y_.extend(disks[disk]['psi_values'])
+                c_.extend([colors[itdc]] * len(disks[disk]['psi_values']))
+            ax.scatter(x_, y_, color=c_, s=25, marker='o')
+            fig, ax = plt.subplots(figsize=(12, 6)) 
+            plt.get_current_fig_manager().set_window_title('Rho function of Disk Cone') 
+            ax.set_xticks(np.arange(len(disks_indx)))
+            ax.set_xticklabels(np.array(disks_indx).astype(int), rotation=90, ha='left')
+            ax.set_xlabel('Disk #', fontsize=22)
+            ax.set_ylabel(r'$\rho$', fontsize=25)
+            ax.set_ylim(0, 180)
+            x_, y_, c_ = [], [], []
+            for itdc, disk in enumerate(disks.keys()):
+                x_.append([itdc] * len(disks[disk]['rho_values']))
+                y_.extend(disks[disk]['rho_values'])
+                c_.extend([colors[itdc]] * len(disks[disk]['rho_values']))
+            ax.scatter(x_, y_, color=c_, s=25, marker='o')
+            fig, ax = plt.subplots(figsize=(8, 6)) 
+            plt.get_current_fig_manager().set_window_title('Psi function of Rho') 
+            ax.set_xlabel(r'$\rho$', fontsize=25)
+            ax.set_ylabel(r'$\psi$', fontsize=25)
+            ax.set_xlim(0, 180)
+            ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+            x_, y_, c_ = [], [], []
+            for itdc, disk in enumerate(disks.keys()):
+                x_.extend(disks[disk]['rho_values'])
+                y_.extend(disks[disk]['psi_values'])
+                c_.extend([colors[itdc]] * len(disks[disk]['psi_values']))
+            ax.scatter(x_, y_, color=c_, s=25, marker='o')
         plt.show()
 
     def organize_per_disk(self, data):
@@ -770,7 +792,7 @@ class Polarimetry(CTk.CTk):
         lowest_disks = self.get_lowest_std_psi(self.calib_disk_data)
         output_lines = []
         for name, details in lowest_disks.items():
-            output_lines.append(f"{details['index']}\t{name}")
+            output_lines.append(f"# {details['index']}\t Std\u03C8: {details['std_psi']:.2f}\t\t{name}")
         text_to_insert = "\n".join(output_lines)
         self.textbox_calib.write(text_to_insert)
 
