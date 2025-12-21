@@ -77,7 +77,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.0'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 20, 2025'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 21, 2025'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -195,7 +195,7 @@ class Polarimetry(CTk.CTk):
         self.openfile_dropdown = DropDown(left_frame, values=['Open file', 'Open folder', 'Open figure'], image=self.icons['download_file'], variable=self.openfile_dropdown_value, command=self.open_file_callback, tooltip=' - open a file (.tif or .tiff stack file)\n - open a folder containing .tif or .tiff stack files\n - open figure (.pyfig file saved from a previous analysis)')
         self.openfile_dropdown.grid(row=2, **dict_left_frame)
         self.option = CTk.StringVar()
-        self.options_dropdown = DropDown(left_frame, values=['Thresholding (manual)', 'Mask (manual)'], image=self.icons['build'], variable=self.option, state='disabled', command=self.options_dropdown_callback, tooltip=' select the method of analysis\n - intensity thresholding or segmentation mask for single file analysis (manual) or batch processing (auto)\n - the mask has to be binary and in PNG format and have the same file name as the respective polarimetry data file')
+        self.options_dropdown = DropDown(left_frame, values=['Thresholding', 'Mask'], image=self.icons['build'], variable=self.option, state='disabled', command=self.options_dropdown_callback, tooltip=' select the method of analysis\n - intensity thresholding or segmentation mask for single file analysis or batch processing\n - the mask has to be binary and in PNG format and have the same file name as the respective polarimetry data file')
         self.options_dropdown.grid(row=3, **dict_left_frame)
         self.add_roi_button = Button(left_frame, text='Add ROI', image=self.icons['roi'], command=self.add_roi_callback, tooltip=' add a region of interest: polygon (left button), freeform (right button); double-click to close the ROI')
         self.add_roi_button.grid(row=4, **dict_left_frame)
@@ -451,7 +451,7 @@ class Polarimetry(CTk.CTk):
 
     def startup(self) -> None:
         self.method.set('1PF')
-        self.option.set('Thresholding (manual)')
+        self.option.set('Thresholding')
         self.openfile_dropdown_value.set('Open file')
         self.define_variable_table('1PF')
         self.CD = Calibration('1PF')
@@ -1006,8 +1006,8 @@ class Polarimetry(CTk.CTk):
             if file.suffix in ['.tiff', '.tif']:
                 self.options_dropdown.get_icon().configure(image=self.icons['build'])
                 self.options_dropdown.set_state('normal')
-                self.options_dropdown.set_values(['Thresholding (manual)', 'Mask (manual)'])
-                self.option.set('Thresholding (manual)')
+                self.options_dropdown.set_values(['Thresholding', 'Mask'])
+                self.option.set('Thresholding')
                 if hasattr(self, 'mask'):
                     delattr(self, 'mask')
                 self.open_file(file)
@@ -1019,7 +1019,7 @@ class Polarimetry(CTk.CTk):
             if any(self.filelist):
                 self.open_file(self.filelist[0])
                 self.options_dropdown.set_state('normal')
-                self.options_dropdown.set_values(['Thresholding (manual)', 'Thresholding (auto)', 'Mask (manual)', 'Mask (auto)'])
+                self.options_dropdown.set_values(['Thresholding (manual)', 'Thresholding (auto)', 'Mask/ROI (manual)', 'Mask/ROI (auto)'])
                 self.option.set('Thresholding (manual)')
             else:
                 ShowInfo(message=' The folder does not contain TIFF or TIF files', image=self.icons['download_folder'], button_labels=['OK'], geometry=(340, 140))
@@ -1702,7 +1702,7 @@ class Polarimetry(CTk.CTk):
                 im_binarized = np.asarray(Image.open(maskfile), dtype=np.float64)
                 mask = im_binarized / np.amax(im_binarized)
             else:
-                ShowInfo(message=f' The corresponding mask for {datastack.name} could not be found\n Continuing without mask...', image=self.icons['layers_clear'], buttons_labels=['OK'])
+                ShowInfo(message=f' The corresponding mask for {datastack.name} could not be found\n Continuing without mask...', image=self.icons['layers_clear'], button_labels=['OK'])
             if hasattr(self, 'mask'):
                 self.mask = mask
         return mask

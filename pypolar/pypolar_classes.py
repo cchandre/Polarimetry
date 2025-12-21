@@ -853,16 +853,20 @@ class ROIManager(CTk.CTkToplevel):
         return self.buttons
 
     def load(self, initialdir:Path=Path.home()) -> List[dict]:
-        self.delete_manager()
         filetypes = [('PyROI files', '*.pyroi'), ('ImageJ ROI files', '*.zip *.roi')]
         file = fd.askopenfilename(title='Select a PyROI file or an ImageJ ROI file', initialdir=initialdir, filetypes=filetypes)
-        if Path(file).suffix == '.pyroi':
+        return self.load_file(Path(file))
+    
+    def load_file(self, file:Path) -> List[dict]:
+        self.delete_manager()
+        rois = []
+        if file.suffix == '.pyroi':
             with open(file, 'rb') as f:
                 rois = pickle.load(f)
-        elif Path(file).suffix == '.zip':
+        elif file.suffix == '.zip':
             rois_imagej = roifile.roiread(file)
             rois = [self.roi_imagej2roi_pypolar(roi, _ + 1) for _, roi in enumerate(rois_imagej)]
-        elif Path(file).suffix == '.roi':
+        elif file.suffix == '.roi':
             rois = [self.roi_imagej2roi_pypolar(roifile.ImagejRoi.fromfile(file), 1)]
         self.sheet.set_options(height=self.sheet_height(self.cell_height, rois))
         x, y = self.winfo_x(), self.winfo_y()
