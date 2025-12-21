@@ -1602,15 +1602,15 @@ class Polarimetry(CTk.CTk):
             return
         if getattr(self, "adding_roi", False):
             self.adding_roi = False
-            if hasattr(self, "_cid1"):
-                self.thrsh_pyfig.canvas.mpl_disconnect(self._cid1)
-            if hasattr(self, "_cid2"):
-                self.thrsh_pyfig.canvas.mpl_disconnect(self._cid2)
+            for attr in ("_cid1", "_cid2"):
+                if hasattr(self, attr):
+                    self.thrsh_pyfig.canvas.mpl_disconnect(getattr(self, attr))
+                    delattr(self, attr)
             if hasattr(self, "_hroi"):
-                for line in self._hroi.lines:
+                while self._hroi.lines:
+                    line = self._hroi.lines.pop()
                     line.remove()
-                self._hroi.lines = []
-                self.thrsh_pyfig.canvas.draw()
+                self.thrsh_pyfig.canvas.draw_idle()
             self.add_roi_button.configure(fg_color=orange[0])
             return   
         self.adding_roi = True
@@ -1672,6 +1672,7 @@ class Polarimetry(CTk.CTk):
                 self.thrsh_pyfig.canvas.mpl_disconnect(self._cid2)
 
     def yes_add_roi_callback(self, window:CTk.CTkToplevel, roi:ROI) -> None:
+        self.adding_roi = False
         vertices = np.asarray([roi.x, roi.y])
         indx = self.datastack.rois[-1]['indx'] + 1 if self.datastack.rois else 1
         self.datastack.rois += [{'indx': indx, 'label': (roi.x[0], roi.y[0]), 'vertices': vertices, 'ILow': self.ilow.get(), 'label 1': '', 'label 2': '', 'label 3': '', 'select': True}]
@@ -1686,6 +1687,7 @@ class Polarimetry(CTk.CTk):
             self.manager.update_manager(self.datastack.rois)
 
     def no_add_roi_callback(self, window:CTk.CTkToplevel, roi:ROI) -> None:
+        self.adding_roi = False
         window.withdraw()
         for line in roi.lines:
             line.remove()
