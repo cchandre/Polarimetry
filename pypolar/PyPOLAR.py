@@ -14,6 +14,7 @@ from scipy.signal import convolve2d, savgol_filter
 from scipy.interpolate import interpn
 from scipy.ndimage import rotate
 from scipy.io import savemat, loadmat
+import roifile
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -24,6 +25,7 @@ from matplotlib.backend_bases import FigureCanvasBase, _Mode, MouseEvent
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.backends.backend_pdf
 from matplotlib.ticker import MaxNLocator
+from matplotlib import _pylab_helpers
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from colorcet import m_colorwheel
 from PIL import Image
@@ -195,7 +197,7 @@ class Polarimetry(CTk.CTk):
         self.openfile_dropdown = DropDown(left_frame, values=['Open file', 'Open folder', 'Open figure'], image=self.icons['download_file'], variable=self.openfile_dropdown_value, command=self.open_file_callback, tooltip=' - open a file (.tif or .tiff stack file)\n - open a folder containing .tif or .tiff stack files\n - open figure (.pyfig file saved from a previous analysis)')
         self.openfile_dropdown.grid(row=2, **dict_left_frame)
         self.option = CTk.StringVar()
-        self.options_dropdown = DropDown(left_frame, values=['Thresholding', 'Mask'], image=self.icons['build'], variable=self.option, state='disabled', command=self.options_dropdown_callback, tooltip=' select the method of analysis\n - intensity thresholding or segmentation mask for single file analysis or batch processing\n - the mask has to be binary and in PNG format and have the same file name as the respective polarimetry data file')
+        self.options_dropdown = DropDown(left_frame, values=['Thresholding', 'Mask', 'ROI'], image=self.icons['build'], variable=self.option, state='disabled', command=self.options_dropdown_callback, tooltip=' select the method of analysis\n - intensity thresholding or segmentation mask for single file analysis or batch processing\n - the mask has to be binary and in PNG format and have the same file name as the respective polarimetry data file')
         self.options_dropdown.grid(row=3, **dict_left_frame)
         self.add_roi_button = Button(left_frame, text='Add ROI', image=self.icons['roi'], command=self.add_roi_callback, tooltip=' add a region of interest: polygon (left button), freeform (right button); double-click to close the ROI')
         self.add_roi_button.grid(row=4, **dict_left_frame)
@@ -981,14 +983,20 @@ class Polarimetry(CTk.CTk):
                 fig.axes[1].images[0].set_cmap('jet' if not self.colorblind_checkbox.get() else 'viridis')
 
     def options_dropdown_callback(self, option:str) -> None:
-        self.options_dropdown.get_icon().configure(image=self.icons['build_fill'] if option.endswith('(auto)') else self.icons['build'])
+        self.options_dropdown.get_icon().configure(image=self.icons['build_fill'] if self.openfile_dropdown_value.get()=='Open folder' else self.icons['build'])
+        initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
         if option.startswith('Mask'):
-            initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
-            self.maskfolder = Path(fd.askdirectory(title='Select the directory containing masks', initialdir=initialdir))
+            self.maskfolder = Path(fd.askdirectory(title='Select the directory containing masks (.png)', initialdir=initialdir))
             if hasattr(self, 'datastack'):
                 self.mask = self.get_mask(self.datastack)
                 self.ontab_thrsh()
                 self.tabview.tab('Thresholding/Mask').update()
+        elif option.startswith('ROI'):
+            self.roifolder = Path(fd.askdirectory(title='Select the directory containing ROIs (.pyroi, .roi or .zip)', initialdir=initialdir))
+        else:
+            return
+        if hasattr(self, 'datastack'):
+            self.update_file_data()
 
     def open_file_callback(self, value:str) -> None:
         initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
@@ -1006,7 +1014,6 @@ class Polarimetry(CTk.CTk):
             if file.suffix in ['.tiff', '.tif']:
                 self.options_dropdown.get_icon().configure(image=self.icons['build'])
                 self.options_dropdown.set_state('normal')
-                self.options_dropdown.set_values(['Thresholding', 'Mask'])
                 self.option.set('Thresholding')
                 if hasattr(self, 'mask'):
                     delattr(self, 'mask')
@@ -1015,12 +1022,10 @@ class Polarimetry(CTk.CTk):
             folder = Path(fd.askdirectory(title='Select a directory', initialdir=initialdir))
             self.openfile_dropdown.get_icon().configure(image=self.icons['folder_open'])
             self.filelist = [file for file in sorted(folder.glob('*.tif*'))]
-            self.indxlist = 0
             if any(self.filelist):
                 self.open_file(self.filelist[0])
                 self.options_dropdown.set_state('normal')
-                self.options_dropdown.set_values(['Thresholding (manual)', 'Thresholding (auto)', 'Mask/ROI (manual)', 'Mask/ROI (auto)'])
-                self.option.set('Thresholding (manual)')
+                self.option.set('Thresholding')
             else:
                 ShowInfo(message=' The folder does not contain TIFF or TIF files', image=self.icons['download_folder'], button_labels=['OK'], geometry=(340, 140))
         elif value == 'Open figure':
@@ -1071,19 +1076,20 @@ class Polarimetry(CTk.CTk):
 
     def resize_plt_windows(self) -> None:
         active_fig = plt.gcf()
-        initial_active_num = plt.gcf().number
+        initial_active_num = active_fig.number
         manager = active_fig.canvas.manager
         geom = manager.window.geometry()
         size_str = geom.split('+')[0] 
         width, height = map(int, size_str.split('x'))
-        for num in plt.get_fignums():
-            fig = plt.figure(num)
-            fs = fig.canvas.manager.get_window_title()
+        managers = _pylab_helpers.Gcf.get_all_fig_managers()
+        for mgr in managers:
+            fig = mgr.canvas.figure
+            fs = mgr.get_window_title()
             fig_type = getattr(fig, 'type', None)
             if (fig_type in ['Sticks', 'Composite', 'Intensity']) :
-                if (hasattr(self, 'datastack') and (self.datastack.name in fs)):
-                    fig.canvas.manager.window.geometry(f"{width}x{height}")
-                    fig.canvas.draw()
+                if hasattr(self, 'datastack') and (self.datastack.name in fs):
+                    mgr.window.geometry(f"{width}x{height}")
+                    fig.canvas.draw_idle()
         plt.figure(initial_active_num)
 
     def calib_on_closing(self):
@@ -1091,27 +1097,33 @@ class Polarimetry(CTk.CTk):
         delattr(self, 'calib_window')
 
     def crop_figures(self) -> None:
+        self.get_axes()
+        xylim = np.array([int(self.xylim[_].get()) for _ in range(4)])
+        self._crop_all_figures(xylim)
+
+    def _crop_all_figures(self, xylim:np.ndarray) -> None:
         initial_active_num = plt.gcf().number
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
             valid = (self.datastack.name in fs) if hasattr(self, 'datastack') else False
-            if (fig.type in ['Sticks', 'Composite', 'Intensity']) and (valid or self.openfile_dropdown_value.get()=='Open figure'):
-                fig.axes[0].set_xlim((int(self.xylim[0].get()), int(self.xylim[1].get())))
-                fig.axes[0].set_ylim((int(self.xylim[3].get()), int(self.xylim[2].get())))
-                if self.openfile_dropdown_value.get()=='Open figure':
-                    plt.show()
+            fig_type = getattr(fig, 'type', None)
+            if (fig_type in ['Sticks', 'Composite', 'Intensity']) and (valid or self.openfile_dropdown_value.get()=='Open figure'):
+                fig.axes[0].set_xlim((int(xylim[0]), int(xylim[1])))
+                fig.axes[0].set_ylim((int(xylim[3]), int(xylim[2])))
         plt.figure(initial_active_num)
 
     def get_axes(self) -> None:
         fig = plt.gcf()
-        initial_active_num = plt.gcf().number
-        if fig.type in ['Sticks', 'Composite', 'Intensity']:
-            ax = fig.axes[0]
-            self.xylim[0].set(int(ax.get_xlim()[0]))
-            self.xylim[1].set(int(ax.get_xlim()[1]))
-            self.xylim[2].set(int(ax.get_ylim()[1]))
-            self.xylim[3].set(int(ax.get_ylim()[0]))
+        initial_active_num = fig.number
+        fig_type = getattr(fig, 'type', None)
+        if fig_type in ['Sticks', 'Composite', 'Intensity']:
+            if fig.axes:
+                ax = fig.axes[0]
+                self.xylim[0].set(int(ax.get_xlim()[0]))
+                self.xylim[1].set(int(ax.get_xlim()[1]))
+                self.xylim[2].set(int(ax.get_ylim()[1]))
+                self.xylim[3].set(int(ax.get_ylim()[0]))
         else:
             ShowInfo(message=' Select an active figure of the type\n Composite, Sticks or Intensity', image=self.icons['crop'], button_labels=['OK'])
         plt.figure(initial_active_num)
@@ -1146,7 +1158,7 @@ class Polarimetry(CTk.CTk):
         if hasattr(self, 'datastack') or self.openfile_dropdown_value.get() == 'Open figure':
             for _, val in enumerate(vals):
                 self.xylim[_].set(val)
-            self.crop_figures()
+            self._crop_all_figures(vals)
 
     def clear_patches(self, ax:plt.Axes, canvas:FigureCanvasTkAgg) -> None:
         if ax.patches:
@@ -1586,12 +1598,19 @@ class Polarimetry(CTk.CTk):
         self.tabview.set('Intensity')
         self.update()
         self.compute_intensity(self.stack)
-        if self.option.get() != 'Thresholding (auto)': 
-            self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
-            self.ilow_slider.set(0)
+        self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
+        self.ilow_slider.set(0)
         self.datastack = self.define_datastack(self.stack)
-        if self.option.get().startswith('Mask'):
+        self.ontab_intensity(update=False)
+        self.ontab_thrsh(update=False)
+        self.tabview.tab('Intensity').update()
+        self.tabview.tab('Thresholding/Mask').update()
+
+    def update_file_data(self) -> None:
+        if self.option.get()=='Mask':
             self.mask = self.get_mask(self.datastack)
+        elif self.option.get()=='ROI':
+            self.datastack.rois = self.get_rois(self.datastack)
         self.ontab_intensity(update=False)
         self.ontab_thrsh(update=False)
         self.tabview.tab('Intensity').update()
@@ -1696,7 +1715,7 @@ class Polarimetry(CTk.CTk):
 
     def get_mask(self, datastack:DataStack) -> np.ndarray:
         mask = np.ones((datastack.height, datastack.width))
-        if self.option.get().startswith('Mask'):
+        if self.option.get()=='Mask':
             maskfile = self.maskfolder / (datastack.name + '.png')
             if maskfile.exists():
                 im_binarized = np.asarray(Image.open(maskfile), dtype=np.float64)
@@ -1706,6 +1725,25 @@ class Polarimetry(CTk.CTk):
             if hasattr(self, 'mask'):
                 self.mask = mask
         return mask
+    
+    def get_rois(self, datastack:DataStack):
+        roi_base = self.roifolder / datastack.name
+        rois = []
+        if roi_base.with_suffix('.pyroi').exists():
+            with open(roi_base.with_suffix('.pyroi'), 'rb') as f:
+                rois = pickle.load(f)
+        elif roi_base.with_suffix('.zip').exists():
+            rois_imagej = roifile.roiread(roi_base.with_suffix('.zip'))
+            rois = [self.roi_imagej2pyroi(roi, _ + 1) for _, roi in enumerate(rois_imagej)]
+        elif (roi_base.with_suffix('.roi')).exists():
+            rois = [self.roi_imagej2pyroi(roifile.ImagejRoi.fromfile(roi_base.with_suffix('.roi')), 1)]
+        return rois
+    
+    def roi_imagej2pyroi(self, roi, indx):
+        coords = roi.coordinates()
+        vertices = np.asarray([coords.T[0], coords.T[1]])
+        label = (coords[0, 0], coords[0, 1])
+        return {'indx': indx, 'label': label, 'vertices': vertices, 'ILow': 0, 'label 1': roi.name, 'label 2': '', 'label 3': '', 'select': True}
 
     def analysis_callback(self) -> None:
         if not hasattr(self, 'stack'):
@@ -1713,27 +1751,18 @@ class Polarimetry(CTk.CTk):
         self.analysis_button.configure(image=self.icons['pause'])
         self.tabview.set('Intensity')
         self.update()
-        if self.option.get().endswith('(manual)'):
-            self.analyze_stack(self.datastack)
-            if self.filelist:
-                self.indxlist += 1
-                if self.indxlist < len(self.filelist):
-                    self.open_file(self.filelist[self.indxlist])
-                    self.initialize_noise()
-                else:
-                    self.indxlist = 0
-                    self.open_file(self.filelist[0])
-                    ShowInfo(message=' End of list', image=self.icons['check_circle'], button_labels=['OK'], fontsize=16)
-                    self.initialize()
-            self.analysis_button.configure(image=self.icons['play'])
-        elif self.option.get().endswith('(auto)'):
+        if self.openfile_dropdown_value.get()=='Open folder':
             for file in self.filelist:
                 self.open_file(file)
+                self.update_file_data()
                 self.analyze_stack(self.datastack)
             self.analysis_button.configure(image=self.icons['play'])
             self.open_file(self.filelist[0])
             ShowInfo(message=' End of list', image=self.icons['check_circle'], button_labels=['OK'], fontsize=16)
             self.initialize()
+        elif self.openfile_dropdown_value.get()=='Open file':
+            self.analyze_stack(self.datastack)
+            self.analysis_button.configure(image=self.icons['play'])
 
     def stack_slider_callback(self, value:str) -> None:
         self.stack_slider_label.configure(text=int(value))
@@ -1812,7 +1841,7 @@ class Polarimetry(CTk.CTk):
         if not hasattr(self, 'stack'):
             return
         field = self.stack.intensity.copy()
-        if self.option.get().startswith('Mask'):
+        if self.option.get()=='Mask':
             field *= self.mask
         vmin, vmax = np.amin(self.stack.intensity), np.amax(self.stack.intensity)
         field_im = adjust(self.stack.intensity, self.contrast_thrsh_slider.get(), vmin, vmax)
@@ -2368,7 +2397,7 @@ class Polarimetry(CTk.CTk):
             self.stack = self.slice4polar(self.stack_unsliced, order)
             self.compute_intensity(self.stack)
             self.datastack = self.define_datastack(self.stack)
-            if self.option.get().startswith('Mask'):
+            if self.option.get() == 'Mask':
                 self.mask = self.get_mask(self.datastack)
             self.ontab_intensity(update=False)
             self.ontab_thrsh(update=False)

@@ -855,9 +855,9 @@ class ROIManager(CTk.CTkToplevel):
     def load(self, initialdir:Path=Path.home()) -> List[dict]:
         filetypes = [('PyROI files', '*.pyroi'), ('ImageJ ROI files', '*.zip *.roi')]
         file = fd.askopenfilename(title='Select a PyROI file or an ImageJ ROI file', initialdir=initialdir, filetypes=filetypes)
-        return self.load_file(Path(file))
+        return self.load_roi_file(Path(file))
     
-    def load_file(self, file:Path) -> List[dict]:
+    def load_roi_file(self, file:Path) -> List[dict]:
         self.delete_manager()
         rois = []
         if file.suffix == '.pyroi':
