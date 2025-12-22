@@ -79,7 +79,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.0'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 21, 2025'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 22, 2025'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -212,7 +212,7 @@ class Polarimetry(CTk.CTk):
         self.contrast_intensity_slider = CTk.CTkSlider(master=banner, from_=0, to=1, orientation='vertical', height=self.length_slider, command=self.contrast_intensity_slider_callback)
         self.contrast_intensity_slider.set(1)
         self.contrast_intensity_slider.grid(row=1, column=0, padx=10, pady=(0, 20))
-        self.compute_angle_button = Button(banner, image=self.icons['square'], command=self.compute_angle, tooltip=' left click to trace a line segment\n and determine its length and angle')
+        self.compute_angle_button = Button(banner, image=self.icons['square'], command=self.compute_angle, tooltip=' - left click to define start and end of a line segment, to determine its length and angle\n - the angle is computed counter-clockwise from the horizontal axis')
         self.compute_angle_button.grid(row=2, column=0, padx=10, pady=20)
         self.pixel_size = CTk.StringVar(value='0')
         entry = CTk.CTkEntry(banner, textvariable=self.pixel_size, border_color=gray[0], width=50, justify='center')
@@ -1061,7 +1061,7 @@ class Polarimetry(CTk.CTk):
             for _, label in enumerate(labels):
                 Label(master=self.crop_window, text=label).grid(row=_+1, column=0, padx=(20, 0), pady=0)
             for var, position in zip(self.xylim, positions):
-                Entry(master=self.crop_window, textvariable=var, row=position[0], column=position[1])
+                Entry(master=self.crop_window, textvariable=var, row=position[0], column=position[1], command=self._crop_all_figures)
             banner = CTk.CTkFrame(self.crop_window)
             banner.grid(row=3, column=0, columnspan=4, padx=20)
             Button(banner, text='Get', anchor='center', command=self.get_axes, width=80, height=button_size[1], tooltip=' get the axis limits of the active figure').grid(row=0, column=0, padx=10, pady=20)
@@ -1098,10 +1098,10 @@ class Polarimetry(CTk.CTk):
 
     def crop_figures(self) -> None:
         self.get_axes()
-        xylim = np.array([int(self.xylim[_].get()) for _ in range(4)])
-        self._crop_all_figures(xylim)
+        self._crop_all_figures()
 
-    def _crop_all_figures(self, xylim:np.ndarray) -> None:
+    def _crop_all_figures(self) -> None:
+        xylim = np.array([int(self.xylim[_].get()) for _ in range(4)])
         initial_active_num = plt.gcf().number
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
@@ -1158,7 +1158,7 @@ class Polarimetry(CTk.CTk):
         if hasattr(self, 'datastack') or self.openfile_dropdown_value.get() == 'Open figure':
             for _, val in enumerate(vals):
                 self.xylim[_].set(val)
-            self._crop_all_figures(vals)
+            self._crop_all_figures()
 
     def clear_patches(self, ax:plt.Axes, canvas:FigureCanvasTkAgg) -> None:
         if ax.patches:
@@ -1310,13 +1310,30 @@ class Polarimetry(CTk.CTk):
     def compute_angle(self) -> None:
         if not hasattr(self, 'stack'):
             return
+        if hasattr(self, '_cid1') and self._cid1 is not None:
+            self.deactivate_compute_angle()
+            return
         self.intensity_pyfig.toolbar.mode = _Mode.NONE
         self.intensity_pyfig.toolbar._update_buttons_checked()
         self.tabview.set('Intensity')
         self.compute_angle_button.configure(fg_color=orange[1])
-        hroi = ROI()
-        self._cid1 = self.intensity_pyfig.canvas.mpl_connect('motion_notify_event', lambda event: self.compute_angle_motion_notify_callback(event, hroi))
-        self._cid2 = self.intensity_pyfig.canvas.mpl_connect('button_press_event', lambda event: self.compute_angle_button_press_callback(event, hroi))
+        self.active_angle_roi = ROI()
+        self._cid1 = self.intensity_pyfig.canvas.mpl_connect('motion_notify_event', lambda event: self.compute_angle_motion_notify_callback(event, self.active_angle_roi))
+        self._cid2 = self.intensity_pyfig.canvas.mpl_connect('button_press_event', lambda event: self.compute_angle_button_press_callback(event, self.active_angle_roi))
+
+    def deactivate_compute_angle(self) -> None:
+        if hasattr(self, '_cid1') and self._cid1 is not None:
+            self.intensity_pyfig.canvas.mpl_disconnect(self._cid1)
+            self._cid1 = None
+        if hasattr(self, '_cid2') and self._cid2 is not None:
+            self.intensity_pyfig.canvas.mpl_disconnect(self._cid2)
+            self._cid2 = None
+        if hasattr(self, 'active_angle_roi') and self.active_angle_roi.lines:
+            for line in self.active_angle_roi.lines:
+                line.remove()
+            self.active_angle_roi.lines = []
+            self.intensity_pyfig.canvas.draw()
+        self.compute_angle_button.configure(fg_color=orange[0])
 
     def compute_angle_motion_notify_callback(self, event:MouseEvent, roi:ROI) -> None:
         if event.inaxes == self.intensity_axis:
@@ -1340,8 +1357,6 @@ class Polarimetry(CTk.CTk):
                     roi.previous_point = [x, y]
                     self.intensity_axis.add_line(roi.lines[-1])
                     self.intensity_pyfig.canvas.draw()
-                    self.intensity_pyfig.canvas.mpl_disconnect(self._cid1)
-                    self.intensity_pyfig.canvas.mpl_disconnect(self._cid2)
                     slope = 180 - np.rad2deg(np.arctan((roi.previous_point[1] - roi.start_point[1]) / (roi.previous_point[0] - roi.start_point[0])))
                     slope = np.mod(2 * slope, 360) / 2
                     dist = np.sqrt(((np.asarray(roi.previous_point) - np.asarray(roi.start_point))**2).sum())
@@ -1349,10 +1364,9 @@ class Polarimetry(CTk.CTk):
                     if int(self.pixel_size.get()) != 0:
                         message += ' \n Distance is {:.1f} \xb5m'.format(int(dist) * int(self.pixel_size.get()) / 1000)
                     ShowInfo(message=message, image=self.icons['square'], button_labels = ['OK'], fontsize=14)
-                    for line in roi.lines:
-                        line.remove()
                     self.intensity_pyfig.canvas.draw()
                     self.compute_angle_button.configure(fg_color=orange[0])
+                    self.deactivate_compute_angle()
 
     def define_variable_table(self, method:str) -> None:
         self.initialize_tables()
@@ -2354,23 +2368,28 @@ class Polarimetry(CTk.CTk):
 
     def compute_roi_map(self, datastack:DataStack) -> Tuple[np.ndarray, np.ndarray]:
         shape = (datastack.height, datastack.width)
-        if len(datastack.rois):
-            Y, X = np.mgrid[:datastack.height, :datastack.width]
-            points = np.vstack((X.flatten(), Y.flatten())).T
-            roi_map = np.zeros(shape, dtype=np.int32)
-            roi_ilow_map = np.zeros(shape, dtype=np.float64)
-            for roi in datastack.rois:
-                if roi['select']:
-                    patch= Polygon(roi['vertices'].T)
-                    roi_map[patch.contains_points(points).reshape(shape)] = roi['indx'] if self.per_roi.get() else 1
-                    roi_ilow_map[patch.contains_points(points).reshape(shape)] = float(roi['ILow'])
+        roi_map = np.zeros(shape, dtype=np.int32)
+        roi_ilow_map = np.zeros(shape, dtype=np.float64)
+        if len(datastack.rois) > 0:
+            selected_rois = [r for r in datastack.rois if r['select']]
+            if selected_rois:
+                for roi in selected_rois:
+                    temp_mask = np.zeros(shape, dtype=np.uint8)
+                    verts = np.array([roi['vertices'].T], dtype=np.int32)
+                    cv2.fillPoly(temp_mask, verts, 1)
+                    idx_value = roi['indx'] if self.per_roi.get() else 1
+                    roi_map[temp_mask == 1] = idx_value
+                    roi_ilow_map[temp_mask == 1] = float(roi['ILow'])
+            else:
+                roi_map.fill(1)
+                roi_ilow_map.fill(float(self.ilow.get()))
         else:
-            roi_map = np.ones(shape, dtype=np.int32)
-            roi_ilow_map = np.ones(shape, dtype=np.float64) * np.float64(self.ilow.get())
+            roi_map.fill(1)
+            roi_ilow_map.fill(float(self.ilow.get()))
             self.per_roi.deselect()
-        mask = self.get_mask(datastack)
-        mask *= (datastack.intensity >= roi_ilow_map) * (roi_map > 0)
-        return roi_map, (mask != 0)
+        base_mask = self.get_mask(datastack)
+        final_mask = (base_mask != 0) & (datastack.intensity >= roi_ilow_map) & (roi_map > 0)
+        return roi_map, final_mask
 
     def slice4polar(self, stack:Stack, str_order:str) -> Stack:
         if hasattr(self, 'registration'):

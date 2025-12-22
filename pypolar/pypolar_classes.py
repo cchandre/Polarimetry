@@ -111,7 +111,7 @@ class CheckBox(CTk.CTkCheckBox):
             ToolTip(self, text=tooltip)
 
 class Entry(CTk.CTkFrame):
-    def __init__(self, master, text:str=None, textvariable:tk.StringVar=None, tooltip:str=None, state:str='normal', row:int=0, column:int=0, padx:Union[int, Tuple[int, int]]=(10, 30), pady:Union[int, Tuple[int, int]]=5, sticky:str='e', fg_color:str=gray[0], width:int=50, **kwargs) -> None:
+    def __init__(self, master, text:str=None, textvariable:tk.StringVar=None, command=None, tooltip:str=None, state:str='normal', row:int=0, column:int=0, padx:Union[int, Tuple[int, int]]=(10, 30), pady:Union[int, Tuple[int, int]]=5, sticky:str='e', fg_color:str=gray[0], width:int=50, **kwargs) -> None:
         super().__init__(master, **kwargs)
         self.configure(fg_color=fg_color)
         self.grid(row=row, column=column, sticky=sticky, padx=padx, pady=pady)
@@ -119,6 +119,8 @@ class Entry(CTk.CTkFrame):
             Label(self, text=text, tooltip=tooltip).grid(row=0, column=0, padx=(0, 10))
         self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=width, justify='center', state=state)
         self.entry.grid(row=0, column=1)
+        if command is not None:
+            self.entry.bind('<Return>', lambda event: command())    
 
     def get(self) -> int:
         return int(self.entry.get())
