@@ -249,7 +249,7 @@ class Polarimetry(CTk.CTk):
         Button(banner, image=self.icons['colorize'], command=self.change_colormap, tooltip=" change the colormap used for thresholding ('hot' or 'gray')").grid(row=2, column=0, padx=10, pady=10)
         self.no_background_button = Button(banner, image=self.icons['photo_fill'], command=self.no_background, tooltip=' change background to enhance visibility')
         self.no_background_button.grid(row=3, column=0, padx=10, pady=10)
-        Button(banner, image=self.icons['open_in_new'], command=self.export_mask, tooltip=' export mask as .png').grid(row=4, column=0, padx=10, pady=10)
+        Button(banner, image=self.icons['open_in_new'], command=self.export_mask, tooltip=' export mask as .png\n if perROI is selected, masks are exported individually for each ROI').grid(row=4, column=0, padx=10, pady=10)
         Button(banner, image=self.icons['format_list'], command=self.roimanager_callback, tooltip=' open ROI Manager').grid(row=5, column=0, padx=10, pady=10)
         self.edge_button = Button(banner, image=self.icons['multiline_chart'], command=self.edge_button_callback, tooltip=' determine the edges of the thresholded image and compute orientations with respect to the edges')
         self.edge_button.grid(row=6, column=0, padx=10, pady=10)
@@ -1191,7 +1191,13 @@ class Polarimetry(CTk.CTk):
         elif event == 1:
             self.save_mask((255 * (self.datastack.intensity >= float(self.ilow.get()))).astype(np.uint8), file.with_name(file.stem + '_intensity'))
         elif event == 2:
-            self.save_mask((255 * mask).astype(np.uint8), file.with_name(file.stem + '_roi_intensity'))
+            if self.per_roi.get():
+                for roi in self.datastack.rois:
+                    combined_mask = (roi_map == roi['indx']) * (self.datastack.intensity >= float(self.ilow.get()))
+                    self.save_mask((255 * combined_mask).astype(np.uint8), file.with_name(file.stem + f'_roi{roi["indx"]}_intensity'))
+            else:
+                combined_mask = (roi_map != 0) * (self.datastack.intensity >= float(self.ilow.get()))  
+                self.save_mask((255 * combined_mask).astype(np.uint8), file.with_name(file.stem + '_roi_intensity'))
         window.withdraw()
 
     def save_mask(self, array, file:Path) -> None:
