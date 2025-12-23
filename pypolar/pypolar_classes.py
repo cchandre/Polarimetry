@@ -442,6 +442,7 @@ class Calibration:
                    'Calib_20231009_2D': ['Calib_20231009_2D', 0], 
                    'other': ['Calib_th', 0]}
     folder_4polar = Path(__file__).parent / 'calibration'
+    TARGET_VARIABLES = ['RoTest', 'PsiTest', 'NbMapValues']
 
     def __init__(self, method:str, label:str='no distortions') -> None:
         if method == '1PF':
@@ -455,7 +456,7 @@ class Calibration:
                 file = Path(fd.askopenfilename(title='Select file', initialdir=Path.home(), filetypes=[('MAT-files', '*.mat')]))
                 folder = file.parent
                 vars = [file.stem, 0]
-            disk = loadmat(str(folder / (vars[0] + '.mat')))
+            disk = loadmat(str(folder / (vars[0] + '.mat')), variable_names=type(self).TARGET_VARIABLES, squeeze_me=True)
             try:
                 self.RhoPsi = np.moveaxis(np.stack((np.array(disk['RoTest'], dtype=np.float64), np.array(disk['PsiTest'], dtype=np.float64))), 0, -1)
                 self.xy = 2 * (np.linspace(-1, 1, int(disk['NbMapValues']), dtype=np.float64),)
@@ -479,6 +480,12 @@ class Calibration:
         else:
             vars = [' ', 0]
         self.name, self.offset_default = vars
+
+    def define_disk(self, disk_file:Path):
+        disk = loadmat(str(disk_file), variable_names=type(self).TARGET_VARIABLES, squeeze_me=True)
+        self.RhoPsi = np.moveaxis(np.stack((np.array(disk['RoTest'], dtype=np.float64), np.array(disk['PsiTest'], dtype=np.float64))), 0, -1)
+        self.xy = 2 * (np.linspace(-1, 1, int(disk['NbMapValues']), dtype=np.float64),)
+        self.name = disk_file.stem
 
     def display(self, colorblind:bool=False) -> None:
         fig, axs = plt.subplots(ncols=2, figsize=(13, 8))

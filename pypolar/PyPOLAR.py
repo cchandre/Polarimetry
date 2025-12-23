@@ -79,7 +79,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.0'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 22, 2025'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 23, 2025'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -654,40 +654,38 @@ class Polarimetry(CTk.CTk):
         self.offset_angle_entry.set_state('normal')
 
     def start_calibration(self) -> None:
-        params = {'offset_angle': float(self.offset_angle.get()), 
-                  'polar_dir': self.polar_dir.get(),
-                  'dark': self.dark.get()}
-        TARGET_VARIABLES = ['RoTest', 'PsiTest', 'NbMapValues']
+        self.method.set('1PF')
+        for ext in self.extension_table:
+            ext.deselect()
+        self.extension_table[2].select()
         disklist = [file for file in Path(self._disk_folder_path.get()).glob('*.mat') if file.stem.startswith("Disk")]
         stacklist = [file for file in Path(self._stack_folder_path.get()).glob('*.tif*')]
+        self.maskfolder = Path(self._stack_folder_path.get())
         self._status_entry.write(f"Starting calibration...")
         self.calib_window.update()
-        data = [['Calibration', 'DiskNumber', 'File', 'MeanRho', 'StdRho', 'MeanDeltaRho', 'MeanPsi', 'StdPsi', 'MeanInt', 'StdInt', 'TotalInt', 'N', 'dark', 'offset', 'polarization']]
-        for i, disk_path in enumerate(disklist):
-            disk = loadmat(disk_path, variable_names=TARGET_VARIABLES, squeeze_me=True)
-            for stack_path in stacklist:
-                stack = self.define_stack(stack_path)
-                mask_path = stack_path.with_suffix('.png')
-                im_binarized = np.asarray(Image.open(mask_path), dtype=np.float64)
-                mask = (im_binarized > 0)
-                result = [disk_path.stem, i + 1, stack_path.stem]
-                result += self.compute_1PF(stack, mask, disk, params)
-                result += [params['dark'], params['offset_angle'], params['polar_dir']]
-                data.append(result)
-            self._status_entry.write(f"{i + 1} over {len(disklist)} disks processed")
-            self.calib_window.update()
-            self.calib_window.update_idletasks()
-        self.calib_disk_data = self.organize_per_disk(data)
         current_time = datetime.now()
         timestamp = current_time.strftime("_%Y%m%d_%H%M")
         file_name = Path(self._stack_folder_path.get()) / f'calibration_results{timestamp}.xlsx'
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Calibration Results"
-        for row_data in data:
-            ws.append(row_data)
-        wb.save(file_name) 
+        for i, disk_path in enumerate(disklist):
+            self.CD = Calibration(method='1PF')
+            self.CD.define_disk(disk_path)
+            for stack_path in stacklist:
+                self.stack = self.define_stack(stack_path, default_dark=self.dark.get())
+                self.compute_intensity(self.stack)
+                datastack = self.define_datastack(self.stack)
+                if stack_path.with_suffix('.png').exists():
+                    self.option.set('Mask')
+                    self.per_roi.deselect()
+                else:
+                    self.option.set('ROI')
+                    self.per_roi.select()
+                    datastack.rois = self.get_rois(datastack.folder, stack_path)
+                self.analyze_stack(datastack, file4calib=file_name)
+            self._status_entry.write(f"{i + 1} over {len(disklist)} disks processed")
+            self.calib_window.update()
+            self.calib_window.update_idletasks()
         self._status_entry.write(f"Excel file '{file_name}' created successfully.")
+        self.load_excel(file_name)
         self.plot_calibration()
 
     def plot_calibration(self) -> None:
@@ -707,8 +705,12 @@ class Polarimetry(CTk.CTk):
         filetypes = [('Excel files', '*.xlsx'), ('All files', '*.*')]
         initialdir = self._stack_folder_path.get() if hasattr(self, '_stack_folder_path') else Path.home()
         file = fd.askopenfilename(title='Select calibration data file', initialdir=initialdir, filetypes=filetypes)
-        if not file:
-            return
+        if file:
+            self.load_excel(file)
+            self.plot_calibration()
+        
+    def load_excel(self, file:str) -> None:
+        self.add_column_number(file)
         wb = openpyxl.load_workbook(file)
         ws = wb.active
         data = []
@@ -716,7 +718,31 @@ class Polarimetry(CTk.CTk):
             data.append(list(row))
         self.calib_disk_data = self.organize_per_disk(data)
         self._status_entry.write(f"Calibration data loaded from '{file}'")
-        self.plot_calibration()
+        
+    def add_column_number(self, file:str) -> None:
+        wb = openpyxl.load_workbook(file)
+        ws = wb.active
+        headers = [cell.value for cell in ws[1]]
+        if 'DiskNumber' in headers:
+            return
+        disk_col_idx = headers.index('Calibration') + 1
+        target_idx = disk_col_idx + 1 
+        ws.insert_cols(idx=target_idx)
+        ws.cell(row=1, column=target_idx, value='DiskNumber')
+        disk_map = {}
+        disk_index = 1
+        for row_num in range(2, ws.max_row + 1):
+            disk_name = ws.cell(row=row_num, column=disk_col_idx).value
+            if disk_name not in disk_map:
+                disk_map[disk_name] = disk_index
+                disk_index += 1
+            ws.cell(row=row_num, column=target_idx, value=disk_map[disk_name])
+        wb.save(file)
+
+    def get_indx_sheet(self, items, varname:str) -> int:
+        if varname in items:
+            return items.index(varname)
+        return None
 
     def plot_calibration_results(self, disk_data:List, label:str='all') -> None:
         disks = disk_data if label=='all' else self.get_lowest_std_psi(disk_data) 
@@ -778,10 +804,14 @@ class Polarimetry(CTk.CTk):
         plt.show()
 
     def organize_per_disk(self, data):
+        indx_calib = self.get_indx_sheet(data[0], "Calibration")
+        indx_disknum = self.get_indx_sheet(data[0], "DiskNumber")
+        indx_meanpsi = self.get_indx_sheet(data[0], "MeanPsi")
+        indx_meanrho = self.get_indx_sheet(data[0], "MeanRho")
         disk_data = {}
         for row in data[1:]:
-            disk_name, disk_index = row[0], row[1]
-            psi_value, rho_value = row[6], row[3]
+            disk_name, disk_index = row[indx_calib], row[indx_disknum]
+            psi_value, rho_value = row[indx_meanpsi], row[indx_meanrho]
             if disk_name not in disk_data:
                 disk_data[disk_name] = {'index': disk_index, 'psi_values': [psi_value], 'rho_values': [rho_value]}   
             disk_data[disk_name]['psi_values'].append(psi_value)
@@ -802,38 +832,6 @@ class Polarimetry(CTk.CTk):
             output_lines.append(f"# {details['index']}\t Std \u03C8 = {details['std_psi']:.2f}\t\t{name}")
         text_to_insert = "\n".join(output_lines)
         self.textbox_calib.write(text_to_insert)
-
-    def compute_1PF(self, stack, mask, disk, params):
-        chi2threshold = 500
-        shape = (stack.height, stack.width)
-        field = stack.values - float(params['dark'])
-        field *= (field >= 0)
-        polardir = -1 if params['polar_dir'] == 'clockwise' else 1
-        alpha = polardir * np.linspace(0, 180, stack.nangle, endpoint=False) + float(params['offset_angle'])
-        e2 = np.exp(2j * np.deg2rad(alpha[:, np.newaxis, np.newaxis]))
-        a0 = np.mean(field, axis=0)
-        a0[a0 == 0] = np.nan
-        a2 = 2 * np.mean(field * e2, axis=0)
-        field_fit = a0[np.newaxis] + (a2[np.newaxis] * e2.conj()).real
-        a2 = divide_ext(a2, a0)
-        chi2 = np.mean(np.divide((field - field_fit)**2, field_fit, where=np.all((field_fit!=0, np.isfinite(field_fit)), axis=0)), axis=0)
-        mask *= np.all(field_fit > 0, axis=0) * (chi2 <= chi2threshold) * (chi2 > 0)
-        a2_vals = np.moveaxis(np.asarray([a2.real[mask].flatten(), a2.imag[mask].flatten()]), 0, -1)
-        RhoPsi = np.moveaxis(np.stack((np.array(disk['RoTest'], dtype=np.float64), np.array(disk['PsiTest'], dtype=np.float64))), 0, -1)
-        xy = 2 * (np.linspace(-1, 1, int(disk['NbMapValues']), dtype=np.float64),)
-        rho, psi = np.moveaxis(interpn(xy, RhoPsi, a2_vals), 0, 1)
-        rho_values, psi_values = np.full(shape, np.nan), np.full(shape, np.nan)
-        ixgrid = mask.nonzero()
-        rho_values[ixgrid] = rho
-        rho_values[np.isfinite(rho_values)] = np.mod(2 * (rho_values[np.isfinite(rho_values)]), 360) / 2
-        psi_values[ixgrid] = psi
-        mask *= np.isfinite(rho_values) * np.isfinite(psi_values)
-        mean_rho = circularmean(rho_values[mask])
-        deltarho = wrapto180(2 * (rho_values[mask] - mean_rho)) / 2
-        mean_deltarho, std_rho = np.mean(deltarho), np.std(deltarho)
-        mean_psi, std_psi = np.mean(psi_values[mask]), np.std(psi_values[mask])
-        mean_int, std_int = np.mean(a0[mask]), np.std(a0[mask])
-        return [mean_rho, std_rho, mean_deltarho, mean_psi, std_psi, mean_int, std_int, mean_int * stack.nangle, np.sum(mask)]
 
     def create_folder_query_widgets(self, parent, row, label_text, entry_variable_name):
         label = CTk.CTkLabel(parent, text=label_text, width=100)
@@ -1582,7 +1580,7 @@ class Polarimetry(CTk.CTk):
         with file.open('rb') as f:
             self.registration = joblib.load(f)
 
-    def define_stack(self, file:Path) -> Stack:
+    def define_stack(self, file:Path, default_dark=None) -> Stack:
         stack_vals = cv2.imreadmulti(str(file), [], cv2.IMREAD_ANYDEPTH)[1]
         try:
             nangle, h, w = np.asarray(stack_vals).shape
@@ -1597,7 +1595,10 @@ class Polarimetry(CTk.CTk):
         stack = Stack(file)
         for key in dict:
             setattr(stack, key, dict[key])
-        self.set_dark(stack)
+        if default_dark is None:
+            self.set_dark(stack)
+        else:
+            stack.dark = default_dark
         return stack
 
     def define_datastack(self, stack:Stack) -> DataStack:
@@ -1630,7 +1631,7 @@ class Polarimetry(CTk.CTk):
         if self.option.get()=='Mask':
             self.mask = self.get_mask(self.datastack)
         elif self.option.get()=='ROI':
-            self.datastack.rois = self.get_rois(self.datastack)
+            self.datastack.rois = self.get_rois(self.roifolder, self.datastack)
         self.ontab_intensity(update=False)
         self.ontab_thrsh(update=False)
         self.tabview.tab('Intensity').update()
@@ -1733,7 +1734,7 @@ class Polarimetry(CTk.CTk):
         roi.lines = []
         self.thrsh_pyfig.canvas.draw()
 
-    def get_mask(self, datastack:DataStack) -> np.ndarray:
+    def get_mask(self, datastack:DataStack, display:bool=True) -> np.ndarray:
         mask = np.ones((datastack.height, datastack.width))
         if self.option.get()=='Mask':
             maskfile = self.maskfolder / (datastack.name + '.png')
@@ -1741,13 +1742,14 @@ class Polarimetry(CTk.CTk):
                 im_binarized = np.asarray(Image.open(maskfile), dtype=np.float64)
                 mask = im_binarized / np.amax(im_binarized)
             else:
-                ShowInfo(message=f' The corresponding mask for {datastack.name} could not be found\n Continuing without mask...', image=self.icons['layers_clear'], button_labels=['OK'])
+                if display:
+                    ShowInfo(message=f' The corresponding mask for {datastack.name} could not be found\n Continuing without mask...', image=self.icons['layers_clear'], button_labels=['OK'])
             if hasattr(self, 'mask'):
                 self.mask = mask
         return mask
     
-    def get_rois(self, datastack:DataStack):
-        roi_base = self.roifolder / datastack.name
+    def get_rois(self, roifolder, datastack:DataStack):
+        roi_base = roifolder / datastack.name
         rois = []
         if roi_base.with_suffix('.pyroi').exists():
             with open(roi_base.with_suffix('.pyroi'), 'rb') as f:
@@ -2221,7 +2223,7 @@ class Polarimetry(CTk.CTk):
             self.plot_sticks(var, datastack)
             self.plot_histos(var, datastack, roi_map)
 
-    def save_data(self, datastack:DataStack, roi_map:np.ndarray=[]) -> None:
+    def save_data(self, datastack:DataStack, roi_map:np.ndarray=[], file4calib:str=None) -> None:
         if len(roi_map) == 0:
             roi_map = self.compute_roi_map(datastack)[0]
         if self.per_roi.get():
@@ -2233,13 +2235,16 @@ class Polarimetry(CTk.CTk):
             self.save_mat(datastack, roi_map, roi=[])
             self.save_csv(datastack, roi_map, roi=[])
         if self.extension_table[2].get():
-            suffix = '_Stats.xlsx' if not hasattr(self, 'edge_contours') else '_Stats_c.xlsx'
-            if self.filelist:
-                file = self.stack.folder / (self.stack.folder.stem + suffix)
-                title = self.stack.folder.stem
+            if file4calib is None:
+                suffix = '_Stats.xlsx' if not hasattr(self, 'edge_contours') else '_Stats_c.xlsx'
+                if self.filelist:
+                    file = self.stack.folder / (self.stack.folder.stem + suffix)
+                    title = self.stack.folder.stem
+                else:
+                    file = self.stack.file.with_name(self.stack.name + suffix)
+                    title = self.stack.name
             else:
-                file = self.stack.file.with_name(self.stack.name + suffix)
-                title = self.stack.name
+                file, title = file4calib, file4calib.stem.rsplit('_', 1)[0]
             if file.exists():
                 workbook = openpyxl.load_workbook(file)
             else:
@@ -2258,7 +2263,6 @@ class Polarimetry(CTk.CTk):
             for row in worksheet.iter_rows():
                 for cell in row:
                     cell.alignment = openpyxl.styles.Alignment(horizontal="center", vertical="center")
-
             workbook.save(file)
         if self.extension_table[3].get():
             images = []
@@ -2388,8 +2392,8 @@ class Polarimetry(CTk.CTk):
             roi_ilow_map.fill(float(self.ilow.get()))
             self.per_roi.deselect()
         base_mask = self.get_mask(datastack)
-        final_mask = (base_mask != 0) & (datastack.intensity >= roi_ilow_map) & (roi_map > 0)
-        return roi_map, final_mask
+        roi_mask = (base_mask != 0) & (datastack.intensity >= roi_ilow_map) & (roi_map > 0)
+        return roi_map, roi_mask
 
     def slice4polar(self, stack:Stack, str_order:str) -> Stack:
         if hasattr(self, 'registration'):
@@ -2427,9 +2431,9 @@ class Polarimetry(CTk.CTk):
             self.ontab_intensity(update=False)
             self.ontab_thrsh(update=False)
 
-    def analyze_stack(self, datastack:DataStack) -> None:
+    def analyze_stack(self, datastack:DataStack, file4calib:str=None) -> None:
         chi2threshold = 500
-        shape = (self.stack.height, self.stack.width)
+        shape = (datastack.height, datastack.width)
         roi_map, mask = self.compute_roi_map(datastack)
         datastack.dark = float(self.dark.get())
         datastack.method = self.method.get()
@@ -2524,34 +2528,34 @@ class Polarimetry(CTk.CTk):
             psi_.values[mask] = 2 * np.rad2deg(np.arccos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
             datastack.vars = [rho_, psi_]
         a0[np.logical_not(mask)] = np.nan
-        datastack.xmap, datastack.ymap = np.meshgrid(np.arange(datastack.width), np.arange(datastack.height))
-        datastack.xmap, datastack.ymap = datastack.xmap.astype(np.float64), datastack.ymap.astype(np.float64)
-        datastack.xmap[np.logical_not(mask)] = np.nan
-        datastack.ymap[np.logical_not(mask)] = np.nan
         datastack.intmap = a0
-        if hasattr(self, 'edge_contours'):
-            rho_ct = Variable('Rho_contour', datastack=datastack)
-            vals, datastack.xct, datastack.yct = self.define_rho_ct(self.edge_contours)
-            filter = np.isfinite(rho_.values) * np.isfinite(vals)
-            rho_ct.values[filter] = np.mod(2 * (rho_.values[filter] - vals[filter]), 360) / 2
-            datastack.xct[~filter], datastack.yct[~filter] = np.nan, np.nan
-            datastack.vars += [rho_ct]
-            for var in datastack.vars[1:-1]:
-                var_ct = Variable(var.name + '_contour', datastack=datastack)
-                var_ct.values[filter] = var.values[filter]
-                datastack.vars += [var_ct]
-        if float(self.rotation[2].get()):
-            rho_a = Variable('Rho_angle', datastack=datastack)
-            rho_a.values = np.mod(2 * (rho_.values - float(self.rotation[2].get())), 360) / 2
-            datastack.vars += [rho_a]
-        if not self.method.get().startswith('4POLAR'):
-            field[:, np.logical_not(mask)] = np.nan
-            field_fit[:, np.logical_not(mask)] = np.nan
-            chi2[np.logical_not(mask)] = np.nan
-            datastack.field, datastack.field_fit, datastack.chi2 = field, field_fit, chi2
-        self.datastack = datastack
-        self.plot_data(datastack, roi_map=roi_map)
-        self.save_data(datastack, roi_map=roi_map)
+        if file4calib is None:
+            datastack.xmap, datastack.ymap = np.meshgrid(np.arange(datastack.width, dtype=np.float64), np.arange(datastack.height, dtype=np.float64))
+            datastack.xmap[np.logical_not(mask)] = np.nan
+            datastack.ymap[np.logical_not(mask)] = np.nan
+            if hasattr(self, 'edge_contours'):
+                rho_ct = Variable('Rho_contour', datastack=datastack)
+                vals, datastack.xct, datastack.yct = self.define_rho_ct(self.edge_contours)
+                filter = np.isfinite(rho_.values) * np.isfinite(vals)
+                rho_ct.values[filter] = np.mod(2 * (rho_.values[filter] - vals[filter]), 360) / 2
+                datastack.xct[~filter], datastack.yct[~filter] = np.nan, np.nan
+                datastack.vars += [rho_ct]
+                for var in datastack.vars[1:-1]:
+                    var_ct = Variable(var.name + '_contour', datastack=datastack)
+                    var_ct.values[filter] = var.values[filter]
+                    datastack.vars += [var_ct]
+            if float(self.rotation[2].get()):
+                rho_a = Variable('Rho_angle', datastack=datastack)
+                rho_a.values = np.mod(2 * (rho_.values - float(self.rotation[2].get())), 360) / 2
+                datastack.vars += [rho_a]
+            if not self.method.get().startswith('4POLAR'):
+                field[:, np.logical_not(mask)] = np.nan
+                field_fit[:, np.logical_not(mask)] = np.nan
+                chi2[np.logical_not(mask)] = np.nan
+                datastack.field, datastack.field_fit, datastack.chi2 = field, field_fit, chi2
+            self.datastack = datastack
+            self.plot_data(datastack, roi_map=roi_map)
+        self.save_data(datastack, roi_map=roi_map, file4calib=file4calib)
 
 if __name__ == '__main__':
     main()
