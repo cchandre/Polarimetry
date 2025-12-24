@@ -79,7 +79,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.0'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 23, 2025'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 24, 2025'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -653,6 +653,14 @@ class Polarimetry(CTk.CTk):
         self.offset_angle_switch.select()
         self.offset_angle_entry.set_state('normal')
 
+    def file_extension_exist(self, filename):
+        extensions = ['.png', '.roi', '.pyroi', '.zip']
+        for ext in extensions:
+            target_file = filename.with_suffix(ext)
+            if target_file.exists():
+                return True
+        return False
+
     def start_calibration(self) -> None:
         self.method.set('1PF')
         for ext in self.extension_table:
@@ -670,6 +678,9 @@ class Polarimetry(CTk.CTk):
             self.CD = Calibration(method='1PF')
             self.CD.define_disk(disk_path)
             for stack_path in stacklist:
+                if not self.file_extension_exist(stack_path):
+                    self._status_entry.write(f"ERROR: Mask or ROI missing for '{stack_path.stem}'")
+                    return
                 self.stack = self.define_stack(stack_path, default_dark=self.dark.get())
                 self.compute_intensity(self.stack)
                 datastack = self.define_datastack(self.stack)
@@ -687,6 +698,10 @@ class Polarimetry(CTk.CTk):
         self._status_entry.write(f"Excel file '{file_name}' created successfully.")
         self.load_excel(file_name)
         self.plot_calibration()
+        self.option.set('Thresholding')
+        self.per_roi.deselect()
+        self.CD = Calibration('1PF')
+        self.calib_dropdown.set('no distortions')
 
     def plot_calibration(self) -> None:
         self.calib_window.geometry(geometry_info((600, 440)))
