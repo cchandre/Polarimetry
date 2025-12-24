@@ -3,6 +3,7 @@ from tkinter import Event as tkEvent
 from tkinter import filedialog as fd
 from tkinter import font as tkfont
 from pathlib import Path
+from collections import defaultdict
 import os
 import shutil
 import joblib
@@ -680,10 +681,7 @@ class Polarimetry(CTk.CTk):
             for stack_path in stacklist:
                 if not self.file_extension_exist(stack_path):
                     self._status_entry.write(f"ERROR: Mask or ROI missing for '{stack_path.stem}'")
-                    self.option.set('Thresholding')
-                    self.per_roi.deselect()
-                    self.CD = Calibration('1PF')
-                    self.calib_dropdown.set('no distortions')
+                    self.reinitialize_post_calibration()
                     return
                 self.stack = self.define_stack(stack_path, default_dark=self.dark.get())
                 self.compute_intensity(self.stack)
@@ -702,10 +700,14 @@ class Polarimetry(CTk.CTk):
         self._status_entry.write(f"Excel file '{file_name}' created successfully.")
         self.load_excel(file_name)
         self.plot_calibration()
+        self.reinitialize_post_calibration()
+
+    def reinitialize_post_calibration(self) -> None:
         self.option.set('Thresholding')
         self.per_roi.deselect()
         self.CD = Calibration('1PF')
         self.calib_dropdown.set('no distortions')
+        self.extension_table[2].deselect()
 
     def plot_calibration(self) -> None:
         self.calib_window.geometry(geometry_info((600, 440)))
@@ -759,9 +761,7 @@ class Polarimetry(CTk.CTk):
         wb.save(file)
 
     def get_indx_sheet(self, items, varname:str) -> int:
-        if varname in items:
-            return items.index(varname)
-        return None
+        return items.index(varname) if varname in items else None
 
     def plot_calibration_results(self, disk_data:List, label:str='all') -> None:
         disks = disk_data if label=='all' else self.get_lowest_std_psi(disk_data) 
@@ -823,21 +823,18 @@ class Polarimetry(CTk.CTk):
         plt.show()
 
     def organize_per_disk(self, data):
-        indx_calib = self.get_indx_sheet(data[0], "Calibration")
-        indx_disknum = self.get_indx_sheet(data[0], "DiskNumber")
-        indx_meanpsi = self.get_indx_sheet(data[0], "MeanPsi")
-        indx_meanrho = self.get_indx_sheet(data[0], "MeanRho")
-        disk_data = {}
+        cols = ["Calibration", "DiskNumber", "MeanPsi", "MeanRho"]
+        idx = {name: self.get_indx_sheet(data[0], name) for name in cols}
+        disk_data = defaultdict(lambda: {"index": None, "psi_values": [], "rho_values": []})
         for row in data[1:]:
-            disk_name, disk_index = row[indx_calib], row[indx_disknum]
-            psi_value, rho_value = row[indx_meanpsi], row[indx_meanrho]
-            if disk_name not in disk_data:
-                disk_data[disk_name] = {'index': disk_index, 'psi_values': [psi_value], 'rho_values': [rho_value]}   
-            disk_data[disk_name]['psi_values'].append(psi_value)
-            disk_data[disk_name]['rho_values'].append(rho_value)
-        for disk_name, details in disk_data.items():
-            details['std_psi'] = np.std(details['psi_values'])
-        return disk_data
+            name = row[idx["Calibration"]]
+            entry = disk_data[name]
+            entry["index"] = row[idx["DiskNumber"]]
+            entry["psi_values"].append(row[idx["MeanPsi"]])
+            entry["rho_values"].append(row[idx["MeanRho"]])
+        for details in disk_data.values():
+            details["std_psi"] = np.std(details["psi_values"])
+        return dict(disk_data)
     
     def get_lowest_std_psi(self, disk_data):
         disk_items = list(disk_data.items())
