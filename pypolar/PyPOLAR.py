@@ -680,6 +680,10 @@ class Polarimetry(CTk.CTk):
             for stack_path in stacklist:
                 if not self.file_extension_exist(stack_path):
                     self._status_entry.write(f"ERROR: Mask or ROI missing for '{stack_path.stem}'")
+                    self.option.set('Thresholding')
+                    self.per_roi.deselect()
+                    self.CD = Calibration('1PF')
+                    self.calib_dropdown.set('no distortions')
                     return
                 self.stack = self.define_stack(stack_path, default_dark=self.dark.get())
                 self.compute_intensity(self.stack)
