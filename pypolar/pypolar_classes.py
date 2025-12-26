@@ -15,7 +15,6 @@ from scipy.ndimage import rotate
 from scipy.signal import convolve2d
 from scipy.linalg import norm
 from scipy.optimize import linear_sum_assignment
-from scipy.interpolate import interpn
 from PIL import Image, ImageTk
 from tkinter import filedialog as fd
 from tkinter.messagebox import showerror

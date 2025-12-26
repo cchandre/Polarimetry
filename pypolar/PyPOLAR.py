@@ -19,7 +19,6 @@ import roifile
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-import matplotlib.colors as mcolors
 from matplotlib.patches import Polygon
 from matplotlib.collections import PolyCollection
 from matplotlib.backend_bases import FigureCanvasBase, _Mode, MouseEvent
@@ -36,7 +35,6 @@ from skimage.measure import manders_coloc_coeff, pearson_corr_coeff
 import openpyxl
 from itertools import permutations, chain
 from datetime import date, datetime
-import time
 import copy
 from typing import List, Tuple, Union
 from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, PyPOLARfigure, ROIManager, TabView, ToolTip
