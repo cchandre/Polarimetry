@@ -80,7 +80,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.0'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 24, 2025'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 26, 2025'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -708,6 +708,9 @@ class Polarimetry(CTk.CTk):
         self.CD = Calibration('1PF')
         self.calib_dropdown.set('no distortions')
         self.extension_table[2].deselect()
+        self.dark_switch.deselect()
+        self.dark_entry.set_state('disabled')
+        self.dark.set('')
 
     def plot_calibration(self) -> None:
         self.calib_window.geometry(geometry_info((600, 440)))
@@ -1622,7 +1625,7 @@ class Polarimetry(CTk.CTk):
         datastack.method = self.method.get()
         return datastack
 
-    def open_file(self, file:Path) -> None:
+    def open_file(self, file:Path, update_ilow:bool=True) -> None:
         self.stack = self.define_stack(file)
         if self.method.get().startswith('4POLAR'):
             self.stack_unsliced = copy.deepcopy(self.stack)
@@ -1635,8 +1638,9 @@ class Polarimetry(CTk.CTk):
         self.tabview.set('Intensity')
         self.update()
         self.compute_intensity(self.stack)
-        self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
-        self.ilow_slider.set(0)
+        if update_ilow:
+            self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
+            self.ilow_slider.set(0)
         self.datastack = self.define_datastack(self.stack)
         self.ontab_intensity(update=False)
         self.ontab_thrsh(update=False)
@@ -1644,10 +1648,13 @@ class Polarimetry(CTk.CTk):
         self.tabview.tab('Thresholding/Mask').update()
 
     def update_file_data(self) -> None:
-        if self.option.get()=='Mask':
-            self.mask = self.get_mask(self.datastack)
-        elif self.option.get()=='ROI':
+        self.mask = self.get_mask(self.datastack)
+        if self.option.get()=='ROI':
             self.datastack.rois = self.get_rois(self.roifolder, self.datastack)
+            if hasattr(self, 'manager'):
+                self.manager.update_manager(self.datastack.rois)
+        else:
+            self.datastack.rois = []
         self.ontab_intensity(update=False)
         self.ontab_thrsh(update=False)
         self.tabview.tab('Intensity').update()
@@ -1791,16 +1798,15 @@ class Polarimetry(CTk.CTk):
         self.update()
         if self.openfile_dropdown_value.get()=='Open folder':
             for file in self.filelist:
-                self.open_file(file)
+                self.open_file(file, update_ilow=False)
                 self.update_file_data()
                 self.analyze_stack(self.datastack)
-            self.analysis_button.configure(image=self.icons['play'])
             self.open_file(self.filelist[0])
             ShowInfo(message=' End of list', image=self.icons['check_circle'], button_labels=['OK'], fontsize=16)
             self.initialize()
         elif self.openfile_dropdown_value.get()=='Open file':
             self.analyze_stack(self.datastack)
-            self.analysis_button.configure(image=self.icons['play'])
+        self.analysis_button.configure(image=self.icons['play'])
 
     def stack_slider_callback(self, value:str) -> None:
         self.stack_slider_label.configure(text=int(value))
@@ -2501,7 +2507,7 @@ class Polarimetry(CTk.CTk):
         rho_ = Variable('Rho', datastack=datastack)
         if self.method.get() == '1PF':
             a2_vals = np.moveaxis(np.asarray([a2.real[mask].flatten(), a2.imag[mask].flatten()]), 0, -1)
-            rho, psi = np.moveaxis(interpn(self.CD.xy, self.CD.RhoPsi, a2_vals), 0, 1)
+            rho, psi = np.moveaxis(interpn(self.CD.xy, self.CD.RhoPsi, a2_vals, bounds_error=False, fill_value=np.nan), 0, 1)
             ixgrid = mask.nonzero()
             rho_.values[ixgrid] = rho
             rho_.values[np.isfinite(rho_.values)] = np.mod(2 * (rho_.values[np.isfinite(rho_.values)] + float(self.rotation[0].get())), 360) / 2 
