@@ -64,13 +64,14 @@ def divide_ext(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     result[mask] = np.divide(a[mask], b[mask])
     return result
 
-def find_matches(a:np.ndarray, b:np.ndarray, tol:float=10) -> Tuple[np.ndarray, np.ndarray]:
-    a_, b_ = (a, b) if len(b) >= len(a) else (b, a)
-    cost = np.linalg.norm(a_[:, np.newaxis, :] - b_, axis=2)
-    indices = linear_sum_assignment(cost)[1]
-    a_, b_ = (a, b[indices]) if len(b) >= len(a) else (a[indices], b)
-    dist = np.linalg.norm(a_ - b_, axis=1)
-    return a_[dist <= tol], b_[dist <= tol]
+def find_matches(a: np.ndarray, b: np.ndarray, tol: float = 10) -> Tuple[np.ndarray, np.ndarray]:
+    cost = np.linalg.norm(a[:, np.newaxis, :] - b[np.newaxis, :, :], axis=2)
+    row_ind, col_ind = linear_sum_assignment(cost)
+    matched_a = a[row_ind]
+    matched_b = b[col_ind]
+    distances = np.linalg.norm(matched_a - matched_b, axis=1)
+    mask = distances <= tol
+    return matched_a[mask], matched_b[mask]
 
 def wrapto180(rho:np.ndarray) -> np.ndarray:
     return np.angle(np.exp(1j * np.deg2rad(rho)), deg=True)
@@ -259,19 +260,20 @@ class TextBox(CTk.CTkTextbox):
 
 class Stack:
     def __init__(self, file:Path) -> None:
-        self.file = file
-        self.folder = file.parent
-        self.name = file.stem
+        self.file, self.folder, self.name = file, file.parent, file.stem
         self.height, self.width, self.nangle = 0, 0, 0
         self.display = '{:.0f}'
         self.values = []
         self.intensity = []
 
     def get_intensity(self, dark:float=0, bin:List[int]=[1, 1]) -> np.ndarray:
-        intensity = np.sum((self.values - dark) * (self.values >= dark), axis=0)
-        if sum(bin) == 2:
+        data_subtracted = np.clip(self.values.astype(float) - dark, 0, None)
+        intensity = np.sum(data_subtracted, axis=0)
+        if bin[0] * bin[1] <= 1:
             return intensity
-        return convolve2d(intensity, np.ones(bin), mode='same') / (bin[0] * bin[1])
+        kernel = np.ones(bin)
+        binned = convolve2d(intensity, kernel, mode='same', boundary='symm')
+        return binned / (bin[0] * bin[1])
 
     def compute_dark(self, size_cell:int=20) -> int:
         n_height, n_width = int(np.floor(self.height / size_cell)), int(np.floor(self.width / size_cell))
@@ -311,8 +313,7 @@ class DataStack:
         return ax.imshow(field, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
 
 class Variable:
-    def __init__(self, name:str='', values:np.ndarray=None, datastack:DataStack=None) -> None:
-        VAR_DEFINITIONS = {
+    DEFINITIONS = {
             'Rho':          [0, ['polar1'], r'$\rho$', ['hsv', m_colorwheel], '\u03C1'], 
             'Rho_contour':  [0, ['polar1', 'polar3'], r'$\rho_c$', ['hsv', m_colorwheel], '\u03C1_c'],
             'Rho_angle':    [0, ['polar1', 'polar3'], r'$\rho_a$', ['hsv', m_colorwheel], '\u03C1_a'],
@@ -326,7 +327,8 @@ class Variable:
             'S4_contour':   [2, ['normal'], '$S_4$', ['jet', 'viridis'], 'S4_c'],
             'S_SHG':        [3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis'], 'Sshg'],
             'S_SHG_contour':[3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis'], 'Sshg_c']}
-        var = VAR_DEFINITIONS.get(name, [0, ['normal'], '', ['jet', 'viridis'], ''])
+    def __init__(self, name:str='', values:np.ndarray=None, datastack:DataStack=None) -> None:
+        var = type(self).DEFINITIONS.get(name, [0, ['normal'], '', ['jet', 'viridis'], ''])
         self.indx, self.type_histo, self.latex, self.colormap, self.unicode = var
         self.name = name
         self.values = values if values is not None else np.full((datastack.height, datastack.width), np.nan) if datastack is not None else []
@@ -419,7 +421,6 @@ class ROI:
         self.lines = []
 
 class Calibration:
-
     dict_1pf = {
         'no distortions': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 0], 
         '488 nm (no distortions)': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 175], 
@@ -455,10 +456,8 @@ class Calibration:
                 file = Path(fd.askopenfilename(title='Select file', initialdir=Path.home(), filetypes=[('MAT-files', '*.mat')]))
                 folder = file.parent
                 vars = [file.stem, 0]
-            disk = loadmat(str(folder / (vars[0] + '.mat')), variable_names=type(self).TARGET_VARIABLES, squeeze_me=True)
             try:
-                self.RhoPsi = np.moveaxis(np.stack((np.array(disk['RoTest'], dtype=np.float64), np.array(disk['PsiTest'], dtype=np.float64))), 0, -1)
-                self.xy = 2 * (np.linspace(-1, 1, int(disk['NbMapValues']), dtype=np.float64),)
+                self.define_disk(folder / (vars[0] + '.mat'))
             except:
                 showerror('Calibration data', 'Incorrect disk cone\n Download another file', icon='error')
                 vars = [' ', 0]
