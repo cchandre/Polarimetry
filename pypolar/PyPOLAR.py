@@ -78,7 +78,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.0'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 26, 2025'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 27, 2025'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -198,7 +198,7 @@ class Polarimetry(CTk.CTk):
         self.option = CTk.StringVar()
         self.options_dropdown = DropDown(left_frame, values=['Thresholding', 'Mask', 'ROI'], image=self.icons['build'], variable=self.option, state='disabled', command=self.options_dropdown_callback, tooltip=' select the method of analysis\n - intensity thresholding or segmentation mask for single file analysis or batch processing\n - the mask has to be binary and in PNG format and have the same file name as the respective polarimetry data file')
         self.options_dropdown.grid(row=3, **dict_left_frame)
-        self.add_roi_button = Button(left_frame, text='Add ROI', image=self.icons['roi'], command=self.add_roi_callback, tooltip=' add a region of interest: polygon (left button), freeform (right button); double-click to close the ROI')
+        self.add_roi_button = Button(left_frame, text='Add ROI', image=self.icons['roi'], command=self.add_roi_callback, tooltip=' add a region of interest: polygon (left button), freeform (right button); double-click to close the ROI; threshold first before drawing if thresholding is needed')
         self.add_roi_button.grid(row=4, **dict_left_frame)
         self.analysis_button = Button(left_frame, text='Analysis', command=self.analysis_callback, image=self.icons['play'], fg_color=green[0], hover_color=green[1], tooltip=' perform polarimetry analysis')
         self.analysis_button.grid(row=5, **dict_left_frame)
@@ -253,11 +253,9 @@ class Polarimetry(CTk.CTk):
         self.edge_button = Button(banner, image=self.icons['multiline_chart'], command=self.edge_button_callback, tooltip=' determine the edges of the thresholded image and compute orientations with respect to the edges')
         self.edge_button.grid(row=6, column=0, padx=10, pady=10)
 
-        self.thrsh_axis_facecolor = gray[1]
-        self.thrsh_fig = Figure(figsize=(self.ratio_fig / dpi, self.ratio_fig / dpi), facecolor=self.thrsh_axis_facecolor)
+        self.thrsh_fig = Figure(figsize=(self.ratio_fig / dpi, self.ratio_fig / dpi), facecolor=gray[1])
         self.thrsh_axis = self.thrsh_fig.add_axes([0, 0, 1, 1])
         self.thrsh_axis.set_axis_off()
-        self.thrsh_axis.set_facecolor(self.thrsh_axis_facecolor)
         self.thrsh_axis.imshow(background, cmap='gray', interpolation='bicubic', alpha=0.1)
         self.thrsh_pyfig = PyPOLARfigure(self.thrsh_fig, master=self.tabview.tab('Thresholding/Mask'))
 

@@ -447,17 +447,16 @@ class Calibration:
     def __init__(self, method:str, label:str='no distortions') -> None:
         if method == '1PF':
             vars = type(self).dict_1pf.get(label)
-            folder = type(self).folder_1pf
+            file = Path(type(self).folder_1pf) / vars[0]
         elif method.startswith('4POLAR'):
             vars = type(self).dict_4polar.get(label)
             folder = type(self).folder_4polar
         if method == '1PF':
             if label == 'other':
                 file = Path(fd.askopenfilename(title='Select file', initialdir=Path.home(), filetypes=[('MAT-files', '*.mat')]))
-                folder = file.parent
                 vars = [file.stem, 0]
             try:
-                self.define_disk(folder / (vars[0] + '.mat'))
+                self.define_disk(file.with_suffix('.mat'))
             except:
                 showerror('Calibration data', 'Incorrect disk cone\n Download another file', icon='error')
                 vars = [' ', 0]
@@ -480,7 +479,7 @@ class Calibration:
         self.name, self.offset_default = vars
 
     def define_disk(self, disk_file:Path):
-        disk = loadmat(str(disk_file), variable_names=type(self).TARGET_VARIABLES, squeeze_me=True)
+        disk = loadmat(disk_file, variable_names=type(self).TARGET_VARIABLES, squeeze_me=True)
         self.RhoPsi = np.moveaxis(np.stack((np.array(disk['RoTest'], dtype=np.float64), np.array(disk['PsiTest'], dtype=np.float64))), 0, -1)
         self.xy = 2 * (np.linspace(-1, 1, int(disk['NbMapValues']), dtype=np.float64),)
         self.name = disk_file.stem
@@ -521,14 +520,7 @@ class Calibration:
 class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
 
     folder = Path(__file__).parent / 'icons'
-
-    def __init__(self, canvas, window=None, **kwargs) -> None:
-        
-        tk.Frame.__init__(self, master=window, borderwidth=2, width=int(canvas.figure.bbox.width), height=50)
-
-        self.canvas = canvas
-        self.window = window
-        self.toolitems = (
+    toolitems = (
         ('Home', ' reset original view', 'home', 'home'),
         ('Back', ' back to previous view', 'backward', 'back'),
         ('Forward', ' forward to next view', 'forward', 'forward'),
@@ -536,9 +528,15 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
         ('Zoom', ' zoom to rectangle\n x/y fixes axis', 'zoom', 'zoom'),
         ('Save', ' save image from tab', 'save', 'save_figure'),)
 
+    def __init__(self, canvas, window=None, **kwargs) -> None:
+        
+        tk.Frame.__init__(self, master=window, borderwidth=2, width=int(canvas.figure.bbox.width), height=50, bg=gray[1], **kwargs)
+
+        self.canvas = canvas
+        self.window = window
         self._buttons = {}
         for text, tooltip_text, image_file, callback in self.toolitems:
-            im = NToolbar2PyPOLAR.folder / (image_file + '.png')
+            im = self.folder / (image_file + '.png')
             self._buttons[text] = button = self._Button(text=text, image_file=str(im), toggle=callback in ['zoom', 'pan'], command=getattr(self, callback))
             if tooltip_text is not None:
                 ToolTip(button, text=tooltip_text)
@@ -606,35 +604,41 @@ class NToolbar2PyPOLAR(NavigationToolbar2, tk.Frame):
             h = hex.lstrip('#')
             return [int(h[_:_+2], 16) for _ in (0, 2, 4)]
 
-        def _recolor_icon(image:Image, fg_color:str) -> Image:
+        def _recolor_icon(image:Image, fg_color:str, bg_color:str=None) -> Image:
+            image = image.convert('RGBA')
             image_data = np.asarray(image).copy()
-            black_mask = (image_data[..., :3] == 0).all(axis=-1)
+            if bg_color is not None:
+                transparent_mask = image_data[..., 3] < 100
+                image_data[transparent_mask, :3] = hex_to_rgb(bg_color)
+                image_data[transparent_mask, 3] = 255
+            black_mask = (image_data[..., :3] < 50).all(axis=-1)
             image_data[black_mask, :3] = hex_to_rgb(fg_color)
             return Image.fromarray(image_data, mode='RGBA')
 
         with Image.open(button._image_file) as im:
-            size_image = 26
+            size_image = 30
             im = im.convert('RGBA')
-            im = _recolor_icon(im, fg_color='#00000')
-            image = ImageTk.PhotoImage(im.resize((size_image, size_image)), master=self)
-            im = _recolor_icon(im, fg_color=orange[0])
-            image_alt = ImageTk.PhotoImage(im.resize((size_image, size_image)), master=self)
+            im_normal = _recolor_icon(im, fg_color='#000000', bg_color=gray[1])
+            im_normal = im_normal.resize((size_image, size_image), Image.Resampling.LANCZOS)
+            image = ImageTk.PhotoImage(im_normal, master=self)
+            im_alt = _recolor_icon(im, fg_color=orange[0], bg_color=gray[1])
+            im_alt = im_alt.resize((size_image, size_image), Image.Resampling.LANCZOS)
+            image_alt = ImageTk.PhotoImage(im_alt, master=self)
             button._ntimage = image
             button._ntimage_alt = image_alt
 
-        image_kwargs = {'image': image}
-        if (isinstance(button, tk.Checkbutton) and button.cget('selectcolor') != ''):
-            image_kwargs['selectimage'] = image_alt
-        
-        button.configure(**image_kwargs)
+        button.configure(image=image)
+    
+        if isinstance(button, tk.Checkbutton):
+            button.configure(selectimage=image_alt)
         
     def _Button(self, text:str, image_file:str, toggle:bool, command:Callable) -> Union[tk.Button, tk.Checkbutton]:
         size_button = 30
         if not toggle:
-            b = tk.Button(master=self, text=text, command=command, relief='flat', overrelief='flat', highlightthickness=0, height=size_button, width=size_button)
+            b = tk.Button(master=self, text=text, command=command, relief='flat', overrelief='flat', highlightthickness=0, height=size_button-4, width=size_button-4, bg=gray[1], activebackground=gray[1], highlightbackground=gray[1])
         else:
             var = tk.IntVar(master=self)
-            b = tk.Checkbutton(master=self, text=text, command=command, indicatoron=False, variable=var, offrelief='flat', overrelief='flat', height=size_button+2, width=size_button+2)
+            b = tk.Checkbutton(master=self, text=text, command=command, indicatoron=False, variable=var, offrelief='flat', overrelief='flat', height=size_button-2, width=size_button-2, bg=gray[1], activebackground=gray[1], highlightbackground=gray[1])
             b.var = var
         b._image_file = image_file
         if image_file is not None:
