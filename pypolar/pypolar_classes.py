@@ -11,8 +11,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import cv2
 from skimage.exposure import adjust_gamma
-from scipy.ndimage import rotate
-from scipy.signal import convolve2d
+from scipy.ndimage import rotate, uniform_filter
 from scipy.linalg import norm
 from scipy.optimize import linear_sum_assignment
 from PIL import Image, ImageTk
@@ -263,27 +262,28 @@ class Stack:
         self.file, self.folder, self.name = file, file.parent, file.stem
         self.height, self.width, self.nangle = 0, 0, 0
         self.display = '{:.0f}'
-        self.values = []
+        self.values = np.array([])
         self.intensity = []
-
-    def get_intensity(self, dark:float=0, bin:List[int]=[1, 1]) -> np.ndarray:
-        data_subtracted = np.clip(self.values.astype(float) - dark, 0, None)
-        intensity = np.sum(data_subtracted, axis=0)
-        if bin[0] * bin[1] <= 1:
+    
+    def get_intensity(self, dark: float = 0.0, bin: List[int] = [1, 1]) -> np.ndarray:
+        intensity = np.sum(np.maximum(self.values.astype(float) - dark, 0), axis=0)
+        if bin[0] <= 1 and bin[1] <= 1:
             return intensity
-        kernel = np.ones(bin)
-        binned = convolve2d(intensity, kernel, mode='same', boundary='symm')
-        return binned / (bin[0] * bin[1])
-
-    def compute_dark(self, size_cell:int=20) -> int:
-        n_height, n_width = int(np.floor(self.height / size_cell)), int(np.floor(self.width / size_cell))
-        crop_im = np.moveaxis(self.values[:, :size_cell * n_height, :size_cell * n_width], 0, -1)
-        im_cg = np.asarray(np.split(np.asarray(np.split(crop_im, n_width, axis=1)), n_height, axis=1))
-        m_im_cg = np.mean(im_cg[..., 0], axis=(2, 3), where=im_cg[..., 0]!=0)
+        return uniform_filter(intensity, size=bin, mode='reflect')
+    
+    def compute_dark(self, size_cell: int = 20) -> float:
+        if self.values.size == 0:
+            return 0.0
+        ny, nx = self.height // size_cell, self.width // size_cell
+        view = self.values[:, :ny*size_cell, :nx*size_cell]
+        blocks = view.reshape(self.nangle, ny, size_cell, nx, size_cell)
+        first_angle_blocks = blocks[0]
+        masked_blocks = np.ma.masked_equal(first_angle_blocks, 0)
+        m_im_cg = masked_blocks.mean(axis=(1, 3))
         ind_i, ind_j = np.unravel_index(np.argmin(m_im_cg), m_im_cg.shape)
-        if np.all(im_cg[ind_i, ind_j, ...] == 0):
-            return 0
-        return np.mean(im_cg[ind_i, ind_j, ...], where=im_cg[ind_i, ind_j, ...]!=0)
+        darkest_block_all_angles = blocks[:, ind_i, :, ind_j, :]
+        final_mask = np.ma.masked_equal(darkest_block_all_angles, 0)
+        return float(final_mask.mean())
 
 class DataStack:
     def __init__(self, stack:Stack) -> None:
@@ -704,68 +704,58 @@ class PyPOLARfigure:
         self.toolbar.pack(side=CTk.TOP, fill=CTk.X)
     
 class ToolTip:
-    def __init__(self, widget, *, pad=(5, 3, 5, 3), text:str='widget info', waittime:int=300, wraplength:int=250) -> None:
+    def __init__(self, widget, *, pad=(5, 3, 5, 3), text='widget info', waittime=300, wraplength=250):
         self.waittime = waittime  
         self.wraplength = wraplength
         self.widget = widget
         self.text = text
-        self.widget.bind('<Enter>', self.onEnter)
-        self.widget.bind('<Leave>', self.onLeave)
         self.pad = pad
         self.id = None
         self.tw = None
+        self.widget.bind('<Enter>', lambda e: self.schedule())
+        self.widget.bind('<Leave>', lambda e: self.onLeave())
 
-    def onEnter(self, event=None) -> None:
-        self.schedule()
-
-    def onLeave(self, event=None) -> None:
+    def onLeave(self, event=None):
         self.unschedule()
         self.hide()
 
-    def schedule(self) -> None:
+    def schedule(self):
         self.unschedule()
         self.id = self.widget.after(self.waittime, self.show)
 
-    def unschedule(self) -> None:
-        id_ = self.id
-        self.id = None
-        if id_:
-            self.widget.after_cancel(id_)
+    def unschedule(self):
+        if self.id:
+            self.widget.after_cancel(self.id)
+            self.id = None
 
-    def show(self) -> None:
-        def tip_pos_calculator(widget, label, *, tip_delta=(10, 5), pad=(5, 3, 5, 3)):
-            s_width, s_height = widget.winfo_screenwidth(), widget.winfo_screenheight()
-            width, height = (pad[0] + label.winfo_reqwidth() + pad[2], pad[1] + label.winfo_reqheight() + pad[3])
-            mouse_x, mouse_y = widget.winfo_pointerxy()
-            x1, y1 = mouse_x + tip_delta[0], mouse_y + tip_delta[1]
-            x2, y2 = x1 + width, y1 + height
-            x_delta = x2 - s_width if x2 > s_width else 0
-            y_delta = y2 - s_height if y2 > s_height else 0
-            offscreen = (x_delta, y_delta) != (0, 0)
-            if offscreen:
-                if x_delta:
-                    x1 = mouse_x - tip_delta[0] - width
-                if y_delta:
-                    y1 = mouse_y - tip_delta[1] - height
-            y1 = y1 if y1 > 0 else 0
-            return x1, y1
-        
-        pad = self.pad
-        widget = self.widget
-        self.tw = tk.Toplevel(widget)
+    def _calculate_pos(self, label, tip_delta=(10, 5)):
+        s_width, s_height = self.widget.winfo_screenwidth(), self.widget.winfo_screenheight()
+        width = self.pad[0] + label.winfo_reqwidth() + self.pad[2]
+        height = self.pad[1] + label.winfo_reqheight() + self.pad[3]
+        mouse_x, mouse_y = self.widget.winfo_pointerxy()
+        x, y = mouse_x + tip_delta[0], mouse_y + tip_delta[1]
+        if x + width > s_width:
+            x = mouse_x - tip_delta[0] - width
+        if y + height > s_height:
+            y = mouse_y - tip_delta[1] - height    
+        return max(0, x), max(0, y)
+
+    def show(self):
+        self.tw = tk.Toplevel(self.widget)
         self.tw.wm_overrideredirect(True)
-        win = tk.Frame(self.tw, borderwidth=0)
-        label = tk.Label(win, text=self.text, font=get_custom_default_font(11), justify=tk.LEFT, relief=tk.SOLID, borderwidth=0, wraplength=self.wraplength)
-        label.grid(padx=(pad[0], pad[2]), pady=(pad[1], pad[3]), sticky=tk.NSEW)
-        win.grid()
-        x, y = tip_pos_calculator(widget, label)
+        self.tw.lift()
+        label = tk.Label(
+            self.tw, text=self.text, font=get_custom_default_font(11), justify=tk.LEFT, 
+            relief=tk.SOLID, borderwidth=0, wraplength=self.wraplength,
+            padx=self.pad[0], pady=self.pad[1], bg=gray[1], fg=text_color)
+        label.pack()
+        x, y = self._calculate_pos(label)
         self.tw.wm_geometry(f'+{x}+{y}')
 
-    def hide(self) -> None:
-        tw = self.tw
-        if tw:
-            tw.destroy()
-        self.tw = None
+    def hide(self):
+        if self.tw:
+            self.tw.destroy()
+            self.tw = None
 
 class ROIManager(CTk.CTkToplevel):
     labels = ['indx', 'ILow', 'label 1', 'label 2', 'label 3']
@@ -869,7 +859,6 @@ class ROIManager(CTk.CTkToplevel):
         return self.load_roi_file(Path(file))
     
     def load_roi_file(self, file:Path) -> List[dict]:
-        self.delete_manager()
         rois = []
         if file.suffix == '.pyroi':
             with open(file, 'rb') as f:
@@ -879,13 +868,17 @@ class ROIManager(CTk.CTkToplevel):
             rois = [self.roi_imagej2roi_pypolar(roi, _ + 1) for _, roi in enumerate(rois_imagej)]
         elif file.suffix == '.roi':
             rois = [self.roi_imagej2roi_pypolar(roifile.ImagejRoi.fromfile(file), 1)]
+        self.restart_roimanager(rois)
+        return rois
+    
+    def restart_roimanager(self, rois:List[dict]) -> None:
+        self.delete_manager()
         self.sheet.set_options(height=self.sheet_height(self.cell_height, rois))
         x, y = self.winfo_x(), self.winfo_y()
         self.geometry(type(self).manager_size(self.sheet_width, self.sheet_height(self.cell_height, rois)) + f'+{x}+{y}')
         self.sheet.insert_rows(rows=len(rois))
         self.add_elements(rois)
         self.rois2sheet(rois)
-        return rois
     
     def roi_imagej2roi_pypolar(self, roi, indx):
         coords = roi.coordinates()
@@ -927,10 +920,10 @@ class ROIManager(CTk.CTkToplevel):
         return []
     
 class TabView(CTk.CTkTabview):
+    TABS = ['Intensity', 'Thresholding/Mask', 'Options', 'Advanced', 'About']
     def __init__(self, master, **kwargs) -> None:
         super().__init__(master, **kwargs)
         self.configure(segmented_button_selected_color=orange[0], segmented_button_unselected_color=gray[1], segmented_button_selected_hover_color=orange[1], text_color=text_color, segmented_button_fg_color=gray[0], fg_color=gray[1])
-        tabs = ['Intensity', 'Thresholding/Mask', 'Options', 'Advanced', 'About']
-        for tab in tabs:
+        for tab in self.TABS:
             self.add(tab)
         self.pack(fill=tk.BOTH, expand=True)

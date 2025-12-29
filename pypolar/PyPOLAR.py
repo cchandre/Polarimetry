@@ -10,10 +10,12 @@ import joblib
 import pickle
 import copy
 import webbrowser
+import logging
+from urllib.parse import quote
 import numpy as np
-from scipy.signal import convolve2d, savgol_filter
+from scipy.signal import savgol_filter
 from scipy.interpolate import interpn
-from scipy.ndimage import rotate
+from scipy.ndimage import rotate, uniform_filter
 from scipy.io import savemat, loadmat
 import roifile
 import matplotlib as mpl
@@ -118,7 +120,7 @@ class Polarimetry(CTk.CTk):
         self.bind('<Command-w>', self.on_closing)
         self.createcommand('tk::mac::Quit', self.on_closing)
         self.configure(fg_color=gray[0])
-        self.icons = {file.stem: CTk.CTkImage(dark_image=Image.open(file).resize((60, 60)), size=(30, 30)) for file in image_path.glob('*.png')}
+        self.icons = {file.stem: CTk.CTkImage(dark_image=Image.open(file).resize((60, 60), Image.Resampling.LANCZOS), size=(30, 30)) for file in image_path.glob('*.png')}
         if os_name == 'Windows':
             self.iconbitmap(str(base_dir / 'main_icon.ico'))
             import winreg
@@ -510,13 +512,22 @@ class Polarimetry(CTk.CTk):
     def clear_frame(self, frame:CTk.CTkFrame) -> None:
         for widget in frame.winfo_children():
             widget.destroy()
-        frame.pack_forget()
+        frame.forget()
 
     def openweb(self, url:str) -> None:
-        webbrowser.open(url)
+        try:
+            webbrowser.open(url, new=2)
+        except Exception as e:
+            logging.error(f"Failed to open browser: {e}")
 
     def send_email(self) -> None:
-        webbrowser.open('mailto:?to=' + type(self).email + '&subject=[PyPOLAR] question', new=1)
+        try:
+            subject = quote("[PyPOLAR] question")
+            recipient = type(self).email
+            mail_uri = f"mailto:{recipient}?subject={subject}"
+            webbrowser.open(mail_uri, new=1)
+        except Exception as e:
+            logging.error(f"Failed to open mail client: {e}")
 
     def on_click_tab(self) -> None:
         self.tabview.set('About' if self.tabview.get()!='About' else 'Intensity')
@@ -617,7 +628,7 @@ class Polarimetry(CTk.CTk):
     def calibration_procedure_callback(self) -> None:
         self.calib_window = CTk.CTkToplevel(self)
         self.calib_window.title('Calibration for 1PF')
-        self.calib_window.geometry(geometry_info((600, 240)))
+        self.calib_window.geometry(geometry_info((600, 250)))
         self.calib_window.protocol('WM_DELETE_WINDOW', self.calib_on_closing)
         self.calib_window.bind('<Command-q>', lambda:self.calib_on_closing)
         self.calib_window.bind('<Command-w>', self.calib_on_closing)
@@ -635,7 +646,7 @@ class Polarimetry(CTk.CTk):
             parent=self.calib_window, row=1,
             label_text="Stack folder:",
             entry_variable_name="_stack_folder_path")
-        self._status_entry = TextBox(self.calib_window, height=10, wrap="none", border_width=0, fg_color=gray[0], text_color=gray[1])
+        self._status_entry = TextBox(self.calib_window, height=50, wrap="none", border_width=0, fg_color=gray[0], text_color=gray[1])
         self._status_entry.write("Ready to load data...")
         self._status_entry.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
         self.button_main_calib = CTk.CTkButton(self.calib_window, text="Start", width=80, command=self.start_calibration)
@@ -665,6 +676,15 @@ class Polarimetry(CTk.CTk):
         self.extension_table[2].select()
         disklist = [file for file in Path(self._disk_folder_path.get()).glob('*.mat') if file.stem.startswith("Disk")]
         stacklist = [file for file in Path(self._stack_folder_path.get()).glob('*.tif*')]
+        errors = []
+        if not disklist:
+            errors.append(f"ERROR: No disk .mat files found in '{self._disk_folder_path.get()}'")
+        if not stacklist:
+            errors.append(f"ERROR: No stack .tif files found in '{self._stack_folder_path.get()}'")
+        if errors:
+            self._status_entry.write("\n".join(errors))
+            self.reinitialize_post_calibration()
+            return
         self.maskfolder = Path(self._stack_folder_path.get())
         self._status_entry.write(f"Starting calibration...")
         self.calib_window.update()
@@ -991,6 +1011,15 @@ class Polarimetry(CTk.CTk):
                     fig.axes[0].images[1].set_cmap(cmap)
                 elif ((fig.type == 'Sticks') or ((fig.type == 'Intensity') and hasattr(self, 'edge_contours'))) and (self.datastack.name in fs):
                     fig.axes[0].collections[0].set_cmap(cmap)
+                if fig.type == 'Histogram' and (self.datastack.name in fs):
+                    vmin, vmax = self.get_variable(var.indx)[1:]
+                    norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+                    if isinstance(cmap, str):
+                        cmap = mpl.colormaps[cmap]
+                    patches = fig.axes[0].patches
+                    bins = np.linspace(vmin, vmax, len(patches))
+                    for bin, patch in zip(bins, patches):
+                        patch.set_facecolor(cmap(norm(bin)))
             if fs.startswith('Disk Cone'):
                 fig.axes[0].images[0].set_cmap('hsv' if not self.colorblind_checkbox.get() else m_colorwheel)
                 fig.axes[1].images[0].set_cmap('jet' if not self.colorblind_checkbox.get() else 'viridis')
@@ -1098,11 +1127,9 @@ class Polarimetry(CTk.CTk):
         for mgr in managers:
             fig = mgr.canvas.figure
             fs = mgr.get_window_title()
-            fig_type = getattr(fig, 'type', None)
-            if (fig_type in ['Sticks', 'Composite', 'Intensity']) :
-                if hasattr(self, 'datastack') and (self.datastack.name in fs):
-                    mgr.window.geometry(f"{width}x{height}")
-                    fig.canvas.draw_idle()
+            if hasattr(self, 'datastack') and (self.datastack.name in fs):
+                mgr.window.geometry(f"{width}x{height}")
+                fig.canvas.draw_idle()
         plt.figure(initial_active_num)
 
     def calib_on_closing(self):
@@ -1648,7 +1675,7 @@ class Polarimetry(CTk.CTk):
         if self.option.get()=='ROI':
             self.datastack.rois = self.get_rois(self.roifolder, self.datastack)
             if hasattr(self, 'manager'):
-                self.manager.update_manager(self.datastack.rois)
+                self.manager.restart_roimanager(self.datastack.rois)
         else:
             self.datastack.rois = []
         self.ontab_intensity(update=False)
@@ -2026,14 +2053,13 @@ class Polarimetry(CTk.CTk):
     def plot_composite(self, var:Variable, datastack:DataStack) -> None:
         display, vmin, vmax = self.get_variable(var.indx)
         if display and (self.show_table[0].get() or self.save_table[0].get()):
-            fig = plt.figure(figsize=self.figsize)
+            fig, ax = plt.subplots(figsize=self.figsize)
             fig.type, fig.var, fig.width, fig.height = 'Composite', var.name, datastack.width, datastack.height
-            fig.canvas.manager.set_window_title(var.name + ' Composite: ' + datastack.name)
-            ax = plt.gca()
-            ax.axis(self.add_axes_checkbox.get())
+            fig.canvas.manager.set_window_title(f'{var.name} Composite: {datastack.name}')
+            ax.axis('on' if self.add_axes_checkbox.get() else 'off')
             datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             h = var.imshow(vmin, vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()))
-            h.format_cursor_data = lambda value: ""
+            h.format_cursor_data = lambda _: ""
             def format_coords(x, y):
                 x, y = int(round(x)), int(round(y))
                 if 0 <= x < datastack.width and 0 <= y < datastack.height:
@@ -2052,7 +2078,7 @@ class Polarimetry(CTk.CTk):
                 fig.colorbar(h, cax=cax)
             if self.save_table[0].get():
                 if self.figure_extension.get() == '.tif (ImageJ)':
-                    file = datastack.file.with_name(datastack.name + '_' + var.name + 'Composite' + '_ImageJ.tif')
+                    file = datastack.file.with_name(f"{datastack.name}_{var.name}Composite_ImageJ.tif")
                     cmap1 = plt.get_cmap('gray')
                     cmap2 = plt.get_cmap(var.colormap[self.colorblind_checkbox.get()])
                     values = np.linspace(0, 1, 256)
@@ -2061,7 +2087,7 @@ class Polarimetry(CTk.CTk):
                     data = np.asarray([datastack.intensity, var.values], dtype=np.float32)
                     tifffile.imwrite(file, data, imagej=True, metadata={'axes': 'CYX', 'Labels': ['intensity', var.name], 'LUTs': [rgb1, rgb2]})
                 else:
-                    file = datastack.file.with_name(datastack.name + '_' + var.name + 'Composite' + self.figure_extension.get())
+                    file = datastack.file.with_name(f"{datastack.name}_{var.name}Composite{self.figure_extension.get()}")
                     self.save_fig(fig, file)
             if not self.show_table[0].get():
                 plt.close(fig)
@@ -2078,7 +2104,7 @@ class Polarimetry(CTk.CTk):
                 if np.isfinite(self.datastack.vars[0].values[y, x]):
                     fig_, axs = plt.subplots(2, 1, figsize=(12, 8))
                     fig_.type, fig_.var = 'Individual Fit', None
-                    fig_.canvas.manager.set_window_title('Individual Fit : ' + self.datastack.name)
+                    fig_.canvas.manager.set_window_title(f'Individual Fit : {self.datastack.name}')
                     signal = self.datastack.field[:, y, x]
                     signal_fit = self.datastack.field_fit[:, y, x]
                     indx = np.arange(1, self.stack.nangle + 1)
@@ -2120,38 +2146,47 @@ class Polarimetry(CTk.CTk):
             canvas.draw()
 
     def get_sticks(self, var:Variable, datastack:DataStack) -> PolyCollection:
-        L, W = 6, 0.2
-        l, w = L / 2, W / 2
-        rho = datastack.vars[0]
-        rho_ = rho.values[::int(self.pixelsperstick_spinboxes[1].get()), ::int(self.pixelsperstick_spinboxes[0].get())]
-        data_ = var.values[::int(self.pixelsperstick_spinboxes[1].get()), ::int(self.pixelsperstick_spinboxes[0].get())]
-        Y, X = np.mgrid[:datastack.height:int(self.pixelsperstick_spinboxes[1].get()), :datastack.width:int(self.pixelsperstick_spinboxes[0].get())]
-        X, Y = X[np.isfinite(data_)], Y[np.isfinite(data_)]
-        data_, rho_ = data_[np.isfinite(data_)], rho_[np.isfinite(data_)]
-        stick_colors = np.mod(2 * (data_ + float(self.rotation[1].get())), 360) / 2 if var.name in ['Rho', 'Rho_angle'] else data_
-        cosd, sind = np.cos(np.deg2rad(rho_)), np.sin(np.deg2rad(rho_))
-        vertices = np.array([[X + l * cosd + w * sind, X - l * cosd + w * sind, X - l * cosd - w * sind, X + l * cosd - w * sind], [Y - l * sind + w * cosd, Y + l * sind + w * cosd, Y + l * sind - w * cosd, Y - l * sind - w * cosd]])
-        if float(self.rotation[1].get()) != 0:
-            theta = np.deg2rad(float(self.rotation[1].get()))
+        l, w = 3.0, 0.1
+        step_y = int(self.pixelsperstick_spinboxes[1].get())
+        step_x = int(self.pixelsperstick_spinboxes[0].get())
+        user_rotation = float(self.rotation[1].get())
+        rho_ = datastack.vars[0].values[::step_y, ::step_x]
+        data_ = var.values[::step_y, ::step_x]
+        Y, X = np.mgrid[:datastack.height:step_y, :datastack.width:step_x]
+        mask = np.isfinite(data_)
+        X, Y = X[mask], Y[mask]
+        data_, rho_ = data_[mask], rho_[mask]
+        stick_colors = np.mod(2 * (data_ + user_rotation), 360) / 2 if var.name in ['Rho', 'Rho_angle'] else data_
+        angle_rad = np.deg2rad(rho_)
+        cosd, sind = np.cos(angle_rad), np.sin(angle_rad)
+        dx = np.array([l*cosd + w*sind, -l*cosd + w*sind, -l*cosd - w*sind, l*cosd - w*sind])
+        dy = np.array([-l*sind + w*cosd, l*sind + w*cosd, l*sind - w*cosd, -l*sind - w*cosd])
+        v_x = X[:, np.newaxis] + dx.T
+        v_y = Y[:, np.newaxis] + dy.T
+        vertices = np.stack([v_x, v_y], axis=-1)
+        if user_rotation != 0:
+            theta = np.deg2rad(user_rotation)
             cosd, sind = np.cos(theta), np.sin(theta)
             x0, y0 = self.stack.width / 2, self.stack.height / 2
-            vertices = np.asarray([x0 + (vertices[0] - x0) * cosd + (vertices[1] - y0) * sind, y0 - (vertices[0] - x0) * sind + (vertices[1] - y0) * cosd])
-        vertices = np.swapaxes(vertices, 0, 2)
-        return PolyCollection(vertices, cmap=var.colormap[self.colorblind_checkbox.get()], lw=2, array=stick_colors)
+            tx = vertices[..., 0] - x0
+            ty = vertices[..., 1] - y0
+            vertices[..., 0] = x0 + tx * cosd + ty * sind
+            vertices[..., 1] = y0 - tx * sind + ty * cosd
+        cmap_idx = int(self.colorblind_checkbox.get())
+        return PolyCollection(vertices, cmap=var.colormap[cmap_idx], lw=2, array=stick_colors)
 
     def plot_sticks(self, var:Variable, datastack:DataStack) -> None:
         display, vmin, vmax = self.get_variable(var.indx)
         if display and (self.show_table[1].get() or self.save_table[1].get()):
-            fig = plt.figure(figsize=self.figsize)
+            fig, ax = plt.subplots(figsize=self.figsize)
             fig.type, fig.var, fig.width, fig.height = 'Sticks', var.name, datastack.width, datastack.height
-            fig.canvas.manager.set_window_title(var.name + ' Sticks: ' + datastack.name)
-            ax = plt.gca()
-            ax.axis(self.add_axes_checkbox.get())
+            fig.canvas.manager.set_window_title(f"{var.name} Sticks: {datastack.name}")
+            ax.axis('on' if self.add_axes_checkbox.get() else 'off')
             h = datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             p = self.get_sticks(var, datastack)
             p.set_clim([vmin, vmax])
             ax.add_collection(p)
-            h.format_cursor_data = lambda value: ""
+            h.format_cursor_data = lambda _: ""
             def format_coords(x, y):
                 x, y = int(round(x)), int(round(y))
                 if 0 <= x < datastack.width and 0 <= y < datastack.height:
@@ -2165,21 +2200,21 @@ class Polarimetry(CTk.CTk):
                 cax = ax_divider.append_axes('right', size='7%', pad='2%')
                 fig.colorbar(p, cax=cax)
             if self.save_table[1].get():
-                file = datastack.file.with_name(datastack.name + '_' + var.name + 'Sticks' + self.figure_extension.get())
+                ext = self.figure_extension.get()
+                file = datastack.file.with_name(f"{datastack.name}_{var.name}_Sticks{ext}")
                 self.save_fig(fig, file)
             if not self.show_table[1].get():
                 plt.close(fig)
 
     def plot_intensity(self, datastack:DataStack) -> None:
         if self.show_table[3].get() or self.save_table[3].get():
-            fig = plt.figure(figsize=self.figsize)
+            fig, ax = plt.subplots(figsize=self.figsize)
             fig.type, fig.var, fig.width, fig.height = 'Intensity', None, datastack.width, datastack.height
-            fig.canvas.manager.set_window_title('Intensity: ' + datastack.name)
-            ax = plt.gca()
-            ax.axis(self.add_axes_checkbox.get())
+            fig.canvas.manager.set_window_title(f'Intensity: {datastack.name}')
+            ax.axis('on' if self.add_axes_checkbox.get() else 'off')
             p = datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             self.add_patches(datastack, ax, fig.canvas)
-            p.format_cursor_data = lambda value: ""
+            p.format_cursor_data = lambda _: ""
             def format_coords(x, y):
                 x, y = int(round(x)), int(round(y))
                 if 0 <= x < datastack.width and 0 <= y < datastack.height:
@@ -2207,7 +2242,7 @@ class Polarimetry(CTk.CTk):
                 if not hasattr(self, 'edge_contours'):
                     fig.axes[1].remove()
             if self.save_table[3].get():
-                file = datastack.file.with_name(datastack.name + '_Intensity' + self.figure_extension.get())
+                file = datastack.file.with_name(f"{datastack.name}_Intensity{self.figure_extension.get()}")
                 self.save_fig(fig, file)
             if not self.show_table[3].get():
                 plt.close(fig)
@@ -2455,17 +2490,14 @@ class Polarimetry(CTk.CTk):
         roi_map, mask = self.compute_roi_map(datastack)
         datastack.dark = float(self.dark.get())
         datastack.method = self.method.get()
-        field = self.stack.values - datastack.dark - float(self.removed_intensity)
-        field *= (field >= 0)
+        field = np.maximum(self.stack.values - (datastack.dark + float(self.removed_intensity)), 0)
         if self.method.get() == 'CARS':
             field = np.sqrt(field)
         elif self.method.get().startswith('4POLAR'):
             field[[1, 2]] = field[[2, 1]]
-        bin_shape = np.asarray([self.bin_spinboxes[_].get() for _ in range(2)], dtype=np.uint8)
-        if sum(bin_shape) != 2:
-            bin = np.ones(bin_shape)
-            for _ in range(self.stack.nangle):
-                field[_] = convolve2d(field[_], bin, mode='same') / np.prod(bin_shape)
+        bin_shape = [int(sb.get()) for sb in self.bin_spinboxes]
+        if any(s > 1 for s in bin_shape):
+            field = uniform_filter(field, size=[0, bin_shape[0], bin_shape[1]], mode='reflect')
         if self.method.get() in ['1PF', 'CARS', 'SRS', 'SHG', '2PF']:
             polardir = -1 if self.polar_dir.get() == 'clockwise' else 1
             alpha = polardir * np.linspace(0, 180, self.stack.nangle, endpoint=False) + float(self.offset_angle.get())
@@ -2480,8 +2512,10 @@ class Polarimetry(CTk.CTk):
                 a4 = 2 * np.mean(field * e4, axis=0)
                 field_fit += (a4[np.newaxis] * e4.conj()).real
                 a4 = divide_ext(a4, a0)
-            chi2 = np.mean(np.divide((field - field_fit)**2, field_fit, where=np.all((field_fit!=0, np.isfinite(field_fit)), axis=0)), axis=0)
-            mask *= np.all(field_fit > 0, axis=0) * (chi2 <= chi2threshold) * (chi2 > 0)
+            valid_fit = np.all(field_fit > 0, axis=0) & np.all(np.isfinite(field_fit), axis=0)
+            residual_sq = (field - field_fit)**2
+            chi2 = np.mean(np.divide(residual_sq, field_fit, where=field_fit > 0), axis=0)
+            mask &= valid_fit & (chi2 <= chi2threshold) & (chi2 > 0)
         elif self.method.get() == '4POLAR 3D':
             mat = np.einsum('ij,jmn->imn', self.CD.invKmat, field)
             s = mat[0] + mat[1] + mat[2]
