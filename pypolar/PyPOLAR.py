@@ -80,7 +80,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.0'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 27, 2025'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 29, 2025'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -1007,17 +1007,18 @@ class Polarimetry(CTk.CTk):
                         cmap = var.colormap[self.colorblind_checkbox.get()]
                 if fig.type == 'Intensity':
                     cmap = self.datastack.vars[0].colormap[self.colorblind_checkbox.get()]
+                if isinstance(cmap, str):
+                    cmap = mpl.colormaps[cmap]
                 if (fig.type == 'Composite') and (self.datastack.name in fs):
                     fig.axes[0].images[1].set_cmap(cmap)
                 elif ((fig.type == 'Sticks') or ((fig.type == 'Intensity') and hasattr(self, 'edge_contours'))) and (self.datastack.name in fs):
                     fig.axes[0].collections[0].set_cmap(cmap)
                 if fig.type == 'Histogram' and (self.datastack.name in fs):
-                    vmin, vmax = self.get_variable(var.indx)[1:]
-                    norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
-                    if isinstance(cmap, str):
-                        cmap = mpl.colormaps[cmap]
+                    vmin, vmax = np.rad2deg(fig.axes[0].get_xlim())
+                    vmin_, vmax_ = (0, 180) if fig.var.startswith('Rho') else (vmin, vmax)
+                    norm = mpl.colors.Normalize(vmin=vmin_, vmax=vmax_)
                     patches = fig.axes[0].patches
-                    bins = np.linspace(vmin, vmax, len(patches))
+                    bins = np.linspace(vmin, vmax, len(patches)) 
                     for bin, patch in zip(bins, patches):
                         patch.set_facecolor(cmap(norm(bin)))
             if fs.startswith('Disk Cone'):
