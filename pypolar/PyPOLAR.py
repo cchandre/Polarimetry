@@ -80,7 +80,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.0'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 29, 2025'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 30, 2025'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -323,7 +323,7 @@ class Polarimetry(CTk.CTk):
             self.pixelsperstick_spinboxes[_].grid(row=_+4, column=0, padx=(20, 0), pady=10)
             Label(master=preferences, text=labels[_], anchor='w', tooltip=' controls the density of sticks to be plotted').grid(row=_+4, column=1, padx=(0, 20), pady=10, sticky='w')
         self.histo_nbins = CTk.StringVar(value='60')
-        SpinBox(master=preferences, from_=10, to_=90, step_size=10, textvariable=self.histo_nbins).grid(row=6, column=0, padx=(20, 0), pady=10)
+        SpinBox(master=preferences, from_=10, to_=90, step_size=5, textvariable=self.histo_nbins, command=self.update_histogram_bins).grid(row=6, column=0, padx=(20, 0), pady=10)
         Label(master=preferences, text=' bins for histograms', anchor='w', tooltip=' controls the number of bins used in histograms').grid(row=6, column=1, padx=(0, 20), pady=10, sticky='w')
         Button(preferences, image=self.icons['crop'], command=self.crop_figures_callback, tooltip=' click button to define region and crop figures').grid(row=7, column=0, columnspan=2, pady=(0, 10))
         
@@ -1014,7 +1014,7 @@ class Polarimetry(CTk.CTk):
                 elif ((fig.type == 'Sticks') or ((fig.type == 'Intensity') and hasattr(self, 'edge_contours'))) and (self.datastack.name in fs):
                     fig.axes[0].collections[0].set_cmap(cmap)
                 if fig.type == 'Histogram' and (self.datastack.name in fs):
-                    vmin, vmax = np.rad2deg(fig.axes[0].get_xlim())
+                    vmin, vmax = np.rad2deg(fig.axes[0].get_xlim()) if fig.axes[0].name == 'polar' else fig.axes[0].get_xlim()
                     vmin_, vmax_ = (0, 180) if fig.var.startswith('Rho') else (vmin, vmax)
                     norm = mpl.colors.Normalize(vmin=vmin_, vmax=vmax_)
                     patches = fig.axes[0].patches
@@ -1024,6 +1024,41 @@ class Polarimetry(CTk.CTk):
             if fs.startswith('Disk Cone'):
                 fig.axes[0].images[0].set_cmap('hsv' if not self.colorblind_checkbox.get() else m_colorwheel)
                 fig.axes[1].images[0].set_cmap('jet' if not self.colorblind_checkbox.get() else 'viridis')
+
+    def update_histogram_bins(self, event:tkEvent=None) -> None:
+        figs = list(map(plt.figure, plt.get_fignums()))
+        for fig in figs:
+            if fig.type == 'Histogram':
+                if hasattr(self, 'datastack'):
+                    for var in self.datastack.vars:
+                        if (var.name == fig.var):
+                            cmap = var.colormap[self.colorblind_checkbox.get()]
+                            data_vals = var.values.flatten()
+                    if isinstance(cmap, str):
+                        cmap = mpl.colormaps[cmap]
+                    vmin, vmax = np.rad2deg(fig.axes[0].get_xlim()) if fig.axes[0].name == 'polar' else fig.axes[0].get_xlim()
+                    vmin_, vmax_ = (0, 180) if fig.var.startswith('Rho') else (vmin, vmax)
+                    norm = mpl.colors.Normalize(vmin=vmin_, vmax=vmax_)
+                    for patch in fig.axes[0].patches:
+                        patch.remove()
+                    bins = np.linspace(vmin_, vmax_, int(self.histo_nbins.get()) + 1)
+                    distribution, bin_edges = np.histogram(data_vals, bins=bins, range=(vmin_, vmax_))
+                    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+                    width = np.deg2rad(bins[1] - bins[0]) if fig.axes[0].name == 'polar' else bins[1] - bins[0]
+                    colors = cmap(norm(bins))
+                    if fig.axes[0].name == 'polar':
+                        fig.axes[0].bar(np.deg2rad(bin_centers), distribution, width=width, color=colors, edgecolor='k', linewidth=0.5)
+                        fig.axes[0].set_ylim(0, np.amax(distribution)*1.1)
+                        num = 10**(len(str(np.amax(distribution))) - 2)
+                        fig.axes[0].set_rticks(np.floor(np.linspace(0, np.max(distribution), 3) / num) * num)
+                    else:
+                        fig.axes[0].bar(bin_centers, distribution, width=width, color=colors, edgecolor='k', linewidth=0.5)
+                        fig.axes[0].set_ylim(0, np.amax(distribution)*1.1)
+                        #bin_centers = (bins[:-1] + bins[1:]) / 2
+                        #for bin, patch in zip(bin_centers, patches):
+                        #    color = cmap(norm(bin))
+                        #    patch.set_facecolor(color)
+                        #    patch.set_edgecolor('k')
 
     def options_dropdown_callback(self, option:str) -> None:
         self.options_dropdown.get_icon().configure(image=self.icons['build_fill'] if self.openfile_dropdown_value.get()=='Open folder' else self.icons['build'])
