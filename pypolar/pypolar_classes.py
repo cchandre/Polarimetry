@@ -349,67 +349,61 @@ class Variable:
         if self.name in ['Rho', 'Rho_angle']:
             data_vals = np.mod(2 * (data_vals + rotation), 360) / 2   
         vmin_, vmax_ = (0, 90) if htype == 'polar3' else (vmin, vmax)
-        norm = mpl.colors.Normalize(vmin_, vmax_)
+        norm = mpl.colors.Normalize(vmin=vmin_, vmax=vmax_)
         cmap = self.colormap[int(colorblind)]
         if isinstance(cmap, str):
             cmap = mpl.colormaps[cmap] 
-        bins = np.linspace(vmin_, vmax_, nbins)
-        if htype == 'normal':
-            ax = plt.gca()
-            n, bins, patches = ax.hist(data_vals, bins=bins, linewidth=0.5)
-            bin_centers = (bins[:-1] + bins[1:]) / 2
-            for bin, patch in zip(bin_centers, patches):
-                color = cmap(norm(bin))
-                patch.set_facecolor(color)
-                patch.set_edgecolor('k')
-            ax.set_xlim((vmin_, vmax_))
-            ax.set_xlabel(self.latex, fontsize=20)
-            text = self.latex + ' = ' + '{:.2f}'.format(np.mean(data_vals)) + ' $\pm$ ' '{:.2f}'.format(np.std(data_vals))
-            ax.annotate(text, xy=(0.3, 1.05), xycoords='axes fraction', fontsize=14)
-            if self.name == 'Psi':
-                ticks = ax.get_xticks()
-                labels = [label.get_text() + '°' for label in ax.get_xticklabels()]
-                ax.set_xticks(ticks, labels=labels)
-                def format_coord(xval, yval):
-                    return f"\u03C8 = {xval:.0f}\u00B0,  count = {yval:.0f}"
-            else:
-                def format_coord(xval, yval):
-                    return f"{self.unicode} = {xval:.2f},  count = {yval:.0f}"
-            ax.format_coord = format_coord
-        elif htype.startswith('polar'):
-            ax = plt.subplot(projection='polar')
-            if htype == 'polar1':
-                meandata = circularmean(data_vals)
-                std = np.std(wrapto180(2 * (data_vals - meandata)) / 2)
-            elif htype == 'polar2':
-                ax.set_theta_zero_location('N')
-                ax.set_theta_direction(-1)
-                meandata = np.mean(data_vals)
-                std = np.std(data_vals)
-            elif htype == 'polar3':
-                ax.set_theta_zero_location('E')
-                data_vals[data_vals >= 90] = 180 - data_vals[data_vals >= 90]
-                meandata = circularmean(data_vals)
-                std = np.std(wrapto180(2 * (data_vals - meandata)) / 2)
-                norm = mpl.colors.Normalize(0, 180)
-            distribution, bin_edges = np.histogram(data_vals, bins=bins, range=(vmin_, vmax_))
-            bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-            width = np.deg2rad(bins[1] - bins[0])
-            colors = cmap(norm(bins))
-            ax.bar(np.deg2rad(bin_centers), distribution, width=width, color=colors, edgecolor='k', linewidth=0.5)
+        is_polar = htype.startswith('polar')
+        ax = plt.subplot(111, projection='polar' if is_polar else None)
+        bins = np.linspace(vmin_, vmax_, nbins + 1)
+        distribution, bin_edges = np.histogram(data_vals, bins=bins, range=(vmin_, vmax_))
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+        plot_centers = np.deg2rad(bin_centers) if is_polar else bin_centers
+        width = np.deg2rad(bins[1] - bins[0]) if is_polar else bins[1] - bins[0]
+        colors = cmap(norm(bin_centers))
+        ax.bar(plot_centers, distribution, width=width, color=colors, edgecolor='k', linewidth=0.5)
+        ax.set_ylim(0, np.amax(distribution)*1.1)
+        if is_polar:
             num = 10**(len(str(np.amax(distribution))) - 2)
             ax.set_rticks(np.floor(np.linspace(0, np.max(distribution), 3) / num) * num)
             ax.set_thetamin(vmin_)
             ax.set_thetamax(vmax_)
-            text = self.latex + ' = ' + '{:.2f}'.format(meandata) + ' $\pm$ ' '{:.2f}'.format(std)
-            def format_coord(theta_val, r_val):
-                theta_deg = np.degrees(theta_val)
-                return f"{self.unicode}={theta_deg:.0f}°, count={r_val:.0f}"
-            ax.format_coord = format_coord
-            if htype == 'polar1':
-                ax.annotate(text, xy=(0.3, 0.95), xycoords='axes fraction', fontsize=14)
-            else:
-                ax.annotate(text, xy=(0.7, 0.95), xycoords='axes fraction', fontsize=14)
+            if htype == 'polar2':
+                ax.set_theta_zero_location('N')
+                ax.set_theta_direction(-1)
+            elif htype == 'polar3':
+                ax.set_theta_zero_location('E')
+            format_coord = lambda t, r: f"{self.unicode}={np.degrees(t):.0f}°, count={r:.0f}"
+        else:
+            ax.set_xlim((vmin_, vmax_))
+            ax.set_xlabel(self.latex, fontsize=20)
+            suffix = "°" if self.name == 'Psi' else ""
+            precision = ".0f" if self.name == 'Psi' else ".2f"
+            format_coord = lambda x, y: f"{self.unicode} = {x:{precision}}{suffix}, count = {y:.0f}"
+            if self.name == 'Psi':
+                ticks = ax.get_xticks()
+                labels = [f"{label.get_text()}°" for label in ax.get_xticklabels()]
+                ax.set_xticks(ticks, labels=labels)
+        ax.format_coord = format_coord
+        if htype == 'normal':
+            xy = (0.3, 1.05)
+            meandata = np.mean(data_vals)
+            std = np.std(data_vals)
+        elif htype == 'polar1':
+            xy = (0.3, 0.95)
+            meandata = circularmean(data_vals)
+            std = np.std(wrapto180(2 * (data_vals - meandata)) / 2)
+        elif htype == 'polar2':
+            xy = (0.7, 0.95)
+            meandata = np.mean(data_vals)
+            std = np.std(data_vals)
+        elif htype == 'polar3':
+            xy = (0.7, 0.95)
+            data_vals[data_vals >= 90] = 180 - data_vals[data_vals >= 90]
+            meandata = circularmean(data_vals)
+            std = np.std(wrapto180(2 * (data_vals - meandata)) / 2)          
+        text = f"{self.latex} = {meandata:.2f} $\pm$ {std:.2f}"
+        ax.annotate(text, xy=xy, xycoords='axes fraction', fontsize=14)
 
 class ROI:
     def __init__(self) -> None:
