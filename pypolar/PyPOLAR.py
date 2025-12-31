@@ -1821,12 +1821,12 @@ class Polarimetry(CTk.CTk):
                 mask = im_binarized / np.amax(im_binarized)
             else:
                 if display:
-                    ShowInfo(message=f' The corresponding mask for {datastack.name} could not be found\n Continuing without mask...', image=self.icons['layers_clear'], button_labels=['OK'])
+                    ShowInfo(message=f' The corresponding mask for {datastack.name} could not be found\n Continuing without mask...', image=self.icons['layers_clear'], button_labels=['OK'], width=400)
             if hasattr(self, 'mask'):
                 self.mask = mask
         return mask
     
-    def get_rois(self, roifolder, datastack:DataStack):
+    def get_rois(self, roifolder, datastack:DataStack, display:bool=True):
         roi_base = roifolder / datastack.name
         rois = []
         if roi_base.with_suffix('.pyroi').exists():
@@ -1837,6 +1837,9 @@ class Polarimetry(CTk.CTk):
             rois = [self.roi_imagej2pyroi(roi, _ + 1) for _, roi in enumerate(rois_imagej)]
         elif (roi_base.with_suffix('.roi')).exists():
             rois = [self.roi_imagej2pyroi(roifile.ImagejRoi.fromfile(roi_base.with_suffix('.roi')), 1)]
+        else:
+            if display:
+                ShowInfo(message=f' The corresponding ROIs for {datastack.name} could not be found\n Continuing without ROIs...', image=self.icons['roi'], button_labels=['OK'], width=400)
         return rois
     
     def roi_imagej2pyroi(self, roi, indx):
