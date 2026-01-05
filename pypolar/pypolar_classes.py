@@ -347,7 +347,25 @@ class Variable:
     def histo(self, mask:np.ndarray=None, htype:str='normal', vmin:float=0, vmax:float=180, colorblind:bool=False, rotation:float=0, nbins:int=60) -> None:
         data_vals = self.values[mask * np.isfinite(self.values)] if mask is not None else self.values[np.isfinite(self.values)]
         if self.name in ['Rho', 'Rho_angle']:
-            data_vals = np.mod(2 * (data_vals + rotation), 360) / 2   
+            data_vals = np.mod(2 * (data_vals + rotation), 360) / 2  
+        if htype == 'normal':
+            xy = (0.3, 1.05)
+            meandata = np.mean(data_vals)
+            std = np.std(data_vals)
+        elif htype == 'polar1':
+            xy = (0.3, 0.95)
+            meandata = circularmean(data_vals)
+            std = np.std(wrapto180(2 * (data_vals - meandata)) / 2)
+        elif htype == 'polar2':
+            xy = (0.7, 0.95)
+            meandata = np.mean(data_vals)
+            std = np.std(data_vals)
+        elif htype == 'polar3':
+            xy = (0.7, 0.95)
+            data_vals[data_vals >= 90] = 180 - data_vals[data_vals >= 90]
+            meandata = circularmean(data_vals)
+            std = np.std(wrapto180(2 * (data_vals - meandata)) / 2)
+
         vmin_, vmax_ = (0, 90) if htype == 'polar3' else (vmin, vmax)
         norm = mpl.colors.Normalize(vmin=vmin_, vmax=vmax_)
         cmap = self.colormap[int(colorblind)]
@@ -362,7 +380,9 @@ class Variable:
         width = np.deg2rad(bins[1] - bins[0]) if is_polar else bins[1] - bins[0]
         colors = cmap(norm(bin_centers))
         ax.bar(plot_centers, distribution, width=width, color=colors, edgecolor='k', linewidth=0.5)
-        ax.set_ylim(0, np.amax(distribution)*1.1)
+        ax.set_ylim(0, np.amax(distribution)*1.1) 
+        text = f"{self.latex} = {meandata:.2f} $\pm$ {std:.2f}"
+        ax.annotate(text, xy=xy, xycoords='axes fraction', fontsize=14)
         if is_polar:
             num = 10**(len(str(np.amax(distribution))) - 2)
             ax.set_rticks(np.floor(np.linspace(0, np.max(distribution), 3) / num) * num)
@@ -385,25 +405,6 @@ class Variable:
                 labels = [f"{label.get_text()}°" for label in ax.get_xticklabels()]
                 ax.set_xticks(ticks, labels=labels)
         ax.format_coord = format_coord
-        if htype == 'normal':
-            xy = (0.3, 1.05)
-            meandata = np.mean(data_vals)
-            std = np.std(data_vals)
-        elif htype == 'polar1':
-            xy = (0.3, 0.95)
-            meandata = circularmean(data_vals)
-            std = np.std(wrapto180(2 * (data_vals - meandata)) / 2)
-        elif htype == 'polar2':
-            xy = (0.7, 0.95)
-            meandata = np.mean(data_vals)
-            std = np.std(data_vals)
-        elif htype == 'polar3':
-            xy = (0.7, 0.95)
-            data_vals[data_vals >= 90] = 180 - data_vals[data_vals >= 90]
-            meandata = circularmean(data_vals)
-            std = np.std(wrapto180(2 * (data_vals - meandata)) / 2)          
-        text = f"{self.latex} = {meandata:.2f} $\pm$ {std:.2f}"
-        ax.annotate(text, xy=xy, xycoords='axes fraction', fontsize=14)
 
 class ROI:
     def __init__(self) -> None:

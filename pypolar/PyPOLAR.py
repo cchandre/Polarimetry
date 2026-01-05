@@ -514,6 +514,9 @@ class Polarimetry(CTk.CTk):
             self.datastack.rois = []
         if hasattr(self, 'mask'):
             delattr(self, 'mask')
+        if hasattr(self, 'stack'):
+            self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
+            self.ontab_thrsh()
         self.ontab_intensity()
         self.ontab_thrsh()
 
@@ -1066,13 +1069,20 @@ class Polarimetry(CTk.CTk):
                         if (var.name == fig.var):
                             cmap = self.get_colormap(var)
                             data_vals = var.values.flatten()
+                            if hasattr(self, 'mask'):
+                                data_vals = var.values[self.mask * np.isfinite(var.values)]
+                            else:
+                                data_vals = var.values[np.isfinite(var.values)]
+                            if var.name in ['Rho', 'Rho_angle']:
+                                data_vals = np.mod(2 * (data_vals + float(self.rotation[1].get())), 360) / 2
                     vmin, vmax = np.rad2deg(fig.axes[0].get_xlim()) if fig.axes[0].name == 'polar' else fig.axes[0].get_xlim()
-                    vmin_, vmax_ = (0, 180) if fig.var.startswith('Rho') else (vmin, vmax)
-                    norm = mpl.colors.Normalize(vmin=vmin_, vmax=vmax_)
+                    if int(vmax) == 90:
+                        data_vals[data_vals >= 90] = 180 - data_vals[data_vals >= 90]
+                    norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
                     for patch in fig.axes[0].patches:
                         patch.remove()
-                    bins = np.linspace(vmin_, vmax_, int(self.histo_nbins.get()) + 1)
-                    distribution, bin_edges = np.histogram(data_vals, bins=bins, range=(vmin_, vmax_))
+                    bins = np.linspace(vmin, vmax, int(self.histo_nbins.get()) + 1)
+                    distribution, bin_edges = np.histogram(data_vals, bins=bins, range=(vmin, vmax))
                     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
                     width = np.deg2rad(bins[1] - bins[0]) if fig.axes[0].name == 'polar' else bins[1] - bins[0]
                     colors = cmap(norm(bin_centers))
