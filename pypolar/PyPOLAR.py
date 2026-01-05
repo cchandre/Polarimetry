@@ -80,7 +80,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.0'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'December 31, 2025'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 5, 2026'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -512,6 +512,8 @@ class Polarimetry(CTk.CTk):
         self.initialize_noise()
         if hasattr(self, 'datastack'):
             self.datastack.rois = []
+        if hasattr(self, 'mask'):
+            delattr(self, 'mask')
         self.ontab_intensity()
         self.ontab_thrsh()
 
@@ -1087,15 +1089,26 @@ class Polarimetry(CTk.CTk):
         if option.startswith('Mask'):
             self.maskfolder = Path(fd.askdirectory(title='Select the directory containing masks (.png)', initialdir=initialdir))
             if hasattr(self, 'datastack'):
+                self.datastack.rois = []
+            if hasattr(self, 'datastack'):
                 self.mask = self.get_mask(self.datastack)
-                self.ontab_thrsh()
                 self.tabview.tab('Thresholding/Mask').update()
         elif option.startswith('ROI'):
             self.roifolder = Path(fd.askdirectory(title='Select the directory containing ROIs (.pyroi, .roi or .zip)', initialdir=initialdir))
+            if hasattr(self, 'mask'):
+                delattr(self, 'mask')
+        elif option.startswith('Thresholding'):
+            if hasattr(self, 'mask'):
+                delattr(self, 'mask')
+            if hasattr(self, 'datastack'):
+                self.datastack.rois = []
         else:
             return
         if hasattr(self, 'datastack'):
             self.update_file_data()
+        if hasattr(self, 'stack'):
+            self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
+            self.ontab_thrsh()
 
     def open_file_callback(self, value:str) -> None:
         initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
