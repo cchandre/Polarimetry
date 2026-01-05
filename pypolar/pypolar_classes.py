@@ -347,7 +347,12 @@ class Variable:
     def histo(self, mask:np.ndarray=None, htype:str='normal', vmin:float=0, vmax:float=180, colorblind:bool=False, rotation:float=0, nbins:int=60) -> None:
         data_vals = self.values[mask * np.isfinite(self.values)] if mask is not None else self.values[np.isfinite(self.values)]
         if self.name in ['Rho', 'Rho_angle']:
-            data_vals = np.mod(2 * (data_vals + rotation), 360) / 2  
+            data_vals = np.mod(2 * (data_vals + rotation), 360) / 2
+        vmin_, vmax_ = (0, 180) if self.name.startswith('Rho') else (vmin, vmax)
+        norm = mpl.colors.Normalize(vmin=vmin_, vmax=vmax_)
+        cmap = self.colormap[int(colorblind)]
+        if isinstance(cmap, str):
+            cmap = mpl.colormaps[cmap] 
         if htype == 'normal':
             xy = (0.3, 1.05)
             meandata = np.mean(data_vals)
@@ -365,16 +370,10 @@ class Variable:
             data_vals[data_vals >= 90] = 180 - data_vals[data_vals >= 90]
             meandata = circularmean(data_vals)
             std = np.std(wrapto180(2 * (data_vals - meandata)) / 2)
-
-        vmin_, vmax_ = (0, 90) if htype == 'polar3' else (vmin, vmax)
-        norm = mpl.colors.Normalize(vmin=vmin_, vmax=vmax_)
-        cmap = self.colormap[int(colorblind)]
-        if isinstance(cmap, str):
-            cmap = mpl.colormaps[cmap] 
         is_polar = htype.startswith('polar')
         ax = plt.subplot(111, projection='polar' if is_polar else None)
-        bins = np.linspace(vmin_, vmax_, nbins + 1)
-        distribution, bin_edges = np.histogram(data_vals, bins=bins, range=(vmin_, vmax_))
+        bins = np.linspace(vmin, vmax, nbins + 1)
+        distribution, bin_edges = np.histogram(data_vals, bins=bins, range=(vmin, vmax))
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
         plot_centers = np.deg2rad(bin_centers) if is_polar else bin_centers
         width = np.deg2rad(bins[1] - bins[0]) if is_polar else bins[1] - bins[0]
@@ -386,8 +385,8 @@ class Variable:
         if is_polar:
             num = 10**(len(str(np.amax(distribution))) - 2)
             ax.set_rticks(np.floor(np.linspace(0, np.max(distribution), 3) / num) * num)
-            ax.set_thetamin(vmin_)
-            ax.set_thetamax(vmax_)
+            ax.set_thetamin(vmin)
+            ax.set_thetamax(90 if htype == 'polar3' else vmax)
             if htype == 'polar2':
                 ax.set_theta_zero_location('N')
                 ax.set_theta_direction(-1)
