@@ -512,8 +512,6 @@ class Polarimetry(CTk.CTk):
         self.initialize_noise()
         if hasattr(self, 'datastack'):
             self.datastack.rois = []
-        if hasattr(self, 'mask'):
-            delattr(self, 'mask')
         if hasattr(self, 'stack'):
             self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
             self.ontab_thrsh()
@@ -1098,13 +1096,12 @@ class Polarimetry(CTk.CTk):
                 self.tabview.tab('Thresholding/Mask').update()
         elif option.startswith('ROI'):
             self.roifolder = Path(fd.askdirectory(title='Select the directory containing ROIs (.pyroi, .roi or .zip)', initialdir=initialdir))
-            if hasattr(self, 'mask'):
-                delattr(self, 'mask')
+            if hasattr(self, 'datastack'):
+                self.mask = np.ones((self.datastack.height, self.datastack.width))
         elif option.startswith('Thresholding'):
-            if hasattr(self, 'mask'):
-                delattr(self, 'mask')
             if hasattr(self, 'datastack'):
                 self.datastack.rois = []
+                self.mask = np.ones((self.datastack.height, self.datastack.width))
         else:
             return
         if hasattr(self, 'datastack'):
@@ -1130,8 +1127,6 @@ class Polarimetry(CTk.CTk):
                 self.options_dropdown.get_icon().configure(image=self.icons['build'])
                 self.options_dropdown.set_state('normal')
                 self.option.set('Thresholding')
-                if hasattr(self, 'mask'):
-                    delattr(self, 'mask')
                 self.open_file(file)
         elif value == 'Open folder': 
             folder = Path(fd.askdirectory(title='Select a directory', initialdir=initialdir))
@@ -1423,12 +1418,24 @@ class Polarimetry(CTk.CTk):
     def compute_angle(self) -> None:
         if not hasattr(self, 'stack'):
             return
-        if hasattr(self, '_cid1') and self._cid1 is not None:
-            self.deactivate_compute_angle()
+        if getattr(self, "computing_angle", False):
+            self.computing_angle = False
+            for attr in ("_cid1", "_cid2"):
+                if hasattr(self, attr):
+                    self.intensity_pyfig.canvas.mpl_disconnect(getattr(self, attr))
+                    delattr(self, attr)
+            if hasattr(self, "active_angle_roi"):
+                while self.active_angle_roi.lines:
+                    line = self.active_angle_roi.lines.pop()
+                    line.remove()
+                self.intensity_pyfig.canvas.draw_idle()
+            self.compute_angle_button.configure(fg_color=orange[0])
             return
+        self.computing_angle = True
         self.intensity_pyfig.toolbar.mode = _Mode.NONE
         self.intensity_pyfig.toolbar._update_buttons_checked()
         self.tabview.set('Intensity')
+        self.update()
         self.compute_angle_button.configure(fg_color=orange[1])
         self.active_angle_roi = ROI()
         self._cid1 = self.intensity_pyfig.canvas.mpl_connect('motion_notify_event', lambda event: self.compute_angle_motion_notify_callback(event, self.active_angle_roi))
@@ -1449,6 +1456,8 @@ class Polarimetry(CTk.CTk):
         self.compute_angle_button.configure(fg_color=orange[0])
 
     def compute_angle_motion_notify_callback(self, event:MouseEvent, roi:ROI) -> None:
+        self.intensity_pyfig.toolbar.mode = _Mode.NONE
+        self.intensity_pyfig.toolbar._update_buttons_checked()
         if event.inaxes == self.intensity_axis:
             x, y = event.xdata, event.ydata
             if ((event.button is None or event.button == 1) and roi.lines):
@@ -1479,7 +1488,14 @@ class Polarimetry(CTk.CTk):
                     ShowInfo(message=message, image=self.icons['square'], button_labels = ['OK'], fontsize=14)
                     self.intensity_pyfig.canvas.draw()
                     self.compute_angle_button.configure(fg_color=orange[0])
-                    self.deactivate_compute_angle()
+                    self.intensity_pyfig.canvas.mpl_disconnect(self._cid1)
+                    self.intensity_pyfig.canvas.mpl_disconnect(self._cid2)
+                    self.computing_angle = False
+                    if hasattr(self, "active_angle_roi"):
+                        while self.active_angle_roi.lines:
+                            line = self.active_angle_roi.lines.pop()
+                            line.remove()
+                        self.intensity_pyfig.canvas.draw_idle()
 
     def define_variable_table(self, method:str) -> None:
         self.initialize_tables()
@@ -1738,6 +1754,7 @@ class Polarimetry(CTk.CTk):
             self.ilow.set(self.stack.display.format(np.amin(self.stack.intensity)))
             self.ilow_slider.set(0)
         self.datastack = self.define_datastack(self.stack)
+        self.mask = np.ones((self.datastack.height, self.datastack.width))
         self.ontab_intensity(update=False)
         self.ontab_thrsh(update=False)
         self.tabview.tab('Intensity').update()
@@ -1901,8 +1918,8 @@ class Polarimetry(CTk.CTk):
                 self.update_file_data()
                 self.analyze_stack(self.datastack)
             self.open_file(self.filelist[0])
-            ShowInfo(message=' End of list', image=self.icons['check_circle'], button_labels=['OK'], fontsize=16)
             self.initialize()
+            ShowInfo(message=' End of list', image=self.icons['check_circle'], button_labels=['OK'], fontsize=16)
         elif self.openfile_dropdown_value.get()=='Open file':
             self.analyze_stack(self.datastack)
         self.analysis_button.configure(image=self.icons['play'])
