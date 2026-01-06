@@ -348,7 +348,6 @@ class Variable:
         data_vals = self.values[mask * np.isfinite(self.values)] if mask is not None else self.values[np.isfinite(self.values)]
         if self.name in ['Rho', 'Rho_angle']:
             data_vals = np.mod(2 * (data_vals + rotation), 360) / 2
-        
         vmin_, vmax_ = (0, 180) if self.name.startswith('Rho') else (vmin, vmax)
         norm = mpl.colors.Normalize(vmin=vmin_, vmax=vmax_)
         cmap = self.colormap[int(colorblind)]
@@ -373,6 +372,7 @@ class Variable:
             std = np.std(wrapto180(2 * (data_vals - meandata)) / 2)
         is_polar = htype.startswith('polar')
         ax = plt.subplot(111, projection='polar' if is_polar else None)
+        vmax = 90 if htype == 'polar3' else vmax
         bins = np.linspace(vmin, vmax, nbins + 1)
         distribution, bin_edges = np.histogram(data_vals, bins=bins, range=(vmin, vmax))
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
@@ -388,7 +388,7 @@ class Variable:
             num = 10**(len(str(np.amax(distribution))) - 2)
             ax.set_rticks(np.floor(np.linspace(0, np.max(distribution), 3) / num) * num)
             ax.set_thetamin(vmin)
-            ax.set_thetamax(90 if htype == 'polar3' else vmax)
+            ax.set_thetamax(vmax)
             if htype == 'polar2':
                 ax.set_theta_zero_location('N')
                 ax.set_theta_direction(-1)
