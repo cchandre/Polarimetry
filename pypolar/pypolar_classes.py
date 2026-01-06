@@ -383,6 +383,7 @@ class Variable:
         ax.set_ylim(0, np.amax(distribution)*1.1) 
         text = f"{self.latex} = {meandata:.2f} $\pm$ {std:.2f}"
         ax.annotate(text, xy=xy, xycoords='axes fraction', fontsize=14)
+        ax.values = data_vals 
         if is_polar:
             num = 10**(len(str(np.amax(distribution))) - 2)
             ax.set_rticks(np.floor(np.linspace(0, np.max(distribution), 3) / num) * num)

@@ -1068,18 +1068,10 @@ class Polarimetry(CTk.CTk):
                     for var in self.datastack.vars:
                         if (var.name == fig.var):
                             cmap = self.get_colormap(var)
-                            if hasattr(self, 'mask'):
-                                data_vals = var.values[self.mask * np.isfinite(var.values)]
-                            else:
-                                data_vals = var.values[np.isfinite(var.values)]
-                    if fig.var in ['Rho', 'Rho_angle']:
-                        data_vals = np.mod(2 * (data_vals + float(self.rotation[1].get())), 360) / 2
+                    data_vals = fig.axes[0].values
                     vmin, vmax = np.rad2deg(fig.axes[0].get_xlim()) if fig.axes[0].name == 'polar' else fig.axes[0].get_xlim()
                     vmin_, vmax_ = (0, 180) if fig.var.startswith('Rho') else (vmin, vmax)
                     norm = mpl.colors.Normalize(vmin=vmin_, vmax=vmax_)
-                    if int(vmax) == 90:
-                        print('hello')
-                        data_vals[data_vals >= 90] = 180 - data_vals[data_vals >= 90]
                     for patch in fig.axes[0].patches:
                         patch.remove()
                     bins = np.linspace(vmin, vmax, int(self.histo_nbins.get()) + 1)
