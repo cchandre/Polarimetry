@@ -1174,11 +1174,11 @@ class Polarimetry(CTk.CTk):
                 Entry(master=self.crop_window, textvariable=var, row=position[0], column=position[1], command=self._crop_all_figures)
             banner = CTk.CTkFrame(self.crop_window)
             banner.grid(row=3, column=0, columnspan=4, padx=20)
-            Button(banner, text='Get', anchor='center', command=self.get_axes, width=80, height=button_size[1], tooltip=' get the axis limits of the active figure').grid(row=0, column=0, padx=10, pady=20)
-            Button(banner, text='Crop', anchor='center', command=self.crop_figures, width=80, height=button_size[1], tooltip=' crop figures using the chosen axis limits').grid(row=0, column=1, padx=10, pady=20)
-            Button(banner, text='Resize', anchor='center', command=self.resize_plt_windows, width=80, height=button_size[1], tooltip=' crop figures using the chosen axis limits').grid(row=0, column=2, padx=10, pady=20)
-            Button(banner, text='Create ROI', anchor='center', command=self.createROIfromcrop, width=80, height=button_size[1], tooltip=' create a rectangular ROI with the limits defined above').grid(row=0, column=3, padx=10, pady=20)
-            Button(banner, text='Reset', anchor='center', command=self.reset_figures, width=80, height=button_size[1]).grid(row=0, column=4, padx=10, pady=20)
+            Button(banner, text='Get', anchor='center', command=self.get_axes, width=80, height=button_size[1], tooltip=" click a reference figure, then click 'Get' to display its axis limits").grid(row=0, column=0, padx=10, pady=20)
+            Button(banner, text='Crop', anchor='center', command=self.crop_figures, width=80, height=button_size[1], tooltip=' crop figures using the displayed axis limits').grid(row=0, column=1, padx=10, pady=20)
+            Button(banner, text='Resize', anchor='center', command=self.resize_plt_windows, width=80, height=button_size[1], tooltip=" double-click a reference figure, then click 'Resize' to match all other figures to its size").grid(row=0, column=2, padx=10, pady=20)
+            Button(banner, text='Create ROI', anchor='center', command=self.createROIfromcrop, width=80, height=button_size[1], tooltip=' create a rectangular ROI with the displayed axis limits').grid(row=0, column=3, padx=10, pady=20)
+            Button(banner, text='Reset', anchor='center', command=self.reset_figures, width=80, height=button_size[1], tooltip=' reset axis limits to their original values').grid(row=0, column=4, padx=10, pady=20)
 
     def crop_on_closing(self):
         self.crop_window.destroy()
