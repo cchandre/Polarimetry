@@ -348,6 +348,7 @@ class Variable:
         data_vals = self.values[mask * np.isfinite(self.values)] if mask is not None else self.values[np.isfinite(self.values)]
         if self.name in ['Rho', 'Rho_angle']:
             data_vals = np.mod(2 * (data_vals + rotation), 360) / 2
+        
         vmin_, vmax_ = (0, 180) if self.name.startswith('Rho') else (vmin, vmax)
         norm = mpl.colors.Normalize(vmin=vmin_, vmax=vmax_)
         cmap = self.colormap[int(colorblind)]
