@@ -1,6 +1,6 @@
 # <img src="https://raw.githubusercontent.com/cchandre/Polarimetry/master/pypolar/main_icon.png" alt="PyPOLAR Icon" valign="middle" width="50"/> [PyPOLAR](https://www.fresnel.fr/polarimetry)
 
-![Version](https://img.shields.io/badge/version-v2.8.0-blue)
+![Version](https://img.shields.io/badge/version-v2.9.0-blue)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-orange)
 [![License](https://img.shields.io/badge/license-BSD-lightgray)](https://github.com/cchandre/Polarimetry/blob/master/LICENSE)
 [![SWH](https://archive.softwareheritage.org/badge/swh:1:dir:fc8dc8178cb109c4990a92415a6c120fe00a55fb/)](https://archive.softwareheritage.org/swh:1:dir:fc8dc8178cb109c4990a92415a6c120fe00a55fb;origin=https://pypi.org/project/Polarimetry/;visit=swh:1:snp:b3e860dea4f01231ffe5921daa53aa245c2cb84a;anchor=swh:1:rel:7154b6e6d40eee2fd834a31fe5d7422916f9d83b;path=/polarimetry-2.8.0.0/)
