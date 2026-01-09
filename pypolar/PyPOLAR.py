@@ -353,7 +353,7 @@ class Polarimetry(CTk.CTk):
         Label(master=save_ext, text=labels[-1], anchor='w').grid(row=len(labels)+1, column=0, padx=(40, 0), pady=(0, 10), sticky='w')
         self.extension_table[len(labels)-1].grid(row=len(labels)+1, column=1, pady=(0, 10), padx=0)    
 
-        Button(scrollable_frame, image=self.icons['palette'], command=lambda:self.openweb('https://colab.research.google.com/drive/1Ho8kU1yYrtltQ0xPs5SB9osiB2fRG4SJ?usp=sharing'), tooltip=' opens the Jupyter Notebook to visualize and customize the colorbars used in PyPOLAR').grid(row=3, column=1, padx=(100, 0), pady=(10, 0), sticky="nw")
+        Button(scrollable_frame, image=self.icons['palette'], command=lambda:self.openweb('https://colab.research.google.com/drive/1Ho8kU1yYrtltQ0xPs5SB9osiB2fRG4SJ?usp=sharing'), tooltip=' opens the Jupyter Notebook to visualize the colorbars used in PyPOLAR').grid(row=3, column=1, padx=(100, 0), pady=(10, 0), sticky="nw")
 
         Button(scrollable_frame, image=self.icons['delete_forever'], command=self.initialize_tables, tooltip=' reinitialize Figures, Save output and Variables tables').grid(row=3, column=1, padx=(0, 100), pady=(10, 0), sticky="ne")
 
