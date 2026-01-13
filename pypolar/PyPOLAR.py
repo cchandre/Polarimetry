@@ -1469,7 +1469,7 @@ class Polarimetry(CTk.CTk):
             x, y = event.xdata, event.ydata
             if event.button == 1:
                 if not roi.lines:
-                    roi.lines = [plt.Line2D([x, x], [y, y], lw=3, color='w')]
+                    roi.lines = [plt.Line2D([x, x], [y, y], lw=3, color=orange[0])]
                     roi.start_point = [x, y]
                     roi.previous_point = roi.start_point
                     self.intensity_axis.add_line(roi.lines[0])
