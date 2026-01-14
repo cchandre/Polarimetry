@@ -71,11 +71,11 @@ class Colorbar:
 	dict_vars = {'Rho': [['vertical', 'horizontal', 'polar180'], r'\rho', ['hsv', m_colorwheel], (0, 180)], 
                 'Rho_contour': [['vertical', 'horizontal', 'polar180', 'polar90'], r'$\rho_c$', ['hsv', m_colorwheel], (0, 180)],
                 'Rho_angle': [['vertical', 'horizontal', 'polar180', 'polar90'], r'$\rho_a$', ['hsv', m_colorwheel], (0, 180)],
-                'Psi': [['vertical', 'horizontal'], '$\psi$', ['jet', 'viridis'], (40, 180)],
-                'Eta': [['vertical', 'horizontal', 'polar90'], '$\eta$', ['plasma', 'plasma'], (0, 90)],
-                'S2': [['vertical', 'horizontal'], '$S_2$', ['jet', 'viridis'], (0, 1)],
-                'S4': [['vertical', 'horizontal'], '$S_4$', ['jet', 'viridis'], (-1, 1)],
-                'S_SHG': [['vertical', 'horizontal'], '$S_\mathrm{SHG}$', ['jet', 'viridis'], (-1, 1)]}
+                'Psi': [['vertical', 'horizontal'], r'$\psi$', ['jet', 'viridis'], (40, 180)],
+                'Eta': [['vertical', 'horizontal', 'polar90'], r'$\eta$', ['plasma', 'plasma'], (0, 90)],
+                'S2': [['vertical', 'horizontal'], r'$S_2$', ['jet', 'viridis'], (0, 1)],
+                'S4': [['vertical', 'horizontal'], r'$S_4$', ['jet', 'viridis'], (-1, 1)],
+                'S_SHG': [['vertical', 'horizontal'], r'$S_\mathrm{SHG}$', ['jet', 'viridis'], (-1, 1)]}
 				
 	list_vars = [key for key in dict_vars.keys()]
 	
