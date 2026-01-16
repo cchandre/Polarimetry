@@ -1036,7 +1036,11 @@ class Polarimetry(CTk.CTk):
                 if (fig.type == 'Composite') and (self.datastack.name in fs):
                     fig.axes[0].images[1].set_cmap(cmap)
                 elif ((fig.type == 'Sticks') or ((fig.type == 'Intensity') and hasattr(self, 'edge_contours'))) and (self.datastack.name in fs):
-                    fig.axes[0].collections[0].set_cmap(cmap)
+                    coll = fig.axes[0].collections[0]
+                    coll.set_cmap(cmap)
+                    for cb in fig.canvas.figure.get_axes():
+                        if hasattr(cb, '_colorbar'): 
+                            cb._colorbar.update_normal(coll)
                 elif fig.type == 'Histogram' and (self.datastack.name in fs):
                     vmin, vmax = np.rad2deg(fig.axes[0].get_xlim()) if fig.axes[0].name == 'polar' else fig.axes[0].get_xlim()
                     vmin_, vmax_ = (0, 180) if fig.var.startswith('Rho') else (vmin, vmax)
@@ -1047,6 +1051,7 @@ class Polarimetry(CTk.CTk):
                     new_colors = cmap(norm(bin_centers))
                     for color, patch in zip(new_colors, patches):
                         patch.set_facecolor(color)
+            fig.canvas.draw_idle()        
             if fs.startswith('Disk Cone'):
                 fig.axes[0].images[0].set_cmap('hsv' if not self.colorblind_checkbox.get() else m_colorwheel)
                 fig.axes[1].images[0].set_cmap('jet' if not self.colorblind_checkbox.get() else 'viridis')
