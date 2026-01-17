@@ -80,7 +80,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.0'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 16, 2026'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -199,7 +199,7 @@ class Polarimetry(CTk.CTk):
         self.openfile_dropdown = DropDown(left_frame, values=['Open file', 'Open folder', 'Open figure'], image=self.icons['download_file'], variable=self.openfile_dropdown_value, command=self.open_file_callback, tooltip=' - open a file (.tif or .tiff stack file)\n - open a folder containing .tif or .tiff stack files\n - open figure (.pyfig file saved from a previous analysis)')
         self.openfile_dropdown.grid(row=2, **dict_left_frame)
         self.option = CTk.StringVar()
-        self.options_dropdown = DropDown(left_frame, values=['Thresholding', 'Mask', 'ROI'], image=self.icons['build'], variable=self.option, state='disabled', command=self.options_dropdown_callback, tooltip=' select the method of analysis\n - intensity thresholding or segmentation mask for single file analysis or batch processing\n - the mask has to be binary and in PNG format and have the same file name as the respective polarimetry data file')
+        self.options_dropdown = DropDown(left_frame, values=['Thresholding', 'Mask', 'ROI'], image=self.icons['build'], variable=self.option, state='disabled', command=self.options_dropdown_callback, tooltip=' select the method of analysis\n intensity thresholding, segmentation mask or ROI for single file analysis or batch processing')
         self.options_dropdown.grid(row=3, **dict_left_frame)
         self.add_roi_button = Button(left_frame, text='Add ROI', image=self.icons['roi'], command=self.add_roi_callback, tooltip=' add a region of interest: polygon (left button), freeform (right button); double-click to close the ROI; threshold first before drawing if thresholding is needed')
         self.add_roi_button.grid(row=4, **dict_left_frame)
