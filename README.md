@@ -23,6 +23,7 @@ PyPOLAR is a Python-based application designed to analyze polarization-resolved 
 
 * **Documentation:** [PyPOLAR Documentation](https://github.com/cchandre/Polarimetry/blob/master/pypolar/PyPOLAR_documentation.pdf)
 * **Wiki:** [PyPOLAR Wiki](https://github.com/cchandre/Polarimetry/wiki)
+* **How to cite PyPOLAR:** [click here](https://github.com/cchandre/Polarimetry/wiki/cite-pypolar)
 * **Source Code:** [`PyPOLAR.py`](https://github.com/cchandre/Polarimetry/blob/master/pypolar/PyPOLAR.py)
 * **Official Website:** [fresnel.fr/polarimetry](https://www.fresnel.fr/polarimetry)
 * **Post-processing:** [Data Post-processing Guide](https://github.com/cchandre/Polarimetry/blob/master/AdditionalFiles/README.md)
