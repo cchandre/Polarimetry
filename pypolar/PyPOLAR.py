@@ -1136,7 +1136,7 @@ class Polarimetry(CTk.CTk):
         elif value == 'Open folder': 
             folder = Path(fd.askdirectory(title='Select a directory', initialdir=initialdir))
             self.openfile_dropdown.get_icon().configure(image=self.icons['folder_open'])
-            self.filelist = [file for file in Path(sorted(folder.glob('*.tif*')))]
+            self.filelist = [file for file in sorted(folder.glob('*.tif*'))]
             if any(self.filelist):
                 self.open_file(self.filelist[0])
                 self.options_dropdown.set_state('normal')
@@ -1767,7 +1767,7 @@ class Polarimetry(CTk.CTk):
 
     def update_file_data(self) -> None:
         self.mask = self.get_mask(self.datastack)
-        if self.option.get()=='ROI':
+        if self.option.get() == 'ROI':
             self.datastack.rois = self.get_rois(self.roifolder, self.datastack)
             if hasattr(self, 'manager'):
                 self.manager.restart_roimanager(self.datastack.rois)
@@ -1892,14 +1892,14 @@ class Polarimetry(CTk.CTk):
     def get_rois(self, roifolder, datastack:DataStack, display:bool=True):
         roi_base = roifolder / datastack.name
         rois = []
-        if roi_base.with_suffix('.pyroi').exists():
-            with open(roi_base.with_suffix('.pyroi'), 'rb') as f:
+        if roi_base.with_name(f"{roi_base.name}.pyroi").exists():
+            with open(roi_base.with_name(f"{roi_base.name}.pyroi"), 'rb') as f:
                 rois = pickle.load(f)
-        elif roi_base.with_suffix('.zip').exists():
-            rois_imagej = roifile.roiread(roi_base.with_suffix('.zip'))
+        elif roi_base.with_name(f"{roi_base.name}.zip").exists():
+            rois_imagej = roifile.roiread(roi_base.with_name(f"{roi_base.name}.zip"))
             rois = [self.roi_imagej2pyroi(roi, _ + 1) for _, roi in enumerate(rois_imagej)]
-        elif (roi_base.with_suffix('.roi')).exists():
-            rois = [self.roi_imagej2pyroi(roifile.ImagejRoi.fromfile(roi_base.with_suffix('.roi')), 1)]
+        elif (roi_base.with_name(f"{roi_base.name}.roi")).exists():
+            rois = [self.roi_imagej2pyroi(roifile.ImagejRoi.fromfile(roi_base.with_name(f"{roi_base.name}.roi")), 1)]
         else:
             if display:
                 ShowInfo(message=f' The corresponding ROIs for {datastack.name} could not be found\n Continuing without ROIs...', image=self.icons['roi'], button_labels=['OK'], width=400)
