@@ -79,8 +79,8 @@ def main():
 
 class Polarimetry(CTk.CTk):
 
-    __version__ = '2.9.0'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026'}
+    __version__ = '2.9.2'
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 13, 2026'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -1136,7 +1136,7 @@ class Polarimetry(CTk.CTk):
         elif value == 'Open folder': 
             folder = Path(fd.askdirectory(title='Select a directory', initialdir=initialdir))
             self.openfile_dropdown.get_icon().configure(image=self.icons['folder_open'])
-            self.filelist = [file for file in sorted(folder.glob('*.tif*'))]
+            self.filelist = [file for file in Path(sorted(folder.glob('*.tif*')))]
             if any(self.filelist):
                 self.open_file(self.filelist[0])
                 self.options_dropdown.set_state('normal')
