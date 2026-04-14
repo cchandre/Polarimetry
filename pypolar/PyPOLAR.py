@@ -80,7 +80,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.2'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 13, 2026'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 14, 2026'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -718,7 +718,7 @@ class Polarimetry(CTk.CTk):
         self.calib_window.update()
         current_time = datetime.now()
         timestamp = current_time.strftime("_%Y%m%d_%H%M")
-        file_name = Path(self._stack_folder_path.get()) / f'calibration_results{timestamp}.xlsx'
+        file_name = Path(self._stack_folder_path.get()) / f"calibration_results{timestamp}.xlsx"
         for i, disk_path in enumerate(disklist):
             self.CD = Calibration(method='1PF')
             self.CD.define_disk(disk_path)
@@ -998,10 +998,10 @@ class Polarimetry(CTk.CTk):
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
             if (fig.type in ['Composite', 'Sticks', 'Intensity']):
-                if (hasattr(self, 'datastack')  and (self.datastack.name in fs)) or self.openfile_dropdown_value.get() == 'Open figure':
+                if (hasattr(self, 'datastack')  and (self.datastack.stem in fs)) or self.openfile_dropdown_value.get() == 'Open figure':
                     fig.axes[0].axis(self.add_axes_checkbox.get())
                     fig.canvas.draw()
-            elif fig.type == 'Histogram' and (hasattr(self, 'datastack') and self.datastack.name in fs):
+            elif fig.type == 'Histogram' and (hasattr(self, 'datastack') and self.datastack.stem in fs):
                 fig.axes[0].tick_params(labelcolor='k' if self.add_axes_checkbox.get() else 'w')
 
     def colorbar_on_all_figures(self) -> None:
@@ -1009,7 +1009,7 @@ class Polarimetry(CTk.CTk):
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
             if (fig.type in ['Composite', 'Sticks', 'Intensity']) :
-                if (hasattr(self, 'datastack') and (self.datastack.name in fs)) or self.openfile_dropdown_value.get() == 'Open figure':
+                if (hasattr(self, 'datastack') and (self.datastack.stem in fs)) or self.openfile_dropdown_value.get() == 'Open figure':
                     if self.colorbar_checkbox.get():
                         ax_divider = make_axes_locatable(fig.axes[0])
                         cax = ax_divider.append_axes('right', size='7%', pad='2%')
@@ -1033,15 +1033,15 @@ class Polarimetry(CTk.CTk):
                 for var in self.datastack.vars:
                     if (var.name == fig.var):
                         cmap = self.get_colormap(var)
-                if (fig.type == 'Composite') and (self.datastack.name in fs):
+                if (fig.type == 'Composite') and (self.datastack.stem in fs):
                     fig.axes[0].images[1].set_cmap(cmap)
-                elif ((fig.type == 'Sticks') or ((fig.type == 'Intensity') and hasattr(self, 'edge_contours'))) and (self.datastack.name in fs):
+                elif ((fig.type == 'Sticks') or ((fig.type == 'Intensity') and hasattr(self, 'edge_contours'))) and (self.datastack.stem in fs):
                     coll = fig.axes[0].collections[0]
                     coll.set_cmap(cmap)
                     for cb in fig.canvas.figure.get_axes():
                         if hasattr(cb, '_colorbar'): 
                             cb._colorbar.update_normal(coll)
-                elif fig.type == 'Histogram' and (self.datastack.name in fs):
+                elif fig.type == 'Histogram' and (self.datastack.stem in fs):
                     vmin, vmax = np.rad2deg(fig.axes[0].get_xlim()) if fig.axes[0].name == 'polar' else fig.axes[0].get_xlim()
                     vmin_, vmax_ = (0, 180) if fig.var.startswith('Rho') else (vmin, vmax)
                     norm = mpl.colors.Normalize(vmin=vmin_, vmax=vmax_)
@@ -1067,7 +1067,7 @@ class Polarimetry(CTk.CTk):
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
             if hasattr(self, 'datastack'):
-                if fig.type == 'Histogram' and (self.datastack.name in fs):
+                if fig.type == 'Histogram' and (self.datastack.stem in fs):
                     for var in self.datastack.vars:
                         if (var.name == fig.var):
                             cmap = self.get_colormap(var)
@@ -1200,7 +1200,7 @@ class Polarimetry(CTk.CTk):
         for mgr in managers:
             fig = mgr.canvas.figure
             fs = mgr.get_window_title()
-            if hasattr(self, 'datastack') and (self.datastack.name in fs):
+            if hasattr(self, 'datastack') and (self.datastack.stem in fs):
                 mgr.window.geometry(f"{width}x{height}")
                 fig.canvas.draw_idle()
         plt.figure(initial_active_num)
@@ -1219,7 +1219,7 @@ class Polarimetry(CTk.CTk):
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
-            valid = (self.datastack.name in fs) if hasattr(self, 'datastack') else False
+            valid = (self.datastack.stem in fs) if hasattr(self, 'datastack') else False
             fig_type = getattr(fig, 'type', None)
             if (fig_type in ['Sticks', 'Composite', 'Intensity']) and (valid or self.openfile_dropdown_value.get()=='Open figure'):
                 fig.axes[0].set_xlim((int(xylim[0]), int(xylim[1])))
@@ -1359,7 +1359,7 @@ class Polarimetry(CTk.CTk):
             fig_ = None
             for fig in figs:
                 fs = fig.canvas.manager.get_window_title()
-                if fig.var == 'Rho' and fig.type == 'Composite' and (self.datastack.name in fs):
+                if fig.var == 'Rho' and fig.type == 'Composite' and (self.datastack.stem in fs):
                     fig_ = fig
                     break
             if fig_ is not None:
@@ -1560,7 +1560,7 @@ class Polarimetry(CTk.CTk):
         figs = list(map(plt.figure, plt.get_fignums()))
         for fig in figs:
             fs = fig.canvas.manager.get_window_title()
-            if (fig.type == 'Sticks') and (self.datastack.name in fs):
+            if (fig.type == 'Sticks') and (self.datastack.stem in fs):
                 ax = fig.axes[0]
                 for _, var in enumerate(self.datastack.vars):
                     if (var.name == fig.var) and ('contour' not in fs):
@@ -1570,7 +1570,7 @@ class Polarimetry(CTk.CTk):
                         vmin, vmax = self.get_variable(_)[1:]
                         p.set_clim([vmin, vmax])
                         ax.add_collection(p)
-            if (fig.type == 'Sticks') and (fig.var in ['Rho_contour', 'Rho_angle']) and (self.datastack.name in fs):
+            if (fig.type == 'Sticks') and (fig.var in ['Rho_contour', 'Rho_angle']) and (self.datastack.stem in fs):
                 ax = fig.axes[0]
                 for collection in ax.collections:
                     collection.remove()
@@ -1585,7 +1585,7 @@ class Polarimetry(CTk.CTk):
         initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
         file = Path(fd.askopenfilename(title='Select a beads file', initialdir=initialdir, filetypes=[('TIFF files', '*.tiff'), ('TIF files', '*.tif')]))
         beadstack = self.define_stack(file)
-        self.beads_name = beadstack.name
+        self.beads_name = beadstack.stem
         self.filename_label.write('')
         dark = beadstack.compute_dark()
         intensity = np.sum((beadstack.values - dark) * (beadstack.values >= dark), axis=0)
@@ -1640,7 +1640,7 @@ class Polarimetry(CTk.CTk):
             reg_ims = [cv2.merge([_, ims[0], _]) for _ in ims_]
             fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
             fig.type, fig.var = 'Calibration', None
-            fig.canvas.manager.set_window_title('Quality of calibration: ' + beadstack.name)
+            fig.canvas.manager.set_window_title('Quality of calibration: ' + beadstack.stem)
             fig.suptitle(f'Manders = {np.amin(mand):.2f}   Pearson = {np.amin(pcc):.2f}   (for contrast = {self.contrastThreshold:.2f} and sigma = {self.sigma:.2f})', fontsize=10, x=0.45)
             def format_coords(x, y):
                 return f'(x={x:.0f}, y={y:.0f})'
@@ -1652,7 +1652,7 @@ class Polarimetry(CTk.CTk):
                 ax.set_title(title)
                 ax.set_axis_off()
                 ax.format_coord = format_coords
-            self.registration = {'name_beads': beadstack.name, 'radius': beadstack.radius, 'centers': beadstack.centers, 'homographies': homographies}
+            self.registration = {'name_beads': beadstack.stem, 'radius': beadstack.radius, 'centers': beadstack.centers, 'homographies': homographies}
             message = " Are you okay with this registration?"
             state = "normal"
         except:
@@ -1751,7 +1751,7 @@ class Polarimetry(CTk.CTk):
             self.stack_slider.configure(to=self.stack.nangle, number_of_steps=self.stack.nangle, state='normal')
         else:
             self.stack_slider.configure(state='disabled')
-        self.filename_label.write(self.stack.name)
+        self.filename_label.write(self.stack.stem)
         self.tabview.set('Intensity')
         self.update()
         self.compute_intensity(self.stack)
@@ -1878,31 +1878,31 @@ class Polarimetry(CTk.CTk):
     def get_mask(self, datastack:DataStack, display:bool=True) -> np.ndarray:
         mask = np.ones((datastack.height, datastack.width))
         if self.option.get()=='Mask':
-            maskfile = self.maskfolder / (datastack.name + '.png')
+            maskfile = Path(self.maskfolder / datastack.name).with_suffix('.png')
             if maskfile.exists():
                 im_binarized = np.asarray(Image.open(maskfile), dtype=np.float64)
                 mask = im_binarized / np.amax(im_binarized)
             else:
                 if display:
-                    ShowInfo(message=f' The corresponding mask for {datastack.name} could not be found\n Continuing without mask...', image=self.icons['layers_clear'], button_labels=['OK'], width=400)
+                    ShowInfo(message=f' The corresponding mask for {datastack.stem} could not be found\n Continuing without mask...', image=self.icons['layers_clear'], button_labels=['OK'], width=400)
             if hasattr(self, 'mask'):
                 self.mask = mask
         return mask
     
     def get_rois(self, roifolder, datastack:DataStack, display:bool=True):
-        roi_base = roifolder / datastack.name
+        stackname = roifolder / datastack.name
         rois = []
-        if roi_base.with_name(f"{roi_base.name}.pyroi").exists():
-            with open(roi_base.with_name(f"{roi_base.name}.pyroi"), 'rb') as f:
+        if stackname.with_suffix(".pyroi").exists():
+            with open(stackname.with_suffix(".pyroi"), 'rb') as f:
                 rois = pickle.load(f)
-        elif roi_base.with_name(f"{roi_base.name}.zip").exists():
-            rois_imagej = roifile.roiread(roi_base.with_name(f"{roi_base.name}.zip"))
+        elif stackname.with_suffix(".zip").exists():
+            rois_imagej = roifile.roiread(stackname.with_suffix(".zip"))
             rois = [self.roi_imagej2pyroi(roi, _ + 1) for _, roi in enumerate(rois_imagej)]
-        elif (roi_base.with_name(f"{roi_base.name}.roi")).exists():
-            rois = [self.roi_imagej2pyroi(roifile.ImagejRoi.fromfile(roi_base.with_name(f"{roi_base.name}.roi")), 1)]
+        elif (stackname.with_suffix(".roi")).exists():
+            rois = [self.roi_imagej2pyroi(roifile.ImagejRoi.fromfile(stackname.with_suffix(".roi")), 1)]
         else:
             if display:
-                ShowInfo(message=f' The corresponding ROIs for {datastack.name} could not be found\n Continuing without ROIs...', image=self.icons['roi'], button_labels=['OK'], width=400)
+                ShowInfo(message=f' The corresponding ROIs for {datastack.stem} could not be found\n Continuing without ROIs...', image=self.icons['roi'], button_labels=['OK'], width=400)
         return rois
     
     def roi_imagej2pyroi(self, roi, indx):
@@ -2065,14 +2065,14 @@ class Polarimetry(CTk.CTk):
                 fig = plt.figure(figsize=self.figsize)
                 fig.type, fig.var = 'Histogram', var.name
                 suffix = 'for ROI ' + str(roi['indx']) if roi is not None else ''
-                fig.canvas.manager.set_window_title(var.name + ' Histogram ' + suffix + ': ' + self.datastack.name)
+                fig.canvas.manager.set_window_title(var.name + ' Histogram ' + suffix + ': ' + self.datastack.stem)
                 mask = (roi_map == roi['indx']) if roi is not None else (roi_map == 1)
                 var.histo(mask, htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))
                 fig.axes[0].tick_params(labelcolor='k' if self.add_axes_checkbox.get() else 'w')
                 if self.save_table[2].get():
                     suffix = '_perROI_' + str(roi['indx']) if roi is not None else ''
                     histo = '(0-90)' if htype == 'polar3' else ''
-                    file = datastack.file.with_name(datastack.name + '_Histo' + histo + var.name + suffix + self.figure_extension.get())
+                    file = datastack.file.with_name(datastack.stem + '_Histo' + histo + var.name + suffix + self.figure_extension.get())
                     self.save_fig(fig, file)
                 if not self.show_table[2].get():
                     plt.close(fig)
@@ -2153,7 +2153,7 @@ class Polarimetry(CTk.CTk):
         if display and (self.show_table[0].get() or self.save_table[0].get()):
             fig, ax = plt.subplots(figsize=self.figsize)
             fig.type, fig.var, fig.width, fig.height = 'Composite', var.name, datastack.width, datastack.height
-            fig.canvas.manager.set_window_title(f'{var.name} Composite: {datastack.name}')
+            fig.canvas.manager.set_window_title(f'{var.name} Composite: {datastack.stem}')
             ax.axis('on' if self.add_axes_checkbox.get() else 'off')
             datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             h = var.imshow(vmin, vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()))
@@ -2176,7 +2176,7 @@ class Polarimetry(CTk.CTk):
                 fig.colorbar(h, cax=cax)
             if self.save_table[0].get():
                 if self.figure_extension.get() == '.tif (ImageJ)':
-                    file = datastack.file.with_name(f"{datastack.name}_{var.name}Composite_ImageJ.tif")
+                    file = datastack.file.with_name(f"{datastack.stem}_{var.name}Composite_ImageJ.tif")
                     cmap1 = plt.get_cmap('gray')
                     cmap2 = plt.get_cmap(var.colormap[self.colorblind_checkbox.get()])
                     values = np.linspace(0, 1, 256)
@@ -2185,7 +2185,7 @@ class Polarimetry(CTk.CTk):
                     data = np.asarray([datastack.intensity, var.values], dtype=np.float32)
                     tifffile.imwrite(file, data, imagej=True, metadata={'axes': 'CYX', 'Labels': ['intensity', var.name], 'LUTs': [rgb1, rgb2]})
                 else:
-                    file = datastack.file.with_name(f"{datastack.name}_{var.name}Composite{self.figure_extension.get()}")
+                    file = datastack.file.with_name(f"{datastack.stem}_{var.name}Composite{self.figure_extension.get()}")
                     self.save_fig(fig, file)
             if not self.show_table[0].get():
                 plt.close(fig)
@@ -2202,7 +2202,7 @@ class Polarimetry(CTk.CTk):
                 if np.isfinite(self.datastack.vars[0].values[y, x]):
                     fig_, axs = plt.subplots(2, 1, figsize=(12, 8))
                     fig_.type, fig_.var = 'Individual Fit', None
-                    fig_.canvas.manager.set_window_title(f'Individual Fit : {self.datastack.name}')
+                    fig_.canvas.manager.set_window_title(f'Individual Fit : {self.datastack.stem}')
                     signal = self.datastack.field[:, y, x]
                     signal_fit = self.datastack.field_fit[:, y, x]
                     indx = np.arange(1, self.stack.nangle + 1)
@@ -2278,7 +2278,7 @@ class Polarimetry(CTk.CTk):
         if display and (self.show_table[1].get() or self.save_table[1].get()):
             fig, ax = plt.subplots(figsize=self.figsize)
             fig.type, fig.var, fig.width, fig.height = 'Sticks', var.name, datastack.width, datastack.height
-            fig.canvas.manager.set_window_title(f"{var.name} Sticks: {datastack.name}")
+            fig.canvas.manager.set_window_title(f"{var.name} Sticks: {datastack.stem}")
             ax.axis('on' if self.add_axes_checkbox.get() else 'off')
             h = datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             p = self.get_sticks(var, datastack)
@@ -2299,7 +2299,7 @@ class Polarimetry(CTk.CTk):
                 fig.colorbar(p, cax=cax)
             if self.save_table[1].get():
                 ext = self.figure_extension.get()
-                file = datastack.file.with_name(f"{datastack.name}_{var.name}_Sticks{ext}")
+                file = datastack.file.with_name(f"{datastack.stem}_{var.name}_Sticks{ext}")
                 self.save_fig(fig, file)
             if not self.show_table[1].get():
                 plt.close(fig)
@@ -2308,7 +2308,7 @@ class Polarimetry(CTk.CTk):
         if self.show_table[3].get() or self.save_table[3].get():
             fig, ax = plt.subplots(figsize=self.figsize)
             fig.type, fig.var, fig.width, fig.height = 'Intensity', None, datastack.width, datastack.height
-            fig.canvas.manager.set_window_title(f'Intensity: {datastack.name}')
+            fig.canvas.manager.set_window_title(f'Intensity: {datastack.stem}')
             ax.axis('on' if self.add_axes_checkbox.get() else 'off')
             p = datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             self.add_patches(datastack, ax, fig.canvas)
@@ -2340,7 +2340,7 @@ class Polarimetry(CTk.CTk):
                 if not hasattr(self, 'edge_contours'):
                     fig.axes[1].remove()
             if self.save_table[3].get():
-                file = datastack.file.with_name(f"{datastack.name}_Intensity{self.figure_extension.get()}")
+                file = datastack.file.with_name(f"{datastack.stem}_Intensity{self.figure_extension.get()}")
                 self.save_fig(fig, file)
             if not self.show_table[3].get():
                 plt.close(fig)
@@ -2353,7 +2353,7 @@ class Polarimetry(CTk.CTk):
             redraw = False
             for fig in figs:
                 fs = fig.canvas.manager.get_window_title()
-                if (fig.type == 'Histogram') and (self.datastack.name in fs) :
+                if (fig.type == 'Histogram') and (self.datastack.stem in fs) :
                     plt.close(fig)
                     redraw = True
             if redraw:
@@ -2392,8 +2392,8 @@ class Polarimetry(CTk.CTk):
                     file = self.stack.folder / (self.stack.folder.stem + suffix)
                     title = self.stack.folder.stem
                 else:
-                    file = self.stack.file.with_name(self.stack.name + suffix)
-                    title = self.stack.name
+                    file = self.stack.file.with_name(self.stack.stem + suffix)
+                    title = self.stack.stem
             else:
                 file, title = file4calib, file4calib.stem.rsplit('_', 1)[0]
             if file.exists():
@@ -2439,9 +2439,9 @@ class Polarimetry(CTk.CTk):
         deltarho = wrapto180(2 * (data_vals - meandata)) / 2
         title = []
         if roi:
-            results = [self.stack.name, roi['indx'], roi['label 1'], roi['label 2'], roi['label 3'], meandata, np.std(deltarho), np.mean(deltarho)]
+            results = [self.stack.stem, roi['indx'], roi['label 1'], roi['label 2'], roi['label 3'], meandata, np.std(deltarho), np.mean(deltarho)]
         else:
-            results = [self.stack.name, 'all', '', '', '', meandata, np.std(deltarho), np.mean(deltarho)]
+            results = [self.stack.stem, 'all', '', '', '', meandata, np.std(deltarho), np.mean(deltarho)]
         for var in datastack.vars[1:]:
             if var.name not in ['Rho_contour', 'Rho_angle']:
                 data_vals = var.values[mask * np.isfinite(rho)]
@@ -2498,12 +2498,12 @@ class Polarimetry(CTk.CTk):
                     data_vars = np.column_stack((data_vars, data))
                     list_vars += var.name + ","
             suffix = '_ROI' + str(roi['indx']) if roi else ''
-            file = datastack.file.with_name(datastack.name + suffix + '.csv')
+            file = datastack.file.with_name(datastack.stem + suffix + '.csv')
             fmt = '%d,%d' + ',%.5f' * (len(data_vars[0, :]) - 2)
             np.savetxt(file, data_vars, fmt=fmt, header=header + "\n" + list_vars[:-1], comments="")
             if hasattr(self, 'edge_contours'):
                 suffix += '_contour'
-                file = datastack.file.with_name(datastack.name + suffix + '.csv')
+                file = datastack.file.with_name(datastack.stem + suffix + '.csv')
                 fmt = '%d,%d' + ',%.5f' * (len(data_ct_vars[0, :]) - 2)
                 np.savetxt(file, data_ct_vars, fmt=fmt, header=header + "\n" + list_ct_vars[:-1], comments="")
 			
@@ -2518,7 +2518,7 @@ class Polarimetry(CTk.CTk):
                 data = var.values[mask * np.isfinite(var.values)]
                 dict_.update({var.name: data})
             suffix = '_ROI' + str(roi['indx']) if roi else ''
-            file = datastack.file.with_name(datastack.name + suffix + '.mat')
+            file = datastack.file.with_name(datastack.stem + suffix + '.mat')
             savemat(file, dict_)
 
     def compute_roi_map(self, datastack:DataStack) -> Tuple[np.ndarray, np.ndarray]:

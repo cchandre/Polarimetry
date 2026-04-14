@@ -259,7 +259,7 @@ class TextBox(CTk.CTkTextbox):
 
 class Stack:
     def __init__(self, file:Path) -> None:
-        self.file, self.folder, self.name = file, file.parent, file.stem
+        self.file, self.folder, self.name, self.stem = file, file.parent, file.name, file.stem
         self.height, self.width, self.nangle = 0, 0, 0
         self.display = '{:.0f}'
         self.values = np.array([])
@@ -287,7 +287,7 @@ class Stack:
 
 class DataStack:
     def __init__(self, stack:Stack) -> None:
-        self.file, self.folder, self.name = stack.file, stack.folder, stack.name
+        self.file, self.folder, self.name, self.stem = stack.file, stack.folder, stack.name, stack.stem
         self.method = ''
         self.height, self.width, self.nangle = stack.height, stack.width, stack.nangle
         self.display = stack.display
