@@ -698,12 +698,14 @@ class Polarimetry(CTk.CTk):
         return False
 
     def start_calibration(self) -> None:
+        disk_dir = Path(self._disk_folder_path.get())
+        stack_dir = Path(self._stack_folder_path.get())
         self.method.set('1PF')
         for ext in self.extension_table:
             ext.deselect()
         self.extension_table[2].select()
-        disklist = [file for file in Path(self._disk_folder_path.get()).glob('*.mat') if file.stem.startswith("Disk")]
-        stacklist = [file for file in Path(self._stack_folder_path.get()).glob('*.tif*')]
+        disklist = list(disk_dir.glob('Disk*.mat'))
+        stacklist = list(stack_dir.glob('*.tif*'))
         errors = []
         if not disklist:
             errors.append(f"ERROR: No disk .mat files found in '{self._disk_folder_path.get()}'")
@@ -713,20 +715,21 @@ class Polarimetry(CTk.CTk):
             self._status_entry.write("\n".join(errors))
             self.reinitialize_post_calibration()
             return
+        self._status_entry.write("Starting calibration...")
+        timestamp = datetime.now().strftime("_%Y%m%d_%H%M")
+        file_name = stack_dir / f"calibration_results{timestamp}.xlsx"
+        valid_stacks = []
+        for s_path in stacklist:
+            if self.file_extension_exist(s_path):
+                valid_stacks.append(s_path)
+            else:
+                self._status_entry.write(f"ERROR: Mask or ROI missing for '{s_path.stem}'")
         self.maskfolder = Path(self._stack_folder_path.get())
-        self._status_entry.write(f"Starting calibration...")
         self.calib_window.update()
-        current_time = datetime.now()
-        timestamp = current_time.strftime("_%Y%m%d_%H%M")
-        file_name = Path(self._stack_folder_path.get()) / f"calibration_results{timestamp}.xlsx"
         for i, disk_path in enumerate(disklist):
             self.CD = Calibration(method='1PF')
             self.CD.define_disk(disk_path)
-            for stack_path in stacklist:
-                if not self.file_extension_exist(stack_path):
-                    self._status_entry.write(f"ERROR: Mask or ROI missing for '{stack_path.stem}'")
-                    self.reinitialize_post_calibration()
-                    return
+            for stack_path in valid_stacks:
                 self.stack = self.define_stack(stack_path, default_dark=self.dark.get())
                 self.compute_intensity(self.stack)
                 datastack = self.define_datastack(self.stack)
