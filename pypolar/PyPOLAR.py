@@ -37,6 +37,7 @@ from skimage.measure import manders_coloc_coeff, pearson_corr_coeff
 import openpyxl
 from itertools import permutations, chain
 from datetime import date, datetime
+import time
 import copy
 from typing import List, Tuple, Union
 from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, PyPOLARfigure, ROIManager, TabView, ToolTip
@@ -80,7 +81,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.2'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 14, 2026'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 15, 2026'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -716,34 +717,53 @@ class Polarimetry(CTk.CTk):
             self.reinitialize_post_calibration()
             return
         self._status_entry.write("Starting calibration...")
-        timestamp = datetime.now().strftime("_%Y%m%d_%H%M")
-        file_name = stack_dir / f"calibration_results{timestamp}.xlsx"
-        valid_stacks = []
+        valid_stacks, valid_types = [], []
         for s_path in stacklist:
             if self.file_extension_exist(s_path):
                 valid_stacks.append(s_path)
+                if s_path.with_suffix('.png').exists():
+                    valid_types.append('Mask')
+                else:
+                    valid_types.append('ROI')
             else:
                 self._status_entry.write(f"ERROR: Mask or ROI missing for '{s_path.stem}'")
-        self.maskfolder = Path(self._stack_folder_path.get())
+        self.maskfolder = stack_dir
         self.calib_window.update()
+        dark_value = self.dark.get()
+        results = []
         for i, disk_path in enumerate(disklist):
             self.CD = Calibration(method='1PF')
             self.CD.define_disk(disk_path)
-            for stack_path in valid_stacks:
-                self.stack = self.define_stack(stack_path, default_dark=self.dark.get())
+            disk_start = time.time()
+            for stack_path, type_stack in zip(valid_stacks, valid_types):
+                self.stack = self.define_stack(stack_path, default_dark=dark_value)
                 self.compute_intensity(self.stack)
                 datastack = self.define_datastack(self.stack)
-                if stack_path.with_suffix('.png').exists():
+                if type_stack == 'Mask':
                     self.option.set('Mask')
                     self.per_roi.deselect()
                 else:
                     self.option.set('ROI')
                     self.per_roi.select()
                     datastack.rois = self.get_rois(datastack.folder, stack_path)
-                self.analyze_stack(datastack, file4calib=file_name)
-            self._status_entry.write(f"{i + 1} over {len(disklist)} disks processed")
+                results.extend(self.analyze_stack(datastack, for_calib=True))
+            elapsed_seconds = time.time() - disk_start
+            status_msg = f"{i + 1} over {len(disklist)} disks processed ({elapsed_seconds:.1f}s per disk)"
+            self._status_entry.write(status_msg)
             self.calib_window.update()
             self.calib_window.update_idletasks()
+        timestamp = datetime.now().strftime("_%Y%m%d_%H%M")
+        file4calib = stack_dir / f"calibration_results{timestamp}.xlsx"
+        file_name, title = file4calib, file4calib.stem.rsplit('_', 1)[0]
+        header = ['File', 'ROI', 'label 1', 'label 2', 'label 3', 'MeanRho', 'StdRho', 'MeanDeltaRho', 'MeanPsi', 'StdPsi', 'MeanInt', 'StdInt', 'TotalInt', 'ILow', 'N', 'Calibration', 'dark', 'offset', 'polarization', 'bin width', 'bin height', 'reference angle']
+        workbook, worksheet = self._open_excelfile(file_name, title, header=header)
+        center_aligned = openpyxl.styles.Alignment(horizontal="center", vertical="center")
+        for result in results:
+            worksheet.append(result)
+        for row in worksheet.iter_rows():
+            for cell in row:
+                cell.alignment = center_aligned
+        workbook.save(file_name)
         self._status_entry.write(f"Excel file '{file_name}' created successfully.")
         self.load_excel(file_name)
         self.plot_calibration()
@@ -2377,7 +2397,18 @@ class Polarimetry(CTk.CTk):
             self.plot_sticks(var, datastack)
             self.plot_histos(var, datastack, roi_map)
 
-    def save_data(self, datastack:DataStack, roi_map:np.ndarray=[], file4calib:str=None) -> None:
+    def _open_excelfile(self, file, title, header=None):
+        if file.exists():
+            workbook = openpyxl.load_workbook(file)
+        else:
+            workbook = openpyxl.Workbook()
+        worksheet = workbook.active
+        worksheet.title = title
+        if not file.exists() and header is not None:
+            worksheet.append(header)
+        return workbook, worksheet
+    
+    def save_data(self, datastack:DataStack, roi_map:np.ndarray=[]) -> None:
         if len(roi_map) == 0:
             roi_map = self.compute_roi_map(datastack)[0]
         if self.per_roi.get():
@@ -2389,25 +2420,19 @@ class Polarimetry(CTk.CTk):
             self.save_mat(datastack, roi_map, roi=[])
             self.save_csv(datastack, roi_map, roi=[])
         if self.extension_table[2].get():
-            if file4calib is None:
-                suffix = '_Stats.xlsx' if not hasattr(self, 'edge_contours') else '_Stats_c.xlsx'
-                if self.filelist:
-                    file = self.stack.folder / (self.stack.folder.stem + suffix)
-                    title = self.stack.folder.stem
-                else:
-                    file = self.stack.file.with_name(self.stack.stem + suffix)
-                    title = self.stack.stem
+            suffix = '_Stats.xlsx' if not hasattr(self, 'edge_contours') else '_Stats_c.xlsx'
+            if self.filelist:
+                file = self.stack.folder / (self.stack.folder.stem + suffix)
+                title = self.stack.folder.stem
             else:
-                file, title = file4calib, file4calib.stem.rsplit('_', 1)[0]
-            if file.exists():
-                workbook = openpyxl.load_workbook(file)
-            else:
-                workbook = openpyxl.Workbook()
-            worksheet = workbook.active
-            worksheet.title = title
+                file = self.stack.file.with_name(self.stack.stem + suffix)
+                title = self.stack.stem
             if not file.exists():
-                title = ['File', 'ROI', 'label 1', 'label 2', 'label 3', 'MeanRho', 'StdRho', 'MeanDeltaRho']
-                worksheet.append(title + self.return_vecexcel(datastack, roi_map)[1])
+                header = ['File', 'ROI', 'label 1', 'label 2', 'label 3', 'MeanRho', 'StdRho', 'MeanDeltaRho']
+                header += self.return_vecexcel(datastack, roi_map)[1]
+            else:
+                header = None
+            workbook, worksheet = self._open_excelfile(file, title, header=header)
             if self.per_roi.get():
                 for roi in datastack.rois:
                     if roi['select']:
@@ -2585,7 +2610,7 @@ class Polarimetry(CTk.CTk):
             self.ontab_intensity(update=False)
             self.ontab_thrsh(update=False)
 
-    def analyze_stack(self, datastack:DataStack, file4calib:str=None) -> None:
+    def analyze_stack(self, datastack:DataStack, for_calib:bool=False) -> None:
         chi2threshold = 500
         shape = (datastack.height, datastack.width)
         roi_map, mask = self.compute_roi_map(datastack)
@@ -2682,7 +2707,7 @@ class Polarimetry(CTk.CTk):
             datastack.vars = [rho_, psi_]
         a0[np.logical_not(mask)] = np.nan
         datastack.intmap = a0
-        if file4calib is None:
+        if not for_calib:
             datastack.xmap, datastack.ymap = np.meshgrid(np.arange(datastack.width, dtype=np.float64), np.arange(datastack.height, dtype=np.float64))
             datastack.xmap[np.logical_not(mask)] = np.nan
             datastack.ymap[np.logical_not(mask)] = np.nan
@@ -2708,7 +2733,17 @@ class Polarimetry(CTk.CTk):
                 datastack.field, datastack.field_fit, datastack.chi2 = field, field_fit, chi2
             self.datastack = datastack
             self.plot_data(datastack, roi_map=roi_map)
-        self.save_data(datastack, roi_map=roi_map, file4calib=file4calib)
+        if for_calib:
+            if self.per_roi.get():
+                result = []
+                for roi in datastack.rois:
+                    if roi['select']:
+                        result.append(self.return_vecexcel(datastack, roi_map, roi=roi)[0])
+            else:
+                result = self.return_vecexcel(datastack, roi_map, roi=[])[0]
+            return result
+        else:
+            self.save_data(datastack, roi_map=roi_map)
 
 if __name__ == '__main__':
     main()
