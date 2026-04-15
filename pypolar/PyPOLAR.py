@@ -2733,7 +2733,8 @@ class Polarimetry(CTk.CTk):
                 datastack.field, datastack.field_fit, datastack.chi2 = field, field_fit, chi2
             self.datastack = datastack
             self.plot_data(datastack, roi_map=roi_map)
-        if for_calib:
+            self.save_data(datastack, roi_map=roi_map)
+        else:
             if self.per_roi.get():
                 result = []
                 for roi in datastack.rois:
@@ -2742,8 +2743,6 @@ class Polarimetry(CTk.CTk):
             else:
                 result = self.return_vecexcel(datastack, roi_map, roi=[])[0]
             return result
-        else:
-            self.save_data(datastack, roi_map=roi_map)
 
 if __name__ == '__main__':
     main()
