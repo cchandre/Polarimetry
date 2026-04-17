@@ -35,6 +35,7 @@ import cv2
 import tifffile
 from skimage.measure import manders_coloc_coeff, pearson_corr_coeff
 import openpyxl
+import csv
 from itertools import permutations, chain
 from datetime import date, datetime
 import time
@@ -756,6 +757,8 @@ class Polarimetry(CTk.CTk):
         file4calib = stack_dir / f"calibration_results{timestamp}.xlsx"
         file_name, title = file4calib, file4calib.stem.rsplit('_', 1)[0]
         header = ['File', 'ROI', 'label 1', 'label 2', 'label 3', 'MeanRho', 'StdRho', 'MeanDeltaRho', 'MeanPsi', 'StdPsi', 'MeanInt', 'StdInt', 'TotalInt', 'ILow', 'N', 'Calibration', 'dark', 'offset', 'polarization', 'bin width', 'bin height', 'reference angle']
+        fmt = ['%s', '%d', '%s', '%s', '%s', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%d', '%s', '%.4f', '%.4f', '%s', '%d', '%d', '%.4f']
+        np.savetxt(file_name.with_suffix('.csv'), np.array(results, dtype=object), header=",".join(header), delimiter=',', fmt=fmt, comments='')
         workbook, worksheet = self._open_excelfile(file_name, title, header=header)
         center_aligned = openpyxl.styles.Alignment(horizontal="center", vertical="center")
         for result in results:
@@ -765,7 +768,8 @@ class Polarimetry(CTk.CTk):
                 cell.alignment = center_aligned
         workbook.save(file_name)
         self._status_entry.write(f"Excel file '{file_name}' created successfully.")
-        self.load_excel(file_name)
+        self.load_csv(file_name.with_suffix('.csv'))
+        #self.load_excel(file_name)
         self.plot_calibration()
         self.reinitialize_post_calibration()
 
@@ -793,11 +797,14 @@ class Polarimetry(CTk.CTk):
         self.print_lowest()
 
     def load_calibration(self) -> None:
-        filetypes = [('Excel files', '*.xlsx'), ('All files', '*.*')]
+        filetypes = [('Excel files', '*.xlsx'), ('CSV files', '*.csv'), ('All files', '*.*')]
         initialdir = self._stack_folder_path.get() if hasattr(self, '_stack_folder_path') else Path.home()
         file = fd.askopenfilename(title='Select calibration data file', initialdir=initialdir, filetypes=filetypes)
         if file:
-            self.load_excel(file)
+            if file.endswith('.xlsx'):
+                self.load_excel(file)
+            else:
+                self.load_csv(file)
             self.plot_calibration()
         
     def load_excel(self, file:str) -> None:
@@ -809,7 +816,56 @@ class Polarimetry(CTk.CTk):
             data.append(list(row))
         self.calib_disk_data = self.organize_per_disk(data)
         self._status_entry.write(f"Calibration data loaded from '{file}'")
-        
+
+    def reformat_data(self, data:List, fmt:List) -> List:
+        for row in data:
+            for val, f in zip(row, fmt):
+                if val is not None:
+                    try:
+                        if f in ['%d', '%i']:
+                            row[row.index(val)] = int(val)
+                        elif f in ['%.4f', '%.2f']:
+                            row[row.index(val)] = float(val)
+                    except ValueError:
+                        pass
+        return data
+
+    def load_csv(self, file:str) -> None:
+        self.add_column_savetxt(file)
+        fmt = ['%s', '%d', '%s', '%s', '%s', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%d', '%s', '%d', '%.4f', '%.4f', '%s', '%d', '%d', '%.4f']
+        with open(file, 'r') as f:
+            reader = csv.reader(f)
+            data = [[col if col != '' else None for col in row] for row in reader]
+        data = self.reformat_data(data, fmt)
+        self.calib_disk_data = self.organize_per_disk(data)
+        self._status_entry.write(f"Calibration data loaded from '{file}'")
+
+    def add_column_savetxt(self, file_path):
+        with open(file_path, 'r') as f:
+            reader = csv.reader(f)
+            data = [[col if col != '' else None for col in row] for row in reader]
+        if 'DiskNumber' in data[0]:
+            return
+        fmt = ['%s', '%d', '%s', '%s', '%s', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%d', '%s', '%.4f', '%.4f', '%s', '%d', '%d', '%.4f']
+        data = self.reformat_data(data, fmt)
+        cal_idx = data[0].index('Calibration')
+        target_idx = cal_idx + 1
+        data[0].insert(target_idx, 'DiskNumber')
+        new_fmt = list(fmt) 
+        new_fmt.insert(target_idx, '%d')
+        disk_map = {}
+        disk_index = 1
+        new_results = []
+        for row in data[1:]:
+            row_list = list(row)
+            disk_name = row_list[cal_idx]
+            if disk_name not in disk_map:
+                disk_map[disk_name] = disk_index
+                disk_index += 1
+            row_list.insert(target_idx, disk_map[disk_name])
+            new_results.append(tuple(row_list))
+        np.savetxt(file_path, new_results, header=",".join(data[0]), delimiter=',', fmt=",".join(new_fmt), comments='')
+
     def add_column_number(self, file:str) -> None:
         wb = openpyxl.load_workbook(file)
         ws = wb.active
