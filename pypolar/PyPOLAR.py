@@ -82,7 +82,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.2'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 20, 2026'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 22, 2026'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -754,22 +754,21 @@ class Polarimetry(CTk.CTk):
             self.calib_window.update()
             self.calib_window.update_idletasks()
         timestamp = datetime.now().strftime("_%Y%m%d_%H%M")
-        file4calib = stack_dir / f"calibration_results{timestamp}.xlsx"
+        file4calib = stack_dir / f"calibration_results{timestamp}.csv"
         file_name, title = file4calib, file4calib.stem.rsplit('_', 1)[0]
-        header = ['File', 'ROI', 'label 1', 'label 2', 'label 3', 'MeanRho', 'StdRho', 'MeanDeltaRho', 'MeanPsi', 'StdPsi', 'MeanInt', 'StdInt', 'TotalInt', 'ILow', 'N', 'Calibration', 'dark', 'offset', 'polarization', 'bin width', 'bin height', 'reference angle']
-        fmt = ['%s', '%d', '%s', '%s', '%s', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%d', '%s', '%.4f', '%.4f', '%s', '%d', '%d', '%.4f']
+        header = ['File', 'ROI', 'MeanRho', 'StdRho', 'MeanPsi', 'StdPsi', 'MeanInt', 'StdInt', 'ILow', 'N', 'Calibration', 'dark', 'offset', 'polarization', 'bin width', 'bin height']
+        fmt = ['%s', '%d', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%d', '%s', '%.1f', '%.1f', '%s', '%d', '%d']
         np.savetxt(file_name.with_suffix('.csv'), np.array(results, dtype=object), header=",".join(header), delimiter=',', fmt=fmt, comments='')
-        workbook, worksheet = self._open_excelfile(file_name, title, header=header)
+        self._status_entry.write(f"CSV file '{file_name.with_suffix('.csv')}' created successfully.")
+        self.load_csv(file_name.with_suffix('.csv'))
+        workbook, worksheet = self._open_excelfile(file_name.with_suffix('.xlsx'), title, header=header)
         center_aligned = openpyxl.styles.Alignment(horizontal="center", vertical="center")
         for result in results:
             worksheet.append(result)
         for row in worksheet.iter_rows():
             for cell in row:
                 cell.alignment = center_aligned
-        workbook.save(file_name)
-        self._status_entry.write(f"Excel file '{file_name}' created successfully.")
-        self.load_csv(file_name.with_suffix('.csv'))
-        #self.load_excel(file_name)
+        workbook.save(file_name.with_suffix('.xlsx'))
         self.plot_calibration()
         self.reinitialize_post_calibration()
 
@@ -797,18 +796,49 @@ class Polarimetry(CTk.CTk):
         self.print_lowest()
 
     def load_calibration(self) -> None:
-        filetypes = [('Excel files', '*.xlsx'), ('CSV files', '*.csv'), ('All files', '*.*')]
+        filetypes = [('CSV files', '*.csv'), ('All files', '*.*')]
         initialdir = self._stack_folder_path.get() if hasattr(self, '_stack_folder_path') else Path.home()
         file = fd.askopenfilename(title='Select calibration data file', initialdir=initialdir, filetypes=filetypes)
-        if file:
-            if file.endswith('.xlsx'):
-                self.load_excel(file)
-            else:
-                self.load_csv(file)
-            self.plot_calibration()
-        
+        self.load_csv(file)
+        self.plot_calibration()
+    
+    def load_csv(self, file:str) -> None:
+        self.add_column_csv(file)
+        with open(file, 'r') as f:
+            reader = csv.reader(f)
+            header = next(reader)
+            data = list(reader)
+        self.calib_disk_data = self.organize_per_disk(data, header)
+        self._status_entry.write(f"Calibration data loaded from '{file}'")
+
+    def add_column_csv(self, file_path):
+        with open(file_path, 'r') as f:
+            reader = csv.reader(f)
+            header = next(reader)
+            data = list(reader)
+        if 'DiskNumber' in header:
+            return
+        cal_idx = header.index('Calibration')
+        target_idx = cal_idx + 1
+        header.insert(target_idx, 'DiskNumber')
+        disk_map = {}
+        disk_index = 1
+        new_results = []
+        for row in data:
+            row_list = list(row)
+            disk_name = row_list[cal_idx]
+            if disk_name not in disk_map:
+                disk_map[disk_name] = disk_index
+                disk_index += 1
+            row_list.insert(target_idx, disk_map[disk_name])
+            new_results.append(row_list)
+        with open(file_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(header)
+            writer.writerows(new_results)
+
     def load_excel(self, file:str) -> None:
-        self.add_column_number(file)
+        self.add_column_excel(file)
         wb = openpyxl.load_workbook(file)
         ws = wb.active
         data = []
@@ -817,56 +847,7 @@ class Polarimetry(CTk.CTk):
         self.calib_disk_data = self.organize_per_disk(data)
         self._status_entry.write(f"Calibration data loaded from '{file}'")
 
-    def reformat_data(self, data:List, fmt:List) -> List:
-        for row in data:
-            for val, f in zip(row, fmt):
-                if val is not None:
-                    try:
-                        if f in ['%d', '%i']:
-                            row[row.index(val)] = int(val)
-                        elif f in ['%.4f', '%.2f']:
-                            row[row.index(val)] = float(val)
-                    except ValueError:
-                        pass
-        return data
-
-    def load_csv(self, file:str) -> None:
-        self.add_column_savetxt(file)
-        fmt = ['%s', '%d', '%s', '%s', '%s', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%d', '%s', '%d', '%.4f', '%.4f', '%s', '%d', '%d', '%.4f']
-        with open(file, 'r') as f:
-            reader = csv.reader(f)
-            data = [[col if col != '' else None for col in row] for row in reader]
-        data = self.reformat_data(data, fmt)
-        self.calib_disk_data = self.organize_per_disk(data)
-        self._status_entry.write(f"Calibration data loaded from '{file}'")
-
-    def add_column_savetxt(self, file_path):
-        with open(file_path, 'r') as f:
-            reader = csv.reader(f)
-            data = [[col if col != '' else None for col in row] for row in reader]
-        if 'DiskNumber' in data[0]:
-            return
-        fmt = ['%s', '%d', '%s', '%s', '%s', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%.4f', '%d', '%s', '%.4f', '%.4f', '%s', '%d', '%d', '%.4f']
-        data = self.reformat_data(data, fmt)
-        cal_idx = data[0].index('Calibration')
-        target_idx = cal_idx + 1
-        data[0].insert(target_idx, 'DiskNumber')
-        new_fmt = list(fmt) 
-        new_fmt.insert(target_idx, '%d')
-        disk_map = {}
-        disk_index = 1
-        new_results = []
-        for row in data[1:]:
-            row_list = list(row)
-            disk_name = row_list[cal_idx]
-            if disk_name not in disk_map:
-                disk_map[disk_name] = disk_index
-                disk_index += 1
-            row_list.insert(target_idx, disk_map[disk_name])
-            new_results.append(tuple(row_list))
-        np.savetxt(file_path, new_results, header=",".join(data[0]), delimiter=',', fmt=",".join(new_fmt), comments='')
-
-    def add_column_number(self, file:str) -> None:
+    def add_column_excel(self, file:str) -> None:
         wb = openpyxl.load_workbook(file)
         ws = wb.active
         headers = [cell.value for cell in ws[1]]
@@ -907,7 +888,7 @@ class Polarimetry(CTk.CTk):
             y_.append(float(disks[disk]['std_psi']))
             c_.append(colors[itdc])
         ax.scatter(x_, y_, color=c_, s=25, marker='o')
-        if label!='all':
+        if label != 'all':
             fig, ax = plt.subplots(figsize=(12, 6)) 
             plt.get_current_fig_manager().set_window_title('Psi function of Disk Cone') 
             ax.set_xticks(np.arange(len(disks_indx)))
@@ -948,16 +929,16 @@ class Polarimetry(CTk.CTk):
             ax.scatter(x_, y_, color=c_, s=25, marker='o')
         plt.show()
 
-    def organize_per_disk(self, data):
+    def organize_per_disk(self, data, header):
         cols = ["Calibration", "DiskNumber", "MeanPsi", "MeanRho"]
-        idx = {name: self.get_indx_sheet(data[0], name) for name in cols}
+        idx = {name: self.get_indx_sheet(header, name) for name in cols}
         disk_data = defaultdict(lambda: {"index": None, "psi_values": [], "rho_values": []})
-        for row in data[1:]:
+        for row in data:
             name = row[idx["Calibration"]]
             entry = disk_data[name]
-            entry["index"] = row[idx["DiskNumber"]]
-            entry["psi_values"].append(row[idx["MeanPsi"]])
-            entry["rho_values"].append(row[idx["MeanRho"]])
+            entry["index"] = np.array(row[idx["DiskNumber"]], dtype=int)
+            entry["psi_values"].append(np.array(row[idx["MeanPsi"]], dtype=float))
+            entry["rho_values"].append(np.array(row[idx["MeanRho"]], dtype=float))
         for details in disk_data.values():
             details["std_psi"] = np.std(details["psi_values"])
         return dict(disk_data)
@@ -2513,7 +2494,7 @@ class Polarimetry(CTk.CTk):
                 images.append(Image.fromarray(im, mode='P'))
             images[0].save(self.stack.file.with_suffix('.gif'), save_all=True, append_images=images[1:], optimize=False, duration=200, loop=0)
 
-    def return_vecexcel(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> Tuple[List[float], List[str]]:
+    def return_vecexcel(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}, simplify:bool=False) -> Tuple[List[float], List[str]]:
         mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
         ilow = float(roi['ILow']) if roi else float(self.ilow.get())
         rho = datastack.vars[0].values
@@ -2523,9 +2504,9 @@ class Polarimetry(CTk.CTk):
         deltarho = wrapto180(2 * (data_vals - meandata)) / 2
         title = []
         if roi:
-            results = [self.stack.stem, roi['indx'], roi['label 1'], roi['label 2'], roi['label 3'], meandata, np.std(deltarho), np.mean(deltarho)]
+            results = [self.stack.stem, roi['indx'], meandata, np.std(deltarho)] if simplify else [self.stack.stem, roi['indx'], roi['label 1'], roi['label 2'], roi['label 3'], meandata, np.std(deltarho), np.mean(deltarho)]
         else:
-            results = [self.stack.stem, 'all', '', '', '', meandata, np.std(deltarho), np.mean(deltarho)]
+            results = [self.stack.stem, 1, meandata, np.std(deltarho)] if simplify else [self.stack.stem, 'all', '', '', '', meandata, np.std(deltarho), np.mean(deltarho)]
         for var in datastack.vars[1:]:
             if var.name not in ['Rho_contour', 'Rho_angle']:
                 data_vals = var.values[mask * np.isfinite(rho)]
@@ -2551,16 +2532,17 @@ class Polarimetry(CTk.CTk):
                 results += [meandata, np.std(deltarho), np.mean(deltarho)]
         data_vals = datastack.intmap[mask * np.isfinite(rho)]
         meandata, stddata = np.mean(data_vals), np.std(data_vals)
-        title += ['MeanInt', 'StdInt', 'TotalInt', 'ILow', 'N']
-        results += [meandata, stddata, meandata * self.stack.nangle, ilow, n]
+        title += ['MeanInt', 'StdInt', 'ILow', 'N'] if simplify else ['MeanInt', 'StdInt', 'TotalInt', 'ILow', 'N']
+        results += [meandata, stddata, ilow, n] if simplify else [meandata, stddata, meandata * self.stack.nangle, ilow, n]
         if self.method.get() in ['1PF', '4POLAR 2D', '4POLAR 3D']:
             title += ['Calibration']
             results += [self.CD.name]
         if self.method.get().startswith('4POLAR'):
             title += ['4POLAR angles', 'beads', 'contrastThreshold', 'sigma']
             results += [self.polar_dropdown.get(), self.beads_name, self.contrastThreshold, self.sigma]
-        title += ['dark', 'offset', 'polarization', 'bin width', 'bin height', 'reference angle']
-        results += [float(self.dark.get()), float(self.offset_angle.get()), self.polar_dir.get(), self.bin_spinboxes[0].get(), self.bin_spinboxes[1].get(), float(self.rotation[2].get())]
+        title += ['dark', 'offset', 'polarization', 'bin width', 'bin height'] if simplify else ['dark', 'offset', 'polarization', 'bin width', 'bin height', 'reference angle']
+        results += [float(self.dark.get()), float(self.offset_angle.get()), self.polar_dir.get(), self.bin_spinboxes[0].get(), self.bin_spinboxes[1].get()]\
+              if simplify else [float(self.dark.get()), float(self.offset_angle.get()), self.polar_dir.get(), self.bin_spinboxes[0].get(), self.bin_spinboxes[1].get(), float(self.rotation[2].get())]
         return results, title
 		
     def save_csv(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
@@ -2795,9 +2777,9 @@ class Polarimetry(CTk.CTk):
                 result = []
                 for roi in datastack.rois:
                     if roi['select']:
-                        result.append(self.return_vecexcel(datastack, roi_map, roi=roi)[0])
+                        result.append(self.return_vecexcel(datastack, roi_map, roi=roi, simplify=True)[0])
             else:
-                result = [self.return_vecexcel(datastack, roi_map, roi=[])[0]]
+                result = [self.return_vecexcel(datastack, roi_map, roi=[], simplify=True)[0]]
             return result
 
 if __name__ == '__main__':
