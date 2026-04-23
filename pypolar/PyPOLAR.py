@@ -757,11 +757,10 @@ class Polarimetry(CTk.CTk):
         file4calib = stack_dir / f"calibration_results{timestamp}.csv"
         file_name, title = file4calib, file4calib.stem.rsplit('_', 1)[0]
         header = ['File', 'ROI', 'MeanRho', 'StdRho', 'MeanPsi', 'StdPsi', 'MeanInt', 'StdInt', 'ILow', 'N', 'Calibration', 'dark', 'offset', 'polarization', 'bin width', 'bin height']
-        fmt = ['%s', '%d', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%d', '%s', '%.1f', '%.1f', '%s', '%d', '%d']
-        results, header = self.format_calibration_data(results, header, fmt)
+        results, header = self.format_calibration_data(results, header)
         self.save_calibration_excel(file_name.with_suffix('.xlsx'), results, header, title=title)
         self.save_calibration_csv(file_name, results, header)
-        self.load_csv(file_name, display=False)   
+        self.calib_disk_data = self.organize_per_disk(results, header) 
         self.plot_calibration()
         self.reinitialize_post_calibration()
 
@@ -792,10 +791,12 @@ class Polarimetry(CTk.CTk):
         filetypes = [('CSV files', '*.csv'), ('All files', '*.*')]
         initialdir = self._stack_folder_path.get() if hasattr(self, '_stack_folder_path') else Path.home()
         file = fd.askopenfilename(title='Select calibration data file', initialdir=initialdir, filetypes=filetypes)
-        self.load_csv(file)
+        header, data = self.read_csv(file)
+        self.calib_disk_data = self.organize_per_disk(data, header)
+        self._status_entry.write(f"Calibration data loaded from '{file}'")
         self.plot_calibration()
 
-    def format_calibration_data(self, data, header, fmt_list) -> List:
+    def format_calibration_data(self, data, header) -> List:
         cal_idx = header.index('Calibration')
         target_idx = cal_idx + 1
         header.insert(target_idx, 'DiskNumber')
@@ -803,14 +804,12 @@ class Polarimetry(CTk.CTk):
         disk_index = 1
         formatted_data = []
         for row in data:
-            row_list = list(row)
-            row_list = [fmt % item for fmt, item in zip(fmt_list, row)]
-            disk_name = row_list[cal_idx]
+            disk_name = row[cal_idx]
             if disk_name not in disk_map:
                 disk_map[disk_name] = disk_index
                 disk_index += 1
-            row_list.insert(target_idx, disk_map[disk_name])
-            formatted_data.append(row_list)
+            row.insert(target_idx, disk_map[disk_name])
+            formatted_data.append(row)
         return formatted_data, header
 
     def save_calibration_csv(self, file, data, header):
@@ -841,12 +840,6 @@ class Polarimetry(CTk.CTk):
             header = next(reader)
             data = list(reader)
         return header, data
-    
-    def load_csv(self, file:str, display=True) -> None:
-        header, data = self.read_csv(file)
-        self.calib_disk_data = self.organize_per_disk(data, header)
-        if display: 
-            self._status_entry.write(f"Calibration data loaded from '{file}'")
 
     def get_indx_sheet(self, items, varname:str) -> int:
         return items.index(varname) if varname in items else None
@@ -2524,7 +2517,10 @@ class Polarimetry(CTk.CTk):
         title += ['dark', 'offset', 'polarization', 'bin width', 'bin height'] if simplify else ['dark', 'offset', 'polarization', 'bin width', 'bin height', 'reference angle']
         results += [float(self.dark.get()), float(self.offset_angle.get()), self.polar_dir.get(), self.bin_spinboxes[0].get(), self.bin_spinboxes[1].get()]\
               if simplify else [float(self.dark.get()), float(self.offset_angle.get()), self.polar_dir.get(), self.bin_spinboxes[0].get(), self.bin_spinboxes[1].get(), float(self.rotation[2].get())]
-        return results, title
+        return self.format_excel_results(results), title
+    
+    def format_excel_results(self, data):
+        return [f"{item:.3f}" if isinstance(item, float) else item for item in data]
 		
     def save_csv(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
         if self.extension_table[0].get():
