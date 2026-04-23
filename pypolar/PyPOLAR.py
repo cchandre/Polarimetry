@@ -758,17 +758,10 @@ class Polarimetry(CTk.CTk):
         file_name, title = file4calib, file4calib.stem.rsplit('_', 1)[0]
         header = ['File', 'ROI', 'MeanRho', 'StdRho', 'MeanPsi', 'StdPsi', 'MeanInt', 'StdInt', 'ILow', 'N', 'Calibration', 'dark', 'offset', 'polarization', 'bin width', 'bin height']
         fmt = ['%s', '%d', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%d', '%s', '%.1f', '%.1f', '%s', '%d', '%d']
-        np.savetxt(file_name.with_suffix('.csv'), np.array(results, dtype=object), header=",".join(header), delimiter=',', fmt=fmt, comments='')
-        self._status_entry.write(f"CSV file '{file_name.with_suffix('.csv')}' created successfully.")
-        self.load_csv(file_name.with_suffix('.csv'))
-        workbook, worksheet = self._open_excelfile(file_name.with_suffix('.xlsx'), title, header=header)
-        center_aligned = openpyxl.styles.Alignment(horizontal="center", vertical="center")
-        for result in results:
-            worksheet.append(result)
-        for row in worksheet.iter_rows():
-            for cell in row:
-                cell.alignment = center_aligned
-        workbook.save(file_name.with_suffix('.xlsx'))
+        results, header = self.format_calibration_data(results, header, fmt)
+        self.save_calibration_excel(file_name.with_suffix('.xlsx'), results, header, title=title)
+        self.save_calibration_csv(file_name, results, header)
+        self.load_csv(file_name, display=False)   
         self.plot_calibration()
         self.reinitialize_post_calibration()
 
@@ -801,71 +794,59 @@ class Polarimetry(CTk.CTk):
         file = fd.askopenfilename(title='Select calibration data file', initialdir=initialdir, filetypes=filetypes)
         self.load_csv(file)
         self.plot_calibration()
-    
-    def load_csv(self, file:str) -> None:
-        self.add_column_csv(file)
-        with open(file, 'r') as f:
-            reader = csv.reader(f)
-            header = next(reader)
-            data = list(reader)
-        self.calib_disk_data = self.organize_per_disk(data, header)
-        self._status_entry.write(f"Calibration data loaded from '{file}'")
 
-    def add_column_csv(self, file_path):
-        with open(file_path, 'r') as f:
-            reader = csv.reader(f)
-            header = next(reader)
-            data = list(reader)
-        if 'DiskNumber' in header:
-            return
+    def format_calibration_data(self, data, header, fmt_list) -> List:
         cal_idx = header.index('Calibration')
         target_idx = cal_idx + 1
         header.insert(target_idx, 'DiskNumber')
         disk_map = {}
         disk_index = 1
-        new_results = []
+        formatted_data = []
         for row in data:
             row_list = list(row)
+            row_list = [fmt % item for fmt, item in zip(fmt_list, row)]
             disk_name = row_list[cal_idx]
             if disk_name not in disk_map:
                 disk_map[disk_name] = disk_index
                 disk_index += 1
             row_list.insert(target_idx, disk_map[disk_name])
-            new_results.append(row_list)
-        with open(file_path, mode='w', newline='') as file:
-            writer = csv.writer(file)
+            formatted_data.append(row_list)
+        return formatted_data, header
+
+    def save_calibration_csv(self, file, data, header):
+        with open(file, 'w', newline='') as f:
+            writer = csv.writer(f, delimiter=',', quoting=csv.QUOTE_MINIMAL)
             writer.writerow(header)
-            writer.writerows(new_results)
+            writer.writerows(data)
+        self._status_entry.write(f"CSV file '{file}' created successfully.")
 
-    def load_excel(self, file:str) -> None:
-        self.add_column_excel(file)
-        wb = openpyxl.load_workbook(file)
-        ws = wb.active
-        data = []
-        for row in ws.iter_rows(values_only=True):
-            data.append(list(row))
-        self.calib_disk_data = self.organize_per_disk(data)
-        self._status_entry.write(f"Calibration data loaded from '{file}'")
+    def save_calibration_excel(self, file, data, header, title=None):
+        workbook = openpyxl.Workbook()
+        worksheet = workbook.active
+        worksheet.title = title if title else file.stem
+        center_alignment = openpyxl.styles.Alignment(horizontal="center", vertical="center")
+        worksheet.append(header)
+        for cell in worksheet[1]:
+            cell.alignment = center_alignment
+        for row_data in data:
+            worksheet.append(row_data)
+            for cell in worksheet[worksheet.max_row]:
+                cell.alignment = center_alignment
+        workbook.save(file)
+        self._status_entry.write(f"Excel file '{file}' created successfully.")
 
-    def add_column_excel(self, file:str) -> None:
-        wb = openpyxl.load_workbook(file)
-        ws = wb.active
-        headers = [cell.value for cell in ws[1]]
-        if 'DiskNumber' in headers:
-            return
-        disk_col_idx = headers.index('Calibration') + 1
-        target_idx = disk_col_idx + 1 
-        ws.insert_cols(idx=target_idx)
-        ws.cell(row=1, column=target_idx, value='DiskNumber')
-        disk_map = {}
-        disk_index = 1
-        for row_num in range(2, ws.max_row + 1):
-            disk_name = ws.cell(row=row_num, column=disk_col_idx).value
-            if disk_name not in disk_map:
-                disk_map[disk_name] = disk_index
-                disk_index += 1
-            ws.cell(row=row_num, column=target_idx, value=disk_map[disk_name])
-        wb.save(file)
+    def read_csv(self, file:str) -> Tuple[List, List]:
+        with open(file, 'r') as f:
+            reader = csv.reader(f)
+            header = next(reader)
+            data = list(reader)
+        return header, data
+    
+    def load_csv(self, file:str, display=True) -> None:
+        header, data = self.read_csv(file)
+        self.calib_disk_data = self.organize_per_disk(data, header)
+        if display: 
+            self._status_entry.write(f"Calibration data loaded from '{file}'")
 
     def get_indx_sheet(self, items, varname:str) -> int:
         return items.index(varname) if varname in items else None
