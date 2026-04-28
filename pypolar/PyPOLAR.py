@@ -706,8 +706,8 @@ class Polarimetry(CTk.CTk):
         for ext in self.extension_table:
             ext.deselect()
         self.extension_table[2].select()
-        disklist = list(disk_dir.glob('Disk*.mat'))
-        stacklist = list(stack_dir.glob('*.tif*'))
+        disklist = sorted(disk_dir.glob('Disk*.mat'))
+        stacklist = sorted(stack_dir.glob('*.tif*'))
         errors = []
         if not disklist:
             errors.append(f"ERROR: No disk .mat files found in '{self._disk_folder_path.get()}'")
