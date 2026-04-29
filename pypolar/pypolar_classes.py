@@ -317,16 +317,16 @@ class Variable:
             'Rho':          [0, ['polar1'], r'$\rho$', ['hsv', m_colorwheel], '\u03C1'], 
             'Rho_contour':  [0, ['polar1', 'polar3'], r'$\rho_c$', ['hsv', m_colorwheel], '\u03C1_c'],
             'Rho_angle':    [0, ['polar1', 'polar3'], r'$\rho_a$', ['hsv', m_colorwheel], '\u03C1_a'],
-            'Psi':          [1, ['normal'], '$\psi$', ['jet', 'viridis'], '\u03C8'],
-            'Psi_contour':  [1, ['normal'], '$\psi$', ['jet', 'viridis'], '\u03C8_c'],
-            'Eta':          [2, ['polar2'], '$\eta$', ['plasma', 'plasma'], '\u03B7'],
-            'Eta_contour':  [2, ['polar2'], '$\eta$', ['plasma', 'plasma'], '\u03B7_c'],
-            'S2':           [1, ['normal'], '$S_2$', ['jet', 'viridis'], 'S2'],
-            'S2_contour':   [1, ['normal'], '$S_2$', ['jet', 'viridis'], 'S2_c'],
-            'S4':           [2, ['normal'], '$S_4$', ['jet', 'viridis'], 'S4'],
-            'S4_contour':   [2, ['normal'], '$S_4$', ['jet', 'viridis'], 'S4_c'],
-            'S_SHG':        [3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis'], 'Sshg'],
-            'S_SHG_contour':[3, ['normal'], '$S_\mathrm{SHG}$', ['jet', 'viridis'], 'Sshg_c']}
+            'Psi':          [1, ['normal'], r'$\psi$', ['jet', 'viridis'], '\u03C8'],
+            'Psi_contour':  [1, ['normal'], r'$\psi$', ['jet', 'viridis'], '\u03C8_c'],
+            'Eta':          [2, ['polar2'], r'$\eta$', ['plasma', 'plasma'], '\u03B7'],
+            'Eta_contour':  [2, ['polar2'], r'$\eta$', ['plasma', 'plasma'], '\u03B7_c'],
+            'S2':           [1, ['normal'], r'$S_2$', ['jet', 'viridis'], 'S2'],
+            'S2_contour':   [1, ['normal'], r'$S_2$', ['jet', 'viridis'], 'S2_c'],
+            'S4':           [2, ['normal'], r'$S_4$', ['jet', 'viridis'], 'S4'],
+            'S4_contour':   [2, ['normal'], r'$S_4$', ['jet', 'viridis'], 'S4_c'],
+            'S_SHG':        [3, ['normal'], r'$S_\mathrm{SHG}$', ['jet', 'viridis'], 'Sshg'],
+            'S_SHG_contour':[3, ['normal'], r'$S_\mathrm{SHG}$', ['jet', 'viridis'], 'Sshg_c']}
     def __init__(self, name:str='', values:np.ndarray=None, datastack:DataStack=None) -> None:
         var = type(self).DEFINITIONS.get(name, [0, ['normal'], '', ['jet', 'viridis'], ''])
         self.indx, self.type_histo, self.latex, self.colormap, self.unicode = var
@@ -381,7 +381,7 @@ class Variable:
         colors = cmap(norm(bin_centers))
         ax.bar(plot_centers, distribution, width=width, color=colors, edgecolor='k', linewidth=0.5)
         ax.set_ylim(0, np.amax(distribution)*1.1) 
-        text = f"{self.latex} = {meandata:.2f} $\pm$ {std:.2f}"
+        text = fr"{self.latex} = {meandata:.2f} $\pm$ {std:.2f}"
         ax.annotate(text, xy=xy, xycoords='axes fraction', fontsize=14)
         ax.values = data_vals 
         if is_polar:

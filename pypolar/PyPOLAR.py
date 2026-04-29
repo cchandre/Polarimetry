@@ -82,7 +82,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.2'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 22, 2026'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 29, 2026'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -2246,7 +2246,7 @@ class Polarimetry(CTk.CTk):
                         if var.name != 'Rho':
                             title += var.latex + ' = ' + '{:.2f}'.format(var.values[y, x]) + ', '
                     titles = [title[:-2]]
-                    titles += ['$\chi_2$ = ' + '{:.2f}'.format(self.datastack.chi2[y, x]) + ',   $I$ =  ' + self.datastack.display.format(self.datastack.intensity[y, x])]
+                    titles += [r'$\chi_2$ = ' + '{:.2f}'.format(self.datastack.chi2[y, x]) + r',   $I$ =  ' + self.datastack.display.format(self.datastack.intensity[y, x])]
                     ylabels = ['counts', 'residuals']
                     axs[0].plot(indx, signal, '*', indx, signal_fit, 'r-', lw=2)
                     axs[1].plot(indx, signal - signal_fit, '+', indx, 2 * np.sqrt(signal_fit), 'r-', indx, -2 * np.sqrt(signal_fit), 'r-', lw=2)
@@ -2655,7 +2655,9 @@ class Polarimetry(CTk.CTk):
                 a4 = divide_ext(a4, a0)
             valid_fit = np.all(field_fit > 0, axis=0) & np.all(np.isfinite(field_fit), axis=0)
             residual_sq = (field - field_fit)**2
-            chi2 = np.mean(np.divide(residual_sq, field_fit, where=field_fit > 0), axis=0)
+            out_array = np.zeros_like(residual_sq)
+            div_result = np.divide(residual_sq, field_fit, out=out_array, where=field_fit > 0)
+            chi2 = np.mean(div_result, axis=0)
             mask &= valid_fit & (chi2 <= chi2threshold) & (chi2 > 0)
         elif self.method.get() == '4POLAR 3D':
             mat = np.einsum('ij,jmn->imn', self.CD.invKmat, field)

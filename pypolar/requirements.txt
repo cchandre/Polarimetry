@@ -1,13 +1,13 @@
 colorcet==3.0.1
 customtkinter==5.2.0
 joblib==1.2.0
-matplotlib==3.6.2
 numpy==1.23.5
+scipy==1.9.1
+matplotlib==3.6.2
 opencv-python==4.8.1.78
 openpyxl==3.0.9
 pillow==10.3.0
 scikit-image==0.20.0
-scipy==1.9.1
 tksheet==6.2.5
 tifffile==2024.12.12
 roifile==2023.5.12

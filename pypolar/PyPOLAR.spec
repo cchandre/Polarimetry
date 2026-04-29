@@ -1,48 +1,59 @@
 """
-Environment: polarimetry_env
-
 Usage:
-    pyinstaller pypolar.spec
+    pyinstaller PyPOLAR.spec
 
 Recommendations:
     - on MacOS: xcode-select --install
-    - change CTK_PATH using pip3 show customtkinter
     - If you experience problems packaging your apps, your first step should always be to update your PyInstaller and hooks package the latest versions using:
         pip3 install --upgrade PyInstaller pyinstaller-hooks-contrib
-
-Possible issues:
     - MKL library conflict: conda remove mkl; conda install nomkl; conda install numpy
 """
-
 
 # -*- mode: python ; coding: utf-8 -*-
 
 import sys
+import os
+import customtkinter
+import darkdetect
 
 __version__ = "2.9.2"
 
 block_cipher = None
 
-DATA_FILES = [("icons/*.png", "icons/"), ("polarimetry.json", "."), ("pypolar_classes.py", "."), ("generate_json.py", "."), ("calibration/*.txt", "calibration/"), ("diskcones/*.mat", "diskcones/")]
+CTK_PATH = os.path.dirname(customtkinter.__file__)
+DRK_PATH = os.path.dirname(darkdetect.__file__)
+
+DATA_FILES = [("icons/*.png", "icons/"), 
+    ("polarimetry.json", "."), 
+    ("pypolar_classes.py", "."), 
+    ("generate_json.py", "."), 
+    ("calibration/*.txt", "calibration/"), 
+    ("diskcones/*.mat", "diskcones/")]
+
 BINARY_FILES = []
 
 if sys.platform == "darwin":
-    CTK_PATH = "/Users/cchandre/opt/anaconda3/envs/polarimetry_env/lib/python3.8/site-packages/customtkinter/"
-    DATA_FILES += [("icons/*.icns", "icons/")]
-if sys.platform == 'win32':
-    CTK_PATH = "C:/Users/Cristel/anaconda3/envs/pypolar_env/Lib/site-packages/customtkinter/"
-    extra_options = dict(icon='main_icon.ico', version_file='version.rc')
-    DATA_FILES += [("icons/*.ico", "icons/"), ("version.rc", ".")]
-else:
+    TARGET_ARCH = 'x86_64'
+    DATA_FILES += [("icons/*.icns", "icons/"), 
+                (CTK_PATH, "customtkinter"),
+                (DRK_PATH, "darkdetect")]
     extra_options = {}
-
-DATA_FILES += [(CTK_PATH, "customtkinter/")]
+elif sys.platform == 'win32':
+    TARGET_ARCH = None
+    extra_options = dict(icon='main_icon.ico', version_file='version.rc')
+    DATA_FILES += [("icons/*.ico", "icons/"), 
+        ("version.rc", "."),
+        (CTK_PATH, "customtkinter"),
+        (DRK_PATH, "darkdetect")]
+else:
+    TARGET_ARCH = None
+    extra_options = {}
 
 a = Analysis(['PyPOLAR.py'],
     pathex=[],
     binaries=BINARY_FILES,
     datas=DATA_FILES,
-    hiddenimports=[],
+    hiddenimports=['setuptools', 'darkdetect', 'ctypes', 'ctypes.util'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -64,19 +75,19 @@ exe = EXE(pyz,
     upx=True,
     console=False,
     disable_windowed_traceback=False,
-    target_arch=None,
+    target_arch=TARGET_ARCH,
     codesign_identity=None,
     entitlements_file=None,
     **extra_options)
 
 coll = COLLECT(exe,
-               a.binaries,
-               a.zipfiles,
-               a.datas,
-               strip=False,
-               upx=True,
-               upx_exclude=[],
-               name='PyPOLAR')
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='PyPOLAR')
 
 if sys.platform == 'darwin':
     app = BUNDLE(coll,
@@ -84,6 +95,7 @@ if sys.platform == 'darwin':
         icon='main_icon.icns',
         bundle_identifier="fr.cnrs.fresnel.pypolar",
         version=__version__,
+        target_arch=TARGET_ARCH,
         info_plist={
             'NSPrincipalClass': 'NSApplication',
             'NSAppleScriptEnabled': False,
