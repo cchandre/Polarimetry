@@ -13,7 +13,7 @@ PyPOLAR is a Python-based application designed to analyze polarization-resolved 
 
 **Desktop Installers:** Check out the [Latest Release](https://github.com/cchandre/Polarimetry/releases) to download the standalone version for your OS:
 * **Windows:** `PyPOLAR_installer.exe`
-* **macOS:** `PyPOLAR.dmg`
+* **macOS:** `PyPOLAR-macos-x86_64.dmg` (for Intel) and `PyPOLAR-macos-arm64.dmg` (for Apple Silicon), or `PyPOLAR.dmg` (version < 2.9.0)
 
 **Via PyPI:** PyPOLAR can be installed on any OS (Windows, macOS, Linux) via pip. See the [PyPI Installation Guide](https://github.com/cchandre/Polarimetry/wiki/Install-and-run-PyPOLAR-with-PyPI) for details.
 
