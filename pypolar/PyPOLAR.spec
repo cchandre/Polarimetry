@@ -13,12 +13,15 @@ Recommendations:
 
 import sys
 import os
+import platform
 import customtkinter
 import darkdetect
 
 __version__ = "2.9.2"
 
 block_cipher = None
+
+arch = platform.machine().lower()
 
 CTK_PATH = os.path.dirname(customtkinter.__file__)
 DRK_PATH = os.path.dirname(darkdetect.__file__)
@@ -33,7 +36,12 @@ DATA_FILES = [("icons/*.png", "icons/"),
 BINARY_FILES = []
 
 if sys.platform == "darwin":
-    TARGET_ARCH = 'x86_64'
+    if 'arm' in arch or 'aarch64' in arch:
+        TARGET_ARCH = 'arm64'
+    elif 'x86' in arch or 'amd64' in arch:
+        TARGET_ARCH = 'x86_64'
+    else:
+        TARGET_ARCH = None
     DATA_FILES += [("icons/*.icns", "icons/"), 
                 (CTK_PATH, "customtkinter"),
                 (DRK_PATH, "darkdetect")]
