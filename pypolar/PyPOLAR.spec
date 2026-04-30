@@ -1,6 +1,6 @@
 """
 Usage:
-    pyinstaller PyPOLAR.spec
+    pyinstaller --clean --noconfirm PyPOLAR.spec
 
 Recommendations:
     - on MacOS: xcode-select --install
