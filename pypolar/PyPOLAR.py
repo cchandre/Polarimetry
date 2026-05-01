@@ -81,8 +81,8 @@ def main():
 
 class Polarimetry(CTk.CTk):
 
-    __version__ = '2.9.2'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 29, 2026'}
+    __version__ = '2.9.3'
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 29, 2026', '2.9.3': 'May 1, 2026'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -1197,7 +1197,10 @@ class Polarimetry(CTk.CTk):
             self.crop_window.bind('<Command-q>', lambda:self.crop_on_closing)
             self.crop_window.bind('<Command-w>', self.crop_on_closing)
             self.crop_window.focus_force()
-            Label(self.crop_window, text='  define xlim and ylim', image=self.icons['crop'], compound='left', fontsize=16, width=250).grid(row=0, column=0, columnspan=4, padx=30, pady=20)
+            Label(self.crop_window, text='  define xlim and ylim', image=self.icons['crop'], compound='left', fontsize=16, width=200).grid(row=0, column=0, columnspan=2, padx=30, pady=(30, 5))
+            self.crop_all_figs = CTk.BooleanVar(value=False)
+            self.crop_check = CheckBox(self.crop_window, text="for all", font=get_custom_default_font(size=16), variable=self.crop_all_figs, tooltip=" apply cropping to all figures instead of only those corresponding to the current stack")
+            self.crop_check.grid(row=0, column=2, columnspan=2, padx=(0, 30), pady=(30, 5), sticky='e')
             if not hasattr(self, 'xylim'):
                 if hasattr(self, 'datastack'):
                     vals = [1, self.datastack.width, 1, self.datastack.height]
@@ -1208,7 +1211,7 @@ class Polarimetry(CTk.CTk):
             labels = [u'\u2B62 xlim', u'\u2B63 ylim']
             positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
             for _, label in enumerate(labels):
-                Label(master=self.crop_window, text=label).grid(row=_+1, column=0, padx=(20, 0), pady=0)
+                Label(master=self.crop_window, text=label, fontsize=16).grid(row=_+1, column=0, padx=(20, 0), pady=0)
             for var, position in zip(self.xylim, positions):
                 Entry(master=self.crop_window, textvariable=var, row=position[0], column=position[1], command=self._crop_all_figures)
             banner = CTk.CTkFrame(self.crop_window)
@@ -1234,7 +1237,7 @@ class Polarimetry(CTk.CTk):
         for mgr in managers:
             fig = mgr.canvas.figure
             fs = mgr.get_window_title()
-            if hasattr(self, 'datastack') and (self.datastack.stem in fs):
+            if hasattr(self, 'datastack') and ((self.datastack.stem in fs) or self.crop_all_figs.get()):
                 mgr.window.geometry(f"{width}x{height}")
                 fig.canvas.draw_idle()
         plt.figure(initial_active_num)
@@ -1255,7 +1258,7 @@ class Polarimetry(CTk.CTk):
             fs = fig.canvas.manager.get_window_title()
             valid = (self.datastack.stem in fs) if hasattr(self, 'datastack') else False
             fig_type = getattr(fig, 'type', None)
-            if (fig_type in ['Sticks', 'Composite', 'Intensity']) and (valid or self.openfile_dropdown_value.get()=='Open figure'):
+            if (fig_type in ['Sticks', 'Composite', 'Intensity']) and (valid or self.openfile_dropdown_value.get()=='Open figure' or self.crop_all_figs.get()):
                 fig.axes[0].set_xlim((int(xylim[0]), int(xylim[1])))
                 fig.axes[0].set_ylim((int(xylim[3]), int(xylim[2])))
         plt.figure(initial_active_num)
