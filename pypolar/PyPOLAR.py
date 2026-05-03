@@ -2628,7 +2628,7 @@ class Polarimetry(CTk.CTk):
             self.ontab_intensity(update=False)
             self.ontab_thrsh(update=False)
 
-    def analyze_stack(self, datastack:DataStack, for_calib:bool=False) -> None:
+    def _analyze_stack(self, datastack:DataStack, for_calib:bool=False) -> None:
         chi2threshold = 500
         shape = (datastack.height, datastack.width)
         roi_map, mask = self.compute_roi_map(datastack)
@@ -2765,29 +2765,27 @@ class Polarimetry(CTk.CTk):
             return result
     
 ## refactoring (not tested yet)
-    def analyze_stack_temp(self, datastack:DataStack, for_calib:bool=False):
+    def analyze_stack(self, datastack:DataStack, for_calib:bool=False):
         roi_map, mask = self.compute_roi_map(datastack)
+        method = self.method.get()
         datastack.dark = float(self.dark.get())
-        datastack.method = self.method.get()
+        datastack.method = method
         field = np.maximum(self.stack.values - (datastack.dark + float(self.removed_intensity)), 0)
-        if self.method.get() == 'CARS':
+        if method == 'CARS':
             field = np.sqrt(field)
-        elif self.method.get().startswith('4POLAR'):
+        elif method.startswith('4POLAR'):
             field[[1, 2]] = field[[2, 1]]
-        if self.method.get() in ['1PF', '4POLAR 2D', '4POLAR 3D']:
+        if method in ['1PF', '4POLAR 2D', '4POLAR 3D']:
             calibration = self.CD
         bin_shape = [int(sb.get()) for sb in self.bin_spinboxes]
-        if any(s > 1 for s in bin_shape):
+        if any(s > 1 for s in bin_shape): 
             field = uniform_filter(field, size=[0, bin_shape[0], bin_shape[1]], mode='reflect')  
         if hasattr(self, 'edge_contours'):
-            edge_contours, datastack.xct, datastack.yct = self.define_edge_contours(datastack, roi_map)
+            edge_contours, datastack.xct, datastack.yct = self.define_rho_ct(self.edge_contours)
         else:
             edge_contours = None
-        datastack = compute_fields(field, datastack, mask, method=self.method.get(), polar_dir=self.polar_dir.get(), offset_angle=float(self.offset_angle.get()), calibration=calibration, edge_contours=edge_contours, reference_angle=float(self.rotation[2].get()), rotation=float(self.rotation[0].get()))
-        if not for_calib:
-            self.plot_data(datastack, roi_map=roi_map)
-            self.save_data(datastack, roi_map=roi_map)
-        else:
+        datastack = compute_fields(field, datastack, mask, method=method, polar_dir=self.polar_dir.get(), offset_angle=float(self.offset_angle.get()), calibration=calibration, edge_contours=edge_contours, reference_angle=float(self.rotation[2].get()), rotation=float(self.rotation[0].get()))
+        if for_calib:
             if self.per_roi.get():
                 result = []
                 for roi in datastack.rois:
@@ -2796,6 +2794,8 @@ class Polarimetry(CTk.CTk):
             else:
                 result = [self.return_vecexcel(datastack, roi_map, roi=[], simplify=True)[0]]
             return result
+        self.plot_data(datastack, roi_map=roi_map)
+        self.save_data(datastack, roi_map=roi_map)
         
 ## refactoring (in progress, not tested yet)
 def compute_fields(field:np.ndarray, datastack:DataStack, mask:np.ndarray, method='1PF', polar_dir:str='clockwise', offset_angle:float=0, calibration=None, edge_contours=None, reference_angle:float=0, rotation:float=0,chi2threshold:float=500) -> None:
@@ -2807,12 +2807,12 @@ def compute_fields(field:np.ndarray, datastack:DataStack, mask:np.ndarray, metho
         e2 = np.exp(2j * np.deg2rad(alpha[:, np.newaxis, np.newaxis]))
         a0 = np.mean(field, axis=0)
         a0[a0 == 0] = np.nan
-        a2 = 2 * np.einsum('aij,a->ij', field, e2) / nangle
+        a2 = 2 * np.mean(field * e2, axis=0)
         field_fit = a0[np.newaxis] + (a2[np.newaxis] * e2.conj()).real
         a2 = divide_ext(a2, a0)
         if method in ['CARS', 'SRS', 'SHG', '2PF']:
             e4 = e2**2
-            a4 = 2 * np.einsum('aij,a->ij', field, e4) / nangle
+            a4 = 2 * np.mean(field * e4, axis=0)
             field_fit += (a4[np.newaxis] * e4.conj()).real
             a4 = divide_ext(a4, a0)
         valid_fit = np.all(field_fit > 0, axis=0) & np.all(np.isfinite(field_fit), axis=0)
