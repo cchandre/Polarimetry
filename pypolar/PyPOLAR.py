@@ -2763,6 +2763,152 @@ class Polarimetry(CTk.CTk):
             else:
                 result = [self.return_vecexcel(datastack, roi_map, roi=[], simplify=True)[0]]
             return result
+    
+## refactoring (not tested yet)
+    def analyze_stack_temp(self, datastack:DataStack, for_calib:bool=False):
+        roi_map, mask = self.compute_roi_map(datastack)
+        datastack.dark = float(self.dark.get())
+        datastack.method = self.method.get()
+        field = np.maximum(self.stack.values - (datastack.dark + float(self.removed_intensity)), 0)
+        if self.method.get() == 'CARS':
+            field = np.sqrt(field)
+        elif self.method.get().startswith('4POLAR'):
+            field[[1, 2]] = field[[2, 1]]
+        if self.method.get() in ['1PF', '4POLAR 2D', '4POLAR 3D']:
+            calibration = self.CD
+        bin_shape = [int(sb.get()) for sb in self.bin_spinboxes]
+        if any(s > 1 for s in bin_shape):
+            field = uniform_filter(field, size=[0, bin_shape[0], bin_shape[1]], mode='reflect')  
+        if hasattr(self, 'edge_contours'):
+            edge_contours, datastack.xct, datastack.yct = self.define_edge_contours(datastack, roi_map)
+        else:
+            edge_contours = None
+        datastack = compute_fields(field, datastack, mask, method=self.method.get(), polar_dir=self.polar_dir.get(), offset_angle=float(self.offset_angle.get()), calibration=calibration, edge_contours=edge_contours, reference_angle=float(self.rotation[2].get()), rotation=float(self.rotation[0].get()))
+        if not for_calib:
+            self.plot_data(datastack, roi_map=roi_map)
+            self.save_data(datastack, roi_map=roi_map)
+        else:
+            if self.per_roi.get():
+                result = []
+                for roi in datastack.rois:
+                    if roi['select']:
+                        result.append(self.return_vecexcel(datastack, roi_map, roi=roi, simplify=True)[0])
+            else:
+                result = [self.return_vecexcel(datastack, roi_map, roi=[], simplify=True)[0]]
+            return result
+        
+## refactoring (in progress, not tested yet)
+def compute_fields(field:np.ndarray, datastack:DataStack, mask:np.ndarray, method='1PF', polar_dir:str='clockwise', offset_angle:float=0, calibration=None, edge_contours=None, reference_angle:float=0, rotation:float=0,chi2threshold:float=500) -> None:
+    shape = (datastack.height, datastack.width)
+    nangle = datastack.nangle
+    if method in ['1PF', 'CARS', 'SRS', 'SHG', '2PF']:
+        polardir = -1 if polar_dir == 'clockwise' else 1
+        alpha = polardir * np.linspace(0, 180, nangle, endpoint=False) + offset_angle
+        e2 = np.exp(2j * np.deg2rad(alpha[:, np.newaxis, np.newaxis]))
+        a0 = np.mean(field, axis=0)
+        a0[a0 == 0] = np.nan
+        a2 = 2 * np.einsum('aij,a->ij', field, e2) / nangle
+        field_fit = a0[np.newaxis] + (a2[np.newaxis] * e2.conj()).real
+        a2 = divide_ext(a2, a0)
+        if method in ['CARS', 'SRS', 'SHG', '2PF']:
+            e4 = e2**2
+            a4 = 2 * np.einsum('aij,a->ij', field, e4) / nangle
+            field_fit += (a4[np.newaxis] * e4.conj()).real
+            a4 = divide_ext(a4, a0)
+        valid_fit = np.all(field_fit > 0, axis=0) & np.all(np.isfinite(field_fit), axis=0)
+        residual_sq = (field - field_fit)**2
+        out_array = np.zeros_like(residual_sq)
+        div_result = np.divide(residual_sq, field_fit, out=out_array, where=field_fit > 0)
+        chi2 = np.mean(div_result, axis=0)
+        mask &= valid_fit & (chi2 <= chi2threshold) & (chi2 > 0)
+    elif method == '4POLAR 3D':
+        mat = np.einsum('ij,jmn->imn', calibration.invKmat, field)
+        s = mat[0] + mat[1] + mat[2]
+        pxy = divide_ext(mat[0] - mat[1], s).reshape(shape)
+        puv = divide_ext(2 * mat[3], s).reshape(shape)
+        pzz = divide_ext(mat[2], s).reshape(shape)
+        lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
+        a0 = np.mean(field, axis=0) / 4
+        a0[a0 == 0] = np.nan
+    elif method == '4POLAR 2D':
+        mat = np.einsum('ij,jmn->imn', calibration.invKmat, field)
+        s = mat[0] + mat[1]
+        pxy = divide_ext(mat[0] - mat[1], s).reshape(shape)
+        puv = divide_ext(2 * mat[2], s).reshape(shape)
+        p2d = np.sqrt(puv**2 + pxy**2)
+        lam = (1 - p2d) / (3 - p2d)
+        a0 = np.mean(field, axis=0) / 4
+        a0[a0 == 0] = np.nan
+    rho_ = Variable('Rho', datastack=datastack)
+    if method == '1PF':
+        a2_vals = np.moveaxis(np.asarray([a2.real[mask].flatten(), a2.imag[mask].flatten()]), 0, -1)
+        rho, psi = np.moveaxis(interpn(calibration.xy, calibration.RhoPsi, a2_vals, bounds_error=False, fill_value=np.nan), 0, 1)
+        ixgrid = mask.nonzero()
+        rho_.values[ixgrid] = rho
+        rho_.values[np.isfinite(rho_.values)] = (rho_.values[np.isfinite(rho_.values)] + rotation) % 180 
+        psi_ = Variable('Psi', datastack=datastack)
+        psi_.values[ixgrid] = psi
+        mask *= np.isfinite(rho_.values) * np.isfinite(psi_.values)
+        datastack.vars = [rho_, psi_]
+    elif method in ['CARS', 'SRS', '2PF']:
+        rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
+        rho_.values[mask] = (rho_.values[mask] + rotation) % 180
+        s2_ = Variable('S2', datastack=datastack)
+        s2_.values[mask] = 1.5 * np.abs(a2[mask])
+        s4_ = Variable('S4', datastack=datastack)
+        s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.values[mask])))
+        datastack.vars = [rho_, s2_, s4_]
+    elif method == 'SHG':
+        rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
+        rho_.values[mask] = (rho_.values[mask] + rotation) % 180
+        s_shg_ = Variable('S_SHG', datastack=datastack)
+        s_shg_.values[mask] = -0.5 * (np.abs(a4[mask]) - np.abs(a2[mask])) / (np.abs(a4[mask]) + np.abs(a2[mask])) - 0.65
+        s2_ = Variable('S2', datastack=datastack)
+        s2_.values[mask] = 1.5 * np.abs(a2[mask])
+        s4_ = Variable('S4', datastack=datastack)
+        s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.values[mask])))
+        datastack.vars = [rho_, s2_, s4_, s_shg_]
+    elif method == '4POLAR 3D':
+        mask *= (lam < 1/3) * (lam > 0) * (pzz > lam)
+        rho_.values[mask] = 0.5 * np.rad2deg(np.arctan2(puv[mask], pxy[mask]))
+        rho_.values[mask] = (rho_.values[mask] + rotation) % 180
+        psi_ = Variable('Psi', datastack=datastack)
+        psi_.values[mask] = 2 * np.rad2deg(np.arccos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
+        eta_ = Variable('Eta', datastack=datastack)
+        eta_.values[mask] = np.rad2deg(np.arccos(np.sqrt((pzz[mask] - lam[mask]) / (1 - 3 * lam[mask]))))
+        datastack.vars = [rho_, psi_, eta_]
+    elif method == '4POLAR 2D':
+        mask *= (lam < 3/8) * (lam > 0)
+        rho_.values[mask] = 0.5 * np.rad2deg(np.arctan2(puv[mask], pxy[mask]))
+        rho_.values[mask] = (rho_.values[mask] + rotation) % 180
+        psi_ = Variable('Psi', datastack=datastack)
+        psi_.values[mask] = 2 * np.rad2deg(np.arccos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
+        datastack.vars = [rho_, psi_]
+    a0[np.logical_not(mask)] = np.nan
+    datastack.intmap = a0
+    datastack.xmap, datastack.ymap = np.meshgrid(np.arange(datastack.width, dtype=np.float64), np.arange(datastack.height, dtype=np.float64))
+    datastack.xmap[np.logical_not(mask)] = np.nan
+    datastack.ymap[np.logical_not(mask)] = np.nan
+    if edge_contours is not None:
+        rho_ct = Variable('Rho_contour', datastack=datastack)
+        filter = np.isfinite(rho_.values) * np.isfinite(edge_contours)
+        rho_ct.values[filter] = (rho_.values[filter] - edge_contours[filter]) % 180
+        datastack.xct[~filter], datastack.yct[~filter] = np.nan, np.nan
+        datastack.vars += [rho_ct]
+        for var in datastack.vars[1:-1]:
+            var_ct = Variable(var.name + '_contour', datastack=datastack)
+            var_ct.values[filter] = var.values[filter]
+            datastack.vars += [var_ct]
+    if reference_angle:
+        rho_a = Variable('Rho_angle', datastack=datastack)
+        rho_a.values = (rho_.values - reference_angle) % 180
+        datastack.vars += [rho_a]
+    if not method.startswith('4POLAR'):
+        field[:, np.logical_not(mask)] = np.nan
+        field_fit[:, np.logical_not(mask)] = np.nan
+        chi2[np.logical_not(mask)] = np.nan
+        datastack.field, datastack.field_fit, datastack.chi2 = field, field_fit, chi2
+    return datastack
 
 if __name__ == '__main__':
     main()
