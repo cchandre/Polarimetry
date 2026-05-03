@@ -947,8 +947,9 @@ class Polarimetry(CTk.CTk):
             path_var.set(folder_path)
     
     def define_rho_ct(self, contours:List[np.ndarray]) -> np.ndarray:
-        rho_ct = np.nan * np.empty_like(self.stack.intensity)
-        x_ct, y_ct = np.nan * np.empty_like(self.stack.intensity), np.nan * np.empty_like(self.stack.intensity)
+        template = np.empty_like(self.stack.intensity)
+        rho_ct = np.nan * template
+        x_ct, y_ct = np.nan * template, np.nan * template
         for contour in contours:
             angle, normal = angle_edge(contour)
             crange = chain(range(-int(self.layer_params[0].get()) - int(self.layer_params[1].get()), -int(self.layer_params[0].get()) + 1), range(int(self.layer_params[0].get()), int(self.layer_params[0].get()) + int(self.layer_params[1].get()) + 1))
