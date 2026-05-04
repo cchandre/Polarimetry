@@ -101,8 +101,10 @@ class Polarimetry(CTk.CTk):
     def setup_macos_menu(self):
         self.menubar = tk.Menu(self)
         self.help_menu = tk.Menu(self.menubar, name='help', tearoff=0)
-        self.menubar.add_cascade(label="Help", menu=self.help_menu)
         self.help_menu.add_command(label="PyPOLAR Help (Wiki)", command=lambda: webbrowser.open(self.url_wiki))
+        self.help_menu.add_separator()
+        self.help_menu.add_command(label="Check for Updates...", command=lambda: webbrowser.open(self.url_fresnel))
+        self.menubar.add_cascade(label="Help", menu=self.help_menu)
         self.config(menu=self.menubar)
 
     def __init__(self) -> None:

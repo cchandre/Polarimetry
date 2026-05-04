@@ -17,7 +17,7 @@ import platform
 import customtkinter
 import darkdetect
 
-__version__ = "2.9.2"
+__version__ = "2.9.3"
 
 block_cipher = None
 
@@ -110,7 +110,8 @@ if sys.platform == 'darwin':
             'NSHumanReadableCopyright': "BSD 2-Clause License\nCopyright © 2021, Cristel Chandre\nAll Rights Reserved",
             'CFBundleName': 'PyPOLAR',
             'CFBundleDisplayName': 'PyPOLAR',
-            'CFBundleGetInfoString': "Polarization Image Analysis",
+            'CFBundleGetInfoString': "PyPOLAR " + __version__ + ": Analysis of polarization-resolved microscopy data",
+            'CFBundleShortVersionString': __version__,
             'CFBundleExecutable': 'PyPOLAR',
             'CFBundlePackageType': 'APPL',
             "LSApplicationCategoryType": "public.app-category.utilities",
