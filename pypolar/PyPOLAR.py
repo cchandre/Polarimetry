@@ -1,4 +1,5 @@
 import customtkinter as CTk
+import tkinter as tk
 from tkinter import Event as tkEvent
 from tkinter import filedialog as fd
 from tkinter import font as tkfont
@@ -75,9 +76,9 @@ plt.rcParams['savefig.dpi'] = 100
 plt.ion()
 
 def main():
-    app = Polarimetry()   
-    app.focus_force()         
-    app.mainloop()
+    self = Polarimetry()   
+    self.focus_force()         
+    self.mainloop()
 
 class Polarimetry(CTk.CTk):
 
@@ -96,6 +97,13 @@ class Polarimetry(CTk.CTk):
     url_pdf = "https://cdn.jsdelivr.net/gh/cchandre/Polarimetry@master/pypolar/PyPOLAR_documentation.pdf"
     url_fresnel = 'https://www.fresnel.fr/polarimetry'
     email = 'cristel.chandre@cnrs.fr'
+
+    def setup_macos_menu(self):
+        self.menubar = tk.Menu(self)
+        self.help_menu = tk.Menu(self.menubar, name='help', tearoff=0)
+        self.menubar.add_cascade(label="Help", menu=self.help_menu)
+        self.help_menu.add_command(label="PyPOLAR Help (Wiki)", command=lambda: webbrowser.open(self.url_wiki))
+        self.config(menu=self.menubar)
 
     def __init__(self) -> None:
         super().__init__()
@@ -162,28 +170,28 @@ class Polarimetry(CTk.CTk):
                     mime_xml = MIME_DIR / f"{MIME.replace('/', '-')}.xml"
                     with mime_xml.open("w") as f:
                         f.write(f"""<?xml version="1.0" encoding="UTF-8"?>
-            <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
-            <mime-type type="{MIME}">
-                <comment>{APP_NAME} File</comment>
-                <glob pattern="*{EXT}"/>
-            </mime-type>
-            </mime-info>
-            """)
+                                <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+                                <mime-type type="{MIME}">
+                                    <comment>{APP_NAME} File</comment>
+                                    <glob pattern="*{EXT}"/>
+                                </mime-type>
+                                </mime-info>""")
                 APPLICATIONS_DIR.mkdir(parents=True, exist_ok=True)
                 desktop_file = APPLICATIONS_DIR / DESKTOP_FILE_NAME
                 with desktop_file.open("w") as f:
                     f.write(f"""[Desktop Entry]
-            Name={APP_NAME}
-            Exec=/usr/bin/{APP_NAME.lower()} %f
-            MimeType={';'.join(TYPES)};
-            Icon={ICONS[0]}
-            Type=Application
-            Categories=Utility;
-            """)
+                            Name={APP_NAME}
+                            Exec=/usr/bin/{APP_NAME.lower()} %f
+                            MimeType={';'.join(TYPES)};
+                            Icon={ICONS[0]}
+                            Type=Application
+                            Categories=Utility;""")
                 os.system("update-mime-database ~/.local/share/mime > /dev/null 2>&1")
                 os.system("update-desktop-database ~/.local/share/applications > /dev/null 2>&1")
             except Exception:
                 pass
+        elif os_name == 'Darwin':
+             self.setup_macos_menu()
 
 ## DEFINE FRAMES
         left_frame = CTk.CTkScrollableFrame(master=self, corner_radius=0, fg_color=gray[0], scrollbar_button_color=gray[0], scrollbar_button_hover_color=gray[0])

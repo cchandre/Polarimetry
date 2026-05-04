@@ -108,7 +108,11 @@ if sys.platform == 'darwin':
             'NSPrincipalClass': 'NSApplication',
             'NSAppleScriptEnabled': False,
             'NSHumanReadableCopyright': "BSD 2-Clause License\nCopyright © 2021, Cristel Chandre\nAll Rights Reserved",
-            "CFBundlePackageType": "APPL",
+            'CFBundleName': 'PyPOLAR',
+            'CFBundleDisplayName': 'PyPOLAR',
+            'CFBundleGetInfoString': "Polarization Image Analysis",
+            'CFBundleExecutable': 'PyPOLAR',
+            'CFBundlePackageType': 'APPL',
             "LSApplicationCategoryType": "public.app-category.utilities",
             "CFBundleDevelopmentRegion": "English",
             "UTExportedTypeDeclarations": [
