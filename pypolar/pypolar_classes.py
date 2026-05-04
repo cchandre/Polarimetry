@@ -267,7 +267,7 @@ class Stack:
     
     def get_intensity(self, dark: float = 0.0, bin: List[int] = [1, 1]) -> np.ndarray:
         intensity = np.sum(np.maximum(self.values.astype(float) - dark, 0), axis=0)
-        if bin[0] <= 1 and bin[1] <= 1:
+        if all(s == 1 for s in bin):
             return intensity
         return uniform_filter(intensity, size=bin, mode='reflect')
     

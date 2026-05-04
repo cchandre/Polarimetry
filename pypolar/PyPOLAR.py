@@ -82,7 +82,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.3'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 29, 2026', '2.9.3': 'May 1, 2026'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 29, 2026', '2.9.3': 'May 4, 2026'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -2322,14 +2322,14 @@ class Polarimetry(CTk.CTk):
         step_y = int(self.pixelsperstick_spinboxes[1].get())
         step_x = int(self.pixelsperstick_spinboxes[0].get())
         user_rotation = float(self.rotation[1].get())
-        rho_ = datastack.vars[0].values[::step_y, ::step_x]
-        data_ = var.values[::step_y, ::step_x]
+        rho_grid = datastack.vars[0].values[::step_y, ::step_x]
+        data_grid = var.values[::step_y, ::step_x]
         Y, X = np.mgrid[:datastack.height:step_y, :datastack.width:step_x]
-        mask = np.isfinite(data_)
+        mask = np.isfinite(data_grid)
         X, Y = X[mask], Y[mask]
-        data_, rho_ = data_[mask], rho_[mask]
-        stick_colors = np.mod(2 * (data_ + user_rotation), 360) / 2 if var.name in ['Rho', 'Rho_angle'] else data_
-        angle_rad = np.deg2rad(rho_)
+        data_vals, rho_vals = data_grid[mask], rho_grid[mask]
+        stick_colors = (data_vals + user_rotation) % 180 if var.name in ['Rho', 'Rho_angle'] else data_vals
+        angle_rad = np.deg2rad(rho_vals)
         cosd, sind = np.cos(angle_rad), np.sin(angle_rad)
         dx = np.array([l*cosd + w*sind, -l*cosd + w*sind, -l*cosd - w*sind, l*cosd - w*sind])
         dy = np.array([-l*sind + w*cosd, l*sind + w*cosd, l*sind - w*cosd, -l*sind - w*cosd])
@@ -2339,11 +2339,10 @@ class Polarimetry(CTk.CTk):
         if user_rotation != 0:
             theta = np.deg2rad(user_rotation)
             cosd, sind = np.cos(theta), np.sin(theta)
+            R_global = np.array([[cosd, sind], [-sind, cosd]])
             x0, y0 = self.stack.width / 2, self.stack.height / 2
-            tx = vertices[..., 0] - x0
-            ty = vertices[..., 1] - y0
-            vertices[..., 0] = x0 + tx * cosd + ty * sind
-            vertices[..., 1] = y0 - tx * sind + ty * cosd
+            center = np.array([x0, y0])
+            vertices = (vertices - center) @ R_global.T + center
         cmap_idx = int(self.colorblind_checkbox.get())
         return PolyCollection(vertices, cmap=var.colormap[cmap_idx], lw=2, array=stick_colors)
 
@@ -2366,14 +2365,16 @@ class Polarimetry(CTk.CTk):
             intensity_data = datastack.intensity
             fmt = datastack.display.format
             w_limit, h_limit = datastack.width, datastack.height
+            symbol = '\u00B0' if var.name.startswith('Rho') or var.name.startswith('Psi') or var.name.startswith('Eta') else ''
+            fmt_var = var.display_style.format
+            var_name, vals = var.unicode, var.values
             def format_coords(x, y):
                 ix, iy = int(x + 0.5), int(y + 0.5)
                 if 0 <= ix < w_limit and 0 <= iy < h_limit:
                     intensity = intensity_data[iy, ix]
-                    stick_val = var.values[iy, ix]
+                    stick_val = vals[iy, ix]
                     if np.isfinite(stick_val):
-                        symbol = '\u00B0' if var.name.startswith('Rho') or var.name.startswith('Psi') or var.name.startswith('Eta') else ''
-                        res = f'(x={ix}, y={iy})\n  {var.unicode}={var.display_style.format(stick_val)}{symbol}  |  I={fmt(intensity)}'
+                        res = f'(x={ix}, y={iy})\n  {var_name}={fmt_var(stick_val)}{symbol}  |  I={fmt(intensity)}'
                     else:
                         res = f'(x={ix}, y={iy})\n I={fmt(intensity)}'
                     return res
@@ -2402,25 +2403,30 @@ class Polarimetry(CTk.CTk):
             p = datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             self.add_patches(datastack, ax, fig.canvas)
             p.format_cursor_data = lambda _: ""
+            w_limit, h_limit = datastack.width, datastack.height
+            intensity_data = datastack.intensity
+            fmt = datastack.display.format
             def format_coords(x, y):
-                x, y = int(round(x)), int(round(y))
-                if 0 <= x < datastack.width and 0 <= y < datastack.height:
-                    intensity = datastack.intensity[y, x]
-                    return f'(x={x}, y={y})\n I={datastack.display.format(intensity)}'
+                x, y = int(x + 0.5), int(y + 0.5)
+                if 0 <= x < w_limit and 0 <= y < h_limit:
+                    intensity = intensity_data[y, x]
+                    return f'(x={x}, y={y})\n I={fmt(intensity)}'
                 else:
                     return f'(x={x}, y={y})'
             ax.format_coord = format_coords
             if hasattr(self, 'edge_contours'):
+                cmap = m_colorwheel if self.colorblind_checkbox.get() else 'hsv'
+                rotation_angle = float(self.rotation[1].get())
+                x0, y0 = self.stack.width / 2, self.stack.height / 2
+                theta = np.deg2rad(rotation_angle)
+                cosd, sind = np.cos(theta), np.sin(theta)
+                R = np.array([[cosd, sind], [-sind, cosd]])
+                center = np.array([x0, y0])
                 for contour in self.edge_contours:
-                    angles = np.mod(2 * angle_edge(contour)[0], 360) / 2
-                    cmap = m_colorwheel if self.colorblind_checkbox.get() else 'hsv'
-                    if float(self.rotation[1].get()) != 0:
-                        angles = np.mod(2 * (angles + float(self.rotation[1].get())), 360) / 2
-                        theta = np.deg2rad(float(self.rotation[1].get()))
-                        cosd, sind = np.cos(theta), np.sin(theta)
-                        x0, y0 = self.stack.width / 2, self.stack.height / 2
-                        contour = np.asarray([x0 + (contour[:, 0] - x0) * cosd + (contour[:, 1] - y0) * sind, y0 - (contour[:, 0] - x0) * sind + (contour[:, 1] - y0) * cosd])
-                        contour = np.swapaxes(contour, 0, 1)
+                    angles = angle_edge(contour)[0] % 180
+                    if rotation_angle:
+                        angles = (angles + rotation_angle) % 180
+                        contour = (contour - center) @ R.T + center
                     p = ax.scatter(contour[:, 0], contour[:, 1], c=angles, cmap=cmap, s=4, vmin=0, vmax=180)
             if self.colorbar_checkbox.get():
                 ax_divider = make_axes_locatable(ax)
@@ -2800,7 +2806,7 @@ def compute_fields(field:np.ndarray, datastack:DataStack, mask:np.ndarray, metho
     yy, xx = np.indices(a0.shape, dtype=float)
     xx[~mask], yy[~mask] = np.nan, np.nan
     datastack.xmap, datastack.ymap = xx, yy
-    if edge_contours:
+    if edge_contours is not None:
         rho_ct = Variable('Rho_contour', datastack=datastack)
         filter = np.isfinite(rho_.values) & np.isfinite(edge_contours)
         rho_ct.values[filter] = (rho_.values[filter] - edge_contours[filter]) % 180
