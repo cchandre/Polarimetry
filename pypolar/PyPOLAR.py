@@ -2098,21 +2098,39 @@ class Polarimetry(CTk.CTk):
 
     def plot_histo(self, var:Variable, datastack:DataStack, roi_map:np.ndarray, roi:ROI=None) -> None:
         display, vmin, vmax = self.get_variable(var.indx)
-        if display and (self.show_table[2].get() or self.save_table[2].get()):
-            for htype in var.type_histo:
-                fig = plt.figure(figsize=self.figsize)
+        show_ui = self.show_table[2].get()
+        save_to_disk = self.save_table[2].get()
+        if not (display and (show_ui or save_to_disk)):
+            return
+        for htype in var.type_histo:
+            fig = plt.figure(figsize=self.figsize)
+            try:
                 fig.type, fig.var = 'Histogram', var.name
                 suffix = 'for ROI ' + str(roi['indx']) if roi is not None else ''
                 fig.canvas.manager.set_window_title(var.name + ' Histogram ' + suffix + ': ' + self.datastack.stem)
                 mask = (roi_map == roi['indx']) if roi is not None else (roi_map == 1)
                 var.histo(mask, htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))
-                fig.axes[0].tick_params(labelcolor='k' if self.add_axes_checkbox.get() else 'w')
-                if self.save_table[2].get():
+                ax= fig.axes[0]
+                ax.tick_params(labelcolor='k' if self.add_axes_checkbox.get() else 'w')
+                bins = [p for p in ax.patches if isinstance(p, plt.Rectangle)]
+                symbol = '\u00B0' if var.name.startswith('Rho') or var.name.startswith('Psi') or var.name.startswith('Eta') else ''
+                def format_coords(x, y):
+                    for b in bins:
+                        x0 = b.get_x()
+                        x1 = x0 + b.get_width()
+                        if x0 <= x <= x1:
+                            x_val = float(var.display_style.format(np.rad2deg(x0) if htype.startswith('polar') else x0))
+                            height = b.get_height()
+                            return f"{var.unicode}={x_val}{symbol}   |   Count={int(height)}"
+                    return f"{var.unicode}={x_val}{symbol}"
+                ax.format_coord = format_coords
+                if save_to_disk:
                     suffix = '_perROI_' + str(roi['indx']) if roi is not None else ''
                     histo = '(0-90)' if htype == 'polar3' else ''
                     file = datastack.file.with_name(datastack.stem + '_Histo' + histo + var.name + suffix + self.figure_extension.get())
                     self.save_fig(fig, file)
-                if not self.show_table[2].get():
+            finally:
+                if not show_ui:
                     plt.close(fig)
 
     def plot_histos(self, var:Variable, datastack:DataStack, roi_map:np.ndarray=None) -> None:
@@ -2146,7 +2164,6 @@ class Polarimetry(CTk.CTk):
                     dict_.update({var: data[var]})
                 file = folder / (folder.stem + '_ConcatHisto.mat')
                 savemat(str(file), dict_)
-            #vars.remove('Int')
             for var in vars:
                 var_ = Variable(var, values=data[var])
                 display, vmin, vmax = self.get_variable(var_.indx)
@@ -2171,48 +2188,66 @@ class Polarimetry(CTk.CTk):
         ax.imshow(field, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
 
     def add_patches(self, datastack:DataStack, ax:plt.Axes, canvas:Union[FigureCanvasBase, FigureCanvasTkAgg], rotation:bool=True) -> None:
-        if len(datastack.rois):
-            for roi in datastack.rois:
-                if roi['select']:
-                    vertices = roi['vertices']
-                    coord = roi['label'][0], roi['label'][1]
-                    if (float(self.rotation[1].get()) != 0) and rotation:
-                        theta = np.deg2rad(float(self.rotation[1].get()))
-                        cosd, sind = np.cos(theta), np.sin(theta)
-                        x0, y0 = datastack.width / 2, datastack.height / 2
-                        coord = x0 + (coord[0] - x0) * cosd + (coord[1] - y0) * sind, y0 - (coord[0] - x0) * sind + (coord[1] - y0) * cosd
-                        vertices = np.asarray([x0 + (vertices[0] - x0) * cosd + (vertices[1] - y0) * sind, y0 - (vertices[0] - x0) * sind + (vertices[1] - y0) * cosd])
-                    ax.add_patch(Polygon(vertices.T, facecolor='none', edgecolor='white'))
-                    ax.text(coord[0], coord[1], str(roi['indx']), color='w')
-            canvas.draw()
+        selected_rois = [r for r in datastack.rois if r.get('select')]
+        if not selected_rois:
+            return
+        angle_deg = float(self.rotation[1].get())
+        do_rotate = rotation and (angle_deg != 0)
+        if do_rotate:
+            theta = np.deg2rad(angle_deg)
+            cosd, sind = np.cos(theta), np.sin(theta)
+            x0, y0 = datastack.width / 2, datastack.height / 2
+            R = np.array([[cosd, sind], [-sind, cosd]])
+        for roi in selected_rois:
+            vertices = roi['vertices']
+            label_pos = np.array(roi['label'])
+            if do_rotate:
+                vertices = (R @ (vertices.T - [x0, y0]).T).T + [x0, y0]
+                label_pos = R @ (label_pos - [x0, y0]) + [x0, y0]
+            else:
+                vertices = vertices.T
+            ax.add_patch(Polygon(vertices, facecolor='none', edgecolor='white'))
+            ax.text(label_pos[0], label_pos[1], str(roi['indx']), color='w', ha='center', va='center', fontweight='bold')
+            canvas.draw_idle()
 
     def plot_composite(self, var:Variable, datastack:DataStack) -> None:
-        display, vmin, vmax = self.get_variable(var.indx)
-        if display and (self.show_table[0].get() or self.save_table[0].get()):
-            fig, ax = plt.subplots(figsize=self.figsize)
+        display_flag, vmin, vmax = self.get_variable(var.indx)
+        show_ui = self.show_table[0].get()
+        save_to_disk = self.save_table[0].get()
+        if not (display_flag and (show_ui or save_to_disk)):
+            return
+        fig, ax = plt.subplots(figsize=self.figsize)
+        try:
             fig.type, fig.var, fig.width, fig.height = 'Composite', var.name, datastack.width, datastack.height
             fig.canvas.manager.set_window_title(f'{var.name} Composite: {datastack.stem}')
-            ax.axis('on' if self.add_axes_checkbox.get() else 'off')
+            ax.set_axis_on() if self.add_axes_checkbox.get() else ax.set_axis_off()
             datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             h = var.imshow(vmin, vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()))
             h.format_cursor_data = lambda _: ""
+            intensity_data = datastack.intensity
+            fmt = datastack.display.format
+            w_limit, h_limit = datastack.width, datastack.height
+            symbol = '\u00B0' if var.name.startswith('Rho') or var.name.startswith('Psi') or var.name.startswith('Eta') else ''
             def format_coords(x, y):
-                x, y = int(round(x)), int(round(y))
-                if 0 <= x < datastack.width and 0 <= y < datastack.height:
-                    intensity = datastack.intensity[y, x]
-                    if var.name.startswith('Rho') or var.name.startswith('Psi') or var.name.startswith('Eta'):
-                        symbol='\u00B0'
+                ix, iy = int(x + 0.5), int(y + 0.5)
+                if 0 <= ix < w_limit and 0 <= iy < h_limit:
+                    intensity = intensity_data[iy, ix]
+                    stick_val = var.values[iy, ix]
+
+                    if np.isfinite(stick_val):
+                        res = f'(x={ix}, y={iy})\n  {var.unicode}={var.display_style.format(stick_val)}{symbol}  |  I={fmt(intensity)}'
                     else:
-                        symbol=''
-                    return f'(x={x}, y={y})\n {var.unicode}={var.display_style.format(var.values[y, x])}{symbol}, I={datastack.display.format(intensity)}'
+                        res = f'(x={ix}, y={iy})\n I={fmt(intensity)}'
+                    return res
                 else:
-                    return f'(x={x}, y={y})'
+                    return f'(x={ix}, y={iy})'
             ax.format_coord = format_coords
+            h.set_picker(False)
             if self.colorbar_checkbox.get():
                 ax_divider = make_axes_locatable(ax)
                 cax = ax_divider.append_axes('right', size='7%', pad='2%')
                 fig.colorbar(h, cax=cax)
-            if self.save_table[0].get():
+            if save_to_disk:
                 if self.figure_extension.get() == '.tif (ImageJ)':
                     file = datastack.file.with_name(f"{datastack.stem}_{var.name}Composite_ImageJ.tif")
                     cmap1 = plt.get_cmap('gray')
@@ -2225,7 +2260,8 @@ class Polarimetry(CTk.CTk):
                 else:
                     file = datastack.file.with_name(f"{datastack.stem}_{var.name}Composite{self.figure_extension.get()}")
                     self.save_fig(fig, file)
-            if not self.show_table[0].get():
+        finally:
+            if not show_ui:
                 plt.close(fig)
 
     def individual_fit_button_press_callback(self, event:MouseEvent, hlines:mpl.lines.Line2D, ax:plt.Axes, canvas:FigureCanvasBase) -> None:
@@ -2312,34 +2348,49 @@ class Polarimetry(CTk.CTk):
         return PolyCollection(vertices, cmap=var.colormap[cmap_idx], lw=2, array=stick_colors)
 
     def plot_sticks(self, var:Variable, datastack:DataStack) -> None:
-        display, vmin, vmax = self.get_variable(var.indx)
-        if display and (self.show_table[1].get() or self.save_table[1].get()):
-            fig, ax = plt.subplots(figsize=self.figsize)
+        display_flag, vmin, vmax = self.get_variable(var.indx)
+        show_ui = self.show_table[1].get()
+        save_to_disk = self.save_table[1].get()
+        if not (display_flag and (show_ui or save_to_disk)):
+            return
+        fig, ax = plt.subplots(figsize=self.figsize)
+        try:
             fig.type, fig.var, fig.width, fig.height = 'Sticks', var.name, datastack.width, datastack.height
             fig.canvas.manager.set_window_title(f"{var.name} Sticks: {datastack.stem}")
-            ax.axis('on' if self.add_axes_checkbox.get() else 'off')
+            ax.set_axis_on() if self.add_axes_checkbox.get() else ax.set_axis_off()
             h = datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             p = self.get_sticks(var, datastack)
             p.set_clim([vmin, vmax])
             ax.add_collection(p)
             h.format_cursor_data = lambda _: ""
+            intensity_data = datastack.intensity
+            fmt = datastack.display.format
+            w_limit, h_limit = datastack.width, datastack.height
             def format_coords(x, y):
-                x, y = int(round(x)), int(round(y))
-                if 0 <= x < datastack.width and 0 <= y < datastack.height:
-                    intensity = datastack.intensity[y, x]
-                    return f'(x={x}, y={y})\n I={datastack.display.format(intensity)}'
+                ix, iy = int(x + 0.5), int(y + 0.5)
+                if 0 <= ix < w_limit and 0 <= iy < h_limit:
+                    intensity = intensity_data[iy, ix]
+                    stick_val = var.values[iy, ix]
+                    if np.isfinite(stick_val):
+                        symbol = '\u00B0' if var.name.startswith('Rho') or var.name.startswith('Psi') or var.name.startswith('Eta') else ''
+                        res = f'(x={ix}, y={iy})\n  {var.unicode}={var.display_style.format(stick_val)}{symbol}  |  I={fmt(intensity)}'
+                    else:
+                        res = f'(x={ix}, y={iy})\n I={fmt(intensity)}'
+                    return res
                 else:
-                    return f'(x={x}, y={y})'
+                    return f'(x={ix}, y={iy})'
             ax.format_coord = format_coords
+            h.set_picker(False)
             if self.colorbar_checkbox.get():
                 ax_divider = make_axes_locatable(ax)
                 cax = ax_divider.append_axes('right', size='7%', pad='2%')
                 fig.colorbar(p, cax=cax)
-            if self.save_table[1].get():
+            if save_to_disk:
                 ext = self.figure_extension.get()
                 file = datastack.file.with_name(f"{datastack.stem}_{var.name}_Sticks{ext}")
                 self.save_fig(fig, file)
-            if not self.show_table[1].get():
+        finally:
+            if not show_ui:
                 plt.close(fig)
 
     def plot_intensity(self, datastack:DataStack) -> None:
@@ -2476,7 +2527,7 @@ class Polarimetry(CTk.CTk):
         mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
         ilow = float(roi['ILow']) if roi else float(self.ilow.get())
         rho = datastack.vars[0].values
-        data_vals = np.mod(2 * (rho[mask * np.isfinite(rho)] + float(self.rotation[1].get())), 360) / 2
+        data_vals = np.mod(2 * (rho[mask & np.isfinite(rho)] + float(self.rotation[1].get())), 360) / 2
         n = data_vals.size
         meandata = circularmean(data_vals)
         deltarho = wrapto180(2 * (data_vals - meandata)) / 2
@@ -2487,7 +2538,7 @@ class Polarimetry(CTk.CTk):
             results = [self.stack.stem, 1, meandata, np.std(deltarho)] if simplify else [self.stack.stem, 'all', '', '', '', meandata, np.std(deltarho), np.mean(deltarho)]
         for var in datastack.vars[1:]:
             if var.name not in ['Rho_contour', 'Rho_angle']:
-                data_vals = var.values[mask * np.isfinite(rho)]
+                data_vals = var.values[mask & np.isfinite(rho)]
                 meandata = np.mean(data_vals)
                 title += ['Mean' + var.name, 'Std' + var.name]
                 results += [meandata, np.std(data_vals)]
@@ -2500,15 +2551,15 @@ class Polarimetry(CTk.CTk):
                     rho_180 = datastack.get_var('Rho_angle').values
                 rho_90 = rho_180.copy()
                 rho_90[rho_90 >= 90] = 180 - rho_90[rho_90 >= 90]
-                data_vals = rho_180[mask * np.isfinite(rho) * np.isfinite(rho_180)]
+                data_vals = rho_180[mask & np.isfinite(rho) & np.isfinite(rho_180)]
                 meandata = circularmean(data_vals)
                 deltarho = wrapto180(2 * (data_vals - meandata)) / 2
                 results += [meandata, np.std(deltarho), np.mean(deltarho)]
-                data_vals = rho_90[mask * np.isfinite(rho) * np.isfinite(rho_90)]
+                data_vals = rho_90[mask & np.isfinite(rho) & np.isfinite(rho_90)]
                 meandata = circularmean(data_vals)
                 deltarho = wrapto180(2 * (data_vals - meandata)) / 2
                 results += [meandata, np.std(deltarho), np.mean(deltarho)]
-        data_vals = datastack.intmap[mask * np.isfinite(rho)]
+        data_vals = datastack.intmap[mask & np.isfinite(rho)]
         meandata, stddata = np.mean(data_vals), np.std(data_vals)
         title += ['MeanInt', 'StdInt', 'ILow', 'N'] if simplify else ['MeanInt', 'StdInt', 'TotalInt', 'ILow', 'N']
         results += [meandata, stddata, ilow, n] if simplify else [meandata, stddata, meandata * self.stack.nangle, ilow, n]
@@ -2532,10 +2583,10 @@ class Polarimetry(CTk.CTk):
             header = f"{self.method.get()}, file: {str(datastack.file)}, date: {date.today().strftime('%B %d %Y')}"
             list_vars, list_ct_vars = ["X" , "Y"], ["X_ct", "Y_ct"]
             filter = mask & np.isfinite(datastack.vars[0].values)
-            data_vars = [self.format_excel_results(datastack.xmap[filter].astype(int)), self.format_excel_results(datastack.ymap[filter].astype(int))]
+            data_vars = [self.format_excel_results(datastack.xmap[filter].astype(np.uint16)), self.format_excel_results(datastack.ymap[filter].astype(np.int16))]
             if hasattr(self, 'edge_contours'):
                 filter = mask & np.isfinite(datastack.get_var('Rho_contour').values)
-                data_ct_vars = np.column_stack((datastack.xct[filter].flatten(), datastack.yct[filter].flatten()))
+                data_ct_vars = [self.format_excel_results(datastack.xct[filter].astype(np.uint16)), self.format_excel_results(datastack.yct[filter].astype(np.int16))]
             for var in datastack.vars:
                 data = var.values[filter]
                 if '_contour' in var.name:
@@ -2578,23 +2629,23 @@ class Polarimetry(CTk.CTk):
         shape = (datastack.height, datastack.width)
         roi_map = np.zeros(shape, dtype=np.int32)
         roi_ilow_map = np.zeros(shape, dtype=np.float64)
-        if len(datastack.rois) > 0:
-            selected_rois = [r for r in datastack.rois if r['select']]
-            if selected_rois:
-                for roi in selected_rois:
-                    temp_mask = np.zeros(shape, dtype=np.uint8)
-                    verts = np.array([roi['vertices'].T], dtype=np.int32)
-                    cv2.fillPoly(temp_mask, verts, 1)
-                    idx_value = roi['indx'] if self.per_roi.get() else 1
-                    roi_map[temp_mask == 1] = idx_value
-                    roi_ilow_map[temp_mask == 1] = float(roi['ILow'])
-            else:
-                roi_map.fill(1)
-                roi_ilow_map.fill(float(self.ilow.get()))
+        selected_rois = [r for r in datastack.rois if r.get('select')]
+        if selected_rois:
+            per_roi_enabled = self.per_roi.get() 
+            temp_mask = np.zeros(shape, dtype=np.uint8)
+            for roi in selected_rois:
+                verts = np.array([roi['vertices'].T], dtype=np.int32)
+                temp_mask.fill(0)
+                cv2.fillPoly(temp_mask, verts, 1)
+                mask_bool = (temp_mask == 1)
+                idx_value = roi['indx'] if per_roi_enabled else 1
+                roi_map[mask_bool] = idx_value
+                roi_ilow_map[mask_bool] = float(roi['ILow'])
         else:
             roi_map.fill(1)
             roi_ilow_map.fill(float(self.ilow.get()))
-            self.per_roi.deselect()
+            if not datastack.rois:
+                self.per_roi.deselect()
         base_mask = self.get_mask(datastack)
         roi_mask = (base_mask != 0) & (datastack.intensity >= roi_ilow_map) & (roi_map > 0)
         return roi_map, roi_mask
@@ -2672,10 +2723,9 @@ class Polarimetry(CTk.CTk):
         self.save_data(datastack, roi_map=roi_map)
         
 def compute_fields(field:np.ndarray, datastack:DataStack, mask:np.ndarray, method:str='1PF', polar_dir:str='clockwise', offset_angle:float=0, calibration=None, edge_contours=None, reference_angle:float=0, rotation:float=0, for_calib:bool=False, chi2threshold:float=500) -> None:
-    shape = (datastack.height, datastack.width)
-    nangle = datastack.nangle
     if method in ['1PF', 'CARS', 'SRS', 'SHG', '2PF']:
         polardir = -1 if polar_dir == 'clockwise' else 1
+        nangle = datastack.nangle
         alpha = polardir * np.linspace(0, 180, nangle, endpoint=False) + offset_angle
         e2 = np.exp(2j * np.deg2rad(alpha))
         a0 = np.mean(field, axis=0)
@@ -2706,6 +2756,7 @@ def compute_fields(field:np.ndarray, datastack:DataStack, mask:np.ndarray, metho
             lam = (1 - p2d) / (3 - p2d)
         a0 = np.mean(field, axis=0) / 4
         a0 = np.where(a0 == 0, np.nan, a0)
+
     rho_ = Variable('Rho', datastack=datastack)
     if method == '1PF':
         coords = a2[mask].view(float).reshape(-1, 2)
@@ -2749,20 +2800,20 @@ def compute_fields(field:np.ndarray, datastack:DataStack, mask:np.ndarray, metho
     yy, xx = np.indices(a0.shape, dtype=float)
     xx[~mask], yy[~mask] = np.nan, np.nan
     datastack.xmap, datastack.ymap = xx, yy
-    if edge_contours is not None:
+    if edge_contours:
         rho_ct = Variable('Rho_contour', datastack=datastack)
         filter = np.isfinite(rho_.values) & np.isfinite(edge_contours)
         rho_ct.values[filter] = (rho_.values[filter] - edge_contours[filter]) % 180
         datastack.xct[~filter], datastack.yct[~filter] = np.nan, np.nan
-        datastack.vars += [rho_ct]
+        datastack.vars.append(rho_ct)
         for var in datastack.vars[1:-1]:
             var_ct = Variable(var.name + '_contour', datastack=datastack)
             var_ct.values[filter] = var.values[filter]
-            datastack.vars += [var_ct]
+            datastack.vars.append(var_ct)
     if reference_angle:
         rho_a = Variable('Rho_angle', datastack=datastack)
         rho_a.values = (rho_.values - reference_angle) % 180
-        datastack.vars += [rho_a]
+        datastack.vars.append(rho_a)
     if not method.startswith('4POLAR'):
         field[:, ~mask] = np.nan
         field_fit[:, ~mask] = np.nan
