@@ -667,6 +667,7 @@ class Polarimetry(CTk.CTk):
     
     def calibration_procedure_callback(self) -> None:
         self.calib_window = CTk.CTkToplevel(self)
+        self.calib_window.focus_force()
         self.calib_window.title('Calibration for 1PF')
         self.calib_window.geometry(geometry_info((600, 250)))
         self.calib_window.protocol('WM_DELETE_WINDOW', self.calib_on_closing)
