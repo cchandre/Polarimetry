@@ -57,11 +57,11 @@ def angle_edge(edge:np.ndarray) -> Tuple[float, np.ndarray]:
 def circularmean(rho:np.ndarray) -> float:
     return np.mod(np.angle(np.mean(np.exp(2j * np.deg2rad(rho))), deg=True), 360) / 2
 
-def divide_ext(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    result = np.full_like(a, np.nan, dtype=np.result_type(a, b))
-    mask = (b != 0) & np.isfinite(b)
-    result[mask] = np.divide(a[mask], b[mask])
-    return result
+def divide_ext(a:np.ndarray, b:np.ndarray) -> np.ndarray:
+    with np.errstate(divide='ignore', invalid='ignore'):
+        res = a / b
+    res[~np.isfinite(res)] = np.nan
+    return res
 
 def find_matches(a: np.ndarray, b: np.ndarray, tol: float = 10) -> Tuple[np.ndarray, np.ndarray]:
     cost = np.linalg.norm(a[:, np.newaxis, :] - b[np.newaxis, :, :], axis=2)
@@ -418,19 +418,7 @@ class ROI:
 
 class Calibration:
     dict_1pf = {
-        'no distortions': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 0], 
-        '488 nm (no distortions)': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 175], 
-        '561 nm (no distortions)': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 120], 
-        '640 nm (no distortions)': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 125], 
-        '488 nm (16/03/2020 - 12/04/2022)': ['Disk_Ga0_Pa20_Ta45_Gb-0.1_Pb0_Tb0_Gc-0.1_Pc0_Tc0', 0],
-        '561 nm (16/03/2020 - 12/04/2022)': ['Disk_Ga-0.2_Pa0_Ta0_Gb0.1_Pb0_Tb0_Gc-0.2_Pc0_Tc0', 0], 
-        '640 nm (16/03/2020 - 12/04/2022)': ['Disk_Ga-0.2_Pa0_Ta45_Gb0.1_Pb0_Tb45_Gc-0.1_Pc0_Tc0', 0], 
-        '488 nm (13/12/2019 - 15/03/2020)': ['Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb20_Tb45_Gc-0.2_Pc0_Tc0', 0], 
-        '561 nm (13/12/2019 - 15/03/2020)': ['Disk_Ga-0.2_Pa0_Ta0_Gb0.2_Pb20_Tb0_Gc-0.2_Pc0_Tc0', 0], 
-        '640 nm (13/12/2019 - 15/03/2020)': ['Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0', 0], 
-        '488 nm (before 13/12/2019)': ['Disk_Ga-0.1_Pa20_Ta0_Gb-0.1_Pb10_Tb45_Gc0.1_Pc0_Tc0', 0], 
-        '561 nm (before 13/12/2019)': ['Disk_Ga0.1_Pa0_Ta45_Gb-0.1_Pb20_Tb0_Gc-0.1_Pc0_Tc0', 0], 
-        '640 nm (before 13/12/2019)': ['Disk_Ga-0.1_Pa10_Ta0_Gb0.1_Pb30_Tb0_Gc0.2_Pc0_Tc0', 0], 
+        'no distortions': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 0],  
         'other': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 0]}
     folder_1pf = Path(__file__).parent / 'diskcones'
 

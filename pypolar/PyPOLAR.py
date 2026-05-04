@@ -730,7 +730,7 @@ class Polarimetry(CTk.CTk):
                 self._status_entry.write(f"ERROR: Mask or ROI missing for '{s_path.stem}'")
         self.maskfolder = stack_dir
         self.calib_window.update()
-        dark_value = self.dark.get()
+        dark_value = float(self.dark.get())
         results = []
         for i, disk_path in enumerate(disklist):
             self.CD = Calibration(method='1PF')
@@ -2530,39 +2530,45 @@ class Polarimetry(CTk.CTk):
         if self.extension_table[0].get():
             mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
             header = f"{self.method.get()}, file: {str(datastack.file)}, date: {date.today().strftime('%B %d %Y')}"
-            list_vars, list_ct_vars = "X,Y,", "X_ct,Y_ct,"
-            filter = mask * np.isfinite(datastack.vars[0].values)
-            data_vars = np.column_stack((datastack.xmap[filter].flatten(), datastack.ymap[filter].flatten()))
+            list_vars, list_ct_vars = ["X" , "Y"], ["X_ct", "Y_ct"]
+            filter = mask & np.isfinite(datastack.vars[0].values)
+            data_vars = [self.format_excel_results(datastack.xmap[filter].astype(int)), self.format_excel_results(datastack.ymap[filter].astype(int))]
             if hasattr(self, 'edge_contours'):
-                filter = mask * np.isfinite(datastack.get_var('Rho_contour').values)
+                filter = mask & np.isfinite(datastack.get_var('Rho_contour').values)
                 data_ct_vars = np.column_stack((datastack.xct[filter].flatten(), datastack.yct[filter].flatten()))
             for var in datastack.vars:
-                data = var.values[mask * np.isfinite(var.values)].flatten()
+                data = var.values[filter]
                 if '_contour' in var.name:
-                    data_ct_vars = np.column_stack((data_ct_vars, data))
-                    list_ct_vars += var.name + ","
+                    data_ct_vars.append(self.format_excel_results(data))
+                    list_ct_vars.append(var.name)
                 else:
-                    data_vars = np.column_stack((data_vars, data))
-                    list_vars += var.name + ","
+                    data_vars.append(self.format_excel_results(data))
+                    list_vars.append(var.name)
             suffix = '_ROI' + str(roi['indx']) if roi else ''
             file = datastack.file.with_name(datastack.stem + suffix + '.csv')
-            fmt = '%d,%d' + ',%.5f' * (len(data_vars[0, :]) - 2)
-            np.savetxt(file, data_vars, fmt=fmt, header=header + "\n" + list_vars[:-1], comments="")
+            with open(file, 'w', newline='') as f:
+                writer = csv.writer(f, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+                writer.writerow([header])
+                writer.writerow(list_vars)
+                writer.writerows(zip(*data_vars))
             if hasattr(self, 'edge_contours'):
                 suffix += '_contour'
                 file = datastack.file.with_name(datastack.stem + suffix + '.csv')
-                fmt = '%d,%d' + ',%.5f' * (len(data_ct_vars[0, :]) - 2)
-                np.savetxt(file, data_ct_vars, fmt=fmt, header=header + "\n" + list_ct_vars[:-1], comments="")
-			
+                with open(file, 'w', newline='') as f:
+                    writer = csv.writer(f, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+                    writer.writerow([header])
+                    writer.writerow(list_ct_vars)
+                    writer.writerows(zip(*data_ct_vars))
+
     def save_mat(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
         if self.extension_table[1].get():
             mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
             dict_ = {'polarimetry': self.method.get(), 'file': str(datastack.file), 'date': date.today().strftime('%B %d, %Y')}
-            dict_.update({'X': datastack.xmap, 'Y': datastack.ymap})
+            dict_.update({'X': datastack.xmap.astype(np.uint16), 'Y': datastack.ymap.astype(np.uint16)})
             if hasattr(self, 'edge_contours'):
-                dict_.update({'X_contour': datastack.xct, 'Y_contour': datastack.yct})
+                dict_.update({'X_contour': datastack.xct.astype(np.uint16), 'Y_contour': datastack.yct.astype(np.uint16)})
             for var in datastack.vars:
-                data = var.values[mask * np.isfinite(var.values)]
+                data = var.values[mask & np.isfinite(var.values)].astype(np.float16)
                 dict_.update({var.name: data})
             suffix = '_ROI' + str(roi['indx']) if roi else ''
             file = datastack.file.with_name(datastack.stem + suffix + '.mat')
@@ -2629,143 +2635,12 @@ class Polarimetry(CTk.CTk):
             self.ontab_intensity(update=False)
             self.ontab_thrsh(update=False)
 
-    def _analyze_stack(self, datastack:DataStack, for_calib:bool=False) -> None:
-        chi2threshold = 500
-        shape = (datastack.height, datastack.width)
-        roi_map, mask = self.compute_roi_map(datastack)
-        datastack.dark = float(self.dark.get())
-        datastack.method = self.method.get()
-        field = np.maximum(self.stack.values - (datastack.dark + float(self.removed_intensity)), 0)
-        if self.method.get() == 'CARS':
-            field = np.sqrt(field)
-        elif self.method.get().startswith('4POLAR'):
-            field[[1, 2]] = field[[2, 1]]
+    def binning(self, field:np.ndarray) -> np.ndarray:
         bin_shape = [int(sb.get()) for sb in self.bin_spinboxes]
         if any(s > 1 for s in bin_shape):
-            field = uniform_filter(field, size=[0, bin_shape[0], bin_shape[1]], mode='reflect')
-        if self.method.get() in ['1PF', 'CARS', 'SRS', 'SHG', '2PF']:
-            polardir = -1 if self.polar_dir.get() == 'clockwise' else 1
-            alpha = polardir * np.linspace(0, 180, self.stack.nangle, endpoint=False) + float(self.offset_angle.get())
-            e2 = np.exp(2j * np.deg2rad(alpha[:, np.newaxis, np.newaxis]))
-            a0 = np.mean(field, axis=0)
-            a0[a0 == 0] = np.nan
-            a2 = 2 * np.mean(field * e2, axis=0)
-            field_fit = a0[np.newaxis] + (a2[np.newaxis] * e2.conj()).real
-            a2 = divide_ext(a2, a0)
-            if self.method.get() in ['CARS', 'SRS', 'SHG', '2PF']:
-                e4 = e2**2
-                a4 = 2 * np.mean(field * e4, axis=0)
-                field_fit += (a4[np.newaxis] * e4.conj()).real
-                a4 = divide_ext(a4, a0)
-            valid_fit = np.all(field_fit > 0, axis=0) & np.all(np.isfinite(field_fit), axis=0)
-            residual_sq = (field - field_fit)**2
-            out_array = np.zeros_like(residual_sq)
-            div_result = np.divide(residual_sq, field_fit, out=out_array, where=field_fit > 0)
-            chi2 = np.mean(div_result, axis=0)
-            mask &= valid_fit & (chi2 <= chi2threshold) & (chi2 > 0)
-        elif self.method.get() == '4POLAR 3D':
-            mat = np.einsum('ij,jmn->imn', self.CD.invKmat, field)
-            s = mat[0] + mat[1] + mat[2]
-            pxy = divide_ext(mat[0] - mat[1], s).reshape(shape)
-            puv = divide_ext(2 * mat[3], s).reshape(shape)
-            pzz = divide_ext(mat[2], s).reshape(shape)
-            lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
-            a0 = np.mean(field, axis=0) / 4
-            a0[a0 == 0] = np.nan
-        elif self.method.get() == '4POLAR 2D':
-            mat = np.einsum('ij,jmn->imn', self.CD.invKmat, field)
-            s = mat[0] + mat[1]
-            pxy = divide_ext(mat[0] - mat[1], s).reshape(shape)
-            puv = divide_ext(2 * mat[2], s).reshape(shape)
-            p2d = np.sqrt(puv**2 + pxy**2)
-            lam = (1 - p2d) / (3 - p2d)
-            a0 = np.mean(field, axis=0) / 4
-            a0[a0 == 0] = np.nan
-        rho_ = Variable('Rho', datastack=datastack)
-        if self.method.get() == '1PF':
-            a2_vals = np.moveaxis(np.asarray([a2.real[mask].flatten(), a2.imag[mask].flatten()]), 0, -1)
-            rho, psi = np.moveaxis(interpn(self.CD.xy, self.CD.RhoPsi, a2_vals, bounds_error=False, fill_value=np.nan), 0, 1)
-            ixgrid = mask.nonzero()
-            rho_.values[ixgrid] = rho
-            rho_.values[np.isfinite(rho_.values)] = np.mod(2 * (rho_.values[np.isfinite(rho_.values)] + float(self.rotation[0].get())), 360) / 2 
-            psi_ = Variable('Psi', datastack=datastack)
-            psi_.values[ixgrid] = psi
-            mask *= np.isfinite(rho_.values) * np.isfinite(psi_.values)
-            datastack.vars = [rho_, psi_]
-        elif self.method.get() in ['CARS', 'SRS', '2PF']:
-            rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
-            rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
-            s2_ = Variable('S2', datastack=datastack)
-            s2_.values[mask] = 1.5 * np.abs(a2[mask])
-            s4_ = Variable('S4', datastack=datastack)
-            s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.values[mask])))
-            datastack.vars = [rho_, s2_, s4_]
-        elif self.method.get() == 'SHG':
-            rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
-            rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
-            s_shg_ = Variable('S_SHG', datastack=datastack)
-            s_shg_.values[mask] = -0.5 * (np.abs(a4[mask]) - np.abs(a2[mask])) / (np.abs(a4[mask]) + np.abs(a2[mask])) - 0.65
-            s2_ = Variable('S2', datastack=datastack)
-            s2_.values[mask] = 1.5 * np.abs(a2[mask])
-            s4_ = Variable('S4', datastack=datastack)
-            s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.values[mask])))
-            datastack.vars = [rho_, s2_, s4_, s_shg_]
-        elif self.method.get() == '4POLAR 3D':
-            mask *= (lam < 1/3) * (lam > 0) * (pzz > lam)
-            rho_.values[mask] = 0.5 * np.rad2deg(np.arctan2(puv[mask], pxy[mask]))
-            rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
-            psi_ = Variable('Psi', datastack=datastack)
-            psi_.values[mask] = 2 * np.rad2deg(np.arccos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
-            eta_ = Variable('Eta', datastack=datastack)
-            eta_.values[mask] = np.rad2deg(np.arccos(np.sqrt((pzz[mask] - lam[mask]) / (1 - 3 * lam[mask]))))
-            datastack.vars = [rho_, psi_, eta_]
-        elif self.method.get() == '4POLAR 2D':
-            mask *= (lam < 3/8) * (lam > 0)
-            rho_.values[mask] = 0.5 * np.rad2deg(np.arctan2(puv[mask], pxy[mask]))
-            rho_.values[mask] = np.mod(2 * (rho_.values[mask] + float(self.rotation[0].get())), 360) / 2
-            psi_ = Variable('Psi', datastack=datastack)
-            psi_.values[mask] = 2 * np.rad2deg(np.arccos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
-            datastack.vars = [rho_, psi_]
-        a0[np.logical_not(mask)] = np.nan
-        datastack.intmap = a0
-        if not for_calib:
-            datastack.xmap, datastack.ymap = np.meshgrid(np.arange(datastack.width, dtype=np.float64), np.arange(datastack.height, dtype=np.float64))
-            datastack.xmap[np.logical_not(mask)] = np.nan
-            datastack.ymap[np.logical_not(mask)] = np.nan
-            if hasattr(self, 'edge_contours'):
-                rho_ct = Variable('Rho_contour', datastack=datastack)
-                vals, datastack.xct, datastack.yct = self.define_rho_ct(self.edge_contours)
-                filter = np.isfinite(rho_.values) * np.isfinite(vals)
-                rho_ct.values[filter] = np.mod(2 * (rho_.values[filter] - vals[filter]), 360) / 2
-                datastack.xct[~filter], datastack.yct[~filter] = np.nan, np.nan
-                datastack.vars += [rho_ct]
-                for var in datastack.vars[1:-1]:
-                    var_ct = Variable(var.name + '_contour', datastack=datastack)
-                    var_ct.values[filter] = var.values[filter]
-                    datastack.vars += [var_ct]
-            if float(self.rotation[2].get()):
-                rho_a = Variable('Rho_angle', datastack=datastack)
-                rho_a.values = np.mod(2 * (rho_.values - float(self.rotation[2].get())), 360) / 2
-                datastack.vars += [rho_a]
-            if not self.method.get().startswith('4POLAR'):
-                field[:, np.logical_not(mask)] = np.nan
-                field_fit[:, np.logical_not(mask)] = np.nan
-                chi2[np.logical_not(mask)] = np.nan
-                datastack.field, datastack.field_fit, datastack.chi2 = field, field_fit, chi2
-            self.datastack = datastack
-            self.plot_data(datastack, roi_map=roi_map)
-            self.save_data(datastack, roi_map=roi_map)
-        else:
-            if self.per_roi.get():
-                result = []
-                for roi in datastack.rois:
-                    if roi['select']:
-                        result.append(self.return_vecexcel(datastack, roi_map, roi=roi, simplify=True)[0])
-            else:
-                result = [self.return_vecexcel(datastack, roi_map, roi=[], simplify=True)[0]]
-            return result
+            return uniform_filter(field, size=[0, bin_shape[0], bin_shape[1]], mode='reflect')
+        return field
     
-## refactoring (not tested yet)
     def analyze_stack(self, datastack:DataStack, for_calib:bool=False):
         roi_map, mask = self.compute_roi_map(datastack)
         method = self.method.get()
@@ -2778,14 +2653,12 @@ class Polarimetry(CTk.CTk):
             field[[1, 2]] = field[[2, 1]]
         if method in ['1PF', '4POLAR 2D', '4POLAR 3D']:
             calibration = self.CD
-        bin_shape = [int(sb.get()) for sb in self.bin_spinboxes]
-        if any(s > 1 for s in bin_shape): 
-            field = uniform_filter(field, size=[0, bin_shape[0], bin_shape[1]], mode='reflect')  
+        field = self.binning(field)
         if hasattr(self, 'edge_contours'):
-            edge_contours, datastack.xct, datastack.yct = self.define_rho_ct(self.edge_contours)
+            edge_contours, datastack.xct, datastack.yct = self.define_rho_ct(self.edge_contours)   
         else:
             edge_contours = None
-        datastack = compute_fields(field, datastack, mask, method=method, polar_dir=self.polar_dir.get(), offset_angle=float(self.offset_angle.get()), calibration=calibration, edge_contours=edge_contours, reference_angle=float(self.rotation[2].get()), rotation=float(self.rotation[0].get()))
+        datastack = compute_fields(field, datastack, mask, method=method, polar_dir=self.polar_dir.get(), offset_angle=float(self.offset_angle.get()), calibration=calibration, edge_contours=edge_contours, reference_angle=float(self.rotation[2].get()), rotation=float(self.rotation[0].get()), for_calib=for_calib)
         if for_calib:
             if self.per_roi.get():
                 result = []
@@ -2798,101 +2671,87 @@ class Polarimetry(CTk.CTk):
         self.plot_data(datastack, roi_map=roi_map)
         self.save_data(datastack, roi_map=roi_map)
         
-## refactoring (in progress, not tested yet)
-def compute_fields(field:np.ndarray, datastack:DataStack, mask:np.ndarray, method='1PF', polar_dir:str='clockwise', offset_angle:float=0, calibration=None, edge_contours=None, reference_angle:float=0, rotation:float=0,chi2threshold:float=500) -> None:
+def compute_fields(field:np.ndarray, datastack:DataStack, mask:np.ndarray, method:str='1PF', polar_dir:str='clockwise', offset_angle:float=0, calibration=None, edge_contours=None, reference_angle:float=0, rotation:float=0, for_calib:bool=False, chi2threshold:float=500) -> None:
     shape = (datastack.height, datastack.width)
     nangle = datastack.nangle
     if method in ['1PF', 'CARS', 'SRS', 'SHG', '2PF']:
         polardir = -1 if polar_dir == 'clockwise' else 1
         alpha = polardir * np.linspace(0, 180, nangle, endpoint=False) + offset_angle
-        e2 = np.exp(2j * np.deg2rad(alpha[:, np.newaxis, np.newaxis]))
+        e2 = np.exp(2j * np.deg2rad(alpha))
         a0 = np.mean(field, axis=0)
-        a0[a0 == 0] = np.nan
-        a2 = 2 * np.mean(field * e2, axis=0)
-        field_fit = a0[np.newaxis] + (a2[np.newaxis] * e2.conj()).real
+        a0 = np.where(a0 == 0, np.nan, a0)
+        a2 = (2.0 / nangle) * np.einsum('ijk,i...->jk', field, e2)
+        field_fit = a0 + (a2 * e2.conj()[:, np.newaxis, np.newaxis]).real
         a2 = divide_ext(a2, a0)
         if method in ['CARS', 'SRS', 'SHG', '2PF']:
             e4 = e2**2
-            a4 = 2 * np.mean(field * e4, axis=0)
-            field_fit += (a4[np.newaxis] * e4.conj()).real
+            a4 = (2.0 / nangle) * np.einsum('ijk,i...->jk', field, e4)
+            field_fit += (a4[np.newaxis] * e4.conj()[:, np.newaxis, np.newaxis]).real
             a4 = divide_ext(a4, a0)
-        valid_fit = np.all(field_fit > 0, axis=0) & np.all(np.isfinite(field_fit), axis=0)
-        residual_sq = (field - field_fit)**2
-        out_array = np.zeros_like(residual_sq)
-        div_result = np.divide(residual_sq, field_fit, out=out_array, where=field_fit > 0)
-        chi2 = np.mean(div_result, axis=0)
-        mask &= valid_fit & (chi2 <= chi2threshold) & (chi2 > 0)
-    elif method == '4POLAR 3D':
-        mat = np.einsum('ij,jmn->imn', calibration.invKmat, field)
-        s = mat[0] + mat[1] + mat[2]
-        pxy = divide_ext(mat[0] - mat[1], s).reshape(shape)
-        puv = divide_ext(2 * mat[3], s).reshape(shape)
-        pzz = divide_ext(mat[2], s).reshape(shape)
-        lam = ((1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2).reshape(shape)
+        valid_mask = np.all((field_fit > 0) & np.isfinite(field_fit), axis=0)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            chi2 = np.mean((field - field_fit)**2 / field_fit, axis=0)
+        mask &= valid_mask & (chi2 <= chi2threshold) & (chi2 > 0)
+    elif method.startswith('4POLAR'):
+        mat = np.einsum('ij,j...->i...', calibration.invKmat, field)
+        s = mat[0] + mat[1] + (mat[2] if '3D' in method else 0)
+        s_safe = np.where(s == 0, np.nan, s)
+        pxy = (mat[0] - mat[1]) / s_safe
+        puv = (2 * mat[3 if '3D' in method else 2]) / s_safe
+        if '3D' in method:
+            pzz = mat[2] / s_safe
+            lam = (1 - (pzz + np.sqrt(puv**2 + pxy**2))) / 2
+        else:
+            p2d = np.sqrt(puv**2 + pxy**2)
+            lam = (1 - p2d) / (3 - p2d)
         a0 = np.mean(field, axis=0) / 4
-        a0[a0 == 0] = np.nan
-    elif method == '4POLAR 2D':
-        mat = np.einsum('ij,jmn->imn', calibration.invKmat, field)
-        s = mat[0] + mat[1]
-        pxy = divide_ext(mat[0] - mat[1], s).reshape(shape)
-        puv = divide_ext(2 * mat[2], s).reshape(shape)
-        p2d = np.sqrt(puv**2 + pxy**2)
-        lam = (1 - p2d) / (3 - p2d)
-        a0 = np.mean(field, axis=0) / 4
-        a0[a0 == 0] = np.nan
+        a0 = np.where(a0 == 0, np.nan, a0)
     rho_ = Variable('Rho', datastack=datastack)
     if method == '1PF':
-        a2_vals = np.moveaxis(np.asarray([a2.real[mask].flatten(), a2.imag[mask].flatten()]), 0, -1)
-        rho, psi = np.moveaxis(interpn(calibration.xy, calibration.RhoPsi, a2_vals, bounds_error=False, fill_value=np.nan), 0, 1)
+        coords = a2[mask].view(float).reshape(-1, 2)
+        rho, psi =interpn(calibration.xy, calibration.RhoPsi, coords, bounds_error=False, fill_value=np.nan).T
         ixgrid = mask.nonzero()
         rho_.values[ixgrid] = rho
         rho_.values[np.isfinite(rho_.values)] = (rho_.values[np.isfinite(rho_.values)] + rotation) % 180 
         psi_ = Variable('Psi', datastack=datastack)
         psi_.values[ixgrid] = psi
-        mask *= np.isfinite(rho_.values) * np.isfinite(psi_.values)
+        mask &= np.isfinite(rho_.values) & np.isfinite(psi_.values)
         datastack.vars = [rho_, psi_]
-    elif method in ['CARS', 'SRS', '2PF']:
-        rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
+    elif method in ['CARS', 'SRS', 'SHG', '2PF']:
+        a2_m, a4_m = a2[mask], a4[mask]
+        rho_.values[mask] = np.rad2deg(np.angle(a2_m)) / 2
         rho_.values[mask] = (rho_.values[mask] + rotation) % 180
         s2_ = Variable('S2', datastack=datastack)
-        s2_.values[mask] = 1.5 * np.abs(a2[mask])
+        s2_.values[mask] = 1.5 * np.abs(a2_m)
         s4_ = Variable('S4', datastack=datastack)
-        s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.values[mask])))
+        s4_.values[mask] = 6 * np.abs(a4_m) * np.cos(4 * (0.25 * np.angle(a4_m) - np.deg2rad(rho_.values[mask])))
         datastack.vars = [rho_, s2_, s4_]
-    elif method == 'SHG':
-        rho_.values[mask] = np.rad2deg(np.angle(a2[mask])) / 2
-        rho_.values[mask] = (rho_.values[mask] + rotation) % 180
-        s_shg_ = Variable('S_SHG', datastack=datastack)
-        s_shg_.values[mask] = -0.5 * (np.abs(a4[mask]) - np.abs(a2[mask])) / (np.abs(a4[mask]) + np.abs(a2[mask])) - 0.65
-        s2_ = Variable('S2', datastack=datastack)
-        s2_.values[mask] = 1.5 * np.abs(a2[mask])
-        s4_ = Variable('S4', datastack=datastack)
-        s4_.values[mask] = 6 * np.abs(a4[mask]) * np.cos(4 * (0.25 * np.angle(a4[mask]) - np.deg2rad(rho_.values[mask])))
-        datastack.vars = [rho_, s2_, s4_, s_shg_]
-    elif method == '4POLAR 3D':
-        mask *= (lam < 1/3) * (lam > 0) * (pzz > lam)
-        rho_.values[mask] = 0.5 * np.rad2deg(np.arctan2(puv[mask], pxy[mask]))
-        rho_.values[mask] = (rho_.values[mask] + rotation) % 180
-        psi_ = Variable('Psi', datastack=datastack)
-        psi_.values[mask] = 2 * np.rad2deg(np.arccos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
-        eta_ = Variable('Eta', datastack=datastack)
-        eta_.values[mask] = np.rad2deg(np.arccos(np.sqrt((pzz[mask] - lam[mask]) / (1 - 3 * lam[mask]))))
-        datastack.vars = [rho_, psi_, eta_]
-    elif method == '4POLAR 2D':
-        mask *= (lam < 3/8) * (lam > 0)
+        if method == 'SHG':
+            s_shg_ = Variable('S_SHG', datastack=datastack)
+            abs_a2_m, abs_a4_m = np.abs(a2_m), np.abs(a4_m)
+            s_shg_.values[mask] = -0.5 * (abs_a4_m - abs_a2_m) / (abs_a4_m + abs_a2_m) - 0.65
+            datastack.vars.append(s_shg_)
+    elif method.startswith('4POLAR'):
+        mask &= (lam < 1/3) & (lam > 0) & ((pzz > lam) if '3D' in method else True)
         rho_.values[mask] = 0.5 * np.rad2deg(np.arctan2(puv[mask], pxy[mask]))
         rho_.values[mask] = (rho_.values[mask] + rotation) % 180
         psi_ = Variable('Psi', datastack=datastack)
         psi_.values[mask] = 2 * np.rad2deg(np.arccos((-1 + np.sqrt(9 - 24 * lam[mask])) / 2))
         datastack.vars = [rho_, psi_]
-    a0[np.logical_not(mask)] = np.nan
+        if '3D' in method:
+            eta_ = Variable('Eta', datastack=datastack)
+            eta_.values[mask] = np.rad2deg(np.arccos(np.sqrt((pzz[mask] - lam[mask]) / (1 - 3 * lam[mask]))))
+            datastack.vars.append(eta_)
+    a0[~mask] = np.nan
     datastack.intmap = a0
-    datastack.xmap, datastack.ymap = np.meshgrid(np.arange(datastack.width, dtype=np.float64), np.arange(datastack.height, dtype=np.float64))
-    datastack.xmap[np.logical_not(mask)] = np.nan
-    datastack.ymap[np.logical_not(mask)] = np.nan
+    if for_calib:
+        return datastack
+    yy, xx = np.indices(a0.shape, dtype=float)
+    xx[~mask], yy[~mask] = np.nan, np.nan
+    datastack.xmap, datastack.ymap = xx, yy
     if edge_contours is not None:
         rho_ct = Variable('Rho_contour', datastack=datastack)
-        filter = np.isfinite(rho_.values) * np.isfinite(edge_contours)
+        filter = np.isfinite(rho_.values) & np.isfinite(edge_contours)
         rho_ct.values[filter] = (rho_.values[filter] - edge_contours[filter]) % 180
         datastack.xct[~filter], datastack.yct[~filter] = np.nan, np.nan
         datastack.vars += [rho_ct]
@@ -2905,9 +2764,9 @@ def compute_fields(field:np.ndarray, datastack:DataStack, mask:np.ndarray, metho
         rho_a.values = (rho_.values - reference_angle) % 180
         datastack.vars += [rho_a]
     if not method.startswith('4POLAR'):
-        field[:, np.logical_not(mask)] = np.nan
-        field_fit[:, np.logical_not(mask)] = np.nan
-        chi2[np.logical_not(mask)] = np.nan
+        field[:, ~mask] = np.nan
+        field_fit[:, ~mask] = np.nan
+        chi2[~mask] = np.nan
         datastack.field, datastack.field_fit, datastack.chi2 = field, field_fit, chi2
     return datastack
 
