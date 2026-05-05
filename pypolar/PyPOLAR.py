@@ -157,7 +157,7 @@ class Polarimetry(CTk.CTk):
             icon_path = str(Path(__file__).parent / 'main_icon.icns')
             img = Image.open(icon_path)
             img = img.resize((128, 128), Image.Resampling.LANCZOS)
-            ShowInfo(message="You are using the latest version.", image=CTk.CTkImage(dark_image=img, size=(100, 100)), geometry=(350, 200), button_labels=["OK"])
+            ShowInfo(message="You are using the latest version.", image=CTk.CTkImage(dark_image=img, size=(100, 100)), geometry=(350, 220), button_labels=["OK"])
 
     def show_update_popup(self, latest_version):
         msg = f"The current version ({self.__version__}) is outdated.\nA new version ({latest_version}) is available.\nWould you like to open the download page?"
