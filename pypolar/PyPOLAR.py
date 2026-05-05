@@ -142,7 +142,7 @@ class Polarimetry(CTk.CTk):
             response.raise_for_status()
             data = response.json()
             latest_version = data['tag_name'].strip('v')
-            if version.parse(latest_version) != version.parse(self.__version__):
+            if version.parse(latest_version) > version.parse(self.__version__):
                 return latest_version
             else:
                 return None
