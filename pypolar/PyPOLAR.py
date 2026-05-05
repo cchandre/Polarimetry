@@ -57,7 +57,7 @@ try:
 except ImportError:
     pass
 
-mpl.use('tkagg')
+mpl.use('TkAgg')
 
 CTk.set_default_color_theme(Path(__file__).parent / 'polarimetry.json')
 CTk.set_appearance_mode('dark')
@@ -65,7 +65,6 @@ CTk.set_appearance_mode('dark')
 plt.rcParams['font.size'] = 16
 if os_name == 'Darwin':
     plt.rcParams['font.family'] = font_macosx
-    #mpl.use('macosx')
 elif os_name == 'Windows':
     plt.rcParams['font.family'] = font_windows
 elif os_name == 'Linux':
