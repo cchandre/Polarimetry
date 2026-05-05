@@ -1,12 +1,5 @@
 """
-Usage:
-    pyinstaller --clean --noconfirm PyPOLAR.spec
-
-Recommendations:
-    - on MacOS: xcode-select --install
-    - If you experience problems packaging your apps, your first step should always be to update your PyInstaller and hooks package the latest versions using:
-        pip3 install --upgrade PyInstaller pyinstaller-hooks-contrib
-    - MKL library conflict: conda remove mkl; conda install nomkl; conda install numpy
+Usage: pyinstaller --clean --noconfirm PyPOLAR.spec
 """
 
 # -*- mode: python ; coding: utf-8 -*-
@@ -16,8 +9,17 @@ import os
 import platform
 import customtkinter
 import darkdetect
+import re
 
-__version__ = "2.9.3"
+def get_version():
+    with open('PyPOLAR.py', 'r') as f:
+        content = f.read()
+        version_match = re.search(r"^    __version__ = ['\"]([^'\"]*)['\"]", content, re.M)
+        if version_match:
+            return version_match.group(1)
+    return '1.0.0'
+
+__version__ = get_version()
 
 block_cipher = None
 

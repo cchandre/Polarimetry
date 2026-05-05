@@ -104,6 +104,8 @@ class Polarimetry(CTk.CTk):
         if not hasattr(self, 'menubar'):
             self.menubar = tk.Menu(self)
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
+        self.help_menu.add_command(label="PyPOLAR Website", command=lambda: webbrowser.open(self.url_fresnel))
+        self.help_menu.add_command(label="PyPOLAR Help (PDF)", command=lambda: self.openweb(self.url_pdf))
         self.help_menu.add_command(label="PyPOLAR Help (Wiki)", command=lambda: webbrowser.open(self.url_wiki))
         self.help_menu.add_separator()
         self.help_menu.add_command(label="Check for Updates...", command=self.on_check_updates)
