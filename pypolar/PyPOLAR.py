@@ -13,6 +13,8 @@ import copy
 import webbrowser
 import logging
 from urllib.parse import quote
+import requests
+from packaging import version
 import numpy as np
 from scipy.signal import savgol_filter
 from scipy.interpolate import interpn
@@ -31,7 +33,7 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib import _pylab_helpers
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from colorcet import m_colorwheel
-from PIL import Image
+from PIL import Image, ImageTk
 import cv2
 import tifffile
 from skimage.measure import manders_coloc_coeff, pearson_corr_coeff
@@ -83,7 +85,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.3'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 29, 2026', '2.9.3': 'May 4, 2026'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 29, 2026', '2.9.3': 'May 5, 2026'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -99,13 +101,79 @@ class Polarimetry(CTk.CTk):
     email = 'cristel.chandre@cnrs.fr'
 
     def setup_macos_menu(self):
-        self.menubar = tk.Menu(self)
-        self.help_menu = tk.Menu(self.menubar, name='help', tearoff=0)
+        if not hasattr(self, 'menubar'):
+            self.menubar = tk.Menu(self)
+        self.help_menu = tk.Menu(self.menubar, tearoff=0)
         self.help_menu.add_command(label="PyPOLAR Help (Wiki)", command=lambda: webbrowser.open(self.url_wiki))
         self.help_menu.add_separator()
-        self.help_menu.add_command(label="Check for Updates...", command=lambda: webbrowser.open(self.url_fresnel))
-        self.menubar.add_cascade(label="Help", menu=self.help_menu)
+        self.help_menu.add_command(label="Check for Updates...", command=self.on_check_updates)
+        self.menubar.add_cascade(label="Help ", menu=self.help_menu)
         self.config(menu=self.menubar)
+        self.createcommand("tkAboutDialog", self.show_about)
+
+    def show_about(self):
+        about_win = tk.Toplevel(self)
+        about_win.title("About PyPOLAR")
+        about_win.geometry("300x360")
+        about_win.resizable(False, False)
+        try:
+            icon_path = str(Path(__file__).parent / 'main_icon.icns')
+            img = Image.open(icon_path)
+            img = img.resize((128, 128), Image.Resampling.LANCZOS)
+            self.about_logo = ImageTk.PhotoImage(img)
+            logo_label = tk.Label(about_win, image=self.about_logo)
+            logo_label.pack(pady=(20, 10))
+        except Exception as e:
+            print(f"Could not load .icns icon: {e}")
+            tk.Label(about_win, text="[PyPOLAR]", font=(font_macosx, 20)).pack(pady=20)
+
+        tk.Label(about_win, text="PyPOLAR", font=(font_macosx, 18, "bold")).pack()
+        tk.Label(about_win, text=f"Version {self.__version__} ({self.__version_date__})", font=(font_macosx, 12)).pack(pady=5)
+        info_text = (
+            "Analysis of polarization-resolved\n"
+            "microscopy data.\n\n"
+            "BSD 2-Clause License\nCopyright © 2021, Cristel Chandre\nAll Rights Reserved")
+        tk.Label(about_win, text=info_text, font=(font_macosx, 11), justify="center").pack(pady=10)
+
+    def check_for_updates(self):
+        repo_url = "https://api.github.com/repos/cchandre/Polarimetry/releases/latest"
+        try:
+            response = requests.get(repo_url, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+            latest_version = data['tag_name'].strip('v')
+            if version.parse(latest_version) != version.parse(self.__version__):
+                return latest_version
+            else:
+                return None
+        except Exception as e:
+            return None
+        
+    def on_check_updates(self):
+        latest = self.check_for_updates()
+        if latest:
+            self.show_update_popup(latest)
+        else:
+            icon_path = str(Path(__file__).parent / 'main_icon.icns')
+            img = Image.open(icon_path)
+            img = img.resize((128, 128), Image.Resampling.LANCZOS)
+            ShowInfo(message="You are using the latest version.", image=CTk.CTkImage(dark_image=img, size=(100, 100)), geometry=(350, 200), button_labels=["OK"])
+
+    def show_update_popup(self, latest_version):
+        msg = f"The current version ({self.__version__}) is outdated.\nA new version ({latest_version}) is available.\nWould you like to open the download page?"
+        def open_link():
+            webbrowser.open(self.url_github + "/releases")
+            showinfo_window.destroy()
+        try:
+            icon_path = str(Path(__file__).parent / 'main_icon.icns')
+            img = Image.open(icon_path).resize((64, 64), Image.Resampling.LANCZOS)
+            self.update_icon = ImageTk.PhotoImage(img)
+        except:
+            pass
+        showinfo_window = ShowInfo(message=msg, image=CTk.CTkImage(dark_image=img, size=(100, 100)), geometry=(430, 220), button_labels=["Download", "Later"])
+        buttons = showinfo_window.get_buttons()
+        buttons[0].configure(command=open_link)
+        buttons[1].configure(command=showinfo_window.destroy)
 
     def __init__(self) -> None:
         super().__init__()

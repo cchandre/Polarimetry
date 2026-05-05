@@ -42,7 +42,8 @@ if sys.platform == "darwin":
         TARGET_ARCH = 'x86_64'
     else:
         TARGET_ARCH = None
-    DATA_FILES += [("icons/*.icns", "icons/"), 
+    DATA_FILES += [("main_icon.icns", "."),
+                ("icons/*.icns", "icons/"), 
                 (CTK_PATH, "customtkinter"),
                 (DRK_PATH, "darkdetect")]
     extra_options = {}
@@ -107,6 +108,8 @@ if sys.platform == 'darwin':
         info_plist={
             'NSPrincipalClass': 'NSApplication',
             'NSAppleScriptEnabled': False,
+            'NSHighResolutionCapable': True,
+            'NSPrincipalClass': 'NSApplication',
             'NSHumanReadableCopyright': "BSD 2-Clause License\nCopyright © 2021, Cristel Chandre\nAll Rights Reserved",
             'CFBundleName': 'PyPOLAR',
             'CFBundleDisplayName': 'PyPOLAR',
