@@ -1024,10 +1024,20 @@ class Polarimetry(CTk.CTk):
         browse_button.grid(row=row, column=2, pady=15, padx=(0, 20))
 
     def browse_folder(self, path_var: CTk.StringVar):
-        initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
-        folder_path = Path(fd.askdirectory(title='Select a folder', initialdir=initialdir))
-        if folder_path:
+        if hasattr(self, 'stack') and self.stack.folder:
+            initialdir = self.stack.folder
+        elif hasattr(self, 'last_opened_dir'):
+            initialdir = self.last_opened_dir
+        else:
+            initialdir = Path.home()
+        selected_path = fd.askdirectory(title='Select a folder', initialdir=initialdir)
+        if selected_path:
+            folder_path = Path(selected_path)
             path_var.set(folder_path)
+            if hasattr(self, 'stack'):
+                self.stack.folder = folder_path
+            else:
+                self.last_opened_dir = folder_path
     
     def define_rho_ct(self, contours:List[np.ndarray]) -> np.ndarray:
         template = np.empty_like(self.stack.intensity)
