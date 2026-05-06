@@ -84,7 +84,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.3'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 29, 2026', '2.9.3': 'May 5, 2026'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 29, 2026', '2.9.3': 'May 6, 2026'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -106,6 +106,7 @@ class Polarimetry(CTk.CTk):
         self.help_menu.add_command(label="PyPOLAR Website", command=lambda: webbrowser.open(self.url_fresnel))
         self.help_menu.add_command(label="PyPOLAR Help (PDF)", command=lambda: self.openweb(self.url_pdf))
         self.help_menu.add_command(label="PyPOLAR Help (Wiki)", command=lambda: webbrowser.open(self.url_wiki))
+        self.help_menu.add_command(label="Tutorials", command=lambda: webbrowser.open(self.url_wiki + "/Tutorials"))
         self.help_menu.add_separator()
         self.help_menu.add_command(label="Check for Updates...", command=self.on_check_updates)
         self.menubar.add_cascade(label="Help ", menu=self.help_menu)
@@ -998,13 +999,15 @@ class Polarimetry(CTk.CTk):
         return dict(disk_data)
     
     def get_lowest_std_psi(self, disk_data):
+        no_distortion = disk_data["Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0"] if "Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0" in disk_data else None
         disk_items = list(disk_data.items())
         sorted_items = sorted(disk_items, key=lambda item: item[1].get('std_psi', float('inf')))
-        return {item[0]: item[1] for item in sorted_items[:int(self.lowest_calib.get())]}
+        return {item[0]: item[1] for item in sorted_items[:int(self.lowest_calib.get())]}, no_distortion
 
     def print_lowest(self, event:tkEvent=None) -> None:
-        lowest_disks = self.get_lowest_std_psi(self.calib_disk_data)
-        output_lines = []
+        lowest_disks = self.get_lowest_std_psi(self.calib_disk_data)[0]
+        no_distortion = self.get_lowest_std_psi(self.calib_disk_data)[1]
+        output_lines = [] if no_distortion is None else [f"# {no_distortion['index']}*\t Std \u03C8 = {no_distortion['std_psi']:.2f}\t\tDisk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0"]
         for name, details in lowest_disks.items():
             output_lines.append(f"# {details['index']}\t Std \u03C8 = {details['std_psi']:.2f}\t\t{name}")
         text_to_insert = "\n".join(output_lines)
