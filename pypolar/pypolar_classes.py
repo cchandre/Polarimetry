@@ -428,7 +428,7 @@ class Calibration:
     folder_4polar = Path(__file__).parent / 'calibration'
     TARGET_VARIABLES = ['RoTest', 'PsiTest', 'NbMapValues']
 
-    def __init__(self, method:str, label:str='no distortions') -> None:
+    def __init__(self, method:str='1PF', label:str='no distortions') -> None:
         if method == '1PF':
             vars = type(self).dict_1pf.get(label)
             file = Path(type(self).folder_1pf) / vars[0]

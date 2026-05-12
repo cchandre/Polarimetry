@@ -926,10 +926,10 @@ class Polarimetry(CTk.CTk):
         return items.index(varname) if varname in items else None
 
     def plot_calibration_results(self, disk_data:List, label:str='all') -> None:
-        disks = disk_data if label=='all' else self.get_lowest_std_psi(disk_data) 
+        disks = disk_data if label=='all' else self.get_lowest_std_psi(disk_data)[0] 
         disks_indx = [details['index'] for details in disks.values()]
         ncolors = int(self.lowest_calib.get()) if label!='all' else len(disks_indx)
-        cmap_psi = plt.cm.get_cmap('hsv', ncolors)
+        cmap_psi = plt.get_cmap('hsv', ncolors)
         colors = cmap_psi(np.arange(ncolors))
         fig, ax = plt.subplots(figsize=(12, 6)) 
         plt.get_current_fig_manager().set_window_title('StdPsi function of Disk Cone') 
