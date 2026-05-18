@@ -470,7 +470,7 @@ class Calibration:
 
     def display(self, colorblind:bool=False) -> None:
         fig, axs = plt.subplots(ncols=2, figsize=(13, 8))
-        fig.canvas.manager.set_window_title('Disk Cone: ' + self.name)
+        fig.canvas.manager.set_window_title(self.name)
         labels = ['Rho test', 'Psi test']
         cmaps = [m_colorwheel, 'viridis'] if colorblind else ['hsv', 'jet']
         for _, (label, cmap, ax) in enumerate(zip(labels, cmaps, axs)):
