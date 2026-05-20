@@ -2200,7 +2200,7 @@ class Polarimetry(CTk.CTk):
             try:
                 fig.type, fig.var = 'Histogram', var.name
                 suffix = 'for ROI ' + str(roi['indx']) if roi is not None else ''
-                fig.canvas.manager.set_window_title(var.name + ' Histogram ' + suffix + ': ' + self.datastack.stem)
+                fig.canvas.manager.set_window_title(var.name + ' Histogram  ' + suffix + self.datastack.stem)
                 mask = (roi_map == roi['indx']) if roi is not None else (roi_map == 1)
                 var.histo(mask, htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))
                 ax= fig.axes[0]
@@ -2312,7 +2312,7 @@ class Polarimetry(CTk.CTk):
         fig, ax = plt.subplots(figsize=self.figsize)
         try:
             fig.type, fig.var, fig.width, fig.height = 'Composite', var.name, datastack.width, datastack.height
-            fig.canvas.manager.set_window_title(f'{var.name} Composite: {datastack.stem}')
+            fig.canvas.manager.set_window_title(f'{var.name} Composite  {datastack.stem}')
             ax.set_axis_on() if self.add_axes_checkbox.get() else ax.set_axis_off()
             datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             h = var.imshow(vmin, vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()))
@@ -2448,7 +2448,7 @@ class Polarimetry(CTk.CTk):
         fig, ax = plt.subplots(figsize=self.figsize)
         try:
             fig.type, fig.var, fig.width, fig.height = 'Sticks', var.name, datastack.width, datastack.height
-            fig.canvas.manager.set_window_title(f"{var.name} Sticks: {datastack.stem}")
+            fig.canvas.manager.set_window_title(f"{var.name} Sticks  {datastack.stem}")
             ax.set_axis_on() if self.add_axes_checkbox.get() else ax.set_axis_off()
             h = datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             p = self.get_sticks(var, datastack)
@@ -2491,7 +2491,7 @@ class Polarimetry(CTk.CTk):
         if self.show_table[3].get() or self.save_table[3].get():
             fig, ax = plt.subplots(figsize=self.figsize)
             fig.type, fig.var, fig.width, fig.height = 'Intensity', None, datastack.width, datastack.height
-            fig.canvas.manager.set_window_title(f'Intensity: {datastack.stem}')
+            fig.canvas.manager.set_window_title(f'Intensity  {datastack.stem}')
             ax.axis('on' if self.add_axes_checkbox.get() else 'off')
             p = datastack.plot_intensity(ax, contrast=self.contrast_intensity_slider.get(), rotation=int(self.rotation[1].get()))
             self.add_patches(datastack, ax, fig.canvas)
