@@ -434,7 +434,7 @@ class Calibration:
     def __init__(self, method:str='1PF', label:str='no distortions') -> None:
         if method == '1PF':
             vars = type(self).dict_1pf.get(label)
-            file = Path(type(self).folder_1pf) / vars[0]
+            file = Path(type(self).folder_1pf) / (vars[0] + '.mat')
         elif method.startswith('4POLAR'):
             vars = type(self).dict_4polar.get(label)
             folder = type(self).folder_4polar
@@ -443,7 +443,7 @@ class Calibration:
                 file = Path(fd.askopenfilename(title='Select file', initialdir=Path.home(), filetypes=[('MAT-files', '*.mat')]))
                 vars = [file.stem, 0]
             try:
-                self.define_disk(file.with_suffix('.mat'))
+                self.define_disk(file)
             except:
                 showerror('Calibration data', 'Incorrect disk cone\n Download another file', icon='error')
                 vars = [' ', 0]
