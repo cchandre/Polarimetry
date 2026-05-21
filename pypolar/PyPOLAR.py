@@ -2803,6 +2803,8 @@ class Polarimetry(CTk.CTk):
             field[[1, 2]] = field[[2, 1]]
         if method in ['1PF', '4POLAR 2D', '4POLAR 3D']:
             calibration = self.CD
+        else:
+            calibration = None
         field = self.binning(field)
         if hasattr(self, 'edge_contours'):
             edge_contours, datastack.xct, datastack.yct = self.define_rho_ct(self.edge_contours)   
