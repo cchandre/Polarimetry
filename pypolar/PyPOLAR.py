@@ -2,7 +2,6 @@ import customtkinter as CTk
 import tkinter as tk
 from tkinter import Event as tkEvent
 from tkinter import filedialog as fd
-from tkinter import font as tkfont
 from pathlib import Path
 from collections import defaultdict
 import os
@@ -47,8 +46,8 @@ from typing import List, Tuple, Union
 from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, PyPOLARfigure, ROIManager, TabView, ToolTip
 from pypolar_classes import Button, CheckBox, Entry, DropDown, Label, OptionMenu, SpinBox, ShowInfo, TextBox
 from pypolar_classes import adjust, angle_edge, circularmean, divide_ext, find_matches, wrapto180
-from pypolar_classes import button_size, geometry_info, os_name, get_custom_default_font
-from generate_json import font_macosx, font_windows, font_linux, orange, gray, red, green, blue, text_color
+from pypolar_classes import button_size, geometry_info, get_custom_default_font
+from generate_json import os_name, native_font, orange, gray, red, green, blue, text_color
 
 try:
     from ctypes import windll 
@@ -63,12 +62,7 @@ CTk.set_default_color_theme(Path(__file__).parent / 'polarimetry.json')
 CTk.set_appearance_mode('dark')
 
 plt.rcParams['font.size'] = 16
-if os_name == 'Darwin':
-    plt.rcParams['font.family'] = font_macosx
-elif os_name == 'Windows':
-    plt.rcParams['font.family'] = font_windows
-elif os_name == 'Linux':
-    plt.rcParams['font.family'] = font_linux
+plt.rcParams['font.family'] = native_font
 plt.rcParams['image.origin'] = 'upper'
 plt.rcParams['figure.max_open_warning'] = 100
 plt.rcParams['axes.unicode_minus'] = False
@@ -84,7 +78,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.3'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 29, 2026', '2.9.3': 'May 21, 2026'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 29, 2026', '2.9.3': 'June 17, 2026'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -127,15 +121,15 @@ class Polarimetry(CTk.CTk):
             logo_label.pack(pady=(20, 10))
         except Exception as e:
             print(f"Could not load .icns icon: {e}")
-            tk.Label(about_win, text="[PyPOLAR]", font=(font_macosx, 20)).pack(pady=20)
+            tk.Label(about_win, text="[PyPOLAR]", font=(self.default_font, 20)).pack(pady=20)
 
-        tk.Label(about_win, text="PyPOLAR", font=(font_macosx, 18, "bold")).pack()
-        tk.Label(about_win, text=f"Version {self.__version__} ({self.__version_date__})", font=(font_macosx, 12)).pack(pady=5)
+        tk.Label(about_win, text="PyPOLAR", font=(self.default_font, 18, "bold")).pack()
+        tk.Label(about_win, text=f"Version {self.__version__} ({self.__version_date__})", font=(self.default_font, 12)).pack(pady=5)
         info_text = (
             "Analysis of polarization-resolved\n"
             "microscopy data.\n\n"
             "BSD 2-Clause License\nCopyright © 2021, Cristel Chandre\nAll Rights Reserved")
-        tk.Label(about_win, text=info_text, font=(font_macosx, 11), justify="center").pack(pady=10)
+        tk.Label(about_win, text=info_text, font=(self.default_font, 11), justify="center").pack(pady=10)
 
     def check_for_updates(self):
         repo_url = "https://api.github.com/repos/cchandre/Polarimetry/releases/latest"
@@ -177,6 +171,8 @@ class Polarimetry(CTk.CTk):
         buttons[0].configure(command=open_link)
         buttons[1].configure(command=showinfo_window.destroy)
 
+    
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -184,12 +180,7 @@ class Polarimetry(CTk.CTk):
         base_dir = Path(__file__).parent
         image_path = base_dir / 'icons'
 
-        if "Arial Rounded MT Bold" in tkfont.families():
-            self.default_font = "Arial Rounded MT Bold"
-        elif os_name == "Windows":
-            self.default_font = font_windows
-        elif os_name == "Linux":
-            self.default_font = font_linux
+        self.default_font = native_font
 
         height = int(self.ratio_app * self.winfo_screenheight())
         width = height + self.left_width

@@ -1,9 +1,7 @@
 import tkinter as tk
-from tkinter import font as tkfont
 import customtkinter as CTk
 import tksheet
 from pathlib import Path
-import platform
 import pickle
 import roifile
 import numpy as np
@@ -24,10 +22,9 @@ import matplotlib.backends.backend_pdf
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.backend_bases import NavigationToolbar2, _Mode, MouseEvent
 from typing import Callable, List, Tuple, Union
-from generate_json import font_macosx, font_windows, font_linux, orange, red, gray, text_color
+from generate_json import native_font, orange, gray, text_color
 
 button_size = (160, 40)
-os_name = platform.system()
 
 ## PyPOLAR USEFUL FUNCTIONS
 
@@ -77,13 +74,8 @@ def wrapto180(rho:np.ndarray) -> np.ndarray:
 
 ## PyPOLAR WIDGETS
 
-def get_custom_default_font(size:int=13, weight:str='normal') -> CTk.CTkFont: 
-    if font_macosx in tkfont.families():
-        return CTk.CTkFont(family=font_macosx, size=size, weight=weight)
-    elif os_name == 'Windows':
-        return CTk.CTkFont(family=font_windows, size=size, weight=weight) 
-    elif os_name == 'Linux':
-        return CTk.CTkFont(family=font_linux, size=size, weight=weight)
+def get_custom_default_font(size:int=13, weight:str='normal', family:str=native_font) -> CTk.CTkFont: 
+    return CTk.CTkFont(family=family, size=size, weight=weight)
 
 class Button(CTk.CTkButton):
     def __init__(self, master, text:str=None, image:CTk.CTkImage=None, tooltip:str=None, width:int=button_size[0], height:int=button_size[1], anchor:str='w', fontsize:int=13, **kwargs) -> None:
@@ -105,7 +97,7 @@ class Button(CTk.CTkButton):
 
 class CheckBox(CTk.CTkCheckBox):
     def __init__(self, master, text:str=None, tooltip:str=None, command:Callable=None, **kwargs) -> None:
-        super().__init__(master, text=text, command=command, onvalue=True, offvalue=False, width=30, **kwargs)
+        super().__init__(master, text=text, command=command, onvalue=True, offvalue=False, width=30, font=get_custom_default_font(), **kwargs)
         if tooltip is not None:
             ToolTip(self, text=tooltip)
 
@@ -115,8 +107,8 @@ class Entry(CTk.CTkFrame):
         self.configure(fg_color=fg_color)
         self.grid(row=row, column=column, sticky=sticky, padx=padx, pady=pady)
         if text is not None:
-            Label(self, text=text, tooltip=tooltip).grid(row=0, column=0, padx=(0, 10))
-        self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=width, justify='center', state=state)
+            Label(self, text=text, tooltip=tooltip, font=get_custom_default_font()).grid(row=0, column=0, padx=(0, 10))
+        self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=width, justify='center', state=state, font=get_custom_default_font())
         self.entry.grid(row=0, column=1)
         if command is not None:
             self.entry.bind('<Return>', lambda event: command())    
@@ -137,7 +129,7 @@ class DropDown(CTk.CTkFrame):
         self.variable = variable
         self.icon = Button(self, image=image, tooltip=tooltip, hover=False, width=button_size[1])
         self.icon.grid(row=0, column=0)
-        self.option_menu = CTk.CTkOptionMenu(self, values=values, width=button_size[0]-button_size[1]-5, height=button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state, font=get_custom_default_font())
+        self.option_menu = CTk.CTkOptionMenu(self, values=values, width=button_size[0]-button_size[1]-5, height=button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state, font=get_custom_default_font(), dropdown_font=get_custom_default_font())
         self.option_menu.grid(row=0, column=1)
 
     def set_state(self, state:str) -> None:
@@ -180,7 +172,7 @@ class SpinBox(CTk.CTkFrame):
         self.grid_columnconfigure(1, weight=1)
         self.subtract_button = CTk.CTkButton(self, text=u'\u25BC', width=updown_size, height=updown_size, command=self.subtract_button_callback)
         self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
-        self.entry = CTk.CTkEntry(self, width=width-(2*updown_size), height=updown_size, border_width=0, justify='center', textvariable=textvariable)
+        self.entry = CTk.CTkEntry(self, width=width-(2*updown_size), height=updown_size, border_width=0, justify='center', textvariable=textvariable, font=get_custom_default_font())
         self.entry.grid(row=0, column=1, columnspan=1, padx=0, pady=0, sticky='ew')
         self.add_button = CTk.CTkButton(self, text=u'\u25B2', width=updown_size, height=updown_size, command=self.add_button_callback)
         self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
@@ -753,7 +745,7 @@ class ROIManager(CTk.CTkToplevel):
     cmax = len(labels)
     cell_height = 25
 
-    def __init__(self, rois:list=[], button_images:list=[], font_name:str=font_macosx) -> None:
+    def __init__(self, rois:list=[], button_images:list=[], font_name:str=native_font) -> None:
         super().__init__(fg_color=gray[1])
         self.title('ROI Manager')
         self.grid_columnconfigure(1, weight=1)
@@ -913,4 +905,5 @@ class TabView(CTk.CTkTabview):
         self.configure(segmented_button_selected_color=orange[0], segmented_button_unselected_color=gray[1], segmented_button_selected_hover_color=orange[1], text_color=text_color, segmented_button_fg_color=gray[0], fg_color=gray[1])
         for tab in self.TABS:
             self.add(tab)
+        self._segmented_button.configure(font=get_custom_default_font())
         self.pack(fill=tk.BOTH, expand=True)

@@ -1,5 +1,7 @@
 import json
 from pathlib import Path
+from matplotlib import font_manager
+import platform
 
 orange = ('#FF7F4F', '#ffb295')
 text_color = 'black'
@@ -8,9 +10,21 @@ green = ('#ADD1AD', '#cee3ce')
 blue = ('#0047AB', '#0047AB')
 gray = ('#7F7F7F', '#A6A6A6')
 
-font_macosx = "Arial Rounded MT Bold"
-font_windows = "Segoe UI"
-font_linux = "DejaVu Sans"
+os_name = platform.system()
+
+def get_native_font():
+    available_fonts = sorted(set([f.name for f in font_manager.fontManager.ttflist]))
+    font_preferences = {
+        "Darwin": ["Arial Rounded MT Bold", "Helvetica Neue", "SF Pro", "Arial"], 
+        "Windows": ["Segoe UI", "Calibri", "Arial"], 
+        "Linux": ["Arial Rounded MT Bold", "Ubuntu", "DejaVu Sans", "FreeSans"]}
+    preferred_fonts = font_preferences.get(os_name, ["sans-serif"])
+    for font in preferred_fonts:
+        if font in available_fonts:
+            return font
+    return "sans-serif"
+
+native_font = get_native_font()
 
 file = Path(__file__).parent / 'polarimetry.json'
 
@@ -131,17 +145,17 @@ if not file.exists():
     },
     'CTkFont': {
       'macOS': {
-        'family': font_macosx,
+        'family': native_font,
         'size': 13,
         'weight': 'bold'
       },
       'Windows': {
-        'family': font_windows,
+        'family': native_font,
         'size': 13,
         'weight': 'bold'
       },
       'Linux': {
-        'family': font_linux,
+        'family': native_font,
         'size': 13,
         'weight': 'bold'
       }
