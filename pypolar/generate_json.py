@@ -17,7 +17,7 @@ def get_native_font():
     font_preferences = {
         "Darwin": ["Arial Rounded MT Bold", "Helvetica Neue", "SF Pro", "Arial"], 
         "Windows": ["Segoe UI", "Calibri", "Arial"], 
-        "Linux": ["Arial Rounded MT Bold", "Ubuntu", "DejaVu Sans", "FreeSans"]}
+        "Linux": ["Ubuntu", "DejaVu Sans", "FreeSans"]}
     preferred_fonts = font_preferences.get(os_name, ["sans-serif"])
     for font in preferred_fonts:
         if font in available_fonts:

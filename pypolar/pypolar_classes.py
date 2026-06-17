@@ -107,7 +107,7 @@ class Entry(CTk.CTkFrame):
         self.configure(fg_color=fg_color)
         self.grid(row=row, column=column, sticky=sticky, padx=padx, pady=pady)
         if text is not None:
-            Label(self, text=text, tooltip=tooltip, font=get_custom_default_font()).grid(row=0, column=0, padx=(0, 10))
+            Label(self, text=text, tooltip=tooltip).grid(row=0, column=0, padx=(0, 10))
         self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=width, justify='center', state=state, font=get_custom_default_font())
         self.entry.grid(row=0, column=1)
         if command is not None:
@@ -149,8 +149,9 @@ class DropDown(CTk.CTkFrame):
     
 class Label(CTk.CTkLabel):
     def __init__(self, master, tooltip:str=None, fontsize:int=13, weight:str='normal', **kwargs) -> None:
-        super().__init__(master, **kwargs)
-        self.configure(font=get_custom_default_font(size=fontsize, weight=weight))
+        font = get_custom_default_font(size=fontsize, weight=weight)
+        super().__init__(master, font=font, **kwargs)
+        #self.configure(font=get_custom_default_font(size=fontsize, weight=weight))
         if tooltip is not None:
             ToolTip(self, text=tooltip)
 

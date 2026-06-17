@@ -171,8 +171,6 @@ class Polarimetry(CTk.CTk):
         buttons[0].configure(command=open_link)
         buttons[1].configure(command=showinfo_window.destroy)
 
-    
-
     def __init__(self) -> None:
         super().__init__()
 
