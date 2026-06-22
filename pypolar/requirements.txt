@@ -12,3 +12,4 @@ tksheet==6.2.5
 tifffile==2024.12.12
 roifile==2023.5.12
 requests==2.28.1
+packaging==26.0
