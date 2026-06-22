@@ -29,6 +29,7 @@ CTK_PATH = os.path.dirname(customtkinter.__file__)
 DRK_PATH = os.path.dirname(darkdetect.__file__)
 
 DATA_FILES = [("icons/*.png", "icons/"), 
+    ("fonts/*.ttf", "fonts/"),
     ("polarimetry.json", "."), 
     ("pypolar_classes.py", "."), 
     ("generate_json.py", "."), 

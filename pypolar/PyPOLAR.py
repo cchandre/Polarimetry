@@ -30,6 +30,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.backends.backend_pdf
 from matplotlib.ticker import MaxNLocator
 from matplotlib import _pylab_helpers
+from matplotlib import font_manager as m_font_manager
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from colorcet import m_colorwheel
 from PIL import Image, ImageTk
@@ -46,8 +47,8 @@ from typing import List, Tuple, Union
 from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, PyPOLARfigure, ROIManager, TabView, ToolTip
 from pypolar_classes import Button, CheckBox, Entry, DropDown, Label, OptionMenu, SpinBox, ShowInfo, TextBox
 from pypolar_classes import adjust, angle_edge, circularmean, divide_ext, find_matches, wrapto180
-from pypolar_classes import button_size, geometry_info, get_custom_default_font
-from generate_json import os_name, native_font, orange, gray, red, green, blue, text_color
+from pypolar_classes import default_fontname, default_fontsize, header_fontsize, button_size, geometry_info
+from generate_json import os_name, orange, gray, red, green, blue, text_color
 
 try:
     from ctypes import windll 
@@ -58,11 +59,10 @@ except ImportError:
 
 mpl.use('TkAgg')
 
-CTk.set_default_color_theme(Path(__file__).parent / 'polarimetry.json')
 CTk.set_appearance_mode('dark')
 
-plt.rcParams['font.size'] = 16
-plt.rcParams['font.family'] = native_font
+plt.rcParams['font.size'] = 13
+plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['image.origin'] = 'upper'
 plt.rcParams['figure.max_open_warning'] = 100
 plt.rcParams['axes.unicode_minus'] = False
@@ -78,7 +78,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.3'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 29, 2026', '2.9.3': 'June 17, 2026'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 29, 2026', '2.9.3': 'June 18, 2026'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -121,15 +121,15 @@ class Polarimetry(CTk.CTk):
             logo_label.pack(pady=(20, 10))
         except Exception as e:
             print(f"Could not load .icns icon: {e}")
-            tk.Label(about_win, text="[PyPOLAR]", font=(self.default_font, 20)).pack(pady=20)
+            tk.Label(about_win, text="[PyPOLAR]", font=('Arial Rounded MT Bold', 20)).pack(pady=20)
 
-        tk.Label(about_win, text="PyPOLAR", font=(self.default_font, 18, "bold")).pack()
-        tk.Label(about_win, text=f"Version {self.__version__} ({self.__version_date__})", font=(self.default_font, 12)).pack(pady=5)
+        tk.Label(about_win, text="PyPOLAR", font=('Arial Rounded MT Bold', 18, "bold")).pack()
+        tk.Label(about_win, text=f"Version {self.__version__} ({self.__version_date__})", font=('Arial Rounded MT Bold', 12)).pack(pady=5)
         info_text = (
             "Analysis of polarization-resolved\n"
             "microscopy data.\n\n"
             "BSD 2-Clause License\nCopyright © 2021, Cristel Chandre\nAll Rights Reserved")
-        tk.Label(about_win, text=info_text, font=(self.default_font, 11), justify="center").pack(pady=10)
+        tk.Label(about_win, text=info_text, font=('Arial Rounded MT Bold', 11), justify="center").pack(pady=10)
 
     def check_for_updates(self):
         repo_url = "https://api.github.com/repos/cchandre/Polarimetry/releases/latest"
@@ -171,14 +171,32 @@ class Polarimetry(CTk.CTk):
         buttons[0].configure(command=open_link)
         buttons[1].configure(command=showinfo_window.destroy)
 
+    def load_fonts(self):
+        font_dir = Path(__file__).parent / 'fonts'
+        variants = ["Nunito-Medium.ttf", "Nunito-Bold.ttf", "Nunito-Italic.ttf"]
+        self.nunito_family_name = "Nunito" 
+        for variant in variants:
+            font_path = os.path.join(font_dir, variant)
+            if os.path.exists(font_path):
+                CTk.FontManager.load_font(str(font_path))
+                m_font_manager.fontManager.addfont(str(font_path))
+                prop = m_font_manager.FontProperties(fname=str(font_path))
+                self.nunito_family_name = prop.get_name()
+            else:
+                print(f"Warning: Could not find {variant}")
+        plt.rcParams['font.sans-serif'] = [self.nunito_family_name, 'sans-serif']
+        plt.rcParams['font.family'] = 'sans-serif'
+
     def __init__(self) -> None:
+        self.load_fonts()
         super().__init__()
 
 ## MAIN
         base_dir = Path(__file__).parent
         image_path = base_dir / 'icons'
 
-        self.default_font = native_font
+        plt.rcParams['font.sans-serif'] = 'Arial Rounded MT Bold' if os_name == 'Darwin' else default_fontname
+        CTk.set_default_color_theme(Path(__file__).parent / 'polarimetry.json')
 
         height = int(self.ratio_app * self.winfo_screenheight())
         width = height + self.left_width
@@ -263,7 +281,7 @@ class Polarimetry(CTk.CTk):
 
 ## LEFT FRAME
         dict_left_frame = {'column': 0, 'padx': 20, 'pady': 20}
-        Button(left_frame, text=' PyPOLAR', image=self.icons['blur_circular'], command=self.on_click_tab, tooltip=' - select a polarimetry method\n - download a .tiff stack file, a folder, or a PyPOLAR figure (.pyfig)\n - for a .tiff file or folder, select an option of analysis\n - select one or several regions of interest (ROI)\n - click on Analysis', hover=False, fg_color='transparent', fontsize=24).grid(row=0, column=0, padx=20, pady=(10, 40))
+        Button(left_frame, text=' PyPOLAR', image=self.icons['blur_circular'], command=self.on_click_tab, tooltip=' - select a polarimetry method\n - download a .tiff stack file, a folder, or a PyPOLAR figure (.pyfig)\n - for a .tiff file or folder, select an option of analysis\n - select one or several regions of interest (ROI)\n - click on Analysis', hover=False, fg_color='transparent', fontsize=24, weight='bold').grid(row=0, column=0, padx=20, pady=(10, 40))
         self.method = CTk.StringVar()
         DropDown(left_frame, values=['1PF', 'CARS', 'SRS', 'SHG', '2PF', '4POLAR 2D', '4POLAR 3D'], image=self.icons['microscope'], command=self.method_dropdown_callback, variable=self.method, tooltip=' - 1PF: one-photon fluorescence\n - CARS: coherent anti-Stokes Raman scattering\n - SRS: stimulated Raman scattering\n - SHG: second-harmonic generation\n - 2PF: two-photon fluorescence\n - 4POLAR 2D: 2D 4POLAR fluorescence (not yet implemented)\n - 4POLAR 3D: 3D 4POLAR fluorescence').grid(row=1, **dict_left_frame)
         self.openfile_dropdown_value = CTk.StringVar()
@@ -288,7 +306,7 @@ class Polarimetry(CTk.CTk):
         self.compute_angle_button = Button(banner, image=self.icons['square'], command=self.compute_angle, tooltip=' - left click to define start and end of a line segment, to determine its length and angle\n - the angle is computed counter-clockwise from the horizontal axis')
         self.compute_angle_button.grid(row=2, column=0, padx=10, pady=20)
         self.pixel_size = CTk.StringVar(value='0')
-        entry = CTk.CTkEntry(banner, textvariable=self.pixel_size, border_color=gray[0], width=50, justify='center')
+        entry = CTk.CTkEntry(banner, textvariable=self.pixel_size, border_color=gray[0], width=50, justify='center', font=(default_fontname, default_fontsize, "bold"))
         ToolTip(entry, text=' enter the pixel size in nm')
         entry.grid(row=3, column=0, padx=10, pady=0)
         
@@ -342,7 +360,7 @@ class Polarimetry(CTk.CTk):
         self.ilow_slider.set(0)
         self.ilow_slider.grid(row=0, column=0, columnspan=2, sticky="sw")
         Label(master=ilow_frame, text='Ilow\n', anchor='w', tooltip= ' intensity value used for thresholding\n - use the slider or enter the value manually').grid(row=1, column=0, padx=20, sticky="sw")
-        entry = CTk.CTkEntry(master=ilow_frame, textvariable=self.ilow, border_color=gray[1], width=100, justify=CTk.LEFT)
+        entry = CTk.CTkEntry(master=ilow_frame, textvariable=self.ilow, border_color=gray[1], width=100, justify=CTk.LEFT, font=(default_fontname, default_fontsize, "bold"))
         entry.bind('<Return>', command=self.ilow2slider_callback)
         entry.grid(row=1, column=1, sticky="se")
         transparency_frame = CTk.CTkFrame(master=bottomframe, fg_color='transparent')
@@ -362,7 +380,7 @@ class Polarimetry(CTk.CTk):
         show_save = CTk.CTkFrame(master=scrollable_frame, **dict_frame)
         show_save.grid(row=0, column=0, padx=0, pady=0)
         show_save.columnconfigure(0, weight=1)
-        Label(master=show_save, text='Figures\n', width=250, fontsize=16).grid(row=0, column=0, columnspan=3, padx=20, pady=(10, 0), sticky="n")
+        Label(master=show_save, text='Figures\n', width=250, fontsize=header_fontsize).grid(row=0, column=0, columnspan=3, padx=20, pady=(10, 0), sticky="n")
         Label(master=show_save, text='Show', width=30, anchor='w').grid(row=1, column=1, padx=(10, 20), pady=0, sticky="n")
         Label(master=show_save, text='Save', width=30, anchor='w').grid(row=1, column=2, padx=(0, 50), pady=0, sticky="n")
         labels = ['Composite', 'Sticks', 'Histogram', 'Intensity']
@@ -380,7 +398,7 @@ class Polarimetry(CTk.CTk):
 
         preferences = CTk.CTkFrame(master=scrollable_frame, **dict_frame)
         preferences.grid(row=1, column=0, rowspan=3, padx=0, pady=(20, 0), sticky="n")
-        Label(master=preferences, text='Preferences\n', width=250, fontsize=16).grid(row=0, column=0, columnspan=2, padx=20, pady=(10, 0), sticky='n')
+        Label(master=preferences, text='Preferences\n', width=250, fontsize=header_fontsize).grid(row=0, column=0, columnspan=2, padx=20, pady=(10, 0), sticky='n')
         self.add_axes_checkbox = CheckBox(preferences, text='\nAxes on figures\n', command=self.add_axes_on_all_figures)
         self.add_axes_checkbox.select()
         self.add_axes_checkbox.grid(row=1, column=0, columnspan=2, padx=40, pady=0, sticky='ew')
@@ -410,7 +428,7 @@ class Polarimetry(CTk.CTk):
         self.per_roi.grid(row=0, column=2, padx=20, pady=0)
 
         save_ext = CTk.CTkFrame(master=scrollable_frame, **dict_frame)
-        Label(master=save_ext, text='Save output\n', width=250, fontsize=16).grid(row=0, column=0, columnspan=2, padx=(20, 20), pady=(10, 0), sticky="n")
+        Label(master=save_ext, text='Save output\n', width=250, fontsize=header_fontsize).grid(row=0, column=0, columnspan=2, padx=(20, 20), pady=(10, 0), sticky="n")
         save_ext.grid(row=2, column=1, padx=0, pady=(10, 0), sticky="n")
         Label(save_ext, text='Figures', anchor='w').grid(row=1, column=0, padx=(40, 0), sticky='w')
         self.figure_extension = CTk.StringVar(value='.pdf')
@@ -441,7 +459,7 @@ class Polarimetry(CTk.CTk):
         for loc, elt, cspan in zip(adv_loc, adv_elts, columnspan):
             adv.update({elt: CTk.CTkFrame(master=scrollable_frame, **dict_frame)})
             adv[elt].grid(row=loc[0], column=loc[1], padx=20, pady=(0, 20), sticky="n")
-            Label(master=adv[elt], text=elt + '\n', width=230, fontsize=16).grid(row=0, column=0, columnspan=cspan, padx=20, pady=(10, 0), sticky="n")
+            Label(master=adv[elt], text=elt + '\n', width=230, fontsize=header_fontsize).grid(row=0, column=0, columnspan=cspan, padx=20, pady=(10, 0), sticky="n")
 
         self.dark_switch = CTk.CTkSwitch(master=adv['Dark'], text='', command=self.dark_switch_callback, onvalue='on', offvalue='off', width=50)
         self.dark_switch.grid(row=0, column=0, padx=20, pady=10, sticky='ne')
@@ -491,7 +509,7 @@ class Polarimetry(CTk.CTk):
             if _ == 2:
                 tooltip = u' normalize \u03C1 with respect to this angle\n -if combined with figure rotation, reference angle is determined in the rotated figure'
             Label(adv['Rotation'], text=labels[_] + '\n', tooltip=tooltip).grid(row=_+1, column=1, padx=(0, 10), pady=(6, 3), sticky='nw')
-            entry = CTk.CTkEntry(adv['Rotation'], textvariable=self.rotation[_], width=50, justify='center')
+            entry = CTk.CTkEntry(adv['Rotation'], textvariable=self.rotation[_], width=50, justify='center', font=(default_fontname, default_fontsize, "bold"))
             entry.grid(row=_+1, column=0, padx=20, pady=0, sticky='e')
             if _ != 1:
                 entry.bind('<Return>', command=self.rotation_callback)
@@ -505,7 +523,7 @@ class Polarimetry(CTk.CTk):
             Label(master=adv['Intensity removal'], text='\n' + labels[_] + '\n', tooltip=' height and width of the bin used for intensity removal').grid(row=_+1, column=1, padx=(10, 60), pady=0, sticky='w')
         Label(master=adv['Intensity removal'], text='\nPick center of bin\n', tooltip=' pick center of the bin used for intensity removal').grid(row=3, column=1, padx=10, pady=0, sticky='w')
         Button(adv['Intensity removal'], image=self.icons['removal'], command=lambda:self.click_callback(self.intensity_axis, self.intensity_pyfig.canvas, 'click background'), tooltip=' click button and select a point on the intensity image').grid(row=3, column=0, pady=5, padx=25, sticky='e')
-        CTk.CTkEntry(adv['Intensity removal'], textvariable=self.noise[0], width=50, justify='center').grid(row=4, column=0, sticky='e', padx=23)
+        CTk.CTkEntry(adv['Intensity removal'], textvariable=self.noise[0], width=50, justify='center', font=(default_fontname, default_fontsize, "bold")).grid(row=4, column=0, sticky='e', padx=23)
         Label(adv['Intensity removal'], text='\nFactor\n', tooltip=' fraction of the mean intensity value to be substracted\n value between 0 and 1').grid(row=4, column=1, padx=10, sticky='w')
         self.intensity_removal_label = Label(master=adv['Intensity removal'], text='Removed intensity value = 0')
         self.intensity_removal_label.grid(row=5, column=0, columnspan=2, padx=(40, 10), pady=0, sticky='w')
@@ -642,7 +660,7 @@ class Polarimetry(CTk.CTk):
         else:
             if not hasattr(self, 'edge_window'):
                 self.edge_button.configure(fg_color=blue[0])
-                self.edge_window = ShowInfo(message=' Image for edge detection', image=self.icons['multiline_chart'], button_labels=['Download', 'Compute', 'Cancel'], geometry=(370, 140), fontsize=16)
+                self.edge_window = ShowInfo(message=' Image for edge detection', image=self.icons['multiline_chart'], button_labels=['Download', 'Compute', 'Cancel'], geometry=(370, 140), fontsize=18)
                 self.edge_window.protocol('WM_DELETE_WINDOW', self.cancel_edge_mask)
                 self.edge_window.bind('<Command-q>', self.cancel_edge_mask)
                 self.edge_window.bind('<Command-w>', self.cancel_edge_mask)
@@ -687,7 +705,7 @@ class Polarimetry(CTk.CTk):
             adv.update({elt: CTk.CTkFrame(
             master=self.tabview.tab('Edge Detection'), fg_color=gray[0])})
             adv[elt].pack(side=side, padx=20, pady=(10, 10))
-            Label(master=adv[elt], text=elt + '\n', width=230, fontsize=16).grid(row=0, column=0, padx=20, pady=(10,0))
+            Label(master=adv[elt], text=elt + '\n', width=230, fontsize=header_fontsize).grid(row=0, column=0, padx=20, pady=(10,0))
         params = ['Low threshold', 'High threshold', 'Length', 'Smoothing window']
         tooltips = [' hysteresis thresholding values: edges with intensity gradients\n below this value are not edges and discarded ', ' hysteresis thresholding values: edges with intensity gradients\n larger than this value are sure to be edges', ' minimum length for a contour (in pixels)', ' number of pixels in the window used for smoothing contours (in pixels)']
         self.canny_thrsh = [CTk.StringVar(value='60'), CTk.StringVar(value='100'), CTk.StringVar(value='100'), CTk.StringVar(value='20')]
@@ -1007,7 +1025,7 @@ class Polarimetry(CTk.CTk):
         label.grid(row=row, column=0, pady=15, padx=(20,0))
         string_var = CTk.StringVar(value="Select folder...")
         setattr(self, entry_variable_name, string_var)
-        entry = CTk.CTkEntry(parent, textvariable=string_var, width=250)
+        entry = CTk.CTkEntry(parent, textvariable=string_var, width=250, font=(default_fontname, default_fontsize, "bold"))
         entry.grid(row=row, column=1, pady=15, padx=20, sticky="ew")
         browse_button = CTk.CTkButton(parent, text="Browse", width=80, command=lambda: self.browse_folder(string_var))
         browse_button.grid(row=row, column=2, pady=15, padx=(0, 20))
@@ -1096,7 +1114,7 @@ class Polarimetry(CTk.CTk):
 
         if not hasattr(self, 'manager'):
             button_images = [self.icons['save'], self.icons['download'], self.icons['delete']]
-            self.manager = ROIManager(rois=self.datastack.rois if hasattr(self, 'datastack') else [], button_images=button_images, font_name=self.default_font)
+            self.manager = ROIManager(rois=self.datastack.rois if hasattr(self, 'datastack') else [], button_images=button_images)
             self.manager.protocol('WM_DELETE_WINDOW', lambda:on_closing(self.manager))
             self.manager.bind('<Command-q>', lambda:on_closing(self.manager))
             self.manager.bind('<Command-w>', lambda:on_closing(self.manager))
@@ -1280,9 +1298,9 @@ class Polarimetry(CTk.CTk):
             self.crop_window.bind('<Command-q>', lambda:self.crop_on_closing)
             self.crop_window.bind('<Command-w>', self.crop_on_closing)
             self.crop_window.focus_force()
-            Label(self.crop_window, text='  define xlim and ylim', image=self.icons['crop'], compound='left', fontsize=16, width=200).grid(row=0, column=0, columnspan=2, padx=30, pady=(30, 5))
+            Label(self.crop_window, text='  define xlim and ylim', image=self.icons['crop'], compound='left', fontsize=header_fontsize, width=200).grid(row=0, column=0, columnspan=2, padx=30, pady=(30, 5))
             self.crop_all_figs = CTk.BooleanVar(value=False)
-            self.crop_check = CheckBox(self.crop_window, text="for all", font=get_custom_default_font(size=16), variable=self.crop_all_figs, tooltip=" apply cropping to all figures instead of only those corresponding to the current stack")
+            self.crop_check = CheckBox(self.crop_window, text="for all", fontsize=header_fontsize, variable=self.crop_all_figs, tooltip=" apply cropping to all figures instead of only those corresponding to the current stack")
             self.crop_check.grid(row=0, column=2, columnspan=2, padx=(0, 30), pady=(30, 5), sticky='e')
             if not hasattr(self, 'xylim'):
                 if hasattr(self, 'datastack'):
@@ -1294,7 +1312,7 @@ class Polarimetry(CTk.CTk):
             labels = [u'\u2B62 xlim', u'\u2B63 ylim']
             positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
             for _, label in enumerate(labels):
-                Label(master=self.crop_window, text=label, fontsize=16).grid(row=_+1, column=0, padx=(20, 0), pady=0)
+                Label(master=self.crop_window, text=label, fontsize=header_fontsize).grid(row=_+1, column=0, padx=(20, 0), pady=0)
             for var, position in zip(self.xylim, positions):
                 Entry(master=self.crop_window, textvariable=var, row=position[0], column=position[1], command=self._crop_all_figures)
             banner = CTk.CTkFrame(self.crop_window)
@@ -1610,7 +1628,7 @@ class Polarimetry(CTk.CTk):
                     message = ' Angle is {:.1f}\u00b0 \n Distance is {} pixels'.format(slope, int(dist))
                     if int(self.pixel_size.get()) != 0:
                         message += ' \n Distance is {:.1f} \xb5m'.format(int(dist) * int(self.pixel_size.get()) / 1000)
-                    ShowInfo(message=message, image=self.icons['square'], button_labels = ['OK'], fontsize=14)
+                    ShowInfo(message=message, image=self.icons['square'], button_labels = ['OK'], fontsize=default_fontsize)
                     self.intensity_pyfig.canvas.draw()
                     self.compute_angle_button.configure(fg_color=orange[0])
                     self.intensity_pyfig.canvas.mpl_disconnect(self._cid1)
@@ -1626,7 +1644,7 @@ class Polarimetry(CTk.CTk):
         self.initialize_tables()
         self.clear_frame(self.variable_table_frame)
         self.variable_table_frame.configure(fg_color=gray[0])
-        Label(master=self.variable_table_frame, text='Variables\n', width=250, fontsize=16).grid(row=0, column=0, columnspan=4, padx=(20, 20), pady=(10, 0))
+        Label(master=self.variable_table_frame, text='Variables\n', width=250, fontsize=header_fontsize).grid(row=0, column=0, columnspan=4, padx=(20, 20), pady=(10, 0))
         self.variable_table_switch = CTk.CTkSwitch(master=self.variable_table_frame, text='', command=self.variable_table_switch_callback, onvalue='on', offvalue='off', width=50)
         self.variable_table_switch.grid(row=1, column=0, padx=(20, 0), sticky='w')
         labels = ['Min', 'Max']
@@ -1804,7 +1822,7 @@ class Polarimetry(CTk.CTk):
         window = CTk.CTkToplevel(self)
         window.title('PyPOLAR')
         window.geometry(geometry_info((350, 200)))
-        CTk.CTkLabel(window, text=" Enter new parameters for the registration", image=self.icons['blur_circular'], compound='left', width=250, justify=CTk.LEFT, font=get_custom_default_font(13)).grid(row=0, column=0, padx=30, pady=10)
+        CTk.CTkLabel(window, text=" Enter new parameters for the registration", image=self.icons['blur_circular'], compound='left', width=250, justify=CTk.LEFT).grid(row=0, column=0, padx=30, pady=10)
         buttons = []
         banner = CTk.CTkFrame(window, fg_color='transparent')
         banner.grid(row=1+len(query_labels), column=0)
@@ -1963,7 +1981,7 @@ class Polarimetry(CTk.CTk):
             elif ((event.button == 1 or event.button == 3) and event.dblclick) and roi.lines:
                 roi.lines += [plt.Line2D([roi.previous_point[0], roi.start_point[0]], [roi.previous_point[1], roi.start_point[1]], marker='o', color='w')]
                 self.thrsh_axis.add_line(roi.lines[-1])     
-                window = ShowInfo(message=' Add ROI?', image=self.icons['roi'], button_labels=['Yes', 'No'], fontsize=16)
+                window = ShowInfo(message=' Add ROI?', image=self.icons['roi'], button_labels=['Yes', 'No'], fontsize=header_fontsize)
                 buttons = window.get_buttons()
                 buttons[0].configure(command=lambda:self.yes_add_roi_callback(window, roi))
                 buttons[1].configure(command=lambda:self.no_add_roi_callback(window, roi))
@@ -2044,7 +2062,7 @@ class Polarimetry(CTk.CTk):
                 self.analyze_stack(self.datastack)
             self.open_file(self.filelist[0])
             self.initialize()
-            ShowInfo(message=' End of list', image=self.icons['check_circle'], button_labels=['OK'], fontsize=16)
+            ShowInfo(message=' End of list', image=self.icons['check_circle'], button_labels=['OK'], fontsize=header_fontsize)
         elif self.openfile_dropdown_value.get()=='Open file':
             self.analyze_stack(self.datastack)
         self.analysis_button.configure(image=self.icons['play'])
@@ -2378,11 +2396,11 @@ class Polarimetry(CTk.CTk):
                     def alpha2indx(a):
                         return polardir * self.stack.nangle / 180 * (a - float(self.offset_angle.get())) + 1
                     for title, ylabel, ax_ in zip(titles, ylabels, axs):
-                        ax_.set_xlabel('slice', fontsize=14)
-                        ax_.set_ylabel(ylabel, fontsize=14)
+                        ax_.set_xlabel('slice', fontsize=default_fontsize)
+                        ax_.set_ylabel(ylabel, fontsize=default_fontsize)
                         ax_.set_xlim((1, self.datastack.nangle))
                         ax_.set_xticks(indx[::2], minor=True)
-                        ax_.set_title(title, fontsize=16)
+                        ax_.set_title(title, fontsize=header_fontsize)
                         secax = ax_.secondary_xaxis('top', functions=(indx2alpha, alpha2indx))
                         secax.set_xlabel(r'$\alpha$')
                         secax.xaxis.set_major_formatter(lambda val, pos: f"{val:.0f}°")
@@ -2761,7 +2779,7 @@ class Polarimetry(CTk.CTk):
                 stack_.values[order[it]] = ims_reg[it]
             return stack_
         else:
-            ShowInfo(message=' No registration', image=self.icons['blur_circular'], button_labels=['OK'], fontsize=16)
+            ShowInfo(message=' No registration', image=self.icons['blur_circular'], button_labels=['OK'], fontsize=header_fontsize)
             self.method.set('1PF')
 
     def polar_dropdown_callback(self, order:str) -> None:

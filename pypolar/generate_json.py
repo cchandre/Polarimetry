@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-from matplotlib import font_manager
 import platform
 
 orange = ('#FF7F4F', '#ffb295')
@@ -12,26 +11,12 @@ gray = ('#7F7F7F', '#A6A6A6')
 
 os_name = platform.system()
 
-def get_native_font():
-    available_fonts = sorted(set([f.name for f in font_manager.fontManager.ttflist]))
-    font_preferences = {
-        "Darwin": ["Arial Rounded MT Bold", "Helvetica Neue", "SF Pro", "Arial"], 
-        "Windows": ["Segoe UI", "Calibri", "Arial"], 
-        "Linux": ["Ubuntu", "DejaVu Sans", "FreeSans"]}
-    preferred_fonts = font_preferences.get(os_name, ["sans-serif"])
-    for font in preferred_fonts:
-        if font in available_fonts:
-            return font
-    return "sans-serif"
-
-native_font = get_native_font()
-
 file = Path(__file__).parent / 'polarimetry.json'
 
 if not file.exists():
   data = {
     'CTk': {
-      'fg_color': gray[0]
+      'fg_color': [gray[0], gray[0]]
     },
     'CTkToplevel': {
       'fg_color': gray[0]
@@ -104,7 +89,7 @@ if not file.exists():
     },
     'CTkOptionMenu': {
       'corner_radius': 6,
-      'fg_color': orange[0],
+      'fg_color': [orange[0], orange[0]] ,
       'bg_color': 'transparent',
       'button_color': orange[0],
       'button_hover_color': orange[1],
@@ -114,7 +99,7 @@ if not file.exists():
     'CTkSegmentedButton': {
       'corner_radius': 6,
       'border_width': 0,
-      'fg_color': orange[0],
+      'fg_color': [orange[0], orange[0]],
       'selected_color': orange[0],
       'selected_hover_color': orange[1],
       'unselected_color': gray[1],
@@ -125,15 +110,15 @@ if not file.exists():
     'CTkTextbox': {
       'corner_radius': 6,
       'border_width': 0,
-      'fg_color': gray[1],
+      'fg_color': [gray[1], gray[1]],
       'border_color': 'transparent',
       'text_color': text_color,
       'scrollbar_button_color': 'gray55',
       'scrollbar_button_hover_color': 'gray40'
     },
     'DropdownMenu': {
-      'fg_color': orange[0],
-      'hover_color': orange[1],
+      'fg_color': [orange[0], orange[0]],
+      'hover_color': [orange[1], orange[1]],
       'text_color': text_color
     },
     'CTkScrollbar': {
@@ -143,23 +128,6 @@ if not file.exists():
       'button_color': 'gray55',
       'button_hover_color': 'gray40'
     },
-    'CTkFont': {
-      'macOS': {
-        'family': native_font,
-        'size': 13,
-        'weight': 'bold'
-      },
-      'Windows': {
-        'family': native_font,
-        'size': 13,
-        'weight': 'bold'
-      },
-      'Linux': {
-        'family': native_font,
-        'size': 13,
-        'weight': 'bold'
-      }
-    }
   }
 
   with file.open('w') as f:
