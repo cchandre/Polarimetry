@@ -128,6 +128,22 @@ if not file.exists():
       'button_color': 'gray55',
       'button_hover_color': 'gray40'
     },
+    'CTkFont': {
+      "macOS": {
+        "family": "Arial Rounded MT Bold",
+        "size": 13,
+        "weight": "normal"
+      },
+      "Windows": {
+        "family": "Nunito",
+        "size": 13,
+        "weight": "normal"
+      },
+      "Linux": {
+        "family": "Nunito",
+        "size": 13,
+        "weight": "normal"
+      }}
   }
 
   with file.open('w') as f:
