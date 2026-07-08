@@ -6,6 +6,8 @@ from pathlib import Path
 from collections import defaultdict
 import os
 import shutil
+import sys
+import subprocess
 import joblib
 import pickle
 import copy
@@ -175,9 +177,39 @@ class Polarimetry(CTk.CTk):
         font_dir = Path(__file__).parent / 'fonts'
         variants = ["Nunito-Medium.ttf", "Nunito-Bold.ttf", "Nunito-Italic.ttf"]
         self.nunito_family_name = "Nunito" 
+        if sys.platform == "darwin":
+            mac_fonts_dir = Path.home() / 'Library' / 'Fonts'
+            for variant in variants:
+                font_path = font_dir / variant
+                dest_path = mac_fonts_dir / variant
+                if font_path.exists() and not dest_path.exists():
+                    try:
+                        shutil.copy(font_path, dest_path)
+                    except Exception as e:
+                        print(f"Warning: Could not install {variant} to macOS fonts: {e}")
+        elif sys.platform == "linux" or sys.platform == "linux2":
+            linux_fonts_dir = Path.home() / '.local' / 'share' / 'fonts'
+            linux_fonts_dir.mkdir(parents=True, exist_ok=True)
+            fonts_added = False
+            for variant in variants:
+                font_path = font_dir / variant
+                dest_path = linux_fonts_dir / variant
+                if font_path.exists() and not dest_path.exists():
+                    try:
+                        shutil.copy(font_path, dest_path)
+                        fonts_added = True
+                    except Exception as e:
+                        print(f"Warning: Could not install {variant} to Linux fonts: {e}")
+            if fonts_added:
+                print("New fonts detected. Rebuilding Linux font cache...")
+                try:
+                    subprocess.run(["fc-cache", "-f", "-v"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    print("Fonts installed! Note: You may need to restart the application once for Tkinter to see them.")
+                except FileNotFoundError:
+                    print("Warning: 'fc-cache' command not found. Fonts may not load correctly.")
         for variant in variants:
-            font_path = os.path.join(font_dir, variant)
-            if os.path.exists(font_path):
+            font_path = font_dir / variant
+            if font_path.exists():
                 CTk.FontManager.load_font(str(font_path))
                 m_font_manager.fontManager.addfont(str(font_path))
                 prop = m_font_manager.FontProperties(fname=str(font_path))
@@ -195,7 +227,7 @@ class Polarimetry(CTk.CTk):
         base_dir = Path(__file__).parent
         image_path = base_dir / 'icons'
 
-        plt.rcParams['font.sans-serif'] = 'Arial Rounded MT Bold' if os_name == 'Darwin' else default_fontname
+        plt.rcParams['font.sans-serif'] = default_fontname
         CTk.set_default_color_theme(Path(__file__).parent / 'polarimetry.json')
 
         height = int(self.ratio_app * self.winfo_screenheight())

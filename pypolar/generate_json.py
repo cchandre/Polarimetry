@@ -130,7 +130,7 @@ if not file.exists():
     },
     'CTkFont': {
       "macOS": {
-        "family": "Arial Rounded MT Bold",
+        "family": "Nunito",
         "size": 13,
         "weight": "normal"
       },

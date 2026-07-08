@@ -3,7 +3,6 @@ import customtkinter as CTk
 import tksheet
 from pathlib import Path
 import pickle
-import json
 import roifile
 import numpy as np
 import matplotlib as mpl
