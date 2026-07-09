@@ -3,6 +3,7 @@ import customtkinter as CTk
 import tksheet
 from pathlib import Path
 import pickle
+import sys
 import roifile
 import numpy as np
 import matplotlib as mpl
@@ -28,6 +29,7 @@ button_size = (160, 40)
 header_fontsize = 19
 default_fontsize = 15
 default_fontname = "Nunito"
+default_cr = 0 if sys.platform.startswith('linux') else 6
 
 ## PyPOLAR USEFUL FUNCTIONS
 
@@ -82,7 +84,7 @@ def get_custom_default_font(size:int=default_fontsize, weight:str='bold') -> CTk
 
 class Button(CTk.CTkButton):
     def __init__(self, master, text:str=None, image:CTk.CTkImage=None, tooltip:str=None, width:int=button_size[0], height:int=button_size[1], anchor:str='w', fontsize:int=default_fontsize, weight:str='bold', **kwargs) -> None:
-        super().__init__(master, text=text, image=image, width=width, height=height, anchor=anchor, compound=tk.LEFT, **kwargs)
+        super().__init__(master, text=text, image=image, width=width, height=height, anchor=anchor, compound=tk.LEFT, corner_radius=default_cr, **kwargs)
         self.configure(font=get_custom_default_font(size=fontsize, weight=weight))
         if text is None:
             self.configure(width=height)
@@ -100,18 +102,18 @@ class Button(CTk.CTkButton):
 
 class CheckBox(CTk.CTkCheckBox):
     def __init__(self, master, text:str=None, tooltip:str=None, command:Callable=None, fontsize:int=default_fontsize, **kwargs) -> None:
-        super().__init__(master, text=text, command=command, onvalue=True, offvalue=False, width=30, font=get_custom_default_font(size=fontsize), **kwargs)
+        super().__init__(master, text=text, command=command, onvalue=True, offvalue=False, width=30, font=get_custom_default_font(size=fontsize), corner_radius=default_cr, **kwargs)
         if tooltip is not None:
             ToolTip(self, text=tooltip)
 
 class Entry(CTk.CTkFrame):
     def __init__(self, master, text:str=None, textvariable:tk.StringVar=None, command=None, tooltip:str=None, state:str='normal', row:int=0, column:int=0, padx:Union[int, Tuple[int, int]]=(10, 30), pady:Union[int, Tuple[int, int]]=5, sticky:str='e', fg_color:str=gray[0], width:int=50, **kwargs) -> None:
-        super().__init__(master, **kwargs)
+        super().__init__(master, corner_radius=default_cr, **kwargs)
         self.configure(fg_color=fg_color)
         self.grid(row=row, column=column, sticky=sticky, padx=padx, pady=pady)
         if text is not None:
             Label(self, text=text, tooltip=tooltip).grid(row=0, column=0, padx=(0, 10))
-        self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=width, justify='center', state=state, font=get_custom_default_font())
+        self.entry = CTk.CTkEntry(self, textvariable=textvariable, width=width, justify='center', state=state, font=get_custom_default_font(), corner_radius=default_cr)
         self.entry.grid(row=0, column=1)
         if command is not None:
             self.entry.bind('<Return>', lambda event: command())    
@@ -127,12 +129,12 @@ class Entry(CTk.CTkFrame):
 
 class DropDown(CTk.CTkFrame):
     def __init__(self, master, values:List[str]=[], image:CTk.CTkImage=None, tooltip:str=None, command:Callable=None, variable:tk.StringVar=None, state:str='normal', **kwargs):
-        super().__init__(master, **kwargs)
+        super().__init__(master, corner_radius=default_cr, **kwargs)
         self.configure(bg_color=orange[0], background_corner_colors=[gray[0]]*4)
         self.variable = variable
         self.icon = Button(self, image=image, tooltip=tooltip, hover=False, width=button_size[1])
         self.icon.grid(row=0, column=0)
-        self.option_menu = CTk.CTkOptionMenu(self, values=values, width=button_size[0]-button_size[1]-5, height=button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state, font=get_custom_default_font(size=default_fontsize))
+        self.option_menu = CTk.CTkOptionMenu(self, values=values, width=button_size[0]-button_size[1]-5, height=button_size[1], dynamic_resizing=False, command=command, variable=variable, state=state, font=get_custom_default_font(size=default_fontsize), corner_radius=default_cr)
         self.option_menu.grid(row=0, column=1)
 
     def set_state(self, state:str) -> None:
@@ -159,24 +161,24 @@ class Label(CTk.CTkLabel):
 
 class OptionMenu(CTk.CTkOptionMenu):
     def __init__(self, master, tooltip:str=None, **kwargs) -> None:
-        super().__init__(master, **kwargs)
+        super().__init__(master, corner_radius=default_cr, **kwargs)
         if tooltip is not None:
             ToolTip(self, text=tooltip)
 
 class SpinBox(CTk.CTkFrame):
     def __init__(self, master, from_:int=1, to_:int=20, step_size:int=1, textvariable:tk.StringVar=None, command:Callable=None, **kwargs) -> None:
-        super().__init__(master, **kwargs)
+        super().__init__(master, corner_radius=default_cr, **kwargs)
         width, updown_size = 42, 8
         self.from_, self.to_, self.step_size = from_, to_, step_size
         self.command = command
         self.configure(fg_color=gray[1]) 
         self.grid_columnconfigure((0, 2), weight=0)
         self.grid_columnconfigure(1, weight=1)
-        self.subtract_button = CTk.CTkButton(self, text=u'\u25BC', width=updown_size, height=updown_size, command=self.subtract_button_callback)
+        self.subtract_button = CTk.CTkButton(self, text=u'\u25BC', width=updown_size, height=updown_size, command=self.subtract_button_callback, corner_radius=default_cr)
         self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
         self.entry = CTk.CTkEntry(self, width=width-(2*updown_size), height=updown_size, border_width=0, justify='center', textvariable=textvariable)
         self.entry.grid(row=0, column=1, columnspan=1, padx=0, pady=0, sticky='ew')
-        self.add_button = CTk.CTkButton(self, text=u'\u25B2', width=updown_size, height=updown_size, command=self.add_button_callback)
+        self.add_button = CTk.CTkButton(self, text=u'\u25B2', width=updown_size, height=updown_size, command=self.add_button_callback, corner_radius=default_cr)
         self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
         if textvariable is None:
             self.entry.insert(0, from_)
@@ -215,7 +217,7 @@ class ShowInfo(CTk.CTkToplevel):
         self.buttons = []
         if button_labels:
             if len(button_labels) >= 2:
-                banner = CTk.CTkFrame(self, fg_color='transparent')
+                banner = CTk.CTkFrame(self, fg_color='transparent', corner_radius=default_cr)
                 banner.grid(row=1, column=0)
                 master, row_ = banner, 0
             else:

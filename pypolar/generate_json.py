@@ -141,7 +141,7 @@ if not file.exists():
       },
       "Linux": {
         "family": "Nunito",
-        "size": 13,
+        "size": -14,
         "weight": "normal"
       }}
   }
