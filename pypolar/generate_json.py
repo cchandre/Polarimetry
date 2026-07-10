@@ -13,8 +13,13 @@ os_name = platform.system()
 
 file = Path(__file__).parent / 'polarimetry.json'
 
-if not file.exists():
-  data = {
+default_cr = 0 if os_name == 'Linux' else 6
+header_fontsize = -19 if os_name == 'Linux' else 19
+default_fontsize = -15 if os_name == 'Linux' else 15
+tooltip_fontsize = -14 if os_name == 'Linux' else 13
+default_fontname = "Nunito"
+
+data = {
     'CTk': {
       'fg_color': [gray[0], gray[0]]
     },
@@ -22,20 +27,20 @@ if not file.exists():
       'fg_color': gray[0]
     },
     'CTkFrame': {
-      'corner_radius': 6,
+      'corner_radius': default_cr,
       'border_width': 0,
       'fg_color': gray[0],
       'top_fg_color': gray[0],
       'border_color': gray[1]
     },
     'CTkScrollableFrame': {
-      'corner_radius': 6,
+      'corner_radius': default_cr,
       'border_width': 0,
       'fg_color': gray[1],
       'label_fg_color': text_color
     },
     'CTkButton': {
-      'corner_radius': 6,
+      'corner_radius': default_cr,
       'border_width': 0,
       'fg_color': orange[0],
       'hover_color': orange[1],
@@ -49,7 +54,7 @@ if not file.exists():
       'text_color': text_color
     },
     'CTkEntry': {
-      'corner_radius': 6,
+      'corner_radius': default_cr,
       'border_width': 2,
       'fg_color': 'transparent',
       'border_color': gray[1],
@@ -57,7 +62,7 @@ if not file.exists():
       'placeholder_text_color': text_color
     },
     'CTkCheckbox': {
-      'corner_radius': 6,
+      'corner_radius': default_cr,
       'border_width': 3,
       'fg_color': orange[0],
       'border_color': gray[1],
@@ -88,7 +93,7 @@ if not file.exists():
       'button_hover_color': orange[1]
     },
     'CTkOptionMenu': {
-      'corner_radius': 6,
+      'corner_radius': default_cr,
       'fg_color': [orange[0], orange[0]] ,
       'bg_color': 'transparent',
       'button_color': orange[0],
@@ -97,7 +102,7 @@ if not file.exists():
       'text_color_disabled': gray[0]
     },
     'CTkSegmentedButton': {
-      'corner_radius': 6,
+      'corner_radius': default_cr,
       'border_width': 0,
       'fg_color': [orange[0], orange[0]],
       'selected_color': orange[0],
@@ -108,7 +113,7 @@ if not file.exists():
       'text_color_disabled': text_color
     },
     'CTkTextbox': {
-      'corner_radius': 6,
+      'corner_radius': default_cr,
       'border_width': 0,
       'fg_color': [gray[1], gray[1]],
       'border_color': 'transparent',
@@ -130,21 +135,21 @@ if not file.exists():
     },
     'CTkFont': {
       "macOS": {
-        "family": "Nunito",
+        "family": default_fontname,
         "size": 13,
         "weight": "normal"
       },
       "Windows": {
-        "family": "Nunito",
+        "family": default_fontname,
         "size": 13,
         "weight": "normal"
       },
       "Linux": {
-        "family": "Nunito",
+        "family": default_fontname,
         "size": -14,
         "weight": "normal"
       }}
   }
 
-  with file.open('w') as f:
-      json.dump(data, f)
+with file.open('w') as f:
+    json.dump(data, f)
