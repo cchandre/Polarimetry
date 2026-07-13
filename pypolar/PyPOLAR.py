@@ -52,7 +52,6 @@ from pypolar_classes import adjust, angle_edge, circularmean, divide_ext, find_m
 from pypolar_classes import default_fontname, default_fontsize, header_fontsize, button_size, geometry_info
 from generate_json import os_name, orange, gray, red, green, blue, text_color
 
-
 if sys.platform.startswith("win"):
     try:
         from ctypes import windll
@@ -69,7 +68,7 @@ if sys.platform.startswith("win"):
         pass
 
 mpl.use('TkAgg')
-
+CTk.deactivate_automatic_dpi_awareness() 
 CTk.set_appearance_mode('dark')
 CTk.set_window_scaling(1.0)
 CTk.set_widget_scaling(1.0)
