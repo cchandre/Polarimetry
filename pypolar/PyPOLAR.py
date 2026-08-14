@@ -1336,7 +1336,7 @@ class Polarimetry(CTk.CTk):
             self.ontab_thrsh(update=False)
 
     def crop_figures_callback(self) -> None:
-        if len(plt.get_fignums()) and (not hasattr(self, 'crop_window')):
+        if not hasattr(self, 'crop_window'):
             self.crop_window = CTk.CTkToplevel(self)
             self.crop_window.title('Crop Manager')
             self.crop_window.geometry(geometry_info((550, 230)))
@@ -1354,6 +1354,8 @@ class Polarimetry(CTk.CTk):
                 elif self.openfile_dropdown_value.get() == 'Open figure':
                     fig = plt.gcf()
                     vals = [1, fig.width, 1, fig.height]
+                else:
+                    vals = [1, 1, 1, 1]
                 self.xylim = [CTk.StringVar(value=str(val)) for val in vals]
             labels = [u'\u2B62 xlim', u'\u2B63 ylim']
             positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
