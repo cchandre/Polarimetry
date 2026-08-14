@@ -892,7 +892,7 @@ class Polarimetry(CTk.CTk):
         file_name, title = file4calib, file4calib.stem.rsplit('_', 1)[0]
         header = ['File', 'ROI', 'MeanRho', 'StdRho', 'MeanPsi', 'StdPsi', 'MeanInt', 'StdInt', 'ILow', 'N', 'Calibration', 'dark', 'offset', 'polarization', 'bin width', 'bin height']
         results, header = self.format_calibration_data(results, header)
-        self.save_calibration_excel(file_name.with_suffix('.xlsx'), results, header, title=title)
+        # self.save_calibration_excel(file_name.with_suffix('.xlsx'), results, header, title=title)
         self.save_calibration_csv(file_name, results, header)
         self.calib_disk_data = self.organize_per_disk(results, header) 
         self.plot_calibration()
