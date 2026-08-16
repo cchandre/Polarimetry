@@ -14,9 +14,9 @@ os_name = platform.system()
 file = Path(__file__).parent / 'polarimetry.json'
 
 default_cr = 0 if os_name == 'Linux' else 6
-header_fontsize = -19 if os_name == 'Linux' else 19
-default_fontsize = -15 if os_name == 'Linux' else 15
-tooltip_fontsize = -14 if os_name == 'Linux' else 13
+header_fontsize = -18 if os_name == 'Linux' else 18
+default_fontsize = -14 if os_name == 'Linux' else 14
+tooltip_fontsize = -13 if os_name == 'Linux' else 13
 default_fontname = "Nunito"
 
 data = {
@@ -136,17 +136,17 @@ data = {
     'CTkFont': {
       "macOS": {
         "family": default_fontname,
-        "size": 13,
+        "size": default_fontsize,
         "weight": "normal"
       },
       "Windows": {
         "family": default_fontname,
-        "size": 13,
+        "size": default_fontsize,
         "weight": "normal"
       },
       "Linux": {
         "family": default_fontname,
-        "size": -14,
+        "size": default_fontsize,
         "weight": "normal"
       }}
   }
