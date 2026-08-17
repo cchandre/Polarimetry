@@ -83,7 +83,7 @@ class Button(CTk.CTkButton):
         super().__init__(master, text=text, image=image, width=width, height=height, anchor=anchor, compound=tk.LEFT, **kwargs)
         self.configure(font=get_custom_default_font(size=fontsize, weight=weight))
         if text is None:
-            self.configure(width=height)
+            self.configure(width=height, anchor="center")
         if tooltip is not None:
             ToolTip(self, text=tooltip)
 
