@@ -605,7 +605,20 @@ class Polarimetry(CTk.CTk):
             f"Version: {type(self).__version__} ({type(self).__version_date__})\n\n"
             f"Website: {self.url_fresnel}\n\n"
             f"Source code: {self.url_github}\n\n\n"
-            f"PyPOLAR is based on code originally developed by Sophie Brasselet (Institut Fresnel, CNRS) \n\n\n To report bugs, send an email to\n     manos.mavrakis@cnrs.fr (Manos Mavrakis, Institut Fresnel, CNRS) \n     {self.email} (Cristel Chandre, Institut de Mathématiques de Marseille, CNRS) \n     sophie.brasselet@fresnel.fr (Sophie Brasselet, Institut Fresnel, CNRS) \n\n\n\n BSD 2-Clause License\n\n Copyright(c) 2021, Cristel Chandre\n All rights reserved. \n\n\n PyPOLAR was created using Python with packages Tkinter (CustomTkinter), NumPy, SciPy, OpenCV, scikit-image, Matplotlib, openpyxl, tksheet, colorcet, joblib, tifffile \n\n\n PyPOLAR uses Material Design icons by Google"
+            f"""Based on code originally developed by Sophie Brasselet (Institut Fresnel, CNRS).
+
+Support & Bug Reports:
+• Manos Mavrakis (Institut Fresnel, CNRS): manos.mavrakis@cnrs.fr
+• Cristel Chandre (Institut de Mathématiques de Marseille, CNRS): {self.email}
+• Sophie Brasselet (Institut Fresnel, CNRS): sophie.brasselet@fresnel.fr
+
+Technical Stack:
+Built with Python using CustomTkinter, NumPy, SciPy, OpenCV, scikit-image, Matplotlib, openpyxl, tksheet, colorcet, joblib, and tifffile. 
+UI assets include Google Material Design icons and the Nunito typeface.
+
+License:
+BSD 2-Clause License
+Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
         )
         about_textbox.pack(fill="both", expand=True, padx=30, pady=10)
         self.startup()
