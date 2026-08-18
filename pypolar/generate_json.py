@@ -11,8 +11,6 @@ gray = ('#7F7F7F', '#A6A6A6')
 
 os_name = platform.system()
 
-file = Path(__file__).parent / 'polarimetry.json'
-
 default_cr = 0 if os_name == 'Linux' else 6
 header_fontsize = -18 if os_name == 'Linux' else 18
 default_fontsize = -14 if os_name == 'Linux' else 14
@@ -151,5 +149,12 @@ data = {
       }}
   }
 
-with file.open('w') as f:
+# with file.open('w') as f:
+#     json.dump(data, f)
+
+app_dir = Path.home() / ".pypolar"
+app_dir.mkdir(parents=True, exist_ok=True)
+json_file_path = app_dir / "polarimetry.json"
+
+with open(json_file_path, 'w') as f:
     json.dump(data, f)

@@ -242,7 +242,9 @@ class Polarimetry(CTk.CTk):
         image_path = base_dir / 'icons'
 
         plt.rcParams['font.sans-serif'] = default_fontname
-        CTk.set_default_color_theme(Path(__file__).parent / 'polarimetry.json')
+        app_dir = Path.home() / ".pypolar"
+        theme_file = app_dir / "polarimetry.json"
+        CTk.set_default_color_theme(str(theme_file))
 
         height = int(self.ratio_app * self.winfo_screenheight())
         width = height + self.left_width
