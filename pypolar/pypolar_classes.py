@@ -411,7 +411,7 @@ class ROI:
 class Calibration:
     dict_1pf = {
         'no distortions': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 0],  
-        '488 (April 2026)': ['Disk_Ga0_Pa20_Ta0_Gb0_Pb0_Tb45_Gc0.1_Pc0_Tc0', 60],
+        '488 (August 2026)': ['Disk_Ga-0.1_Pa0_Ta45_Gb0.1_Pb10_Tb45_Gc-0.2_Pc0_Tc0', 60],
         '561 (April 2026)': ['Disk_Ga0.1_Pa20_Ta0_Gb0_Pb10_Tb45_Gc0.2_Pc0_Tc0', 60],
         '640 (April 2026)': ['Disk_Ga0.2_Pa10_Ta0_Gb-0.1_Pb20_Tb0_Gc0.2_Pc0_Tc0', 60],
         'other': ['Disk_Ga0_Pa0_Ta0_Gb0_Pb0_Tb0_Gc0_Pc0_Tc0', 0]}
