@@ -12,9 +12,9 @@ gray = ('#7F7F7F', '#A6A6A6')
 os_name = platform.system()
 
 default_cr = 0 if os_name == 'Linux' else 6
-header_fontsize = -18 if os_name == 'Linux' else 18
-default_fontsize = -14 if os_name == 'Linux' else 14
-tooltip_fontsize = -13 if os_name == 'Linux' else 13
+header_fontsize = 18
+default_fontsize = 14
+tooltip_fontsize = 13
 default_fontname = "Nunito"
 
 data = {

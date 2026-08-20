@@ -198,30 +198,32 @@ class Polarimetry(CTk.CTk):
                     except Exception as e:
                         print(f"Warning: Could not install {variant} to macOS fonts: {e}")
         elif sys.platform.startswith("linux"):
-            linux_fonts_dir = Path.home() / '.local' / 'share' / 'fonts'
-            linux_fonts_dir.mkdir(parents=True, exist_ok=True)
+            linux_dirs = [Path.home() / '.local' / 'share' / 'fonts', Path.home() / '.fonts']
             fonts_added = False
-            for variant in variants:
-                font_path = font_dir / variant
-                dest_path = linux_fonts_dir / variant
-                if font_path.exists() and not dest_path.exists():
-                    try:
-                        shutil.copy(font_path, dest_path)
-                        fonts_added = True
-                    except Exception as e:
-                        print(f"Warning: Could not install {variant} to Linux fonts: {e}")
+            for f_dir in linux_dirs:
+                f_dir.mkdir(parents=True, exist_ok=True)
+                for variant in variants:
+                    font_path = font_dir / variant
+                    dest_path = f_dir / variant
+                    if font_path.exists() and not dest_path.exists():
+                        try:
+                            shutil.copy(font_path, dest_path)
+                            os.chmod(dest_path, 0o644) 
+                            fonts_added = True
+                        except Exception as e:
+                            print(f"Warning: Could not install {variant} to Linux fonts: {e}")
             if fonts_added:
                 print("New fonts detected. Rebuilding Linux font cache...")
                 try:
-                    subprocess.run(["fc-cache", "-f", "-v"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    print("Fonts installed! Note: You may need to restart the application once for Tkinter to see them.")
+                    for f_dir in linux_dirs:
+                        subprocess.run(["fc-cache", "-f", "-v", str(f_dir)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    print("Fonts installed! You must restart the application for Tkinter to see them.")
                 except FileNotFoundError:
                     print("Warning: 'fc-cache' command not found. Fonts may not load correctly.")
         for variant in variants:
             font_path = font_dir / variant
             if font_path.exists():
-                if sys.platform.startswith("win"):
-                    CTk.FontManager.load_font(str(font_path))
+                CTk.FontManager.load_font(str(font_path))
                 m_font_manager.fontManager.addfont(str(font_path))
                 if "Regular" in variant:
                     prop = m_font_manager.FontProperties(fname=str(font_path))
@@ -234,14 +236,11 @@ class Polarimetry(CTk.CTk):
     def __init__(self) -> None:
         self.load_fonts()
         super().__init__()
-        if sys.platform.startswith("linux"):
-            self.tk.call('tk', 'scaling', 1.5)
 
 ## MAIN
         base_dir = Path(__file__).parent
         image_path = base_dir / 'icons'
 
-        plt.rcParams['font.sans-serif'] = default_fontname
         app_dir = Path.home() / ".pypolar"
         theme_file = app_dir / "polarimetry.json"
         CTk.set_default_color_theme(str(theme_file))
