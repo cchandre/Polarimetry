@@ -90,7 +90,7 @@ def main():
 class Polarimetry(CTk.CTk):
 
     __version__ = '2.9.4'
-    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 29, 2026', '2.9.3': 'June 22, 2026', '2.9.4': 'August 17, 2026'}
+    dict_versions = {'2.1': 'December 5, 2022', '2.2': 'January 22, 2023', '2.3': 'January 28, 2023', '2.4': 'February 2, 2023', '2.4.1': 'February 25, 2023', '2.4.2': 'March 2, 2023', '2.4.3': 'March 13, 2023', '2.4.4': 'March 29, 2023', '2.4.5': 'May 10, 2023', '2.5': 'May 23, 2023', '2.5.3': 'October 11, 2023', '2.6': 'October 16, 2023', '2.6.2': 'April 4, 2024', '2.6.3': 'July 18, 2024', '2.6.4': 'October 21, 2024', '2.7.0': 'January 6, 2025', '2.7.1': 'February 21, 2025', '2.8.0': 'May 10, 2025', '2.8.1': 'May 24, 2025', '2.9.0': 'January 6, 2026', '2.9.1': 'January 17, 2026', '2.9.2': 'April 29, 2026', '2.9.3': 'June 22, 2026', '2.9.4': 'August 21, 2026'}
     __version_date__ = dict_versions.get(__version__, date.today().strftime('%B %d, %Y'))    
 
     ratio_app = 3 / 4
@@ -134,7 +134,6 @@ class Polarimetry(CTk.CTk):
         except Exception as e:
             print(f"Could not load .icns icon: {e}")
             tk.Label(about_win, text="[PyPOLAR]", font=('Arial Rounded MT Bold', 20)).pack(pady=20)
-
         tk.Label(about_win, text="PyPOLAR", font=('Arial Rounded MT Bold', 18, "bold")).pack()
         tk.Label(about_win, text=f"Version {self.__version__} ({self.__version_date__})", font=('Arial Rounded MT Bold', 12)).pack(pady=5)
         info_text = (
@@ -2307,39 +2306,75 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
         self.show_table[2].select()
         initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
         folder = Path(fd.askdirectory(title='Select a directory', initialdir=initialdir))
-        goodvars = ['Rho', 'Rho_contour', 'Rho_angle', 'Psi', 'S2', 'S4', 'S_SHG', 'Eta', 'Int']
-        data, vars = {}, []
-        if folder.exists():
+        if not folder.exists():
+            ShowInfo(' Invalid folder path', image=self.icons['blur_circular'], button_labels=['OK'])
+            return
+        goodvars = {'Rho', 'Rho_contour', 'Rho_angle', 'Psi', 'S2', 'S4', 'S_SHG', 'Eta', 'Int'}
+        data = defaultdict(list)
+        vars_collected = []
+        # 1. Merge .mat files if enabled
+        if self.extension_table[1].get():
             for file in folder.glob('*.mat'):
                 tempdata = loadmat(str(file))
-                tempvars = list(tempdata.keys())
-                tempvars = [tempvar for tempvar in tempvars if tempvar in goodvars]
-                for tempvar in tempvars:
-                    if (tempvar in vars):
-                        data[tempvar] = np.concatenate((data[tempvar], tempdata[tempvar]), axis=None)
-                    else:
-                        vars += [tempvar]
-                        data[tempvar] = tempdata[tempvar]
-            if self.extension_table[1].get():
-                dict_ = {'polarimetry': self.method.get(), 'folder': str(folder)}
-                for var in vars:
-                    dict_.update({var: data[var]})
-                file = folder / (folder.stem + '_ConcatHisto.mat')
-                savemat(str(file), dict_)
-            for var in vars:
-                var_ = Variable(var, values=data[var])
-                display, vmin, vmax = self.get_variable(var_.indx)
-                if display:
-                    for htype in var_.type_histo:
-                        fig = plt.figure(figsize=self.figsize)
-                        fig.type, fig.var = 'Histogram', var_.name
-                        fig.canvas.manager.set_window_title(var_.name + ' Concatenated Histogram ')
-                        var_.histo(htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))
-                        if self.save_table[2].get():
-                            suffix = '(0-90)' if htype == 'polar3' else ''
-                            file = folder / (folder.stem + '_ConcatHisto' + suffix + var_.name  + self.figure_extension.get()) 
-                            self.save_fig(fig, file)
-        if len(vars) == 0:
+                for var, vals in tempdata.items():
+                    if var in goodvars:
+                        flat_vals = np.asarray(vals, dtype=float).ravel()
+                        if var not in data:
+                            vars_collected.append(var)
+                        data[var].extend(flat_vals)
+            if vars_collected:
+                mat_dict = {'polarimetry': self.method.get(), 'folder': str(folder)}
+                mat_dict.update({var: np.array(data[var]) for var in vars_collected})
+                savemat(folder / f"{folder.stem}_ConcatHisto.mat", mat_dict)
+        # 2. Merge .csv files if enabled
+        if self.extension_table[0].get():
+            csv_files = list(folder.glob('*.csv'))
+            if csv_files:
+                file_rows_list = []
+                common_vars = None
+                for file in csv_files:
+                    with open(file, 'r', newline='') as f:
+                        reader = csv.reader(f)
+                        next(reader, None)
+                        var_names = next(reader, None)
+                        rows = list(reader)                  
+                        if var_names and rows:
+                            valid_vars = set(var_names) & goodvars
+                            file_rows_list.append((var_names, rows))
+                            common_vars = valid_vars if common_vars is None else common_vars.intersection(valid_vars)
+                if common_vars:
+                    csv_vars = [v for v in goodvars if v in common_vars]                
+                    for var_names, rows in file_rows_list:
+                        arr = np.array(rows, dtype=float)
+                        for v in csv_vars:
+                            idx = var_names.index(v)
+                            data[v].extend(arr[:, idx])
+                            if v not in vars_collected:
+                                vars_collected.append(v)
+                    concat_csv = folder / f"{folder.stem}_ConcatData.csv"
+                    with open(concat_csv, 'w', newline='') as f:
+                        writer = csv.writer(f, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+                        writer.writerow([f"Concatenated data for folder: {folder.name}, date: {date.today().strftime('%B %d %Y')}"])
+                        writer.writerow(csv_vars)
+                        writer.writerows(zip(*(data[v] for v in csv_vars)))
+        final_data = {var: np.array(vals) for var, vals in data.items() if var in goodvars}
+        active_vars = [v for v in vars_collected if v in final_data]
+        # 3. Process and plot histograms
+        for var in active_vars:
+            var_ = Variable(var, values=final_data[var])
+            display, vmin, vmax = self.get_variable(var_.indx)
+            if display:
+                for htype in var_.type_histo:
+                    fig = plt.figure(figsize=self.figsize)
+                    fig.type, fig.var = 'Histogram', var_.name
+                    fig.canvas.manager.set_window_title(f"{var_.name} Concatenated Histogram")
+                    var_.histo(htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))                   
+                    if self.save_table[2].get():
+                        suffix = '(0-90)' if htype == 'polar3' else ''
+                        fig.savefig(folder / f"{folder.stem}_ConcatHisto{suffix}{var_.name}{self.figure_extension.get()}", bbox_inches='tight')
+                    if not self.show_table[2].get():
+                        plt.close(fig)
+        if not active_vars:
             ShowInfo(' Error in the selected folder', image=self.icons['blur_circular'], button_labels=['OK'])
 
     def add_intensity(self, intensity:np.ndarray, ax:plt.Axes) -> None:
