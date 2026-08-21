@@ -45,7 +45,7 @@ from itertools import permutations, chain
 from datetime import date, datetime
 import time
 import copy
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 from pypolar_classes import Stack, DataStack, Variable, ROI, Calibration, PyPOLARfigure, ROIManager, TabView, ToolTip
 from pypolar_classes import Button, CheckBox, Entry, DropDown, Label, OptionMenu, SpinBox, ShowInfo, TextBox
 from pypolar_classes import adjust, angle_edge, circularmean, divide_ext, find_matches, wrapto180
@@ -469,7 +469,7 @@ class Polarimetry(CTk.CTk):
         banner = CTk.CTkFrame(master=scrollable_frame, fg_color=gray[1])
         banner.grid(row=1, column=1, padx=40, pady=(10, 0), sticky="n")
         Button(banner, image=self.icons['query_stats'], command=self.show_individual_fit_callback, tooltip=' show an individual fit\n - zoom into the region of interest in the Rho composite\n - click this button\n - select a pixel with the crosshair on the Rho composite then click').grid(row=0, column=0, padx=(0, 20), pady=0)
-        Button(banner, image=self.icons['merge'], command=self.merge_histos, tooltip=' concatenate histograms\n - choose variables in the Variables table\n - click button to select the folder containing the .mat files').grid(row=0, column=1, padx=20, pady=0)
+        Button(banner, image=self.icons['merge'], command=self.merge_histos, tooltip='concatenate data\n - select type of data (.mat or .csv) in Save output table\n - click button to select the folder containing the data files\n\n concatenate histograms\n - click Show or/and Save Histogram in Figures table\n - choose variables in Variables table\n - follow same procedure as “concatenate data"').grid(row=0, column=1, padx=20, pady=0)
         self.per_roi = CheckBox(banner, text='per ROI', command=self.per_roi_callback, border_color=gray[0], tooltip=' show and save data/figures separately for each region of interest')
         self.per_roi.grid(row=0, column=2, padx=20, pady=0)
 
@@ -1492,12 +1492,13 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
         buttons[3].configure(command=lambda:self.export_mask_callback(window, 3))
 
     def export_mask_callback(self, window:CTk.CTkToplevel, event:int) -> None:
-        roi_map, mask = self.compute_roi_map(self.datastack)
+        roi_map = self.compute_roi_map(self.datastack)[0]
         file = self.datastack.file
         if event == 0:
             if self.per_roi.get():
                 for roi in self.datastack.rois:
-                    self.save_mask((255 * (roi_map == roi['indx'])).astype(np.uint8), file.with_name(file.stem + f'_roi{roi["indx"]}'))
+                    mask = self.get_slice_roi(roi_map, roi['indx'])
+                    self.save_mask((255 * mask).astype(np.uint8), file.with_name(file.stem + f'_roi{roi["indx"]}'))
             else:
                 self.save_mask((255 * (roi_map != 0)).astype(np.uint8), file.with_name(file.stem + '_roi'))
         elif event == 1:
@@ -1505,7 +1506,8 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
         elif event == 2:
             if self.per_roi.get():
                 for roi in self.datastack.rois:
-                    combined_mask = (roi_map == roi['indx']) * (self.datastack.intensity >= float(self.ilow.get()))
+                    mask = self.get_slice_roi(roi_map, roi['indx'])
+                    combined_mask = mask * (self.datastack.intensity >= float(self.ilow.get()))
                     self.save_mask((255 * combined_mask).astype(np.uint8), file.with_name(file.stem + f'_roi{roi["indx"]}_intensity'))
             else:
                 combined_mask = (roi_map != 0) * (self.datastack.intensity >= float(self.ilow.get()))  
@@ -2269,7 +2271,8 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
                 fig.type, fig.var = 'Histogram', var.name
                 suffix = 'for ROI ' + str(roi['indx']) if roi is not None else ''
                 fig.canvas.manager.set_window_title(var.name + ' Histogram  ' + suffix + self.datastack.stem)
-                mask = (roi_map == roi['indx']) if roi is not None else (roi_map == 1)
+                #mask = (roi_map == roi['indx']) if roi is not None else (roi_map == 1)
+                mask = self.get_slice_roi(roi_map, roi['indx'] if roi else None)
                 var.histo(mask, htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))
                 ax= fig.axes[0]
                 ax.tick_params(labelcolor='k' if self.add_axes_checkbox.get() else 'w')
@@ -2303,17 +2306,16 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
             self.plot_histo(var, datastack, roi_map)
 
     def merge_histos(self):
-        self.show_table[2].select()
         initialdir = self.stack.folder if hasattr(self, 'stack') else Path.home()
         folder = Path(fd.askdirectory(title='Select a directory', initialdir=initialdir))
         if not folder.exists():
             ShowInfo(' Invalid folder path', image=self.icons['blur_circular'], button_labels=['OK'])
             return
         goodvars = {'Rho', 'Rho_contour', 'Rho_angle', 'Psi', 'S2', 'S4', 'S_SHG', 'Eta', 'Int'}
-        data = defaultdict(list)
-        vars_collected = []
         # 1. Merge .mat files if enabled
         if self.extension_table[1].get():
+            data = defaultdict(list)
+            vars_collected = []
             for file in folder.glob('*.mat'):
                 tempdata = loadmat(str(file))
                 for var, vals in tempdata.items():
@@ -2328,6 +2330,8 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
                 savemat(folder / f"{folder.stem}_ConcatHisto.mat", mat_dict)
         # 2. Merge .csv files if enabled
         if self.extension_table[0].get():
+            data = defaultdict(list)
+            vars_collected = []
             csv_files = list(folder.glob('*.csv'))
             if csv_files:
                 file_rows_list = []
@@ -2360,20 +2364,21 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
         final_data = {var: np.array(vals) for var, vals in data.items() if var in goodvars}
         active_vars = [v for v in vars_collected if v in final_data]
         # 3. Process and plot histograms
-        for var in active_vars:
-            var_ = Variable(var, values=final_data[var])
-            display, vmin, vmax = self.get_variable(var_.indx)
-            if display:
-                for htype in var_.type_histo:
-                    fig = plt.figure(figsize=self.figsize)
-                    fig.type, fig.var = 'Histogram', var_.name
-                    fig.canvas.manager.set_window_title(f"{var_.name} Concatenated Histogram")
-                    var_.histo(htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))                   
-                    if self.save_table[2].get():
-                        suffix = '(0-90)' if htype == 'polar3' else ''
-                        fig.savefig(folder / f"{folder.stem}_ConcatHisto{suffix}{var_.name}{self.figure_extension.get()}", bbox_inches='tight')
-                    if not self.show_table[2].get():
-                        plt.close(fig)
+        if self.show_table[2].get() or self.save_table[2].get():
+            for var in active_vars:
+                var_ = Variable(var, values=final_data[var])
+                display, vmin, vmax = self.get_variable(var_.indx)
+                if display:
+                    for htype in var_.type_histo:
+                        fig = plt.figure(figsize=self.figsize)
+                        fig.type, fig.var = 'Histogram', var_.name
+                        fig.canvas.manager.set_window_title(f"{var_.name} Concatenated Histogram")
+                        var_.histo(htype=htype, vmin=vmin, vmax=vmax, colorblind=self.colorblind_checkbox.get(), rotation=float(self.rotation[1].get()), nbins=int(self.histo_nbins.get()))                   
+                        if self.save_table[2].get():
+                            suffix = '(0-90)' if htype == 'polar3' else ''
+                            fig.savefig(folder / f"{folder.stem}_ConcatHisto{suffix}{var_.name}{self.figure_extension.get()}", bbox_inches='tight')
+                        if not self.show_table[2].get():
+                            plt.close(fig)
         if not active_vars:
             ShowInfo(' Error in the selected folder', image=self.icons['blur_circular'], button_labels=['OK'])
 
@@ -2651,15 +2656,17 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
             if redraw:
                 roi_map = self.compute_roi_map(self.datastack)[0]
                 for var in self.datastack.vars:
-                        self.plot_histos(var, self.datastack, roi_map)
+                    self.save_table[2].set(False)
+                    self.plot_histos(var, self.datastack, roi_map)
 
     def plot_data(self, datastack:DataStack, roi_map:np.ndarray=None) -> None:
         self.plot_intensity(datastack)
         vars = copy.deepcopy(datastack.vars)
         if roi_map is None:
             roi_map, mask = self.compute_roi_map(datastack)
+            global_mask = np.any(mask, axis=0) if mask.ndim == 3 else mask
             for var in vars:
-                var.values *= mask
+                var.values *= global_mask
                 var.values[var.values==0] = np.nan
         for var in vars:
             self.plot_composite(var, datastack)
@@ -2686,8 +2693,8 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
                     self.save_mat(datastack, roi_map, roi=roi)
                     self.save_csv(datastack, roi_map, roi=roi)
         else:
-            self.save_mat(datastack, roi_map, roi=[])
-            self.save_csv(datastack, roi_map, roi=[])
+            self.save_mat(datastack, roi_map, roi=None)
+            self.save_csv(datastack, roi_map, roi=None)
         if self.extension_table[2].get():
             suffix = '_Stats.xlsx' if not hasattr(self, 'edge_contours') else '_Stats_c.xlsx'
             if self.filelist:
@@ -2726,8 +2733,9 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
                 images.append(Image.fromarray(im, mode='P'))
             images[0].save(self.stack.file.with_suffix('.gif'), save_all=True, append_images=images[1:], optimize=False, duration=200, loop=0)
 
-    def return_vecexcel(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}, simplify:bool=False) -> Tuple[List[float], List[str]]:
-        mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
+    def return_vecexcel(self, datastack:DataStack, roi_map:np.ndarray, roi:Optional[dict]=None, simplify:bool=False) -> Tuple[List[float], List[str]]:
+        #mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
+        mask = self.get_slice_roi(roi_map, roi['indx'] if roi else None)
         ilow = float(roi['ILow']) if roi else float(self.ilow.get())
         rho = datastack.vars[0].values
         data_vals = np.mod(2 * (rho[mask & np.isfinite(rho)] + float(self.rotation[1].get())), 360) / 2
@@ -2780,9 +2788,10 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
     def format_excel_results(self, data):
         return [f"{item:.3f}" if isinstance(item, float) else item for item in data]
 		
-    def save_csv(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
+    def save_csv(self, datastack:DataStack, roi_map:np.ndarray, roi:Optional[dict]=None) -> None:
         if self.extension_table[0].get():
-            mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
+            #mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
+            mask = self.get_slice_roi(roi_map, roi['indx'] if roi else None)
             header = f"{self.method.get()}, file: {str(datastack.file)}, date: {date.today().strftime('%B %d %Y')}"
             list_vars, list_ct_vars = ["X" , "Y"], ["X_ct", "Y_ct"]
             filter = mask & np.isfinite(datastack.vars[0].values)
@@ -2814,9 +2823,10 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
                     writer.writerow(list_ct_vars)
                     writer.writerows(zip(*data_ct_vars))
 
-    def save_mat(self, datastack:DataStack, roi_map:np.ndarray, roi:dict={}) -> None:
+    def save_mat(self, datastack:DataStack, roi_map:np.ndarray, roi:Optional[dict]=None) -> None:
         if self.extension_table[1].get():
-            mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
+            #mask = (roi_map == roi['indx']) if roi else (roi_map == 1)
+            mask = self.get_slice_roi(roi_map, roi['indx'] if roi else None)
             dict_ = {'polarimetry': self.method.get(), 'file': str(datastack.file), 'date': date.today().strftime('%B %d, %Y')}
             dict_.update({'X': datastack.xmap.astype(np.uint16), 'Y': datastack.ymap.astype(np.uint16)})
             if hasattr(self, 'edge_contours'):
@@ -2828,7 +2838,7 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
             file = datastack.file.with_name(datastack.stem + suffix + '.mat')
             savemat(file, dict_)
 
-    def compute_roi_map(self, datastack:DataStack) -> Tuple[np.ndarray, np.ndarray]:
+    def compute_roi_map_old(self, datastack:DataStack) -> Tuple[np.ndarray, np.ndarray]:
         shape = (datastack.height, datastack.width)
         roi_map = np.zeros(shape, dtype=np.int32)
         roi_ilow_map = np.zeros(shape, dtype=np.float64)
@@ -2852,6 +2862,43 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
         base_mask = self.get_mask(datastack)
         roi_mask = (base_mask != 0) & (datastack.intensity >= roi_ilow_map) & (roi_map > 0)
         return roi_map, roi_mask
+
+    def compute_roi_map(self, datastack) -> Tuple[np.ndarray, np.ndarray]:
+        shape = (datastack.height, datastack.width)
+        selected_rois = [r for r in datastack.rois if r.get('select')]
+        if not selected_rois:
+            if not datastack.rois:
+                self.per_roi.deselect()
+            roi_map = np.ones((1, *shape), dtype=np.int32)
+            ilow_vals = np.array([[[float(self.ilow.get())]]]) 
+        else:
+            num_rois = len(selected_rois)
+            roi_map = np.zeros((num_rois, *shape), dtype=np.int32)
+            ilow_vals = np.array([float(roi['ILow']) for roi in selected_rois]).reshape(num_rois, 1, 1)
+            per_roi_enabled = self.per_roi.get() 
+            temp_mask = np.zeros(shape, dtype=np.uint8)
+            for i, roi in enumerate(selected_rois):
+                verts = np.array([roi['vertices'].T], dtype=np.int32)
+                temp_mask.fill(0)
+                cv2.fillPoly(temp_mask, verts, 1)
+                mask_bool = (temp_mask == 1)
+                idx_value = roi['indx'] if per_roi_enabled else 1
+                roi_map[i, mask_bool] = idx_value
+        base_mask = self.get_mask(datastack)
+        roi_mask = (base_mask != 0) & (datastack.intensity >= ilow_vals) & (roi_map > 0)
+        return roi_map, roi_mask
+
+    def get_slice_roi(self, roi_map: np.ndarray, roi_index: Optional[int] = None) -> np.ndarray:
+        if roi_map.ndim == 2:
+            return (roi_map > 0)
+        if roi_index is None:
+            sum_roi_map = np.sum(roi_map, axis=0)
+            return (sum_roi_map > 0)
+        matches = np.any(roi_map == roi_index, axis=(1, 2))
+        if matches.any():
+            slice_idx = np.argmax(matches)
+            return (roi_map[slice_idx] > 0)
+        return np.zeros(roi_map.shape[1:], dtype=bool)
 
     def slice4polar(self, stack:Stack, str_order:str) -> Stack:
         if hasattr(self, 'registration'):
@@ -2914,7 +2961,8 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
             edge_contours, datastack.xct, datastack.yct = self.define_rho_ct(self.edge_contours)   
         else:
             edge_contours = None
-        datastack = compute_fields(field, datastack, mask, method=method, polar_dir=self.polar_dir.get(), offset_angle=float(self.offset_angle.get()), calibration=calibration, edge_contours=edge_contours, reference_angle=float(self.rotation[2].get()), rotation=float(self.rotation[0].get()), for_calib=for_calib)
+        global_mask = np.any(mask, axis=0) if mask.ndim == 3 else mask
+        datastack = compute_fields(field, datastack, global_mask, method=method, polar_dir=self.polar_dir.get(), offset_angle=float(self.offset_angle.get()), calibration=calibration, edge_contours=edge_contours, reference_angle=float(self.rotation[2].get()), rotation=float(self.rotation[0].get()), for_calib=for_calib)
         if for_calib:
             if self.per_roi.get():
                 result = []
