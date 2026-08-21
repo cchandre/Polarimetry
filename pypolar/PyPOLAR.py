@@ -682,6 +682,7 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
         self.figure_extension_optionmenu.configure(state='normal' if any(vec)==1 else 'disabled')
         
     def on_closing(self) -> None:
+        self.quit()
         plt.close('all') 
         self.destroy()
 
@@ -2656,7 +2657,7 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
             if redraw:
                 roi_map = self.compute_roi_map(self.datastack)[0]
                 for var in self.datastack.vars:
-                    self.save_table[2].set(False)
+                    self.save_table[2].deselect()
                     self.plot_histos(var, self.datastack, roi_map)
 
     def plot_data(self, datastack:DataStack, roi_map:np.ndarray=None) -> None:
