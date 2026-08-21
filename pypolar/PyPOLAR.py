@@ -1485,7 +1485,7 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
     def export_mask(self) -> None:
         if not hasattr(self, 'datastack'):
             return
-        window = ShowInfo(message=' Select output mask type: \n\n   - ROI: export ROIs as segmentation mask (per ROI or not) \n   - Intensity: export intensity-thresholded image as segmentation mask \n   - ROI \u00D7 Intensity: export intensity-thresholded ROIs as segmentation mask (per ROI or not)', image=self.icons['open_in_new'], button_labels=['ROI', 'Intensity', 'ROI \u00D7 Intensity', 'Cancel'], geometry=(530, 200))
+        window = ShowInfo(message=' Select output mask type: \n\n   - ROI: export ROIs as segmentation mask (per ROI or not) \n   - Intensity: export intensity-thresholded image as segmentation mask \n   - ROI \u00D7 Intensity: export intensity-thresholded ROIs as segmentation mask (per ROI or not)', image=self.icons['open_in_new'], button_labels=['ROI', 'Intensity', 'ROI \u00D7 Intensity', 'Cancel'], geometry=(650, 220))
         buttons = window.get_buttons()
         buttons[0].configure(command=lambda:self.export_mask_callback(window, 0))
         buttons[1].configure(command=lambda:self.export_mask_callback(window, 1))
@@ -1501,7 +1501,8 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
                     mask = self.get_slice_roi(roi_map, roi['indx'])
                     self.save_mask((255 * mask).astype(np.uint8), file.with_name(file.stem + f'_roi{roi["indx"]}'))
             else:
-                self.save_mask((255 * (roi_map != 0)).astype(np.uint8), file.with_name(file.stem + '_roi'))
+                mask = self.get_slice_roi(roi_map, None)
+                self.save_mask((255 * mask).astype(np.uint8), file.with_name(file.stem + '_roi'))
         elif event == 1:
             self.save_mask((255 * (self.datastack.intensity >= float(self.ilow.get()))).astype(np.uint8), file.with_name(file.stem + '_intensity'))
         elif event == 2:
@@ -1511,7 +1512,8 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
                     combined_mask = mask * (self.datastack.intensity >= float(self.ilow.get()))
                     self.save_mask((255 * combined_mask).astype(np.uint8), file.with_name(file.stem + f'_roi{roi["indx"]}_intensity'))
             else:
-                combined_mask = (roi_map != 0) * (self.datastack.intensity >= float(self.ilow.get()))  
+                mask = self.get_slice_roi(roi_map, None)
+                combined_mask = mask * (self.datastack.intensity >= float(self.ilow.get()))
                 self.save_mask((255 * combined_mask).astype(np.uint8), file.with_name(file.stem + '_roi_intensity'))
         window.withdraw()
 
