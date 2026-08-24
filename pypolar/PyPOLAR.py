@@ -1485,7 +1485,7 @@ Copyright (c) 2021–2026, Cristel Chandre. All rights reserved."""
     def export_mask(self) -> None:
         if not hasattr(self, 'datastack'):
             return
-        window = ShowInfo(message=' Select output mask type: \n\n   - ROI: export ROIs as segmentation mask (per ROI or not) \n   - Intensity: export intensity-thresholded image as segmentation mask \n   - ROI \u00D7 Intensity: export intensity-thresholded ROIs as segmentation mask (per ROI or not)', image=self.icons['open_in_new'], button_labels=['ROI', 'Intensity', 'ROI \u00D7 Intensity', 'Cancel'], geometry=(650, 220))
+        window = ShowInfo(message=' Select output mask type: \n\n   - ROI: export ROIs as segmentation mask (per ROI or not) \n   - Intensity: export intensity-thresholded image as segmentation mask \n   - ROI \u00D7 Intensity: export intensity-thresholded ROIs as segmentation mask (per ROI or not)', image=self.icons['open_in_new'], button_labels=['ROI', 'Intensity', 'ROI \u00D7 Intensity', 'Cancel'], geometry=(700, 220))
         buttons = window.get_buttons()
         buttons[0].configure(command=lambda:self.export_mask_callback(window, 0))
         buttons[1].configure(command=lambda:self.export_mask_callback(window, 1))
